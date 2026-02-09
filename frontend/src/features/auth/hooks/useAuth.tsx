@@ -1,4 +1,5 @@
-import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import { authApi } from '../api/authApi';
 import type { AuthState, LoginCredentials, User } from '../types/auth.types';
 
@@ -13,28 +14,24 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
-    token: null,
     isAuthenticated: false,
     isLoading: true,
   });
 
   // Initialize auth state from localStorage
   useEffect(() => {
-    const token = localStorage.getItem('token');
     const userStr = localStorage.getItem('user');
 
-    if (token && userStr) {
+    if (userStr) {
       try {
         const user = JSON.parse(userStr);
         setAuthState({
           user,
-          token,
           isAuthenticated: true,
           isLoading: false,
         });
       } catch (error) {
         console.error('Failed to parse user from localStorage:', error);
-        localStorage.removeItem('token');
         localStorage.removeItem('user');
         setAuthState(prev => ({ ...prev, isLoading: false }));
       }
@@ -47,17 +44,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const response = await authApi.login(credentials);
       
-      // Store token and user
-      localStorage.setItem('token', response.token);
+      // Store user only - authentication is via session cookie
       localStorage.setItem('user', JSON.stringify(response.user));
-      
-      if (credentials.rememberMe && response.refreshToken) {
-        localStorage.setItem('refreshToken', response.refreshToken);
-      }
 
       setAuthState({
         user: response.user,
-        token: response.token,
         isAuthenticated: true,
         isLoading: false,
       });
@@ -74,13 +65,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error('Logout API call failed:', error);
     } finally {
       // Clear local storage and state
-      localStorage.removeItem('token');
       localStorage.removeItem('user');
-      localStorage.removeItem('refreshToken');
       
       setAuthState({
         user: null,
-        token: null,
         isAuthenticated: false,
         isLoading: false,
       });
