@@ -1,8 +1,8 @@
-import { useLocation } from "react-router-dom";
+//import { useLocation } from "react-router-dom";
 import { LoginForm } from "./LoginForm";
 
 export const LoginPage = () => {
-  const location = useLocation();
+  //const location = useLocation();
 
   // Toast disabled per user request until role system is established
   // useEffect(() => {
