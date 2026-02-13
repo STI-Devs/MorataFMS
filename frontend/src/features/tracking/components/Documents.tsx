@@ -531,8 +531,8 @@ export const Documents = () => {
             {
                 isUploadModalOpen && (
                     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[150]">
-                        <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden mx-4 animate-in fade-in zoom-in duration-200">
-                            <div className="flex items-center justify-between p-4 border-b border-gray-100">
+                        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg overflow-hidden mx-4 animate-in fade-in zoom-in duration-200">
+                            <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-700">
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 rounded-lg bg-[#1a2332] flex items-center justify-center text-white shadow-sm">
                                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -540,11 +540,11 @@ export const Documents = () => {
                                         </svg>
                                     </div>
                                     <div>
-                                        <h3 className="text-lg font-bold text-gray-900">Upload files</h3>
-                                        <p className="text-xs text-gray-500">Select and upload the files of your choice</p>
+                                        <h3 className="text-lg font-bold text-gray-900 dark:text-white">Upload files</h3>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400">Select and upload the files of your choice</p>
                                     </div>
                                 </div>
-                                <button onClick={() => setIsUploadModalOpen(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                                <button onClick={() => setIsUploadModalOpen(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
                                     </svg>
@@ -553,25 +553,25 @@ export const Documents = () => {
                             <div className="p-6">
                                 <div className="relative group rounded-xl overflow-hidden mb-6 cursor-pointer">
                                     <div className="absolute inset-[-100%] bg-[conic-gradient(from_0deg,#ffffff_0deg,#3b82f6_90deg,#ffffff_180deg,#3b82f6_270deg,#ffffff_360deg)] animate-[spin_3s_linear_infinite] opacity-100" />
-                                    <div className="relative bg-white rounded-[10px] p-8 flex flex-col items-center justify-center border-[3px] border-dashed border-white bg-clip-padding">
-                                        <button className="px-5 py-2.5 bg-white border border-gray-200 rounded-lg shadow-sm text-sm font-bold text-gray-700 hover:bg-gray-50 mb-4 flex items-center gap-2 transition-all z-10">
+                                    <div className="relative bg-white dark:bg-gray-700 rounded-[10px] p-8 flex flex-col items-center justify-center border-[3px] border-dashed border-white dark:border-gray-600 bg-clip-padding">
+                                        <button className="px-5 py-2.5 bg-white dark:bg-gray-600 border border-gray-200 dark:border-gray-500 rounded-lg shadow-sm text-sm font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-500 mb-4 flex items-center gap-2 transition-all z-10">
                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                                             </svg>
                                             Upload
                                         </button>
-                                        <p className="text-sm text-gray-900 font-medium mb-1 z-10">Choose a file or drag & drop it here</p>
+                                        <p className="text-sm text-gray-900 dark:text-gray-200 font-medium mb-1 z-10">Choose a file or drag & drop it here</p>
                                         <p className="text-xs text-gray-400 z-10">Maximum 500 MB file size</p>
                                     </div>
                                 </div>
 
                                 <div className="space-y-3">
-                                    <div className="flex items-center gap-3 p-3 border border-gray-100 rounded-xl bg-white shadow-sm group cursor-pointer hover:border-gray-300 transition-colors">
+                                    <div className="flex items-center gap-3 p-3 border border-gray-100 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 shadow-sm group cursor-pointer hover:border-gray-300 dark:hover:border-gray-500 transition-colors">
                                         <div className="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center text-red-500 shrink-0 group-hover:scale-110 transition-transform duration-200">
                                             <span className="text-[10px] font-bold">PDF</span>
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-semibold text-gray-900 truncate">File.pdf</p>
+                                            <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">File.pdf</p>
                                             <div className="flex items-center gap-2 mt-0.5">
                                                 <span className="text-xs text-gray-500">2.4 MB</span>
                                                 <span className="w-1 h-1 rounded-full bg-gray-300"></span>
@@ -597,7 +597,7 @@ export const Documents = () => {
                                                     <span className="text-[10px] font-bold">DOCX</span>
                                                 </div>
                                                 <div>
-                                                    <p className="text-sm font-semibold text-gray-900 truncate">File.docx</p>
+                                                        <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">File.docx</p>
                                                     <div className="flex items-center gap-2 mt-0.5">
                                                         <span className="text-xs text-gray-500">60 KB of 120 KB</span>
                                                         <span className="w-1 h-1 rounded-full bg-gray-300"></span>
@@ -616,11 +616,11 @@ export const Documents = () => {
                                                 </svg>
                                             </button>
                                         </div>
-                                        <div className="relative w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                        <div className="relative w-full h-1.5 bg-gray-100 dark:bg-gray-600 rounded-full overflow-hidden">
                                             <div className="absolute top-0 left-0 h-full bg-[#1a2332] w-3/4 rounded-full transition-all duration-300"></div>
                                         </div>
                                         <div className="flex justify-end mt-1">
-                                            <span className="text-[10px] font-bold text-gray-600">75%</span>
+                                            <span className="text-[10px] font-bold text-gray-600 dark:text-gray-400">75%</span>
                                         </div>
                                     </div>
                                 </div>
@@ -634,28 +634,28 @@ export const Documents = () => {
             {
                 isFileDetailsOpen && selectedFile && (
                     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[100]">
-                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden mx-4 animate-in fade-in zoom-in duration-200 border border-gray-100">
-                            <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden mx-4 animate-in fade-in zoom-in duration-200 border border-gray-100 dark:border-gray-700">
+                            <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                                    <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400">
                                         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                             <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
                                             <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
                                         </svg>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <span className="text-sm font-bold text-gray-900">1 file selected</span>
-                                        <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full font-medium">{selectedFile.size}</span>
+                                        <span className="text-sm font-bold text-gray-900 dark:text-white">1 file selected</span>
+                                        <span className="text-xs text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full font-medium">{selectedFile.size}</span>
                                     </div>
                                 </div>
-                                <button onClick={() => setIsFileDetailsOpen(false)} className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg hover:bg-gray-100">
+                                <button onClick={() => setIsFileDetailsOpen(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
                                     </svg>
                                 </button>
                             </div>
-                            <div className="flex items-center border-b border-gray-100">
-                                <button className="flex-1 py-4 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-blue-600 border-r border-gray-100 transition-colors flex items-center justify-center gap-2">
+                            <div className="flex items-center border-b border-gray-100 dark:border-gray-700">
+                                <button className="flex-1 py-4 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-blue-600 dark:hover:text-blue-400 border-r border-gray-100 dark:border-gray-700 transition-colors flex items-center justify-center gap-2">
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                                     </svg>
@@ -663,7 +663,7 @@ export const Documents = () => {
                                 </button>
                                 <button
                                     onClick={() => handleDelete(selectedFile.id)}
-                                    className="flex-1 py-4 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-red-600 transition-colors flex items-center justify-center gap-2"
+                                    className="flex-1 py-4 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-red-600 dark:hover:text-red-400 transition-colors flex items-center justify-center gap-2"
                                 >
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -673,7 +673,7 @@ export const Documents = () => {
                             </div>
                             <div className="p-8">
                                 <div className="flex flex-col items-center mb-8">
-                                    <div className="w-24 h-32 bg-white border border-gray-100 shadow-sm rounded-xl flex items-center justify-center mb-4 ring-8 ring-gray-50 relative group">
+                                    <div className="w-24 h-32 bg-white dark:bg-gray-700 border border-gray-100 dark:border-gray-600 shadow-sm rounded-xl flex items-center justify-center mb-4 ring-8 ring-gray-50 dark:ring-gray-700 relative group">
                                         <div className={`w-12 h-12 flex items-center justify-center ${selectedFile.iconColor}`}>
                                             {selectedFile.type === 'pdf' ? (
                                                 <svg className="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -690,10 +690,10 @@ export const Documents = () => {
                                             )}
                                         </div>
                                     </div>
-                                    <h3 className="text-lg font-bold text-gray-900 text-center mb-1">{selectedFile.name}</h3>
+                                    <h3 className="text-lg font-bold text-gray-900 dark:text-white text-center mb-1">{selectedFile.name}</h3>
                                     <div className="flex items-center gap-2">
                                         <span className="text-xs text-gray-400">{selectedFile.size}</span>
-                                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-50 text-green-700 text-[10px] font-bold border border-green-100 uppercase tracking-wider">
+                                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-[10px] font-bold border border-green-100 dark:border-green-800 uppercase tracking-wider">
                                             <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
                                             Public
                                         </span>
@@ -702,21 +702,21 @@ export const Documents = () => {
                                 <div className="grid grid-cols-2 gap-4 mb-6 px-1">
                                     <div>
                                         <p className="text-[11px] font-bold text-gray-400 uppercase tracking-tight mb-1">File Date</p>
-                                        <p className="text-xs text-gray-900 font-semibold">{selectedFile.date}</p>
+                                        <p className="text-xs text-gray-900 dark:text-white font-semibold">{selectedFile.date}</p>
                                     </div>
                                     <div>
                                         <p className="text-[11px] font-bold text-gray-400 uppercase tracking-tight mb-1 text-right">Date Uploaded</p>
-                                        <p className="text-xs text-gray-900 font-semibold text-right">{selectedFile.uploadDate}</p>
+                                        <p className="text-xs text-gray-900 dark:text-white font-semibold text-right">{selectedFile.uploadDate}</p>
                                     </div>
                                 </div>
-                                <div className="bg-gray-50/80 rounded-2xl p-4 border border-gray-100">
+                                <div className="bg-gray-50/80 dark:bg-gray-700/50 rounded-2xl p-4 border border-gray-100 dark:border-gray-600">
                                     <div className="flex items-center gap-3">
-                                        <div className={`w-12 h-12 rounded-xl ${selectedFile.uploader.color} flex items-center justify-center text-white font-bold text-lg shadow-sm ring-4 ring-white`}>
+                                        <div className={`w-12 h-12 rounded-xl ${selectedFile.uploader.color} flex items-center justify-center text-white font-bold text-lg shadow-sm ring-4 ring-white dark:ring-gray-800`}>
                                             {selectedFile.uploader.initials}
                                         </div>
                                         <div className="flex-1">
                                             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Uploaded By</p>
-                                            <p className="text-base font-bold text-gray-900">{selectedFile.uploader.name}</p>
+                                            <p className="text-base font-bold text-gray-900 dark:text-white">{selectedFile.uploader.name}</p>
                                             <p className="text-xs text-gray-400 font-medium">{selectedFile.uploader.role}</p>
                                         </div>
                                     </div>
