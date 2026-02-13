@@ -4,6 +4,8 @@ import { ConfirmationModal } from '../../../components/ConfirmationModal';
 import { EncodeModal } from './EncodeModal';
 import { Calendar } from './Calendar';
 import { useTheme } from '../../../context/ThemeContext';
+import { StatusChart } from './StatusChart';
+
 
 interface LayoutContext {
     user?: { name: string; role: string };
@@ -36,6 +38,20 @@ export const ExportList = () => {
         { ref: 'REF-EXP-003', bl: 'BL-78542138', status: 'Delayed', color: 'bg-red-500', shipper: 'Fast Cargo Co.', vessel: 'Pacific Voyager' },
         { ref: 'REF-EXP-004', bl: 'BL-78542139', status: 'Shipped', color: 'bg-green-500', shipper: 'Metro Supplies', vessel: 'MSC Oscar' },
         { ref: 'REF-EXP-005', bl: 'BL-78542140', status: 'In Transit', color: 'bg-blue-500', shipper: 'Prime Logistics', vessel: 'Hapag-Lloyd' },
+    ];
+
+
+    // Calculate status counts for chart
+    const statusCounts = data.reduce((acc, item) => {
+        acc[item.status] = (acc[item.status] || 0) + 1;
+        return acc;
+    }, {} as Record<string, number>);
+
+    const chartData = [
+        { label: 'Shipped', value: statusCounts['Shipped'] || 0, color: '#4cd964' },
+        { label: 'Processing', value: statusCounts['Processing'] || 0, color: '#ffcc00' },
+        { label: 'Delayed', value: statusCounts['Delayed'] || 0, color: '#ff2d55' },
+        { label: 'In Transit', value: statusCounts['In Transit'] || 0, color: '#00d2ff' },
     ];
 
 
@@ -179,16 +195,26 @@ export const ExportList = () => {
                             <div
                                 key={i}
                                 onClick={() => navigate('/tracking/REF-EXPORT-001')}
-                                className="grid gap-4 py-2 items-center cursor-pointer rounded-xl transition-all duration-200 px-2 hover:bg-gray-50 hover:shadow-sm"
+                                className={`grid gap-4 py-2 items-center cursor-pointer rounded-xl transition-all duration-200 px-2 hover:shadow-sm ${theme === 'dark'
+                                    ? 'hover:bg-gray-700/50'
+                                    : 'hover:bg-gray-50'
+                                    }`}
                                 style={{ gridTemplateColumns: '1fr 2fr 1.5fr 1.5fr 80px' }}
                             >
-                                <p className="text-sm font-bold text-gray-900">{row.ref}</p>
-                                <p className="text-sm text-slate-500 font-bold">{row.shipper}</p>
-                                <p className="text-sm text-slate-500 font-bold">{row.bl}</p>
-                                <p className="text-sm text-slate-500 font-bold">{row.vessel}</p>
+                                <p className={`text-sm font-bold transition-colors duration-300 ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                                    }`}>{row.ref}</p>
+                                <p className={`text-sm font-bold transition-colors duration-300 ${theme === 'dark' ? 'text-gray-400' : 'text-slate-500'
+                                    }`}>{row.shipper}</p>
+                                <p className={`text-sm font-bold transition-colors duration-300 ${theme === 'dark' ? 'text-gray-400' : 'text-slate-500'
+                                    }`}>{row.bl}</p>
+                                <p className={`text-sm font-bold transition-colors duration-300 ${theme === 'dark' ? 'text-gray-400' : 'text-slate-500'
+                                    }`}>{row.vessel}</p>
                                 <div className="flex justify-end gap-2 px-1">
                                     <button
-                                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
+                                        className={`p-1.5 rounded-lg transition-colors ${theme === 'dark'
+                                            ? 'text-gray-400 hover:bg-gray-700 hover:text-white'
+                                            : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                                            }`}
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             setConfirmModal({
@@ -196,7 +222,7 @@ export const ExportList = () => {
                                                 title: 'Edit Export',
                                                 message: 'Are you sure you want to edit this export transaction?',
                                                 confirmText: 'Confirm Edit',
-                                                confirmButtonClass: 'bg-blue-600 hover:bg-blue-700',
+                                                confirmButtonClass: 'bg-gray-900 hover:bg-black',
                                                 onConfirm: () => {
                                                     navigate(`/tracking/${row.ref}`);
                                                 }
@@ -214,10 +240,9 @@ export const ExportList = () => {
                                                 isOpen: true,
                                                 title: 'Delete Export',
                                                 message: 'Are you sure you want to delete this export transaction? This action cannot be undone.',
-                                                confirmText: 'Delete',
-                                                confirmButtonClass: 'bg-red-600 hover:bg-red-700',
                                                 onConfirm: () => {
-                                                    console.log('Deleted', row.ref);
+                                                    /* Delete logic */
+                                                    console.log('Deleted export', row.ref);
                                                 }
                                             });
                                         }}
@@ -232,37 +257,43 @@ export const ExportList = () => {
                             </div>
                         ))}
                     </div>
+                </div>
 
-                    {/* Table Pagination */}
-                    <div className="mt-6 flex items-center justify-between border-t border-gray-100 pt-6 px-2">
-                        <div className="flex items-center gap-2">
-                            <span className="text-sm text-gray-900 font-bold">Show</span>
-                            <select className="bg-gray-50 border border-gray-200 text-gray-900 text-xs rounded-lg focus:ring-blue-500 focus:border-blue-500 p-1 px-2 outline-none cursor-pointer font-bold">
-                                <option value="5">5</option>
-                                <option value="10">10</option>
-                                <option value="25">25</option>
-                            </select>
-                            <span className="text-sm text-gray-900 font-bold">of 100 pages</span>
+                {/* Table Pagination */}
+                <div className={`mt-6 flex items-center justify-between border-t pt-6 px-2 ${theme === 'dark' ? 'border-black' : 'border-gray-100'
+                    }`}>
+                    <div className="flex items-center gap-2">
+                        <span className={`text-sm font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                            }`}>Show</span>
+                        <select className={`text-xs rounded-lg focus:ring-gray-500 focus:border-gray-500 p-1 px-2 outline-none cursor-pointer font-bold ${theme === 'dark'
+                            ? 'bg-gray-700 border-gray-600 text-white'
+                            : 'bg-gray-50 border-gray-200 text-gray-900'
+                            }`}>
+                            <option value="5">5</option>
+                            <option value="10">10</option>
+                            <option value="25">25</option>
+                        </select>
+                        <span className={`text-sm font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                            }`}>of 100 pages</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button className="p-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+                            </svg>
+                        </button>
+                        <div className="flex items-center gap-1">
+                            <button className="w-8 h-8 flex items-center justify-center rounded-lg bg-black text-white text-sm font-bold">1</button>
+                            <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-900 text-sm font-bold transition-colors">2</button>
+                            <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-900 text-sm font-bold transition-colors">3</button>
+                            <span className="text-gray-900 px-1 font-bold">...</span>
+                            <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-900 text-sm font-bold transition-colors">16</button>
                         </div>
-                        <div className="flex items-center gap-2">
-                            <button className="p-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-                                </svg>
-                            </button>
-                            <div className="flex items-center gap-1">
-                                <button className="w-8 h-8 flex items-center justify-center rounded-lg bg-black text-white text-sm font-bold">1</button>
-                                <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-900 text-sm font-bold transition-colors">2</button>
-                                <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-900 text-sm font-bold transition-colors">3</button>
-                                <span className="text-gray-900 px-1 font-bold">...</span>
-                                <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-900 text-sm font-bold transition-colors">16</button>
-                            </div>
-                            <button className="p-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                                </svg>
-                            </button>
-                        </div>
+                        <button className="p-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                            </svg>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -286,6 +317,6 @@ export const ExportList = () => {
                     // Here you would typically send data to your backend
                 }}
             />
-        </div >
+        </div>
     );
 };

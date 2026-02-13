@@ -50,19 +50,19 @@ export const TrackingDetails = () => {
                 <div className="flex items-center gap-4">
                     <button
                         onClick={() => navigate(-1)}
-                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-900"
+                        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors text-gray-900 dark:text-white"
                     >
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                         </svg>
                     </button>
                     <div>
-                        <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
+                        <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">
                             Ref No: {id}
                         </h1>
                         <div className="flex items-center gap-2 mt-1">
-                            <span className="text-sm font-bold text-gray-700">Tracking Dashboard /</span>
-                            <span className="text-sm text-gray-900 font-bold">{id}</span>
+                            <span className="text-sm font-bold text-gray-700 dark:text-gray-400">Tracking Dashboard /</span>
+                            <span className="text-sm text-gray-900 dark:text-white font-bold">{id}</span>
                         </div>
                     </div>
                 </div>
@@ -73,11 +73,11 @@ export const TrackingDetails = () => {
             </div>
 
             {/* Status Overview Card */}
-            <div className="bg-white rounded-[2rem] p-6 border border-gray-100 mb-8 shadow-sm">
+            <div className="bg-white dark:bg-gray-800 rounded-[2rem] p-6 border border-gray-100 dark:border-gray-700 mb-8 shadow-sm">
                 <div className="flex justify-between items-start">
                     <div>
-                        <h2 className="text-lg font-bold text-gray-900 mb-1">{id || 'REF-2024-001'}</h2>
-                        <p className="text-sm text-gray-700 font-bold">Bill of Lading: <span className="text-gray-900 font-bold">BL-78542136</span></p>
+                        <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-1">{id || 'REF-2024-001'}</h2>
+                        <p className="text-sm text-gray-700 dark:text-gray-300 font-bold">Bill of Lading: <span className="text-gray-900 dark:text-white font-bold">BL-78542136</span></p>
                     </div>
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-50 text-green-700 text-sm font-medium">
                         <span className="w-2 h-2 rounded-full bg-green-500"></span>
@@ -91,17 +91,17 @@ export const TrackingDetails = () => {
                 {sections.map((section, i) => (
                     <div
                         key={i}
-                        className="bg-white rounded-[2rem] p-6 border border-gray-100 shadow-md hover:border-blue-500 transition-colors group cursor-pointer"
+                        className="bg-white dark:bg-gray-800 rounded-[2rem] p-6 border border-gray-100 dark:border-gray-700 shadow-md hover:border-blue-500 transition-colors group cursor-pointer"
                     >
                         <div className="flex items-center gap-3 mb-4">
-                            <div className="p-2 bg-blue-50 text-blue-800 rounded-xl group-hover:bg-blue-100 transition-colors">
+                            <div className="p-2 bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded-xl group-hover:bg-blue-100 dark:group-hover:bg-blue-900/50 transition-colors">
                                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={section.icon} />
                                 </svg>
                             </div>
-                            <h3 className="font-bold text-gray-900">{section.title}</h3>
+                            <h3 className="font-bold text-gray-900 dark:text-white">{section.title}</h3>
                         </div>
-                        <p className={`text-sm font-bold ${section.status === 'Completed' ? 'text-green-600' : section.status === 'In Progress' ? 'text-blue-600' : 'text-gray-700'}`}>{section.status}</p>
+                        <p className={`text-sm font-bold ${section.status === 'Completed' ? 'text-green-600 dark:text-green-400' : section.status === 'In Progress' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-400'}`}>{section.status}</p>
                     </div>
                 ))}
             </div>

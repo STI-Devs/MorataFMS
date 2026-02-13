@@ -2,7 +2,7 @@ import { Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './features/auth';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthPage } from './features/auth/components/AuthPage';
-import { Documents, ExportList, ImportList, MainLayout, TrackingDetails } from './features/tracking';
+import { Documents, ExportList, ImportList, MainLayout, Profile, TrackingDetails } from './features/tracking';
 import NotFoundPage from './components/NotFoundPage';
 import LandingPage from './components/LandingPage';
 
@@ -20,6 +20,7 @@ function App() {
             <Route path="/dashboard" element={<ImportList />} />
             <Route path="/export" element={<ExportList />} />
             <Route path="/documents" element={<Documents />} />
+            <Route path="/profile" element={<Profile />} />
             <Route path="/tracking/:referenceId" element={<TrackingDetails />} />
           </Route>
 

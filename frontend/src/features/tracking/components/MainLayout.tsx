@@ -40,8 +40,14 @@ export const MainLayout = () => {
     }, []);
 
     const handleLogout = async () => {
-        await logout();
-        navigate('/login');
+        console.log('Logging out...');
+        try {
+            await logout();
+        } catch (error) {
+            console.error('Logout error:', error);
+        } finally {
+            navigate('/login');
+        }
     };
 
     const navItems = [
@@ -73,7 +79,6 @@ export const MainLayout = () => {
                             <circle cx="32" cy="32" r="30" fill="#000000" stroke="#c41e3a" strokeWidth="2" />
                             <path d="M20 32 Q32 20 44 32 Q32 44 20 32" fill="#c41e3a" />
                             <circle cx="32" cy="32" r="8" fill="white" />
-                            <path d="M28 28 L36 36 M36 28 L28 36" stroke="#1e3a5f" strokeWidth="2" />
                         </svg>
                     </div>
                     <span className={`font-bold text-sm ${theme === 'dark' || theme === 'mix' ? 'text-white' : 'text-black'
@@ -81,25 +86,19 @@ export const MainLayout = () => {
                 </div>
 
                 {/* Main Menu */}
-                <div className="mb-6">
-                    <p className={`text-[10px] uppercase tracking-wider px-2 mb-3 font-semibold ${theme === 'dark' || theme === 'mix' ? 'text-gray-400' : 'text-gray-500'
-                        }`}>Main Menu</p>
+                <div className="mb-8">
+                    <p className="text-gray-400 dark:text-gray-500 text-[11px] uppercase tracking-wider px-3 mb-4 font-bold">Main Menu</p>
                     <nav className="space-y-1">
                         {navItems.map((item) => (
                             <button
                                 key={item.label}
                                 onClick={() => item.path !== '#' && navigate(item.path)}
-                                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm ${location.pathname === item.path
-                                    ? theme === 'dark' || theme === 'mix'
-                                        ? 'bg-white/10 text-white'
-                                        : 'bg-black/10 text-black'
-                                    : theme === 'dark' || theme === 'mix'
-                                        ? 'text-gray-300 hover:bg-white/5'
-                                        : 'text-gray-600 hover:bg-black/5'
+                                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all ${location.pathname === item.path
+                                    ? 'bg-gray-900 text-white dark:bg-zinc-800 dark:text-white shadow-md'
+                                    : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-zinc-900 dark:hover:text-white'
                                     }`}
                             >
-                                <svg className={`w-5 h-5 ${theme === 'dark' || theme === 'mix' ? 'text-white' : 'text-black'
-                                    }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg className={`w-5 h-5 ${location.pathname === item.path ? 'text-white' : 'text-gray-400 group-hover:text-gray-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={item.icon} />
                                 </svg>
                                 {item.label}
@@ -109,14 +108,12 @@ export const MainLayout = () => {
                 </div>
 
                 {/* Settings */}
-                <div className="mt-8">
-                    <p className={`text-[10px] uppercase tracking-wider px-2 mb-3 font-semibold ${theme === 'dark' || theme === 'mix' ? 'text-gray-400' : 'text-gray-500'
-                        }`}>Settings</p>
+                <div className="mb-8">
+                    <p className="text-gray-400 dark:text-gray-500 text-[11px] uppercase tracking-wider px-3 mb-4 font-bold">Settings</p>
                     <nav className="space-y-1">
                         {settingsItems.map((item) => (
                             <button
                                 key={item.label}
-                                onClick={() => navigate(item.path)}
                                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm ${location.pathname === item.path
                                     ? theme === 'dark' || theme === 'mix'
                                         ? 'bg-white/10 text-white'
@@ -133,41 +130,41 @@ export const MainLayout = () => {
                                 {item.label}
                             </button>
                         ))}
-
-                        {/* Theme Toggle Button */}
-                        <button
-                            onClick={toggleTheme}
-                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm ${theme === 'dark' || theme === 'mix'
-                                    ? 'text-gray-300 hover:bg-white/5'
-                                    : 'text-gray-600 hover:bg-black/5'
-                                }`}
-                        >
-                            <svg className={`w-5 h-5 ${theme === 'dark' || theme === 'mix' ? 'text-white' : 'text-black'
-                                }`}
-                                fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={
-                                    theme === 'light' ? "M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
-                                        : theme === 'dark' ? "M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
-                                            : "M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
-                                } />
-                            </svg>
-                            {theme === 'light' ? 'Light Mode' : theme === 'dark' ? 'Dark Mode' : 'Mix Mode'}
-                        </button>
-
-                        {/* Sign Out Button */}
-                        <button
-                            onClick={handleLogout}
-                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm mt-4 ${theme === 'dark' || theme === 'mix'
-                                ? 'text-red-400 hover:bg-white/5'
-                                : 'text-red-600 hover:bg-red-50'
-                                }`}
-                        >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                            </svg>
-                            Sign Out
-                        </button>
                     </nav>
+
+                    {/* Theme Toggle Button */}
+                    <button
+                        onClick={toggleTheme}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm mt-4 ${theme === 'dark' || theme === 'mix'
+                            ? 'text-gray-300 hover:bg-white/5'
+                            : 'text-gray-600 hover:bg-black/5'
+                            }`}
+                    >
+                        <svg className={`w-5 h-5 ${theme === 'dark' || theme === 'mix' ? 'text-white' : 'text-black'
+                            }`}
+                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={
+                                theme === 'light' ? "M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
+                                    : theme === 'dark' ? "M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
+                                        : "M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
+                            } />
+                        </svg>
+                        {theme === 'light' ? 'Light Mode' : theme === 'dark' ? 'Dark Mode' : 'Mix Mode'}
+                    </button>
+
+                    {/* Sign Out Button */}
+                    <button
+                        onClick={handleLogout}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm mt-4 ${theme === 'dark' || theme === 'mix'
+                            ? 'text-red-400 hover:bg-white/5'
+                            : 'text-red-600 hover:bg-red-50'
+                            }`}
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
+                        Sign Out
+                    </button>
                 </div>
             </aside>
 
@@ -179,6 +176,6 @@ export const MainLayout = () => {
                     <Outlet context={{ user, dateTime }} />
                 </div>
             </main>
-        </div>
+        </div >
     );
 };
