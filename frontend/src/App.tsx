@@ -4,7 +4,7 @@ import { NotFoundPage } from './components/layout/NotFoundPage';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider, GuestRoute, ProtectedRoute } from './features/auth';
 import { AuthPage } from './features/auth/components/AuthPage';
-import { Documents, ExportList, ImportList, MainLayout, TrackingDashboard, TrackingDetails } from './features/tracking';
+import { Documents, ExportList, ImportList, MainLayout, Profile, TrackingDashboard, TrackingDetails } from './features/tracking';
 
 function App() {
   return (
@@ -26,6 +26,7 @@ function App() {
               <Route path="/documents" element={<Documents />} />
               <Route path="/tracking" element={<TrackingDashboard />} />
               <Route path="/tracking/:referenceId" element={<TrackingDetails />} />
+              <Route path="/profile" element={<Profile />} />
             </Route>
           </Route>
 

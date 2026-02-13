@@ -14,8 +14,8 @@ export const StatusChart = ({ data }: StatusChartProps) => {
     const spacing = 4;
 
     return (
-        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 h-full flex flex-col">
-            <h3 className="text-sm font-bold text-gray-900 mb-6">Status Overview</h3>
+        <div className="bg-white dark:bg-gray-900 rounded-[2rem] p-6 shadow-sm dark:shadow-none border border-gray-100 dark:border-gray-800 h-full flex flex-col transition-all duration-300 ease-in-out">
+            <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-6">Status Overview</h3>
             <div className="flex flex-col lg:flex-row items-center justify-center gap-8 flex-1">
                 {/* Activity Rings Chart */}
                 <div className="relative w-48 h-48 flex-shrink-0">

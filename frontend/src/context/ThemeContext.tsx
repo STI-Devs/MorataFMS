@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
-type Theme = 'light' | 'dark';
+type Theme = 'light' | 'dark' | 'mix';
 
 interface ThemeContextType {
     theme: Theme;
@@ -17,13 +17,27 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     useEffect(() => {
         const root = window.document.documentElement;
-        root.classList.remove('light', 'dark');
-        root.classList.add(theme);
+        root.classList.remove('light', 'dark', 'mix');
+
+        if (theme === 'dark') {
+            root.classList.add('dark');
+        } else if (theme === 'mix') {
+            // Mix mode behaves like light mode for the root, 
+            // but components can use the 'theme' value to style conditionally.
+            root.classList.add('light');
+        } else {
+            root.classList.add('light');
+        }
+
         localStorage.setItem('theme', theme);
     }, [theme]);
 
     const toggleTheme = () => {
-        setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
+        setTheme((prev) => {
+            if (prev === 'light') return 'dark';
+            if (prev === 'dark') return 'mix';
+            return 'light';
+        });
     };
 
     return (

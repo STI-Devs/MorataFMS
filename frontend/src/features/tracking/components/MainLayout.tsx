@@ -40,8 +40,14 @@ export const MainLayout = () => {
     }, []);
 
     const handleLogout = async () => {
-        await logout();
-        navigate('/login');
+        console.log('Logging out...');
+        try {
+            await logout();
+        } catch (error) {
+            console.error('Logout error:', error);
+        } finally {
+            navigate('/login');
+        }
     };
 
     const navItems = [
@@ -60,35 +66,44 @@ export const MainLayout = () => {
     const isDetailsPage = location.pathname.startsWith('/tracking');
 
     return (
-        <div className="bg-[#1a2332] min-h-screen flex text-gray-900 overflow-hidden">
+        <div className={`min-h-screen flex text-gray-900 dark:text-gray-50 overflow-hidden font-sans transition-colors duration-300 ease-in-out ${
+            theme === 'dark' ? 'bg-gray-950' : 'bg-gray-50'
+        } ${theme === 'mix' ? '!bg-gray-950' : ''}`}>
 
             {/* Sidebar */}
-            <aside className={`w-56 bg-[#1a2332] min-h-screen flex flex-col py-6 px-4 shrink-0 transition-all ${isDetailsPage ? 'fixed h-full z-10' : ''}`}>
+            <aside className={`w-64 min-h-screen flex flex-col py-6 px-4 shrink-0 transition-all duration-300 ease-in-out ${
+                isDetailsPage ? 'fixed h-full z-10' : ''
+            } ${
+                theme === 'light' ? 'bg-white border-r border-gray-100' : 
+                theme === 'dark' ? 'bg-gray-900' : // Removed border-r border-gray-800
+                'dark bg-gray-900 border-none text-white' // mix mode
+            }`}>
                 {/* Logo */}
-                <div className="flex items-center gap-2 px-2 mb-8 cursor-pointer" onClick={() => navigate('/dashboard')}>
-                    <div className="w-8 h-8">
+                <div className="flex items-center gap-3 px-2 mb-10 cursor-pointer" onClick={() => navigate('/dashboard')}>
+                    <div className="w-8 h-8 flex-shrink-0 text-blue-600 dark:text-white">
                         <svg viewBox="0 0 64 64" className="w-full h-full">
-                            <circle cx="32" cy="32" r="30" fill="#1e3a5f" stroke="#c41e3a" strokeWidth="2" />
+                            <circle cx="32" cy="32" r="30" fill="currentColor" className="text-gray-900 dark:text-white" />
                             <path d="M20 32 Q32 20 44 32 Q32 44 20 32" fill="#c41e3a" />
                             <circle cx="32" cy="32" r="8" fill="white" />
-                            <path d="M28 28 L36 36 M36 28 L28 36" stroke="#1e3a5f" strokeWidth="2" />
                         </svg>
                     </div>
-                    <span className="text-white font-bold text-sm">F.M. Morata</span>
+                    <span className="text-gray-900 dark:text-white font-bold text-lg tracking-tight">F.M. Morata</span>
                 </div>
 
                 {/* Main Menu */}
-                <div className="mb-6">
-                    <p className="text-gray-400 text-[10px] uppercase tracking-wider px-2 mb-3 font-semibold">Main Menu</p>
+                <div className="mb-8">
+                    <p className="text-gray-400 dark:text-gray-500 text-[11px] uppercase tracking-wider px-3 mb-4 font-bold">Main Menu</p>
                     <nav className="space-y-1">
                         {navItems.map((item) => (
                             <button
                                 key={item.label}
                                 onClick={() => item.path !== '#' && navigate(item.path)}
-                                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${location.pathname === item.path ? 'bg-white/10 text-white' : 'text-gray-300 hover:bg-white/5'
+                                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${location.pathname === item.path
+                                    ? 'bg-gray-900 text-white dark:bg-gray-800 dark:text-white shadow-md'
+                                    : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-50'
                                     }`}
                             >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg className={`w-5 h-5 ${location.pathname === item.path ? 'text-white' : 'text-gray-400 group-hover:text-gray-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={item.icon} />
                                 </svg>
                                 {item.label}
@@ -98,31 +113,38 @@ export const MainLayout = () => {
                 </div>
 
                 {/* Settings */}
-                <div className="mb-6">
-                    <p className="text-gray-400 text-[10px] uppercase tracking-wider px-2 mb-3 font-semibold">Settings</p>
+                <div className="mb-8">
+                    <p className="text-gray-400 dark:text-gray-500 text-[11px] uppercase tracking-wider px-3 mb-4 font-bold">Settings</p>
                     <nav className="space-y-1">
                         {settingsItems.map((item) => (
-                            <a
+                            <button
                                 key={item.label}
-                                href="#"
-                                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-300 text-sm hover:bg-white/5 transition-colors"
+                                onClick={() => item.label === 'Profile' && navigate('/profile')}
+                                className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-50 text-sm font-medium transition-all duration-200"
                             >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg className="w-5 h-5 text-gray-400 group-hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={item.icon} />
                                 </svg>
                                 {item.label}
-                            </a>
+                            </button>
                         ))}
                     </nav>
                 </div>
 
                 {/* Theme Toggle */}
-                <div className="mb-6">
+                <div className="mb-6 mt-auto">
                     <button
                         onClick={toggleTheme}
-                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-300 text-sm hover:bg-white/5 transition-colors"
+                        className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-50 text-sm font-medium transition-all duration-200"
                     >
                         {theme === 'light' ? (
+                            <>
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                                </svg>
+                                Light Mode
+                            </>
+                        ) : theme === 'dark' ? (
                             <>
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
@@ -132,19 +154,19 @@ export const MainLayout = () => {
                         ) : (
                             <>
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
                                 </svg>
-                                Light Mode
+                                Mix Mode
                             </>
                         )}
                     </button>
                 </div>
 
-                {/* Sign Out at bottom */}
-                <div className="mt-auto">
+                {/* Sign Out */}
+                <div>
                     <button
                         onClick={handleLogout}
-                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-300 text-sm hover:bg-white/5 transition-colors"
+                        className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-50 text-sm font-medium transition-all duration-200"
                     >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -154,9 +176,10 @@ export const MainLayout = () => {
                 </div>
             </aside>
 
-
-            {/* Main Content Area - Rounded Card Look */}
-            <main className={`flex-1 bg-white p-8 overflow-y-auto transition-all m-4 rounded-[2.5rem] shadow-2xl relative ${isDetailsPage ? 'ml-64' : ''}`}>
+            {/* Main Content Area - Separated Card Layout */}
+            <main className={`flex-1 overflow-y-auto relative m-4 rounded-[2.5rem] shadow-2xl transition-all duration-300 ease-in-out ${
+                theme === 'dark' ? 'bg-gray-900' : 'bg-white'
+            } p-8 ${isDetailsPage ? 'ml-64' : ''}`}>
                 {/* Page Content */}
                 <Outlet context={{ user, dateTime }} />
             </main>

@@ -156,7 +156,7 @@ export const TrackingDetails = () => {
                                     isInProgress ? 'bg-blue-50 text-blue-600' :
                                     'bg-gray-50 text-gray-400'
                                 }`}>
-                                    <Icon name={stage.icon as string} className="w-6 h-6" />
+                                    <Icon name={stage.icon as import('../../../components/Icon').IconName} className="w-6 h-6" />
                                 </div>
                                 <h3 className={`font-bold ${isInProgress ? 'text-blue-700' : 'text-gray-900'}`}>{stage.title}</h3>
                             </div>
