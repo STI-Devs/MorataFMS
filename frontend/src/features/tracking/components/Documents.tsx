@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { ConfirmationModal } from '../../../components/ConfirmationModal';
+import { useTheme } from '../../../context/ThemeContext';
 
 interface LayoutContext {
     user?: { name: string; role: string };
@@ -19,7 +20,8 @@ interface FileData {
 }
 
 export const Documents = () => {
-    const { user, dateTime } = useOutletContext<LayoutContext>();
+    const { user } = useOutletContext<LayoutContext>();
+    const { theme } = useTheme();
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
     const [selectedFile, setSelectedFile] = useState<FileData | null>(null);
     const [isFileDetailsOpen, setIsFileDetailsOpen] = useState(false);
@@ -127,14 +129,17 @@ export const Documents = () => {
             {/* Header */}
             <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Documents</h1>
+                    <h1 className={`text-2xl font-bold ${theme === 'dark' || theme === 'mix' ? 'text-white' : 'text-gray-900'
+                        }`}>Documents</h1>
                 </div>
                 <div className="flex items-center gap-3">
                     {/* User Profile */}
                     <div className="flex items-center gap-3 ml-4 pl-4 border-l border-gray-200">
                         <div className="text-right">
-                            <p className="text-sm font-bold text-gray-900">{user?.name || 'FirstN LastN'}</p>
-                            <p className="text-xs text-gray-500">Document in charge</p>
+                            <p className={`text-sm font-bold ${theme === 'dark' || theme === 'mix' ? 'text-white' : 'text-gray-900'
+                                }`}>{user?.name || 'FirstN LastN'}</p>
+                            <p className={`text-xs ${theme === 'dark' || theme === 'mix' ? 'text-gray-400' : 'text-gray-500'
+                                }`}>Document in charge</p>
                         </div>
                         <div className="w-10 h-10 rounded-full bg-black flex items-center justify-center text-white font-semibold shadow-sm border-2 border-white">
                             {user?.name ? user.name.split(' ').map((n) => n[0]).join('') : 'FL'}
@@ -143,34 +148,6 @@ export const Documents = () => {
                 </div>
             </div>
 
-            {/* Time & Date Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-[2rem] p-6 border border-blue-100 shadow-sm transition-colors">
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="p-2 bg-blue-100 rounded-xl">
-                            <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                        </div>
-                        <span className="text-sm font-bold text-gray-900">Current Time</span>
-                    </div>
-                    <p className="text-3xl font-bold text-gray-900 mb-1">{dateTime.time}</p>
-                    <p className="text-sm text-gray-600">Manila, Philippines</p>
-                </div>
-
-                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-[2rem] p-6 border border-blue-100 shadow-sm transition-colors">
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="p-2 bg-blue-100 rounded-xl">
-                            <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                        </div>
-                        <span className="text-sm font-bold text-gray-900">Today's Date</span>
-                    </div>
-                    <p className="text-3xl font-bold text-gray-900 mb-1">{dateTime.date}</p>
-                    <p className="text-sm text-gray-600">Manila, Philippines</p>
-                </div>
-            </div>
 
             {/* Controls Bar Above the List Card */}
             <div className="flex justify-end items-center mb-6 px-2">
@@ -180,24 +157,33 @@ export const Documents = () => {
                         <input
                             type="text"
                             placeholder="Search documents..."
-                            className="pl-10 pr-4 py-2 bg-white rounded-2xl border border-gray-200 text-sm w-64 outline-none focus:ring-2 focus:ring-blue-500 transition-all text-gray-900 font-bold"
+                            className={`pl-10 pr-4 py-2 rounded-2xl border text-sm w-64 outline-none focus:ring-2 focus:ring-blue-500 font-bold ${theme === 'dark' || theme === 'mix'
+                                ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-400'
+                                : 'bg-white border-gray-200 text-gray-900 placeholder-gray-400'
+                                }`}
                         />
-                        <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className={`w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 ${theme === 'dark' || theme === 'mix' ? 'text-gray-400' : 'text-gray-600'
+                            }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
                     </div>
 
                     {/* Sort By */}
                     <div className="flex items-center gap-2">
-                        <span className="text-sm text-slate-500 font-bold">Sort by</span>
+                        <span className={`text-sm font-bold ${theme === 'dark' || theme === 'mix' ? 'text-gray-400' : 'text-slate-500'
+                            }`}>Sort by</span>
                         <div className="relative group">
-                            <select className="appearance-none bg-white border border-gray-200 rounded-2xl pl-3 pr-10 py-2 text-sm text-slate-500 font-bold focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer transition-all hover:border-gray-300 outline-none min-w-[140px]">
+                            <select className={`appearance-none border rounded-2xl pl-3 pr-10 py-2 text-sm font-bold focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer outline-none min-w-[140px] ${theme === 'dark' || theme === 'mix'
+                                ? 'bg-gray-800 border-gray-700 text-gray-300 hover:border-gray-600'
+                                : 'bg-white border-gray-200 text-slate-500 hover:border-gray-300'
+                                }`}>
                                 <option>Date Uploaded</option>
                                 <option>Name</option>
                                 <option>Size</option>
                                 <option>Type</option>
                             </select>
-                            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 group-hover:text-gray-600 transition-colors">
+                            <div className={`absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none ${theme === 'dark' || theme === 'mix' ? 'text-gray-400' : 'text-gray-400 group-hover:text-gray-600'
+                                }`}>
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
                                 </svg>
@@ -205,14 +191,12 @@ export const Documents = () => {
                         </div>
                     </div>
 
-                    {/* Upload Button */}
-                    <button
-                        type="button"
-                        onClick={() => setIsUploadModalOpen(true)}
-                        className="flex items-center gap-2 bg-black text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-gray-900 transition-colors shadow-sm"
-                    >
+                    <button className={`flex items-center gap-2 px-4 py-2 rounded-2xl font-bold text-sm border ${theme === 'dark' || theme === 'mix'
+                        ? 'bg-gray-800 border-gray-700 text-white hover:border-gray-600'
+                        : 'bg-white border-gray-200 text-gray-900 hover:border-gray-300'
+                        }`}>
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 6v12m6-6H6" />
                         </svg>
                         Upload
                     </button>
@@ -220,16 +204,21 @@ export const Documents = () => {
             </div>
 
             {/* File List Card */}
-            <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm transition-colors overflow-hidden">
+            <div className={`rounded-[2rem] border shadow-sm transition-colors overflow-hidden ${theme === 'dark' || theme === 'mix' ? 'bg-gray-800 border-black' : 'bg-white border-gray-100'
+                }`}>
                 <div className="p-6 overflow-x-auto">
                     <table className="w-full text-left border-collapse min-w-[800px]">
                         <thead>
-                            <tr className="border-b border-gray-100 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                            <tr className={`border-b text-xs font-bold uppercase tracking-wider ${theme === 'dark' || theme === 'mix' ? 'border-black text-gray-400' : 'border-gray-100 text-slate-500'
+                                }`}>
                                 <th className="py-3 px-2 w-8">
                                     <div className="relative flex items-center justify-center group">
                                         <input
                                             type="checkbox"
-                                            className="peer w-5 h-5 rounded border-2 border-gray-900 text-transparent focus:ring-0 cursor-pointer appearance-none bg-white checked:bg-black checked:border-black transition-all shadow-md group-hover:border-blue-500"
+                                            className={`peer w-5 h-5 rounded border-2 text-transparent focus:ring-0 cursor-pointer appearance-none transition-all shadow-md ${theme === 'dark' || theme === 'mix'
+                                                ? 'bg-gray-700 border-gray-600 checked:bg-blue-500 checked:border-blue-500 group-hover:border-blue-400'
+                                                : 'bg-white border-gray-300 checked:bg-black checked:border-black group-hover:border-blue-500'
+                                                }`}
                                             checked={files.length > 0 && selectedFiles.length === files.length}
                                             onChange={handleSelectAll}
                                         />
@@ -246,18 +235,25 @@ export const Documents = () => {
                                 <th className="py-3 px-2 text-center">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="text-sm text-gray-900 font-medium">
+                        <tbody className={`text-sm font-medium ${theme === 'dark' || theme === 'mix' ? 'text-gray-300' : 'text-gray-900'
+                            }`}>
                             {files.map((file) => (
                                 <tr
                                     key={file.id}
                                     onClick={() => handleFileClick(file)}
-                                    className={`border-b border-gray-50 cursor-pointer transition-all duration-200 hover:bg-gray-50 hover:shadow-sm ${selectedFiles.includes(file.id) ? 'bg-blue-50' : ''}`}
+                                    className={`border-b cursor-pointer transition-all duration-200 hover:shadow-sm ${selectedFiles.includes(file.id)
+                                        ? (theme === 'dark' || theme === 'mix' ? 'bg-blue-900/20' : 'bg-blue-50')
+                                        : (theme === 'dark' || theme === 'mix' ? 'bg-transparent hover:bg-white/5 border-black' : 'bg-transparent hover:bg-gray-50 border-gray-50')
+                                        }`}
                                 >
                                     <td className="py-3 px-2" onClick={(e) => e.stopPropagation()}>
                                         <div className="relative flex items-center justify-center group">
                                             <input
                                                 type="checkbox"
-                                                className="peer w-5 h-5 rounded border-2 border-gray-900 text-transparent focus:ring-0 cursor-pointer appearance-none bg-white checked:bg-black checked:border-black transition-all shadow-md group-hover:border-blue-500"
+                                                className={`peer w-5 h-5 rounded border-2 text-transparent focus:ring-0 cursor-pointer appearance-none transition-all shadow-md ${theme === 'dark' || theme === 'mix'
+                                                    ? 'bg-gray-700 border-gray-600 checked:bg-blue-500 checked:border-blue-500 group-hover:border-blue-400'
+                                                    : 'bg-white border-gray-300 checked:bg-black checked:border-black group-hover:border-blue-500'
+                                                    }`}
                                                 checked={selectedFiles.includes(file.id)}
                                                 onChange={(e) => handleSelectOne(e, file.id)}
                                             />
@@ -283,30 +279,37 @@ export const Documents = () => {
                                                     </svg>
                                                 )}
                                             </div>
-                                            <span className="font-medium text-gray-900">{file.name}</span>
+                                            <span className={`font-medium ${theme === 'dark' || theme === 'mix' ? 'text-gray-200' : 'text-gray-900'
+                                                }`}>{file.name}</span>
                                         </div>
                                     </td>
-                                    <td className="py-3 px-2 text-slate-500 font-bold">{file.date}</td>
-                                    <td className="py-3 px-2 text-slate-500 font-bold">{file.uploadDate}</td>
+                                    <td className={`py-3 px-2 font-bold ${theme === 'dark' || theme === 'mix' ? 'text-gray-400' : 'text-slate-500'
+                                        }`}>{file.date}</td>
+                                    <td className={`py-3 px-2 font-bold ${theme === 'dark' || theme === 'mix' ? 'text-gray-400' : 'text-slate-500'
+                                        }`}>{file.uploadDate}</td>
                                     <td className="py-3 px-2">
                                         <div className="flex items-center gap-2">
                                             <div className={`w-6 h-6 rounded-full ${file.uploader.color} flex items-center justify-center text-[10px] font-bold text-white`}>
                                                 {file.uploader.initials}
                                             </div>
-                                            <span className="text-slate-500 font-bold">{file.uploader.name}</span>
+                                            <span className={`font-bold ${theme === 'dark' || theme === 'mix' ? 'text-gray-400' : 'text-slate-500'
+                                                }`}>{file.uploader.name}</span>
                                         </div>
                                     </td>
-                                    <td className="py-3 px-2 text-slate-500 font-bold">{file.size}</td>
+                                    <td className={`py-3 px-2 font-bold ${theme === 'dark' || theme === 'mix' ? 'text-gray-400' : 'text-slate-500'
+                                        }`}>{file.size}</td>
                                     <td className="py-3 px-2 text-center">
                                         <div className="flex items-center justify-center gap-1">
-                                            <button className="p-1.5 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors" title="Download">
+                                            <button className={`p-1.5 rounded-lg transition-colors ${theme === 'dark' || theme === 'mix' ? 'text-blue-400 hover:bg-white/10' : 'text-blue-600 hover:bg-blue-50'
+                                                }`} title="Download">
                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                                                 </svg>
                                             </button>
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); handleDelete(file.id); }}
-                                                className="p-1.5 text-gray-600 hover:bg-red-50 hover:text-red-500 rounded-lg transition-colors"
+                                                className={`p-1.5 rounded-lg transition-colors ${theme === 'dark' || theme === 'mix' ? 'text-red-400 hover:bg-red-900/30' : 'text-red-500 hover:bg-red-50'
+                                                    }`}
                                                 title="Delete"
                                             >
                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -322,8 +325,10 @@ export const Documents = () => {
                 </div>
 
                 {selectedFiles.length > 0 && (
-                    <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex items-center justify-between animate-in slide-in-from-top-2 duration-200">
-                        <span className="text-sm text-gray-900 font-bold">{selectedFiles.length} files selected</span>
+                    <div className={`px-6 py-4 border-t flex items-center justify-between animate-in slide-in-from-top-2 duration-200 ${theme === 'dark' || theme === 'mix' ? 'border-black bg-gray-900/50' : 'border-gray-100 bg-gray-50'
+                        }`}>
+                        <span className={`text-sm font-bold ${theme === 'dark' || theme === 'mix' ? 'text-white' : 'text-gray-900'
+                            }`}>{selectedFiles.length} files selected</span>
                         <div className="flex items-center gap-3">
                             <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:text-blue-600 transition-colors flex items-center gap-2">
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

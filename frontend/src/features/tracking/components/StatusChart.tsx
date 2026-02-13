@@ -1,8 +1,11 @@
+import { useTheme } from '../../../context/ThemeContext';
+
 interface StatusChartProps {
     data: { label: string; value: number; color: string }[];
 }
 
 export const StatusChart = ({ data }: StatusChartProps) => {
+    const { theme } = useTheme();
     const total = data.reduce((sum, item) => sum + item.value, 0);
     const sortedData = [...data].sort((a, b) => b.value - a.value);
 
@@ -14,8 +17,12 @@ export const StatusChart = ({ data }: StatusChartProps) => {
     const spacing = 4;
 
     return (
-        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 h-full flex flex-col">
-            <h3 className="text-sm font-bold text-gray-900 mb-6">Status Overview</h3>
+        <div className={`rounded-[2rem] p-6 shadow-sm border h-full flex flex-col ${theme === 'dark'
+            ? 'bg-gray-800 border-black'
+            : 'bg-white border-white'
+            }`}>
+            <h3 className={`text-sm font-bold mb-6 ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                }`}>Status Overview</h3>
             <div className="flex flex-col lg:flex-row items-center justify-center gap-8 flex-1">
                 {/* Activity Rings Chart */}
                 <div className="relative w-48 h-48 flex-shrink-0">
@@ -71,8 +78,10 @@ export const StatusChart = ({ data }: StatusChartProps) => {
                                 style={{ backgroundColor: item.color }}
                             ></div>
                             <div className="min-w-0">
-                                <p className="text-gray-900 font-bold text-xs truncate uppercase tracking-tight">{item.label}</p>
-                                <p className="text-slate-400 font-semibold text-[10px]">{item.value} Units</p>
+                                <p className={`font-bold text-xs truncate uppercase tracking-tight ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                                    }`}>{item.label}</p>
+                                <p className={`font-semibold text-[10px] ${theme === 'dark' ? 'text-gray-400' : 'text-slate-400'
+                                    }`}>{item.value} {item.label}</p>
                             </div>
                         </div>
                     ))}

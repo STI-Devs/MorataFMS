@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { ConfirmationModal } from '../../../components/ConfirmationModal';
 import { EncodeModal } from './EncodeModal';
-import { StatusChart } from './StatusChart';
+import { Calendar } from './Calendar';
+import { useTheme } from '../../../context/ThemeContext';
 
 interface LayoutContext {
     user?: { name: string; role: string };
@@ -11,6 +12,7 @@ interface LayoutContext {
 
 export const ExportList = () => {
     const navigate = useNavigate();
+    const { theme } = useTheme();
     const [isEncodeModalOpen, setIsEncodeModalOpen] = useState(false);
     const [confirmModal, setConfirmModal] = useState<{
         isOpen: boolean;
@@ -36,37 +38,33 @@ export const ExportList = () => {
         { ref: 'REF-EXP-005', bl: 'BL-78542140', status: 'In Transit', color: 'bg-blue-500', shipper: 'Prime Logistics', vessel: 'Hapag-Lloyd' },
     ];
 
-    // Calculate status counts
-    const statusCounts = data.reduce((acc, item) => {
-        acc[item.status] = (acc[item.status] || 0) + 1;
-        return acc;
-    }, {} as Record<string, number>);
-
-    const chartData = [
-        { label: 'Shipped', value: statusCounts['Shipped'] || 0, color: '#4cd964' },
-        { label: 'Processing', value: statusCounts['Processing'] || 0, color: '#ffcc00' },
-        { label: 'Delayed', value: statusCounts['Delayed'] || 0, color: '#ff2d55' },
-        { label: 'In Transit', value: statusCounts['In Transit'] || 0, color: '#00d2ff' },
-    ];
 
     return (
         <div className="space-y-6">
             {/* Header */}
             <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Export Transactions</h1>
-                    <p className="text-sm text-gray-900 font-bold">Dashboard / Export Transactions</p>
+                    <h1 className={`text-2xl font-bold transition-colors duration-300 ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                        }`}>Export Transactions</h1>
+                    <p className={`text-sm font-bold transition-colors duration-300 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-900'
+                        }`}>Dashboard / Export Transactions</p>
                 </div>
 
                 <div className="flex items-center gap-4">
-                    <button className="p-2 bg-white rounded-lg border border-gray-200 hover:bg-gray-50">
-                        <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <button className={`p-2 rounded-lg border transition-colors duration-300 ${theme === 'dark'
+                        ? 'bg-gray-800 border-gray-700 hover:bg-gray-700'
+                        : 'bg-white border-gray-200 hover:bg-gray-50'
+                        }`}>
+                        <svg className={`w-5 h-5 transition-colors duration-300 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+                            }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                         </svg>
                     </button>
                     <div className="text-right">
-                        <p className="text-sm font-semibold text-gray-900">{user?.name || 'FirstN LastN'}</p>
-                        <p className="text-xs text-gray-500">Document In Charge</p>
+                        <p className={`text-sm font-semibold transition-colors duration-300 ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                            }`}>{user?.name || 'FirstN LastN'}</p>
+                        <p className={`text-xs transition-colors duration-300 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                            }`}>Document In Charge</p>
                     </div>
                     <div className="w-10 h-10 rounded-full bg-black flex items-center justify-center text-white font-semibold border-2 border-white shadow-md">
                         {user?.name ? user.name.split(' ').map((n: string) => n[0]).join('') : 'FL'}
@@ -76,42 +74,45 @@ export const ExportList = () => {
 
             {/* Stats Row */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
-                {/* Time & Date Cards - Stacked vertically */}
-                <div className="flex flex-col gap-6">
-                    {/* Time Card */}
-                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-sky-50 dark:to-blue-100 rounded-[2rem] p-6 border border-blue-100 dark:border-blue-200 flex-1 shadow-sm transition-colors">
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="p-2 bg-blue-100 dark:bg-white/50 rounded-xl">
-                                <svg className="w-5 h-5 text-blue-600 dark:text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                            </div>
-                            <span className="text-sm font-medium text-gray-600">Current Time</span>
+                {/* Time Card */}
+                <div className={`rounded-[2rem] p-8 border shadow-sm transition-all duration-300 ${theme === 'light'
+                    ? 'bg-gradient-to-br from-blue-50 to-indigo-50 border-white'
+                    : theme === 'dark'
+                        ? 'bg-gradient-to-br from-gray-800 to-gray-900 border-black'
+                        : 'bg-gradient-to-br from-purple-900/20 to-blue-900/20 border-purple-500/30'
+                    }`}>
+                    <div className="flex flex-col items-center justify-center h-full">
+                        <p className={`text-5xl font-bold mb-3 transition-colors duration-300 ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                            }`}>{dateTime.time}</p>
+                        <p className={`text-sm font-medium mb-4 transition-colors duration-300 ${theme === 'light'
+                            ? 'text-gray-600'
+                            : theme === 'dark'
+                                ? 'text-gray-400'
+                                : 'text-purple-300'
+                            }`}>{dateTime.date}</p>
+                        <div className="flex items-center justify-center gap-2">
+                            <svg className={`w-4 h-4 transition-colors duration-300 ${theme === 'light'
+                                ? 'text-red-500'
+                                : theme === 'dark'
+                                    ? 'text-red-400'
+                                    : 'text-red-400'
+                                }`} fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                            </svg>
+                            <p className={`text-sm transition-colors duration-300 ${theme === 'light'
+                                ? 'text-gray-600'
+                                : theme === 'dark'
+                                    ? 'text-gray-400'
+                                    : 'text-purple-300'
+                                }`}>Manila, Philippines</p>
                         </div>
-                        <p className="text-3xl font-bold text-gray-900 mb-1">{dateTime.time}</p>
-                        <p className="text-sm text-gray-600">Manila, Philippines</p>
-                    </div>
-
-                    {/* Date Card */}
-                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-sky-50 dark:to-blue-100 rounded-[2rem] p-6 border border-blue-100 dark:border-blue-200 flex-1 shadow-sm transition-colors">
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="p-2 bg-blue-100 dark:bg-white/50 rounded-xl">
-                                <svg className="w-5 h-5 text-blue-600 dark:text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                </svg>
-                            </div>
-                            <span className="text-sm font-medium text-gray-600">Today's Date</span>
-                        </div>
-                        <p className="text-3xl font-bold text-gray-900 mb-1">{dateTime.date}</p>
-                        <p className="text-sm text-gray-600">Manila, Philippines</p>
                     </div>
                 </div>
 
-                {/* Status Chart */}
-                <div className="h-full">
-                    <StatusChart data={chartData} />
-                </div>
+                {/* Calendar */}
+                <Calendar currentDate={new Date()} />
             </div>
+
 
             {/* Controls Bar Above the List Card */}
             <div className="flex justify-end items-center mb-6 px-2">
@@ -120,9 +121,13 @@ export const ExportList = () => {
                         <input
                             type="text"
                             placeholder="Search anything"
-                            className="pl-10 pr-4 py-2 bg-white rounded-2xl border border-gray-200 text-sm w-64 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 font-medium"
+                            className={`pl-10 pr-4 py-2 rounded-2xl border text-sm w-64 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none font-medium transition-colors duration-300 ${theme === 'dark'
+                                ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-400'
+                                : 'bg-white border-gray-200 text-gray-900 placeholder-gray-500'
+                                }`}
                         />
-                        <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className={`w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 transition-colors duration-300 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                            }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
                     </div>
@@ -147,16 +152,25 @@ export const ExportList = () => {
             </div>
 
             {/* Transaction List Card */}
-            <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm transition-colors overflow-hidden">
+            <div className={`rounded-[2rem] border shadow-sm transition-all duration-300 overflow-hidden ${theme === 'dark'
+                ? 'bg-gray-800 border-black'
+                : 'bg-white border-white'
+                }`}>
                 <div className="p-6">
                     {/* Table Header */}
-                    <div className="grid gap-4 pb-3 border-b border-gray-100 mb-3 px-2 font-bold"
+                    <div className={`grid gap-4 pb-3 mb-3 px-2 font-bold border-b transition-colors duration-300 ${theme === 'dark' ? 'border-black' : 'border-white'
+                        }`}
                         style={{ gridTemplateColumns: '1fr 2fr 1.5fr 1.5fr 80px' }}>
-                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Ref ID</span>
-                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Shipper</span>
-                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Bill of Lading</span>
-                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Vessel</span>
-                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Actions</span>
+                        <span className={`text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${theme === 'dark' ? 'text-gray-400' : 'text-slate-500'
+                            }`}>Ref ID</span>
+                        <span className={`text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${theme === 'dark' ? 'text-gray-400' : 'text-slate-500'
+                            }`}>Shipper</span>
+                        <span className={`text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${theme === 'dark' ? 'text-gray-400' : 'text-slate-500'
+                            }`}>Bill of Lading</span>
+                        <span className={`text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${theme === 'dark' ? 'text-gray-400' : 'text-slate-500'
+                            }`}>Vessel</span>
+                        <span className={`text-xs font-bold uppercase tracking-wider text-right transition-colors duration-300 ${theme === 'dark' ? 'text-gray-400' : 'text-slate-500'
+                            }`}>Actions</span>
                     </div>
 
                     {/* Table Rows */}
@@ -207,7 +221,7 @@ export const ExportList = () => {
                                                 }
                                             });
                                         }}
-                                        className="p-1.5 text-gray-600 hover:bg-red-50 hover:text-red-500 rounded-lg transition-colors"
+                                        className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                                         title="Delete"
                                     >
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -272,6 +286,6 @@ export const ExportList = () => {
                     // Here you would typically send data to your backend
                 }}
             />
-        </div>
+        </div >
     );
 };
