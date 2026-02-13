@@ -1,10 +1,11 @@
 import type { ReactNode } from 'react';
 import { createContext, useEffect, useState } from 'react';
 import { authApi } from '../api/authApi';
-import type { AuthState, LoginCredentials, User } from '../types/auth.types';
+import type { AuthState, LoginCredentials, RegisterCredentials, User } from '../types/auth.types';
 
 interface AuthContextType extends AuthState {
   login: (credentials: LoginCredentials) => Promise<void>;
+  register: (credentials: RegisterCredentials) => Promise<void>;
   logout: () => Promise<void>;
   setUser: (user: User | null) => void;
 }
@@ -86,8 +87,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }));
   };
 
+  const register = async (credentials: RegisterCredentials) => {
+    try {
+      const response = await authApi.register(credentials);
+
+      localStorage.setItem('user', JSON.stringify(response.user));
+
+      setAuthState({
+        user: response.user,
+        isAuthenticated: true,
+        isLoading: false,
+      });
+    } catch (error) {
+      console.error('Registration failed:', error);
+      throw error;
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ ...authState, login, logout, setUser }}>
+    <AuthContext.Provider value={{ ...authState, login, register, logout, setUser }}>
       {children}
     </AuthContext.Provider>
   );

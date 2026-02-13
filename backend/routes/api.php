@@ -12,15 +12,3 @@ Route::prefix('auth')->group(function () {
 Route::middleware(['auth:sanctum'])->get('/user', function (Request $request) {
     return $request->user();
 });
-
-Route::get('/hello', function () {
-    return response()->json([
-        'message' => 'Hello, World!',
-        'status' => 'success',
-        'my_name' => 'Sean'
-    ]);
-});
-
-Route::get('/users', function () {
-    return UserResource::collection(User::all());
-});
