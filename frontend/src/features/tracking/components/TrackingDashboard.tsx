@@ -48,13 +48,11 @@ export const TrackingDashboard = () => {
         fetchData();
     }, []);
 
-    // Filter logic
     const filteredData = transactions.filter(t => 
         t.ref.toLowerCase().includes(filter.toLowerCase()) ||
         t.bl.toLowerCase().includes(filter.toLowerCase())
     );
 
-    // KPI Calculations
     const totalActive = transactions.filter(t => t.status !== 'Cleared' && t.status !== 'Shipped').length;
     const totalImports = transactions.filter(t => 'importer' in t).length;
     const totalExports = transactions.filter(t => 'shipper' in t).length;
@@ -71,32 +69,31 @@ export const TrackingDashboard = () => {
 
             {/* KPI Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
+                <div className="bg-surface p-6 rounded-2xl border border-border shadow-sm flex items-center justify-between">
                     <div>
-                        <p className="text-sm text-gray-500 font-bold uppercase">Active Shipments</p>
-                        <p className="text-3xl font-bold text-gray-900 mt-2">{totalActive}</p>
+                        <p className="text-sm text-text-secondary font-bold uppercase">Active Shipments</p>
+                        <p className="text-3xl font-bold text-text-primary mt-2">{totalActive}</p>
                     </div>
                     <div className="p-3 bg-blue-50 rounded-xl text-blue-600">
                         <Icon name="truck" className="w-6 h-6" />
                     </div>
                 </div>
-                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
+                <div className="bg-surface p-6 rounded-2xl border border-border shadow-sm flex items-center justify-between">
                     <div>
-                        <p className="text-sm text-gray-500 font-bold uppercase">Total Imports</p>
-                        <p className="text-3xl font-bold text-gray-900 mt-2">{totalImports}</p>
+                        <p className="text-sm text-text-secondary font-bold uppercase">Total Imports</p>
+                        <p className="text-3xl font-bold text-text-primary mt-2">{totalImports}</p>
                     </div>
                     <div className="p-3 bg-green-50 rounded-xl text-green-600">
                         <Icon name="download" className="w-6 h-6" />
                     </div>
                 </div>
-                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
+                <div className="bg-surface p-6 rounded-2xl border border-border shadow-sm flex items-center justify-between">
                     <div>
-                        <p className="text-sm text-gray-500 font-bold uppercase">Total Exports</p>
-                        <p className="text-3xl font-bold text-gray-900 mt-2">{totalExports}</p>
+                        <p className="text-sm text-text-secondary font-bold uppercase">Total Exports</p>
+                        <p className="text-3xl font-bold text-text-primary mt-2">{totalExports}</p>
                     </div>
                     <div className="p-3 bg-orange-50 rounded-xl text-orange-600">
-                        <Icon name="credit-card" className="w-6 h-6" /> 
-                        {/* Using credit-card as placeholder for export icon if 'upload' not available, or use arrow-up */}
+                        <Icon name="credit-card" className="w-6 h-6" />
                     </div>
                 </div>
             </div>
@@ -104,18 +101,18 @@ export const TrackingDashboard = () => {
             {/* Main Content */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                  {/* Left: Recent Activity / List */}
-                <div className="lg:col-span-2 bg-white rounded-[2rem] border border-gray-100 shadow-sm p-6">
+                <div className="lg:col-span-2 bg-surface rounded-[2rem] border border-border shadow-sm p-6">
                     <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-lg font-bold text-gray-900">All Shipments</h2>
+                        <h2 className="text-lg font-bold text-text-primary">All Shipments</h2>
                         <div className="relative">
                             <input
                                 type="text"
                                 placeholder="Search ref or BL..."
                                 value={filter}
                                 onChange={(e) => setFilter(e.target.value)}
-                                className="pl-10 pr-4 py-2 bg-gray-50 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-blue-500 outline-none w-64"
+                                className="pl-10 pr-4 py-2 bg-surface-secondary rounded-xl border border-border-strong text-sm focus:ring-2 focus:ring-blue-500 outline-none w-64 text-text-primary"
                             />
-                            <Icon name="search" className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                            <Icon name="search" className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
                         </div>
                     </div>
 
@@ -127,16 +124,16 @@ export const TrackingDashboard = () => {
                         <div className="overflow-x-auto">
                             <table className="w-full">
                                 <thead>
-                                    <tr className="text-left text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-100">
+                                    <tr className="text-left text-xs font-bold text-text-secondary uppercase tracking-wider border-b border-border">
                                         <th className="pb-3 pl-2">Type</th>
                                         <th className="pb-3">Reference</th>
                                         <th className="pb-3">Status</th>
                                         <th className="pb-3 text-right pr-2">Action</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-gray-50">
+                                <tbody className="divide-y divide-border">
                                     {filteredData.map((t, i) => (
-                                        <tr key={i} className="hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => navigate(`/tracking/${t.ref}`)}>
+                                        <tr key={i} className="hover:bg-hover transition-colors cursor-pointer" onClick={() => navigate(`/tracking/${t.ref}`)}>
                                             <td className="py-3 pl-2">
                                                 {isImport(t) ? (
                                                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-green-50 text-green-700 text-xs font-bold">
@@ -148,9 +145,9 @@ export const TrackingDashboard = () => {
                                                     </span>
                                                 )}
                                             </td>
-                                            <td className="py-3 font-bold text-gray-900 text-sm">
+                                            <td className="py-3 font-bold text-text-primary text-sm">
                                                 {t.ref}
-                                                <div className="text-xs text-gray-400 font-normal">{t.bl}</div>
+                                                <div className="text-xs text-text-muted font-normal">{t.bl}</div>
                                             </td>
                                             <td className="py-3">
                                                  <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide text-white ${
@@ -162,7 +159,7 @@ export const TrackingDashboard = () => {
                                                  </span>
                                             </td>
                                             <td className="py-3 text-right pr-2">
-                                                <button className="text-gray-400 hover:text-blue-600">
+                                                <button className="text-text-muted hover:text-blue-600">
                                                     <Icon name="chevron-right" className="w-5 h-5" />
                                                 </button>
                                             </td>
@@ -170,7 +167,7 @@ export const TrackingDashboard = () => {
                                     ))}
                                     {filteredData.length === 0 && (
                                         <tr>
-                                            <td colSpan={4} className="py-8 text-center text-gray-400 text-sm">No shipments found.</td>
+                                            <td colSpan={4} className="py-8 text-center text-text-muted text-sm">No shipments found.</td>
                                         </tr>
                                     )}
                                 </tbody>

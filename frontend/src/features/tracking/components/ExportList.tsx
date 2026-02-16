@@ -17,7 +17,6 @@ export const ExportList = () => {
     const { openModal, modalProps } = useConfirmationModal();
     const [isEncodeModalOpen, setIsEncodeModalOpen] = useState(false);
 
-
     const { user, dateTime } = useOutletContext<LayoutContext>();
 
     const [data, setData] = useState<ExportTransaction[]>([]);
@@ -30,7 +29,6 @@ export const ExportList = () => {
         const loadData = async () => {
             try {
                 const response = await trackingApi.getExports();
-                // Map API response to list row format
                 const mapped: ExportTransaction[] = response.data.map(t => ({
                     ref: `EXP-${String(t.id).padStart(4, '0')}`,
                     bl: t.bl_no,
@@ -49,7 +47,6 @@ export const ExportList = () => {
         loadData();
     }, []);
 
-    // Calculate status counts
     const statusCounts = data.reduce((acc, item) => {
         acc[item.status] = (acc[item.status] || 0) + 1;
         return acc;
@@ -93,15 +90,15 @@ export const ExportList = () => {
             {/* Stats Row - 3 Columns */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
                 {/* 1. Time Card */}
-                <div className="bg-blue-50 dark:bg-gray-900 rounded-[2rem] p-5 border border-blue-100 dark:border-gray-800 shadow-sm dark:shadow-none flex flex-col items-center justify-center text-center h-full transition-all duration-300 ease-in-out">
-                    <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-1 tracking-tight">
+                <div className="bg-surface-tint rounded-[2rem] p-5 border border-border-tint shadow-sm flex flex-col items-center justify-center text-center h-full transition-all duration-300 ease-in-out">
+                    <h2 className="text-4xl font-bold text-text-primary mb-1 tracking-tight">
                         {dateTime.time}
                     </h2>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 font-medium mb-4">
+                    <p className="text-sm text-text-secondary font-medium mb-4">
                         {dateTime.date}
                     </p>
-                    <div className="w-full border-t border-blue-100 dark:border-gray-800 my-2"></div>
-                    <div className="flex items-center gap-2 mt-2 text-gray-600 dark:text-gray-300 font-bold text-xs">
+                    <div className="w-full border-t border-border-tint my-2"></div>
+                    <div className="flex items-center gap-2 mt-2 text-text-secondary font-bold text-xs">
                         <svg className="w-4 h-4 text-[#c41e3a]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -112,7 +109,7 @@ export const ExportList = () => {
 
                 {/* 2. Calendar Card */}
                 <div className="h-full">
-                    <CalendarCard className="bg-blue-50 border-blue-100 dark:bg-gray-900 dark:border-gray-800" />
+                    <CalendarCard />
                 </div>
 
                 {/* 3. Status Chart */}
@@ -130,26 +127,26 @@ export const ExportList = () => {
                             placeholder="Search anything"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-10 pr-4 py-2 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 text-sm w-64 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-gray-900 dark:text-white font-medium transition-all duration-200"
+                            className="pl-10 pr-4 py-2 bg-input-bg rounded-2xl border border-border-strong text-sm w-64 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-text-primary font-medium transition-all duration-200"
                         />
-                        <Icon name="search" className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" />
+                        <Icon name="search" className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
                     </div>
 
                     <div className="relative">
                         <button
                             onClick={() => setOpenDropdown(!openDropdown)}
-                            className="pl-4 pr-8 py-2 text-sm rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-slate-500 dark:text-gray-300 font-bold min-w-[120px] text-left relative flex items-center justify-between focus:outline-none transition-all hover:border-gray-300 dark:hover:border-gray-600"
+                            className="pl-4 pr-8 py-2 text-sm rounded-2xl border border-border-strong bg-input-bg text-text-secondary font-bold min-w-[120px] text-left relative flex items-center justify-between focus:outline-none transition-all hover:border-gray-300"
                         >
                             {statusFilter || 'Status'}
-                            <Icon name="chevron-down" className="w-4 h-4 ml-2 text-gray-600 absolute right-2" />
+                            <Icon name="chevron-down" className="w-4 h-4 ml-2 text-text-muted absolute right-2" />
                         </button>
 
                         {openDropdown && (
-                            <div className="absolute top-full right-0 mt-1 w-40 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg z-[100] py-1">
+                            <div className="absolute top-full right-0 mt-1 w-40 bg-surface-elevated border border-border-strong rounded-xl shadow-lg z-[100] py-1">
                                 {['Shipped', 'Processing', 'Delayed', 'In Transit'].map((status) => (
                                     <div
                                         key={status}
-                                        className="px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer text-sm text-gray-900 dark:text-gray-100 font-medium"
+                                        className="px-4 py-2 hover:bg-hover cursor-pointer text-sm text-text-primary font-medium"
                                         onClick={() => {
                                             setStatusFilter(status);
                                             setOpenDropdown(false);
@@ -160,7 +157,7 @@ export const ExportList = () => {
                                 ))}
                                 {statusFilter && (
                                     <div 
-                                        className="px-4 py-2 hover:bg-red-50 cursor-pointer text-sm text-red-600 font-bold border-t border-gray-100"
+                                        className="px-4 py-2 hover:bg-red-50 cursor-pointer text-sm text-red-600 font-bold border-t border-border"
                                         onClick={() => {
                                             setStatusFilter('');
                                             setOpenDropdown(false);
@@ -184,16 +181,16 @@ export const ExportList = () => {
             </div>
 
             {/* Transaction List Card */}
-            <div className="bg-white dark:bg-gray-900 rounded-[2rem] border border-gray-100 dark:border-gray-800 shadow-sm transition-all duration-300 ease-in-out overflow-hidden">
+            <div className="bg-surface rounded-[2rem] border border-border shadow-sm transition-all duration-300 ease-in-out overflow-hidden">
                 <div className="p-6">
                     {/* Table Header */}
-                    <div className="grid gap-4 pb-3 border-b border-gray-100 dark:border-gray-800 mb-3 px-2 font-bold"
+                    <div className="grid gap-4 pb-3 border-b border-border mb-3 px-2 font-bold"
                         style={{ gridTemplateColumns: '1fr 2fr 1.5fr 1.5fr 80px' }}>
-                        <span className="text-xs font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">Ref ID</span>
-                        <span className="text-xs font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">Shipper</span>
-                        <span className="text-xs font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">Bill of Lading</span>
-                        <span className="text-xs font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">Vessel</span>
-                        <span className="text-xs font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider text-right">Actions</span>
+                        <span className="text-xs font-bold text-text-secondary uppercase tracking-wider">Ref ID</span>
+                        <span className="text-xs font-bold text-text-secondary uppercase tracking-wider">Shipper</span>
+                        <span className="text-xs font-bold text-text-secondary uppercase tracking-wider">Bill of Lading</span>
+                        <span className="text-xs font-bold text-text-secondary uppercase tracking-wider">Vessel</span>
+                        <span className="text-xs font-bold text-text-secondary uppercase tracking-wider text-right">Actions</span>
                     </div>
 
                     {/* Table Rows */}
@@ -202,13 +199,13 @@ export const ExportList = () => {
                             <div
                                 key={i}
                                 onClick={() => navigate(`/tracking/${row.ref}`)}
-                                className="grid gap-4 py-2 items-center cursor-pointer rounded-xl transition-all duration-200 px-2 hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:shadow-sm"
+                                className="grid gap-4 py-2 items-center cursor-pointer rounded-xl transition-all duration-200 px-2 hover:bg-hover hover:shadow-sm"
                                 style={{ gridTemplateColumns: '1fr 2fr 1.5fr 1.5fr 80px' }}
                             >
-                                <p className="text-sm font-bold text-gray-900 dark:text-white">{row.ref}</p>
-                                <p className="text-sm text-slate-500 dark:text-gray-400 font-bold">{row.shipper}</p>
-                                <p className="text-sm text-slate-500 dark:text-gray-400 font-bold">{row.bl}</p>
-                                <p className="text-sm text-slate-500 dark:text-gray-400 font-bold">{row.vessel}</p>
+                                <p className="text-sm font-bold text-text-primary">{row.ref}</p>
+                                <p className="text-sm text-text-secondary font-bold">{row.shipper}</p>
+                                <p className="text-sm text-text-secondary font-bold">{row.bl}</p>
+                                <p className="text-sm text-text-secondary font-bold">{row.vessel}</p>
                                 <div className="flex justify-end gap-2 px-1">
                                     <button
                                         className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
@@ -269,7 +266,6 @@ export const ExportList = () => {
                 type="export"
                 onSave={async (data) => {
                     await trackingApi.createExport(data as CreateExportPayload);
-                    // Refresh list after creation
                     const response = await trackingApi.getExports();
                     const mapped: ExportTransaction[] = response.data.map(t => ({
                         ref: `EXP-${String(t.id).padStart(4, '0')}`,

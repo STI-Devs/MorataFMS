@@ -20,10 +20,10 @@ function App() {
           {/* Employee-only routes (encoder, broker, supervisor, manager) */}
           <Route element={<ProtectedRoute allowedRoles={['encoder', 'broker', 'supervisor', 'manager']} />}>
             <Route element={<MainLayout />}>
-              <Route path="/dashboard" element={<ImportList />} />
-              <Route path="/export" element={<ExportList />} />
+              <Route path="/dashboard" element={<TrackingDashboard />} />
+              <Route path="/imports" element={<ImportList />} />
+              <Route path="/exports" element={<ExportList />} />
               <Route path="/documents" element={<Documents />} />
-              <Route path="/tracking" element={<TrackingDashboard />} />
               <Route path="/tracking/:referenceId" element={<TrackingDetails />} />
               <Route path="/profile" element={<Profile />} />
             </Route>
@@ -31,7 +31,7 @@ function App() {
 
           {/* Admin-only routes */}
           <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
-            <Route path="/admin" element={<div className="flex h-screen items-center justify-center text-gray-500 dark:text-gray-400"><p className="text-lg">Admin Panel — Coming Soon</p></div>} />
+          <Route path="/admin" element={<div className="flex h-screen items-center justify-center text-text-secondary"><p className="text-lg">Admin Panel — Coming Soon</p></div>} />
           </Route>
 
           {/* Smart redirect based on role */}

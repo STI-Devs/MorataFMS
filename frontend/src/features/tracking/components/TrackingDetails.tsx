@@ -66,9 +66,9 @@ export const TrackingDetails = () => {
     if (!transaction) {
         return (
             <div className="text-center py-12">
-                <Icon name="alert-circle" className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Transaction Not Found</h3>
-                <p className="text-gray-500 dark:text-gray-400 mb-6">The transaction with reference ID {referenceId} could not be found.</p>
+                <Icon name="alert-circle" className="w-12 h-12 text-text-muted mx-auto mb-4" />
+                <h3 className="text-lg font-bold text-text-primary">Transaction Not Found</h3>
+                <p className="text-text-secondary mb-6">The transaction with reference ID {referenceId} could not be found.</p>
                 <button 
                     onClick={() => navigate(-1)}
                     className="px-4 py-2 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors"
@@ -125,30 +125,30 @@ export const TrackingDetails = () => {
             />
 
             {/* Status Overview Card */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700 shadow-sm">
+            <div className="bg-surface rounded-2xl p-6 border border-border shadow-sm">
                 <div className="flex justify-between items-start">
                     <div>
-                        <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-1">{transaction.ref}</h2>
-                        <p className="text-sm text-gray-700 dark:text-gray-300 font-bold">
-                            Bill of Lading: <span className="text-gray-900 dark:text-white font-bold">{transaction.bl}</span>
+                        <h2 className="text-lg font-bold text-text-primary mb-1">{transaction.ref}</h2>
+                        <p className="text-sm text-text-secondary font-bold">
+                            Bill of Lading: <span className="text-text-primary font-bold">{transaction.bl}</span>
                         </p>
                         {/* Show generic extra info if available */}
                         {'importer' in transaction && (
-                            <p className="text-sm text-gray-700 dark:text-gray-300 font-bold mt-1">
-                                Importer: <span className="text-gray-900 dark:text-white font-bold">{(transaction as ImportTransaction).importer}</span>
+                            <p className="text-sm text-text-secondary font-bold mt-1">
+                                Importer: <span className="text-text-primary font-bold">{(transaction as ImportTransaction).importer}</span>
                             </p>
                         )}
                          {'shipper' in transaction && (
-                            <p className="text-sm text-gray-700 dark:text-gray-300 font-bold mt-1">
-                                Shipper: <span className="text-gray-900 dark:text-white font-bold">{(transaction as ExportTransaction).shipper}</span>
+                            <p className="text-sm text-text-secondary font-bold mt-1">
+                                Shipper: <span className="text-text-primary font-bold">{(transaction as ExportTransaction).shipper}</span>
                             </p>
                         )}
                     </div>
                     <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium ${
-                        transaction.status === 'Cleared' || transaction.status === 'Shipped' ? 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400' :
-                        transaction.status === 'Delayed' ? 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400' :
-                        transaction.status === 'Pending' ? 'bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' :
-                        'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
+                        transaction.status === 'Cleared' || transaction.status === 'Shipped' ? 'bg-green-50 text-green-700' :
+                        transaction.status === 'Delayed' ? 'bg-red-50 text-red-700' :
+                        transaction.status === 'Pending' ? 'bg-yellow-50 text-yellow-700' :
+                        'bg-blue-50 text-blue-700'
                     }`}>
                         <span className={`w-2 h-2 rounded-full ${
                             transaction.status === 'Cleared' || transaction.status === 'Shipped' ? 'bg-green-500' :
@@ -171,23 +171,23 @@ export const TrackingDetails = () => {
                     return (
                         <div
                             key={i}
-                            className={`bg-white dark:bg-gray-800 rounded-2xl p-6 border transition-all duration-200 group cursor-default ${
-                                isInProgress ? 'border-blue-500 shadow-md ring-1 ring-blue-500' : 'border-gray-100 dark:border-gray-700 shadow-sm hover:border-gray-200 dark:hover:border-gray-600'
+                            className={`bg-surface rounded-2xl p-6 border transition-all duration-200 group cursor-default ${
+                                isInProgress ? 'border-blue-500 shadow-md ring-1 ring-blue-500' : 'border-border shadow-sm hover:border-border-strong'
                             }`}
                         >
                             <div className="flex items-center gap-3 mb-4">
                                 <div className={`p-2 rounded-xl transition-colors ${
-                                    isCompleted ? 'bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400' :
-                                    isInProgress ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' :
-                                    'bg-gray-50 dark:bg-gray-700 text-gray-400'
+                                    isCompleted ? 'bg-green-50 text-green-600' :
+                                    isInProgress ? 'bg-blue-50 text-blue-600' :
+                                    'bg-surface-secondary text-text-muted'
                                 }`}>
                                     <Icon name={stage.icon as import('../../../components/Icon').IconName} className="w-6 h-6" />
                                 </div>
-                                <h3 className={`font-bold ${isInProgress ? 'text-blue-700 dark:text-blue-400' : 'text-gray-900 dark:text-white'}`}>{stage.title}</h3>
+                                <h3 className={`font-bold ${isInProgress ? 'text-blue-700' : 'text-text-primary'}`}>{stage.title}</h3>
                             </div>
                             <p className={`text-sm font-bold ${
-                                isCompleted ? 'text-green-600 dark:text-green-400' :
-                                isInProgress ? 'text-blue-600 dark:text-blue-400' :
+                                isCompleted ? 'text-green-600' :
+                                isInProgress ? 'text-blue-600' :
                                 'text-gray-400'
                             }`}>
                                 {status}

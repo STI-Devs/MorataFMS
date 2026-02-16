@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
         // Seed reference data
         $this->call([
             CountrySeeder::class,
+            ClientSeeder::class,
         ]);
 
         // Create admin user

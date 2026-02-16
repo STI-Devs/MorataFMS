@@ -1,6 +1,84 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
-@custom-variant dark (&:where(.dark, .dark *));
+
+/* ============================================
+   SEMANTIC DESIGN TOKENS
+   Change colors once here → all components update.
+   ============================================ */
+
+:root {
+  /* Surfaces */
+  --color-surface: #ffffff;
+  --color-surface-secondary: #f9fafb;
+  --color-surface-elevated: #ffffff;
+
+  /* Borders */
+  --color-border: #f3f4f6;
+  --color-border-strong: #e5e7eb;
+
+  /* Text */
+  --color-text-primary: #111827;
+  --color-text-secondary: #64748b;
+  --color-text-muted: #9ca3af;
+
+  /* Interactive */
+  --color-hover: #f9fafb;
+  --color-input-bg: #ffffff;
+
+  /* Sidebar */
+  --color-sidebar-bg: #ffffff;
+  --color-sidebar-border: #f3f4f6;
+
+  /* Accent tint (for time card, calendar tint in light mode) */
+  --color-surface-tint: #eff6ff;
+  --color-border-tint: #dbeafe;
+}
+
+.dark {
+  --color-surface: #0a0a0a;
+  --color-surface-secondary: #0a0a0a;
+  --color-surface-elevated: #141414;
+
+  --color-border: #1a1a1a;
+  --color-border-strong: #2a2a2a;
+
+  --color-text-primary: #f9fafb;
+  --color-text-secondary: #9ca3af;
+  --color-text-muted: #6b7280;
+
+  --color-hover: rgba(255, 255, 255, 0.05);
+  --color-input-bg: #141414;
+
+  --color-sidebar-bg: #0a0a0a;
+  --color-sidebar-border: transparent;
+
+  --color-surface-tint: #0a0a0a;
+  --color-border-tint: #1a1a1a;
+}
+
+/* Mix mode: dark sidebar, light content */
+.mix {
+  --color-sidebar-bg: #0a0a0a;
+  --color-sidebar-border: transparent;
+}
+
+/* Register tokens with Tailwind v4 so they generate utility classes */
+@theme inline {
+  --color-surface: var(--color-surface);
+  --color-surface-secondary: var(--color-surface-secondary);
+  --color-surface-elevated: var(--color-surface-elevated);
+  --color-border: var(--color-border);
+  --color-border-strong: var(--color-border-strong);
+  --color-text-primary: var(--color-text-primary);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-text-muted: var(--color-text-muted);
+  --color-hover: var(--color-hover);
+  --color-input-bg: var(--color-input-bg);
+  --color-sidebar-bg: var(--color-sidebar-bg);
+  --color-sidebar-border: var(--color-sidebar-border);
+  --color-surface-tint: var(--color-surface-tint);
+  --color-border-tint: var(--color-border-tint);
+}
 
 /* ============================================
    CUSTOM ANIMATIONS & KEYFRAMES
@@ -96,6 +174,7 @@
   from {
     transform: translateX(0);
   }
+
   to {
     transform: translateX(-100%);
   }
@@ -105,6 +184,7 @@
   from {
     transform: translateX(0);
   }
+
   to {
     transform: translateX(100%);
   }
@@ -115,6 +195,7 @@
   from {
     opacity: 1;
   }
+
   to {
     opacity: 0;
   }

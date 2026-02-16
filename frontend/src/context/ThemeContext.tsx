@@ -17,18 +17,10 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     useEffect(() => {
         const root = window.document.documentElement;
+        // Remove all theme classes
         root.classList.remove('light', 'dark', 'mix');
-
-        if (theme === 'dark') {
-            root.classList.add('dark');
-        } else if (theme === 'mix') {
-            // Mix mode behaves like light mode for the root, 
-            // but components can use the 'theme' value to style conditionally.
-            root.classList.add('light');
-        } else {
-            root.classList.add('light');
-        }
-
+        // Apply the active theme class — CSS tokens handle the rest
+        root.classList.add(theme);
         localStorage.setItem('theme', theme);
     }, [theme]);
 

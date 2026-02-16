@@ -14,8 +14,8 @@ export const StatusChart = ({ data }: StatusChartProps) => {
     const spacing = 4;
 
     return (
-        <div className="bg-white dark:bg-gray-900 rounded-[2rem] p-6 shadow-sm dark:shadow-none border border-gray-100 dark:border-gray-800 h-full flex flex-col transition-all duration-300 ease-in-out">
-            <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-6">Status Overview</h3>
+        <div className="bg-surface rounded-[2rem] p-6 shadow-sm border border-border h-full flex flex-col transition-all duration-300 ease-in-out">
+            <h3 className="text-sm font-bold text-text-primary mb-6">Status Overview</h3>
             <div className="flex flex-col lg:flex-row items-center justify-center gap-8 flex-1">
                 {/* Activity Rings Chart */}
                 <div className="relative w-48 h-48 flex-shrink-0">
@@ -71,8 +71,8 @@ export const StatusChart = ({ data }: StatusChartProps) => {
                                 style={{ backgroundColor: item.color }}
                             ></div>
                             <div className="min-w-0">
-                                <p className="text-gray-900 font-bold text-xs truncate uppercase tracking-tight">{item.label}</p>
-                                <p className="text-slate-400 font-semibold text-[10px]">{item.value} Units</p>
+                                <p className="text-text-primary font-bold text-xs truncate uppercase tracking-tight">{item.label}</p>
+                                <p className="text-text-muted font-semibold text-[10px]">{item.value} Units</p>
                             </div>
                         </div>
                     ))}

@@ -36,16 +36,14 @@ export const CalendarCard = ({ className = '' }: CalendarCardProps) => {
     for (let i = 1; i <= daysInMonth; i++) {
         days.push(i);
     }
-    // Fill remaining slots to complete rows if needed (optional, but keeps grid consistent)
-    // Here we just let the grid handle it naturally
 
     return (
-        <div className={`bg-white dark:bg-gray-900 rounded-[2rem] p-5 border border-gray-100 dark:border-gray-800 shadow-sm dark:shadow-none h-full flex flex-col transition-all duration-300 ease-in-out ${className}`}>
+        <div className={`bg-surface rounded-[2rem] p-5 border border-border shadow-sm h-full flex flex-col transition-all duration-300 ease-in-out ${className}`}>
             <div className="flex justify-between items-center mb-2">
-                <h3 className="text-sm font-bold text-gray-900 dark:text-white">
+                <h3 className="text-sm font-bold text-text-primary">
                     {monthNames[month]}, {year}
                 </h3>
-                <div className="flex items-center text-xs text-slate-500 dark:text-gray-400 font-medium cursor-pointer hover:text-gray-700 dark:hover:text-gray-200">
+                <div className="flex items-center text-xs text-text-secondary font-medium cursor-pointer hover:text-text-primary">
                     Today
                     <svg className="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
@@ -53,7 +51,7 @@ export const CalendarCard = ({ className = '' }: CalendarCardProps) => {
                 </div>
             </div>
 
-            <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-semibold text-slate-400 mb-1">
+            <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-semibold text-text-muted mb-1">
                 <div>Sun</div>
                 <div>Mon</div>
                 <div>Tu</div>
@@ -63,20 +61,20 @@ export const CalendarCard = ({ className = '' }: CalendarCardProps) => {
                 <div>Sa</div>
             </div>
 
-            <div className="grid grid-cols-7 gap-1 text-sm font-medium text-gray-700 dark:text-gray-300 flex-1 content-start">
+            <div className="grid grid-cols-7 gap-1 text-sm font-medium text-text-secondary flex-1 content-start">
                 {days.map((day, index) => (
                     <div key={index} className="aspect-square flex items-center justify-center">
                         {day ? (
                             <span
                                 className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors ${day === today
                                     ? 'bg-[#c41e3a] text-white font-bold shadow-md'
-                                    : 'hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer'
+                                    : 'hover:bg-hover cursor-pointer'
                                     }`}
                             >
                                 {day}
                             </span>
                         ) : (
-                            <span className="text-gray-300 dark:text-gray-600 opacity-50">{/* Placeholder for previous month days? Or just empty */}</span>
+                            <span className="text-text-muted opacity-50"></span>
                         )}
                     </div>
                 ))}

@@ -51,9 +51,9 @@ export const MainLayout = () => {
     };
 
     const navItems = [
-        { label: 'Tracking', path: '/tracking', icon: 'M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z M15 11a3 3 0 11-6 0 3 3 0 016 0z' },
-        { label: 'Import List', path: '/dashboard', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' },
-        { label: 'Export List', path: '/export', icon: 'M12 19l9 2-9-18-9 18 9-2zm0 0v-8' },
+        { label: 'Dashboard', path: '/dashboard', icon: 'M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z M15 11a3 3 0 11-6 0 3 3 0 016 0z' },
+        { label: 'Import List', path: '/imports', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' },
+        { label: 'Export List', path: '/exports', icon: 'M12 19l9 2-9-18-9 18 9-2zm0 0v-8' },
         { label: 'Documents', path: '/documents', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
     ];
 
@@ -63,42 +63,37 @@ export const MainLayout = () => {
         { label: 'Notifications', icon: 'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9' },
     ];
 
-
+    // In mix mode, sidebar needs dark text/icons
+    const sidebarDark = theme === 'dark' || theme === 'mix';
 
     return (
-        <div className={`h-screen flex text-gray-900 dark:text-gray-50 overflow-hidden font-sans transition-colors duration-300 ease-in-out ${
-            theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'
-        } ${theme === 'mix' ? '!bg-gray-900' : ''}`}>
+        <div className="h-screen flex overflow-hidden font-sans transition-colors duration-300 ease-in-out bg-surface-secondary">
 
             {/* Sidebar */}
-            <aside className={`w-64 h-full flex flex-col pt-8 pb-6 px-4 shrink-0 overflow-y-auto transition-all duration-300 ease-in-out ${
-                theme === 'light' ? 'bg-white border-r border-gray-100' : 
-                theme === 'dark' ? 'bg-gray-900' : // Removed border-r border-gray-800
-                'dark bg-gray-900 border-none text-white' // mix mode
-            }`}>
+            <aside className="w-64 h-full flex flex-col pt-8 pb-6 px-4 shrink-0 overflow-y-auto transition-all duration-300 ease-in-out bg-sidebar-bg border-r border-sidebar-border">
                 {/* Logo */}
                 <div className="flex items-center gap-3 px-2 mb-6 cursor-pointer" onClick={() => navigate('/dashboard')}>
-                    <div className="w-8 h-8 flex-shrink-0 text-blue-600 dark:text-white">
+                    <div className="w-8 h-8 flex-shrink-0">
                         <svg viewBox="0 0 64 64" className="w-full h-full">
-                            <circle cx="32" cy="32" r="30" fill="currentColor" className="text-gray-900 dark:text-white" />
+                            <circle cx="32" cy="32" r="30" fill="currentColor" className={sidebarDark ? 'text-white' : 'text-gray-900'} />
                             <path d="M20 32 Q32 20 44 32 Q32 44 20 32" fill="#c41e3a" />
                             <circle cx="32" cy="32" r="8" fill="white" />
                         </svg>
                     </div>
-                    <span className="text-gray-900 dark:text-white font-bold text-lg tracking-tight">F.M. Morata</span>
+                    <span className={`font-bold text-lg tracking-tight ${sidebarDark ? 'text-white' : 'text-gray-900'}`}>F.M. Morata</span>
                 </div>
 
                 {/* Main Menu */}
                 <div className="mb-8">
-                    <p className="text-gray-400 dark:text-gray-500 text-[11px] uppercase tracking-wider px-3 mb-4 font-bold">Main Menu</p>
+                    <p className={`text-[11px] uppercase tracking-wider px-3 mb-4 font-bold ${sidebarDark ? 'text-gray-500' : 'text-gray-400'}`}>Main Menu</p>
                     <nav className="space-y-1">
                         {navItems.map((item) => (
                             <button
                                 key={item.label}
                                 onClick={() => item.path !== '#' && navigate(item.path)}
                                 className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${location.pathname === item.path
-                                    ? 'bg-gray-900 text-white dark:bg-gray-800 dark:text-white shadow-md'
-                                    : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-50'
+                                    ? sidebarDark ? 'bg-gray-800 text-white shadow-md' : 'bg-gray-900 text-white shadow-md'
+                                    : sidebarDark ? 'text-gray-400 hover:bg-gray-800 hover:text-gray-50' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
                                     }`}
                             >
                                 <svg className={`w-5 h-5 ${location.pathname === item.path ? 'text-white' : 'text-gray-400 group-hover:text-gray-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -112,13 +107,15 @@ export const MainLayout = () => {
 
                 {/* Settings */}
                 <div className="mb-8">
-                    <p className="text-gray-400 dark:text-gray-500 text-[11px] uppercase tracking-wider px-3 mb-4 font-bold">Settings</p>
+                    <p className={`text-[11px] uppercase tracking-wider px-3 mb-4 font-bold ${sidebarDark ? 'text-gray-500' : 'text-gray-400'}`}>Settings</p>
                     <nav className="space-y-1">
                         {settingsItems.map((item) => (
                             <button
                                 key={item.label}
                                 onClick={() => item.label === 'Profile' && navigate('/profile')}
-                                className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-50 text-sm font-medium transition-all duration-200"
+                                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
+                                    sidebarDark ? 'text-gray-400 hover:bg-gray-800 hover:text-gray-50' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
+                                }`}
                             >
                                 <svg className="w-5 h-5 text-gray-400 group-hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={item.icon} />
@@ -133,7 +130,9 @@ export const MainLayout = () => {
                 <div className="mb-6 mt-auto">
                     <button
                         onClick={toggleTheme}
-                        className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-50 text-sm font-medium transition-all duration-200"
+                        className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
+                            sidebarDark ? 'text-gray-400 hover:bg-gray-800 hover:text-gray-50' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
+                        }`}
                     >
                         {theme === 'light' ? (
                             <>
@@ -164,7 +163,9 @@ export const MainLayout = () => {
                 <div>
                     <button
                         onClick={handleLogout}
-                        className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-50 text-sm font-medium transition-all duration-200"
+                        className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
+                            sidebarDark ? 'text-gray-400 hover:bg-gray-800 hover:text-gray-50' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
+                        }`}
                     >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -174,10 +175,8 @@ export const MainLayout = () => {
                 </div>
             </aside>
 
-            {/* Main Content Area - Separated Card Layout */}
-            <main className={`flex-1 overflow-y-auto relative m-2 rounded-2xl shadow-2xl transition-all duration-300 ease-in-out ${
-                theme === 'dark' ? 'bg-gray-900' : 'bg-white'
-            } p-6 `}>
+            {/* Main Content Area */}
+            <main className="flex-1 overflow-y-auto relative m-2 rounded-2xl shadow-2xl transition-all duration-300 ease-in-out bg-surface-elevated p-6">
                 {/* Page Content */}
                 <Outlet context={{ user, dateTime }} />
             </main>

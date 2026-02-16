@@ -97,34 +97,34 @@ export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type,
     ];
 
     const inputClass =
-        'w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-bold text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 outline-none transition-all placeholder:text-gray-300 dark:placeholder:text-gray-600';
+        'w-full px-4 py-3 bg-input-bg border border-border-strong rounded-xl text-sm font-bold text-text-primary focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 outline-none transition-all placeholder:text-text-muted';
 
     const labelClass =
-        'text-[11px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest ml-1';
+        'text-[11px] font-black text-text-muted uppercase tracking-widest ml-1';
 
     const selectClass = `${inputClass} appearance-none cursor-pointer`;
 
     return (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[150] p-4">
-            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200 border border-gray-200 dark:border-gray-800 transition-all">
+            <div className="bg-surface rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200 border border-border transition-all">
                 {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-800">
+                <div className="flex items-center justify-between p-6 border-b border-border">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center text-white shadow-lg ring-4 ring-blue-50 dark:ring-blue-900/30">
+                        <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center text-white shadow-lg ring-4 ring-blue-50">
                             <Icon name="plus" className="w-6 h-6" />
                         </div>
                         <div>
-                            <h3 className="text-xl font-bold text-gray-900 dark:text-white transition-colors">
+                            <h3 className="text-xl font-bold text-text-primary transition-colors">
                                 Encode {isImport ? 'Import' : 'Export'}
                             </h3>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                            <p className="text-xs text-text-muted font-medium">
                                 Please fill in the details of the new transaction
                             </p>
                         </div>
                     </div>
                     <button
                         onClick={onClose}
-                        className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all"
+                        className="p-2 text-text-muted hover:text-text-secondary hover:bg-hover rounded-xl transition-all"
                     >
                         <Icon name="x" className="w-6 h-6" />
                     </button>
@@ -133,7 +133,7 @@ export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type,
                 <form onSubmit={handleSubmit} className="p-8 space-y-6">
                     {/* Error Banner */}
                     {error && (
-                        <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-sm text-red-600 dark:text-red-400 font-medium">
+                        <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600 font-medium">
                             {error}
                         </div>
                     )}
@@ -242,12 +242,12 @@ export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type,
                         )}
                     </div>
 
-                    <div className="flex items-center gap-3 pt-4 border-t border-gray-100 dark:border-gray-800">
+                    <div className="flex items-center gap-3 pt-4 border-t border-border">
                         <button
                             type="button"
                             onClick={onClose}
                             disabled={submitting}
-                            className="flex-1 px-6 py-4 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-2xl text-sm font-bold hover:bg-gray-200 dark:hover:bg-gray-700 transition-all active:scale-95 disabled:opacity-50"
+                            className="flex-1 px-6 py-4 bg-surface-secondary border border-border-strong text-text-secondary rounded-2xl text-sm font-bold hover:bg-hover transition-all active:scale-95 disabled:opacity-50"
                         >
                             Cancel
                         </button>
