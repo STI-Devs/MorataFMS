@@ -66,11 +66,11 @@ export const MainLayout = () => {
     const isDetailsPage = location.pathname.startsWith('/tracking');
 
     return (
-        <div className={`min-h-screen flex text-gray-900 overflow-hidden ${theme === 'dark' || theme === 'mix' ? 'bg-black' : 'bg-white'
+        <div className={`h-screen flex overflow-hidden text-gray-900 ${theme === 'dark' || theme === 'mix' ? 'bg-black' : 'bg-white'
             }`}>
 
             {/* Sidebar */}
-            <aside className={`w-56 min-h-screen flex flex-col py-6 px-4 shrink-0 ${isDetailsPage ? 'fixed h-full z-10' : ''} ${theme === 'dark' || theme === 'mix' ? 'bg-black' : 'bg-white'
+            <aside className={`w-56 h-full flex flex-col overflow-y-auto py-6 px-4 shrink-0 ${isDetailsPage ? 'fixed z-10' : ''} ${theme === 'dark' || theme === 'mix' ? 'bg-black' : 'bg-white'
                 }`}>
                 {/* Logo */}
                 <div className="flex items-center gap-2 px-2 mb-8 cursor-pointer" onClick={() => navigate('/')}>
@@ -93,12 +93,17 @@ export const MainLayout = () => {
                             <button
                                 key={item.label}
                                 onClick={() => item.path !== '#' && navigate(item.path)}
-                                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all ${location.pathname === item.path
+                                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm transition-all ${location.pathname === item.path
                                     ? 'bg-gray-900 text-white dark:bg-zinc-800 dark:text-white shadow-md'
-                                    : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-zinc-900 dark:hover:text-white'
+                                    : theme === 'dark' || theme === 'mix'
+                                        ? 'text-gray-300 hover:bg-white/5'
+                                        : 'text-gray-600 hover:bg-black/5'
                                     }`}
                             >
-                                <svg className={`w-5 h-5 ${location.pathname === item.path ? 'text-white' : 'text-gray-400 group-hover:text-gray-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg className={`w-5 h-5 ${location.pathname === item.path
+                                    ? 'text-white'
+                                    : theme === 'dark' || theme === 'mix' ? 'text-white' : 'text-black'
+                                    }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={item.icon} />
                                 </svg>
                                 {item.label}
@@ -169,10 +174,10 @@ export const MainLayout = () => {
             </aside>
 
             {/* Main Content Area - Rounded Card Look */}
-            <main className={`flex-1 p-8 overflow-y-auto m-4 rounded-[2.5rem] shadow-2xl relative border ${isDetailsPage ? 'ml-64' : ''} ${theme === 'dark' ? 'bg-black border-transparent' : 'bg-white border-white'
+            <main className={`flex-1 overflow-y-auto p-8 m-4 rounded-[2.5rem] shadow-2xl relative border ${isDetailsPage ? 'ml-64' : ''} ${theme === 'dark' ? 'bg-black border-transparent' : 'bg-white border-white'
                 }`}>
                 {/* Page Content */}
-                <div className="max-w-7xl mx-auto min-h-[calc(100vh-8rem)]">
+                <div className="max-w-7xl mx-auto min-h-full">
                     <Outlet context={{ user, dateTime }} />
                 </div>
             </main>

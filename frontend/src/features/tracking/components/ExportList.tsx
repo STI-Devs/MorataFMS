@@ -4,6 +4,7 @@ import { ConfirmationModal } from '../../../components/ConfirmationModal';
 import { EncodeModal } from './EncodeModal';
 import { Calendar } from './Calendar';
 import { useTheme } from '../../../context/ThemeContext';
+import { StatusChart } from './StatusChart';
 
 
 
@@ -30,14 +31,35 @@ export const ExportList = () => {
         onConfirm: () => { },
     });
 
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage, setItemsPerPage] = useState(10);
+
+    const totalPages = 2; // Mock total pages for demonstration
+    const goToPage = (page: number) => setCurrentPage(page);
+    const goToNextPage = () => setCurrentPage((prev) => Math.min(prev + 1, totalPages));
+    const goToPrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
+
     const { user, dateTime } = useOutletContext<LayoutContext>();
 
     const data = [
-        { ref: 'REF-EXP-001', bl: 'BL-78542136', status: 'Shipped', color: 'bg-green-500', shipper: 'ABC Exports Inc.', vessel: 'MV Northern Light' },
-        { ref: 'REF-EXP-002', bl: 'BL-78542137', status: 'Processing', color: 'bg-yellow-500', shipper: 'Global Trade Ltd.', vessel: 'Evergreen Star' },
-        { ref: 'REF-EXP-003', bl: 'BL-78542138', status: 'Delayed', color: 'bg-red-500', shipper: 'Fast Cargo Co.', vessel: 'Pacific Voyager' },
-        { ref: 'REF-EXP-004', bl: 'BL-78542139', status: 'Shipped', color: 'bg-green-500', shipper: 'Metro Supplies', vessel: 'MSC Oscar' },
-        { ref: 'REF-EXP-005', bl: 'BL-78542140', status: 'In Transit', color: 'bg-blue-500', shipper: 'Prime Logistics', vessel: 'Hapag-Lloyd' },
+        { ref: 'REF-EXP-001', bl: 'BL-78542136', status: 'Shipped', color: 'bg-green-500', shipper: 'ABC Exports Inc.', vessel: 'MV Northern Light', departureDate: 'Nov 15, 2024', portOfDestination: 'Singapore' },
+        { ref: 'REF-EXP-002', bl: 'BL-78542137', status: 'Processing', color: 'bg-yellow-500', shipper: 'Global Trade Ltd.', vessel: 'Evergreen Star', departureDate: 'Nov 18, 2024', portOfDestination: 'Tokyo' },
+        { ref: 'REF-EXP-003', bl: 'BL-78542138', status: 'Delayed', color: 'bg-red-500', shipper: 'Fast Cargo Co.', vessel: 'Pacific Voyager', departureDate: 'Nov 20, 2024', portOfDestination: 'Shanghai' },
+        { ref: 'REF-EXP-004', bl: 'BL-78542139', status: 'Shipped', color: 'bg-green-500', shipper: 'Metro Supplies', vessel: 'MSC Oscar', departureDate: 'Nov 22, 2024', portOfDestination: 'Busan' },
+        { ref: 'REF-EXP-005', bl: 'BL-78542140', status: 'In Transit', color: 'bg-blue-500', shipper: 'Prime Logistics', vessel: 'Hapag-Lloyd', departureDate: 'Nov 25, 2024', portOfDestination: 'Hong Kong' },
+    ];
+
+    // Calculate status counts for chart
+    const statusCounts = data.reduce((acc, item) => {
+        acc[item.status] = (acc[item.status] || 0) + 1;
+        return acc;
+    }, {} as Record<string, number>);
+
+    const chartData = [
+        { label: 'Shipped', value: statusCounts['Shipped'] || 0, color: '#4cd964' },
+        { label: 'Processing', value: statusCounts['Processing'] || 0, color: '#ffcc00' },
+        { label: 'Delayed', value: statusCounts['Delayed'] || 0, color: '#ff2d55' },
+        { label: 'In Transit', value: statusCounts['In Transit'] || 0, color: '#00d2ff' },
     ];
 
 
@@ -78,13 +100,13 @@ export const ExportList = () => {
             </div>
 
             {/* Stats Row */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
                 {/* Time Card */}
                 <div className={`rounded-[2rem] p-8 border shadow-sm transition-all duration-300 ${theme === 'light'
-                    ? 'bg-gradient-to-br from-blue-50 to-indigo-50 border-white'
+                    ? 'bg-white border-gray-200'
                     : theme === 'dark'
-                        ? 'bg-gradient-to-br from-gray-800 to-gray-900 border-black'
-                        : 'bg-gradient-to-br from-purple-900/20 to-blue-900/20 border-purple-500/30'
+                        ? 'bg-gray-800 border-black'
+                        : 'bg-white border-gray-200'
                     }`}>
                     <div className="flex flex-col items-center justify-center h-full">
                         <p className={`text-5xl font-bold mb-3 transition-colors duration-300 ${theme === 'dark' ? 'text-white' : 'text-gray-900'
@@ -93,14 +115,14 @@ export const ExportList = () => {
                             ? 'text-gray-600'
                             : theme === 'dark'
                                 ? 'text-gray-400'
-                                : 'text-purple-300'
+                                : 'text-gray-600'
                             }`}>{dateTime.date}</p>
                         <div className="flex items-center justify-center gap-2">
                             <svg className={`w-4 h-4 transition-colors duration-300 ${theme === 'light'
                                 ? 'text-red-500'
                                 : theme === 'dark'
                                     ? 'text-red-400'
-                                    : 'text-red-400'
+                                    : 'text-red-500'
                                 }`} fill="currentColor" viewBox="0 0 20 20">
                                 <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
                             </svg>
@@ -108,7 +130,7 @@ export const ExportList = () => {
                                 ? 'text-gray-600'
                                 : theme === 'dark'
                                     ? 'text-gray-400'
-                                    : 'text-purple-300'
+                                    : 'text-gray-600'
                                 }`}>Manila, Philippines</p>
                         </div>
                     </div>
@@ -116,6 +138,9 @@ export const ExportList = () => {
 
                 {/* Calendar */}
                 <Calendar currentDate={new Date()} />
+
+                {/* Status Chart */}
+                <StatusChart data={chartData} />
             </div>
 
 
@@ -139,13 +164,19 @@ export const ExportList = () => {
 
                     <div className="flex items-center gap-2 ml-auto">
                         <button
-                            className="bg-gray-900 hover:bg-gray-800 text-white text-xs font-bold py-2.5 px-6 rounded-xl uppercase tracking-wider transition-colors shadow-sm"
+                            className={`text-xs font-bold py-2.5 px-6 rounded-xl uppercase tracking-wider transition-all shadow-sm border ${theme === 'dark'
+                                ? 'bg-gray-800 border-gray-700 text-gray-300 hover:border-gray-600'
+                                : 'bg-white border-gray-200 text-gray-900 hover:border-gray-300'
+                                }`}
                         >
                             DEFAULT
                         </button>
                         <button
                             onClick={() => setIsEncodeModalOpen(true)}
-                            className="w-10 h-10 bg-black hover:bg-gray-900 text-white rounded-xl flex items-center justify-center shadow-sm transition-colors border border-white/10"
+                            className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-sm transition-all border ${theme === 'dark'
+                                ? 'bg-gray-800 border-gray-700 text-gray-300 hover:border-gray-600'
+                                : 'bg-white border-gray-200 text-gray-900 hover:border-gray-300'
+                                }`}
                             title="Encode new transaction"
                         >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -165,15 +196,17 @@ export const ExportList = () => {
                     {/* Table Header */}
                     <div className={`grid gap-4 pb-3 mb-3 px-2 font-bold border-b transition-colors duration-300 ${theme === 'dark' ? 'border-black' : 'border-white'
                         }`}
-                        style={{ gridTemplateColumns: '1fr 2fr 1.5fr 1.5fr 80px' }}>
-                        <span className={`text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${theme === 'dark' ? 'text-gray-400' : 'text-slate-500'
-                            }`}>Ref ID</span>
+                        style={{ gridTemplateColumns: '1.4fr 1.4fr 1.5fr 1.4fr 1.5fr 100px' }}>
                         <span className={`text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${theme === 'dark' ? 'text-gray-400' : 'text-slate-500'
                             }`}>Shipper</span>
                         <span className={`text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${theme === 'dark' ? 'text-gray-400' : 'text-slate-500'
                             }`}>Bill of Lading</span>
                         <span className={`text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${theme === 'dark' ? 'text-gray-400' : 'text-slate-500'
                             }`}>Vessel</span>
+                        <span className={`text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${theme === 'dark' ? 'text-gray-400' : 'text-slate-500'
+                            }`}>Departure Date</span>
+                        <span className={`text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${theme === 'dark' ? 'text-gray-400' : 'text-slate-500'
+                            }`}>Port of Destination</span>
                         <span className={`text-xs font-bold uppercase tracking-wider text-right transition-colors duration-300 ${theme === 'dark' ? 'text-gray-400' : 'text-slate-500'
                             }`}>Actions</span>
                     </div>
@@ -183,26 +216,28 @@ export const ExportList = () => {
                         {data.map((row, i) => (
                             <div
                                 key={i}
-                                onClick={() => navigate('/tracking/REF-EXPORT-001')}
+                                onClick={() => navigate(`/tracking/${row.ref}`)}
                                 className={`grid gap-4 py-2 items-center cursor-pointer rounded-xl transition-all duration-200 px-2 hover:shadow-sm ${theme === 'dark'
                                     ? 'hover:bg-gray-700/50'
                                     : 'hover:bg-gray-50'
                                     }`}
-                                style={{ gridTemplateColumns: '1fr 2fr 1.5fr 1.5fr 80px' }}
+                                style={{ gridTemplateColumns: '1.4fr 1.4fr 1.5fr 1.4fr 1.5fr 100px' }}
                             >
-                                <p className={`text-sm font-bold transition-colors duration-300 ${theme === 'dark' ? 'text-white' : 'text-gray-900'
-                                    }`}>{row.ref}</p>
                                 <p className={`text-sm font-bold transition-colors duration-300 ${theme === 'dark' ? 'text-gray-400' : 'text-slate-500'
                                     }`}>{row.shipper}</p>
                                 <p className={`text-sm font-bold transition-colors duration-300 ${theme === 'dark' ? 'text-gray-400' : 'text-slate-500'
                                     }`}>{row.bl}</p>
                                 <p className={`text-sm font-bold transition-colors duration-300 ${theme === 'dark' ? 'text-gray-400' : 'text-slate-500'
                                     }`}>{row.vessel}</p>
+                                <p className={`text-sm font-bold transition-colors duration-300 ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                                    }`}>{row.departureDate}</p>
+                                <p className={`text-sm font-bold transition-colors duration-300 ${theme === 'dark' ? 'text-gray-400' : 'text-slate-500'
+                                    }`}>{row.portOfDestination}</p>
                                 <div className="flex justify-end gap-2 px-1">
                                     <button
                                         className={`p-1.5 rounded-lg transition-colors ${theme === 'dark'
-                                            ? 'text-gray-400 hover:bg-gray-700 hover:text-white'
-                                            : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                                            ? 'text-blue-400 hover:bg-gray-700 hover:text-blue-300'
+                                            : 'text-blue-600 hover:bg-blue-50 hover:text-blue-700'
                                             }`}
                                         onClick={(e) => {
                                             e.stopPropagation();
@@ -249,37 +284,58 @@ export const ExportList = () => {
                 </div>
 
                 {/* Table Pagination */}
-                <div className={`mt-6 flex items-center justify-between border-t pt-6 px-2 ${theme === 'dark' ? 'border-black' : 'border-gray-100'
-                    }`}>
-                    <div className="flex items-center gap-2">
-                        <span className={`text-sm font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
-                            }`}>Show</span>
-                        <select className={`text-xs rounded-lg focus:ring-gray-500 focus:border-gray-500 p-1 px-2 outline-none cursor-pointer font-bold ${theme === 'dark'
-                            ? 'bg-gray-700 border-gray-600 text-white'
-                            : 'bg-gray-50 border-gray-200 text-gray-900'
-                            }`}>
-                            <option value="5">5</option>
-                            <option value="10">10</option>
-                            <option value="25">25</option>
+                {/* Table Pagination */}
+                <div className={`px-6 py-4 border-t flex items-center justify-between ${theme === 'dark' ? 'border-black' : 'border-gray-100'}`}>
+                    <div className="flex items-center gap-2 text-sm">
+                        <span className={`font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Show</span>
+                        <select
+                            value={itemsPerPage}
+                            onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                            className={`px-2 py-1 rounded text-xs font-bold outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer ${theme === 'dark'
+                                ? 'bg-gray-700 border border-gray-600 text-white'
+                                : 'bg-white border border-gray-200 text-gray-900'
+                                }`}
+                        >
+                            <option value={5}>5</option>
+                            <option value={10}>10</option>
+                            <option value={25}>25</option>
                         </select>
-                        <span className={`text-sm font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
-                            }`}>of 100 pages</span>
+                        <span className={`font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>of {totalPages} pages</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <button className="p-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="flex items-center gap-1">
+                        <button
+                            onClick={goToPrevPage}
+                            disabled={currentPage === 1}
+                            className={`w-8 h-8 flex items-center justify-center rounded transition-colors ${theme === 'dark'
+                                ? 'text-gray-300 bg-gray-700 hover:bg-gray-600 disabled:opacity-50'
+                                : 'text-gray-700 bg-gray-100 hover:bg-gray-200 disabled:opacity-50'
+                                }`}
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
                             </svg>
                         </button>
-                        <div className="flex items-center gap-1">
-                            <button className="w-8 h-8 flex items-center justify-center rounded-lg bg-black text-white text-sm font-bold">1</button>
-                            <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-900 text-sm font-bold transition-colors">2</button>
-                            <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-900 text-sm font-bold transition-colors">3</button>
-                            <span className="text-gray-900 px-1 font-bold">...</span>
-                            <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-900 text-sm font-bold transition-colors">16</button>
-                        </div>
-                        <button className="p-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        {Array.from({ length: Math.min(totalPages, 3) }, (_, i) => i + 1).map((page) => (
+                            <button
+                                key={page}
+                                onClick={() => goToPage(page)}
+                                className={`w-8 h-8 flex items-center justify-center text-sm font-medium rounded transition-colors ${currentPage === page
+                                    ? (theme === 'dark' ? 'bg-gray-200 text-black' : 'bg-gray-800 text-white')
+                                    : (theme === 'dark' ? 'text-gray-300 bg-gray-700 hover:bg-gray-600' : 'text-gray-700 bg-gray-100 hover:bg-gray-200')
+                                    }`}
+                            >
+                                {page}
+                            </button>
+                        ))}
+                        <button
+                            onClick={goToNextPage}
+                            disabled={currentPage === totalPages}
+                            className={`w-8 h-8 flex items-center justify-center rounded transition-colors ${theme === 'dark'
+                                ? 'text-gray-300 bg-gray-700 hover:bg-gray-600 disabled:opacity-50'
+                                : 'text-gray-700 bg-gray-100 hover:bg-gray-200 disabled:opacity-50'
+                                }`}
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
                             </svg>
                         </button>

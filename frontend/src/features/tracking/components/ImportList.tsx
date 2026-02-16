@@ -4,6 +4,7 @@ import { ConfirmationModal } from '../../../components/ConfirmationModal';
 import { Calendar } from './Calendar';
 import { EncodeModal } from './EncodeModal';
 import { useTheme } from '../../../context/ThemeContext';
+import { StatusChart } from './StatusChart';
 
 
 interface LayoutContext {
@@ -17,6 +18,8 @@ export const ImportList = () => {
     const [openDropdown, setOpenDropdown] = useState<string | null>(null);
     const [filterType, setFilterType] = useState<string>('');
     const [filterValue, setFilterValue] = useState<string>('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage, setItemsPerPage] = useState(10);
     const [isEncodeModalOpen, setIsEncodeModalOpen] = useState(false);
 
     const [confirmModal, setConfirmModal] = useState<{
@@ -36,11 +39,24 @@ export const ImportList = () => {
     const { user, dateTime } = useOutletContext<LayoutContext>();
 
     const data = [
-        { ref: 'REF-2024-001', bl: 'BL-12345678', status: 'Cleared', color: 'bg-green-500', importer: 'XYZ Corp', arrival: 'Nov 15, 2024' },
-        { ref: 'REF-2024-002', bl: 'BL-87654321', status: 'Pending', color: 'bg-yellow-500', importer: 'ABC Ltd', arrival: 'Nov 18, 2024' },
-        { ref: 'REF-2024-003', bl: 'BL-11223344', status: 'Delayed', color: 'bg-red-500', importer: 'LMN Ent', arrival: 'Nov 20, 2024' },
-        { ref: 'REF-2024-004', bl: 'BL-44332211', status: 'Cleared', color: 'bg-green-500', importer: 'OPQ Ind', arrival: 'Nov 22, 2024' },
-        { ref: 'REF-2024-005', bl: 'BL-55667788', status: 'In Transit', color: 'bg-blue-500', importer: 'RST Co', arrival: 'Nov 25, 2024' },
+        { ref: 'REF-2024-001', bl: 'BL-12345678', status: 'Cleared', color: 'bg-green-500', importer: 'XYZ Corp', pod: 'Davao', arrival: 'Nov 15, 2024' },
+        { ref: 'REF-2024-002', bl: 'BL-87654321', status: 'Pending', color: 'bg-yellow-500', importer: 'ABC Ltd', pod: 'Manila', arrival: 'Nov 18, 2024' },
+        { ref: 'REF-2024-003', bl: 'BL-11223344', status: 'Delayed', color: 'bg-red-500', importer: 'LMN Ent', pod: 'Cebu', arrival: 'Nov 20, 2024' },
+        { ref: 'REF-2024-004', bl: 'BL-44332211', status: 'Cleared', color: 'bg-green-500', importer: 'OPQ Ind', pod: 'Davao', arrival: 'Nov 22, 2024' },
+        { ref: 'REF-2024-005', bl: 'BL-55667788', status: 'In Transit', color: 'bg-blue-500', importer: 'RST Co', pod: 'Manila', arrival: 'Nov 25, 2024' },
+    ];
+
+    // Calculate status counts for chart
+    const statusCounts = data.reduce((acc, item) => {
+        acc[item.status] = (acc[item.status] || 0) + 1;
+        return acc;
+    }, {} as Record<string, number>);
+
+    const chartData = [
+        { label: 'Cleared', value: statusCounts['Cleared'] || 0, color: '#4cd964' },
+        { label: 'Pending', value: statusCounts['Pending'] || 0, color: '#ffcc00' },
+        { label: 'Delayed', value: statusCounts['Delayed'] || 0, color: '#ff2d55' },
+        { label: 'In Transit', value: statusCounts['In Transit'] || 0, color: '#00d2ff' },
     ];
 
 
@@ -52,6 +68,11 @@ export const ImportList = () => {
         setFilterValue('');
         setOpenDropdown(null);
     };
+
+    const totalPages = 2; // Mock total pages for demonstration
+    const goToPage = (page: number) => setCurrentPage(page);
+    const goToNextPage = () => setCurrentPage((prev) => Math.min(prev + 1, totalPages));
+    const goToPrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
 
     return (
         <div className="space-y-6">
@@ -87,13 +108,13 @@ export const ImportList = () => {
             </div>
 
             {/* Stats Row */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
                 {/* Time Card */}
                 <div className={`rounded-[2rem] p-8 border shadow-sm transition-all duration-300 ${theme === 'light'
-                    ? 'bg-gradient-to-br from-blue-50 to-indigo-50 border-white'
+                    ? 'bg-white border-gray-200'
                     : theme === 'dark'
-                        ? 'bg-gradient-to-br from-gray-800 to-gray-900 border-black'
-                        : 'bg-gradient-to-br from-purple-900/20 to-blue-900/20 border-purple-500/30'
+                        ? 'bg-gray-800 border-black'
+                        : 'bg-white border-gray-200'
                     }`}>
                     <div className="flex flex-col items-center justify-center h-full">
                         <p className={`text-5xl font-bold mb-3 transition-colors duration-300 ${theme === 'dark' ? 'text-white' : 'text-gray-900'
@@ -102,14 +123,14 @@ export const ImportList = () => {
                             ? 'text-gray-600'
                             : theme === 'dark'
                                 ? 'text-gray-400'
-                                : 'text-purple-300'
+                                : 'text-gray-600'
                             }`}>{dateTime.date}</p>
                         <div className="flex items-center justify-center gap-2">
                             <svg className={`w-4 h-4 transition-colors duration-300 ${theme === 'light'
                                 ? 'text-red-500'
                                 : theme === 'dark'
                                     ? 'text-red-400'
-                                    : 'text-red-400'
+                                    : 'text-red-500'
                                 }`} fill="currentColor" viewBox="0 0 20 20">
                                 <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
                             </svg>
@@ -117,7 +138,7 @@ export const ImportList = () => {
                                 ? 'text-gray-600'
                                 : theme === 'dark'
                                     ? 'text-gray-400'
-                                    : 'text-purple-300'
+                                    : 'text-gray-600'
                                 }`}>Manila, Philippines</p>
                         </div>
                     </div>
@@ -125,6 +146,9 @@ export const ImportList = () => {
 
                 {/* Calendar */}
                 <Calendar currentDate={new Date()} />
+
+                {/* Status Chart */}
+                <StatusChart data={chartData} />
             </div>
 
             {/* Controls Bar */}
@@ -263,19 +287,21 @@ export const ImportList = () => {
                     {/* Table Header */}
                     <div className={`grid gap-4 pb-3 mb-3 px-2 font-bold border-b transition-colors duration-300 ${theme === 'dark' ? 'border-black' : 'border-white'
                         }`}
-                        style={{ gridTemplateColumns: '50px 1.2fr 1.2fr 1fr 1.5fr 1fr 80px' }}>
+                        style={{ gridTemplateColumns: '50px 1.4fr 1.4fr 1.2fr 1.6fr 1.4fr 1.5fr 100px' }}>
                         <span className={`text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${theme === 'dark' ? 'text-gray-400' : 'text-slate-500'
                             }`}>BLSC</span>
                         <span className={`text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${theme === 'dark' ? 'text-gray-400' : 'text-slate-500'
                             }`}>Customs Ref No.</span>
                         <span className={`text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${theme === 'dark' ? 'text-gray-400' : 'text-slate-500'
-                            }`}>Importer</span>
-                        <span className={`text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${theme === 'dark' ? 'text-gray-400' : 'text-slate-500'
                             }`}>Bill of Lading</span>
                         <span className={`text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${theme === 'dark' ? 'text-gray-400' : 'text-slate-500'
                             }`}>Status</span>
                         <span className={`text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${theme === 'dark' ? 'text-gray-400' : 'text-slate-500'
+                            }`}>Importer</span>
+                        <span className={`text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${theme === 'dark' ? 'text-gray-400' : 'text-slate-500'
                             }`}>Arrival Date</span>
+                        <span className={`text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${theme === 'dark' ? 'text-gray-400' : 'text-slate-500'
+                            }`}>Port of Discharge</span>
                         <span className={`text-xs font-bold uppercase tracking-wider text-right transition-colors duration-300 ${theme === 'dark' ? 'text-gray-400' : 'text-slate-500'
                             }`}>Actions</span>
                     </div>
@@ -285,18 +311,16 @@ export const ImportList = () => {
                         {data.map((row, i) => (
                             <div
                                 key={i}
-                                onClick={() => navigate('/tracking/REF-2024-001')}
+                                onClick={() => navigate(`/tracking/${row.ref}`)}
                                 className={`grid gap-4 py-2 items-center cursor-pointer rounded-xl transition-all duration-200 px-2 hover:shadow-sm ${theme === 'dark'
                                     ? 'hover:bg-gray-700/50'
                                     : 'hover:bg-gray-50'
                                     }`}
-                                style={{ gridTemplateColumns: '50px 1.2fr 1.2fr 1fr 1.5fr 1fr 80px' }}
+                                style={{ gridTemplateColumns: '50px 1.4fr 1.4fr 1.2fr 1.6fr 1.4fr 1.5fr 100px' }}
                             >
                                 <span className={`w-2.5 h-2.5 rounded-full ${row.color}`}></span>
                                 <p className={`text-sm font-bold transition-colors duration-300 ${theme === 'dark' ? 'text-white' : 'text-gray-900'
                                     }`}>{row.ref}</p>
-                                <p className={`text-sm font-bold transition-colors duration-300 ${theme === 'dark' ? 'text-gray-400' : 'text-slate-500'
-                                    }`}>{row.importer}</p>
                                 <p className={`text-sm font-bold transition-colors duration-300 ${theme === 'dark' ? 'text-gray-400' : 'text-slate-500'
                                     }`}>{row.bl}</p>
                                 <span className="inline-flex">
@@ -312,12 +336,16 @@ export const ImportList = () => {
                                     </span>
                                 </span>
                                 <p className={`text-sm font-bold transition-colors duration-300 ${theme === 'dark' ? 'text-gray-400' : 'text-slate-500'
+                                    }`}>{row.importer}</p>
+                                <p className={`text-sm font-bold transition-colors duration-300 ${theme === 'dark' ? 'text-gray-400' : 'text-slate-500'
                                     }`}>{row.arrival}</p>
+                                <p className={`text-sm font-bold transition-colors duration-300 ${theme === 'dark' ? 'text-gray-400' : 'text-slate-500'
+                                    }`}>{row.pod}</p>
                                 <div className="flex justify-end gap-2 px-1">
                                     <button
                                         className={`p-1.5 rounded-lg transition-colors ${theme === 'dark'
-                                            ? 'text-gray-400 hover:bg-gray-700 hover:text-white'
-                                            : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                                            ? 'text-blue-400 hover:bg-gray-700 hover:text-blue-300'
+                                            : 'text-blue-600 hover:bg-blue-50 hover:text-blue-700'
                                             }`}
                                         onClick={(e) => {
                                             e.stopPropagation();
@@ -365,37 +393,57 @@ export const ImportList = () => {
                 </div>
 
                 {/* Table Pagination */}
-                <div className={`mt-6 flex items-center justify-between border-t pt-6 px-2 ${theme === 'dark' ? 'border-black' : 'border-gray-100'
-                    }`}>
-                    <div className="flex items-center gap-2">
-                        <span className={`text-sm font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
-                            }`}>Show</span>
-                        <select className={`text-xs rounded-lg focus:ring-gray-500 focus:border-gray-500 p-1 px-2 outline-none cursor-pointer font-bold ${theme === 'dark'
-                            ? 'bg-gray-700 border-gray-600 text-white'
-                            : 'bg-gray-50 border-gray-200 text-gray-900'
-                            }`}>
-                            <option value="5">5</option>
-                            <option value="10">10</option>
-                            <option value="25">25</option>
+                <div className={`px-6 py-4 border-t flex items-center justify-between ${theme === 'dark' ? 'border-black' : 'border-gray-100'}`}>
+                    <div className="flex items-center gap-2 text-sm">
+                        <span className={`font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Show</span>
+                        <select
+                            value={itemsPerPage}
+                            onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                            className={`px-2 py-1 rounded text-xs font-bold outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer ${theme === 'dark'
+                                ? 'bg-gray-700 border border-gray-600 text-white'
+                                : 'bg-white border border-gray-200 text-gray-900'
+                                }`}
+                        >
+                            <option value={5}>5</option>
+                            <option value={10}>10</option>
+                            <option value={25}>25</option>
                         </select>
-                        <span className={`text-sm font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
-                            }`}>of 100 pages</span>
+                        <span className={`font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>of {totalPages} pages</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <button className="p-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="flex items-center gap-1">
+                        <button
+                            onClick={goToPrevPage}
+                            disabled={currentPage === 1}
+                            className={`w-8 h-8 flex items-center justify-center rounded transition-colors ${theme === 'dark'
+                                ? 'text-gray-300 bg-gray-700 hover:bg-gray-600 disabled:opacity-50'
+                                : 'text-gray-700 bg-gray-100 hover:bg-gray-200 disabled:opacity-50'
+                                }`}
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
                             </svg>
                         </button>
-                        <div className="flex items-center gap-1">
-                            <button className="w-8 h-8 flex items-center justify-center rounded-lg bg-black text-white text-sm font-bold">1</button>
-                            <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-900 text-sm font-bold transition-colors">2</button>
-                            <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-900 text-sm font-bold transition-colors">3</button>
-                            <span className="text-gray-900 px-1 font-bold">...</span>
-                            <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-900 text-sm font-bold transition-colors">16</button>
-                        </div>
-                        <button className="p-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        {Array.from({ length: Math.min(totalPages, 3) }, (_, i) => i + 1).map((page) => (
+                            <button
+                                key={page}
+                                onClick={() => goToPage(page)}
+                                className={`w-8 h-8 flex items-center justify-center text-sm font-medium rounded transition-colors ${currentPage === page
+                                    ? (theme === 'dark' ? 'bg-gray-200 text-black' : 'bg-gray-800 text-white')
+                                    : (theme === 'dark' ? 'text-gray-300 bg-gray-700 hover:bg-gray-600' : 'text-gray-700 bg-gray-100 hover:bg-gray-200')
+                                    }`}
+                            >
+                                {page}
+                            </button>
+                        ))}
+                        <button
+                            onClick={goToNextPage}
+                            disabled={currentPage === totalPages}
+                            className={`w-8 h-8 flex items-center justify-center rounded transition-colors ${theme === 'dark'
+                                ? 'text-gray-300 bg-gray-700 hover:bg-gray-600 disabled:opacity-50'
+                                : 'text-gray-700 bg-gray-100 hover:bg-gray-200 disabled:opacity-50'
+                                }`}
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
                             </svg>
                         </button>
