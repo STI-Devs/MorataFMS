@@ -76,14 +76,14 @@ export const TrackingDashboard = () => {
             />
 
             {/* KPI Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                 {[
                     { label: 'Active Shipments', value: totalActive, color: '#0a84ff', icon: 'M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0', sub: 'in progress' },
                     { label: 'Total Imports', value: totalImports, color: '#30d158', icon: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12', sub: 'all time' },
                     { label: 'Total Exports', value: totalExports, color: '#ff9f0a', icon: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4', sub: 'all time' },
                     { label: 'Cleared / Shipped', value: totalCleared, color: '#64d2ff', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', sub: 'completed' },
                 ].map(stat => (
-                    <div key={stat.label} className="bg-surface-tint rounded-2xl p-5 border border-border-tint shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
+                    <div key={stat.label} className="bg-surface-tint rounded-xl p-5 border border-border-tint transition-all hover:-translate-y-0.5 hover:shadow-sm">
                         <div className="flex items-start justify-between mb-3">
                             <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${stat.color}22` }}>
                                 <svg className="w-5 h-5" fill="none" stroke={stat.color} viewBox="0 0 24 24" strokeWidth={1.8}>
@@ -101,7 +101,7 @@ export const TrackingDashboard = () => {
             {/* Main Content */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Left: Shipments Table */}
-                <div className="lg:col-span-2 bg-surface rounded-[2rem] border border-border shadow-sm overflow-hidden">
+                <div className="lg:col-span-2 bg-surface rounded-xl border border-border overflow-hidden">
                     <div className="flex justify-between items-center p-5 border-b border-border">
                         <h2 className="text-base font-bold text-text-primary">All Shipments</h2>
                         <div className="relative">
@@ -185,7 +185,7 @@ export const TrackingDashboard = () => {
                 {/* Right: Info Panel */}
                 <div className="flex flex-col gap-4">
                     {/* Time Card */}
-                    <div className="bg-surface-tint rounded-2xl border border-border-tint p-5 text-center">
+                    <div className="bg-surface-tint rounded-xl border border-border-tint p-5 text-center">
                         <p className="text-4xl font-bold tabular-nums text-text-primary tracking-tight">{dateTime.time}</p>
                         <p className="text-sm text-text-secondary mt-1">{dateTime.date}</p>
                         <div className="flex items-center justify-center gap-1.5 mt-3 text-xs text-text-muted font-medium">
@@ -198,7 +198,7 @@ export const TrackingDashboard = () => {
                     </div>
 
                     {/* Status Breakdown */}
-                    <div className="bg-surface-tint rounded-2xl border border-border-tint p-5 flex-1">
+                    <div className="bg-surface-tint rounded-xl border border-border-tint p-5 flex-1">
                         <h3 className="text-sm font-bold text-text-primary mb-4">Status Breakdown</h3>
                         <div className="space-y-3">
                             {[
@@ -219,7 +219,7 @@ export const TrackingDashboard = () => {
                     </div>
 
                     {/* System Status */}
-                    <div className="rounded-2xl p-5" style={{ background: 'linear-gradient(135deg, #0a84ff22 0%, #30d15822 100%)', border: '1px solid #0a84ff33' }}>
+                    <div className="bg-surface rounded-xl border border-border p-4">
                         <div className="flex items-center gap-2 mb-2">
                             <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
                             <h3 className="text-sm font-bold text-text-primary">System Status</h3>

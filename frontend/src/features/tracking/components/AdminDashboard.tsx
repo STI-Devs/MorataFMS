@@ -1,5 +1,4 @@
 import { useNavigate, useOutletContext } from 'react-router-dom';
-import { useTheme } from '../../../context/ThemeContext';
 
 interface LayoutContext {
     user?: { name: string; role: string };
@@ -56,43 +55,41 @@ const quickLinks = [
 
 export const AdminDashboard = () => {
     const navigate = useNavigate();
-    const { theme } = useTheme();
     const { user, dateTime } = useOutletContext<LayoutContext>();
 
-    const isDark = theme === 'dark' || theme === 'mix';
     const userName = user?.name || 'User';
 
     return (
-        <div className="space-y-6 p-4">
+        <div className="space-y-5 p-4">
             {/* Header */}
             <div className="flex justify-between items-end">
                 <div>
-                    <p className={`text-xs font-semibold uppercase tracking-widest mb-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                    <p className="text-xs font-semibold uppercase tracking-widest mb-1 text-text-muted">
                         Admin Dashboard
                     </p>
-                    <h1 className={`text-3xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                    <h1 className="text-3xl font-bold text-text-primary">
                         Welcome back, {userName}
                     </h1>
-                    <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                    <p className="text-sm mt-1 text-text-secondary">
                         Here's what's happening with your shipments today.
                     </p>
                 </div>
                 <div className="text-right hidden sm:block">
-                    <p className={`text-2xl font-bold tabular-nums ${isDark ? 'text-white' : 'text-gray-900'}`}>{dateTime.time}</p>
-                    <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{dateTime.date}</p>
+                    <p className="text-2xl font-bold tabular-nums text-text-primary">{dateTime.time}</p>
+                    <p className="text-sm text-text-secondary">{dateTime.date}</p>
                 </div>
             </div>
 
             {/* Stat Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                 {statCards.map((stat) => (
                     <div
                         key={stat.label}
-                        className={`rounded-2xl p-5 border transition-all hover:-translate-y-0.5 hover:shadow-md ${isDark ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-100 shadow-sm'}`}
+                        className="bg-surface rounded-xl p-5 border border-border transition-all hover:-translate-y-0.5 hover:shadow-sm"
                     >
                         <div className="flex items-start justify-between mb-3">
-                            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${stat.color}22` }}>
-                                <svg className="w-5 h-5" fill="none" stroke={stat.color} viewBox="0 0 24 24" strokeWidth={1.8}>
+                            <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${stat.color}20` }}>
+                                <svg className="w-4.5 h-4.5" fill="none" stroke={stat.color} viewBox="0 0 24 24" strokeWidth={1.8}>
                                     <path strokeLinecap="round" strokeLinejoin="round" d={stat.icon} />
                                 </svg>
                             </div>
@@ -100,47 +97,46 @@ export const AdminDashboard = () => {
                                 {stat.change}
                             </span>
                         </div>
-                        <p className={`text-3xl font-bold tabular-nums ${isDark ? 'text-white' : 'text-gray-900'}`}>{stat.value}</p>
-                        <p className={`text-xs mt-1 font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{stat.label}</p>
-                        <p className={`text-[10px] mt-0.5 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>{stat.sub}</p>
+                        <p className="text-3xl font-bold tabular-nums text-text-primary">{stat.value}</p>
+                        <p className="text-xs mt-1 font-medium text-text-secondary">{stat.label}</p>
+                        <p className="text-[10px] mt-0.5 text-text-muted">{stat.sub}</p>
                     </div>
                 ))}
             </div>
 
             {/* Quick Links Grid */}
-            <div className={`rounded-2xl border p-6 ${isDark ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-100 shadow-sm'}`}>
-                <h2 className={`text-base font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>Quick Actions</h2>
+            <div className="bg-surface rounded-xl border border-border p-5">
+                <h2 className="text-sm font-bold mb-4 text-text-primary">Quick Actions</h2>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                     {quickLinks.map((link) => (
                         <button
                             key={link.label}
                             onClick={() => navigate(link.path)}
-                            className={`flex flex-col items-center gap-2.5 p-4 rounded-2xl border transition-all hover:-translate-y-0.5 hover:shadow-sm text-center ${isDark ? 'border-gray-800 hover:border-gray-700 hover:bg-gray-800' : 'border-gray-100 hover:border-gray-200 hover:bg-gray-50'}`}
+                            className="flex flex-col items-center gap-2.5 p-4 rounded-xl border border-border transition-all hover:-translate-y-0.5 hover:bg-hover hover:border-border-strong text-center"
                         >
-                            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${link.color}18` }}>
-                                <svg className="w-5 h-5" fill="none" stroke={link.color} viewBox="0 0 24 24" strokeWidth={1.8}>
+                            <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${link.color}18` }}>
+                                <svg className="w-4.5 h-4.5" fill="none" stroke={link.color} viewBox="0 0 24 24" strokeWidth={1.8}>
                                     <path strokeLinecap="round" strokeLinejoin="round" d={link.icon} />
                                 </svg>
                             </div>
-                            <span className={`text-xs font-semibold leading-tight ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{link.label}</span>
+                            <span className="text-xs font-semibold leading-tight text-text-secondary">{link.label}</span>
                         </button>
                     ))}
                 </div>
             </div>
 
             {/* System Status Banner */}
-            <div className="rounded-2xl p-5 flex items-center justify-between gap-4"
-                style={{ background: 'linear-gradient(135deg, #0a84ff22 0%, #30d15822 100%)', border: '1px solid #0a84ff33' }}>
+            <div className="bg-surface rounded-xl border border-border p-4 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                    <div className="w-2.5 h-2.5 rounded-full bg-green-400 animate-pulse" />
+                    <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
                     <div>
-                        <p className={`text-sm font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>All Systems Operational</p>
-                        <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>No delays reported in customs processing today.</p>
+                        <p className="text-sm font-semibold text-text-primary">All Systems Operational</p>
+                        <p className="text-xs text-text-secondary">No delays reported in customs processing today.</p>
                     </div>
                 </div>
                 <button
                     onClick={() => navigate('/admin/reports')}
-                    className="flex-shrink-0 px-4 py-2 rounded-xl text-xs font-semibold transition-all"
+                    className="flex-shrink-0 px-4 py-2 rounded-lg text-xs font-semibold transition-all"
                     style={{ backgroundColor: '#0a84ff', color: '#fff' }}
                 >
                     View Reports

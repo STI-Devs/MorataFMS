@@ -137,7 +137,7 @@ export const ImportList = () => {
                         icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z',
                     },
                 ].map(stat => (
-                    <div key={stat.label} className="bg-surface-tint rounded-[1.5rem] p-4 border border-border-tint shadow-sm">
+                    <div key={stat.label} className="bg-surface-tint rounded-xl p-4 border border-border-tint">
                         <div className="flex items-start justify-between">
                             <div>
                                 <p className="text-3xl font-bold tabular-nums text-text-primary">{stat.value}</p>
@@ -256,7 +256,7 @@ export const ImportList = () => {
             </div>
 
             {/* Transaction List Card */}
-            <div className={`bg-surface rounded-[2rem] border border-border shadow-sm transition-all duration-300 ease-in-out overflow-hidden ${isFetching ? 'opacity-60' : 'opacity-100'}`}>
+            <div className={`bg-surface rounded-xl border border-border transition-all duration-300 ease-in-out overflow-hidden ${isFetching ? 'opacity-60' : 'opacity-100'}`}>
                 <div className="p-6">
                     {/* Table Header */}
                     <div className="grid gap-4 pb-3 border-b border-border mb-3 px-2 font-bold"
