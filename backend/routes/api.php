@@ -34,6 +34,8 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
 
     // Admin-only: User management
     Route::apiResource('users', UserController::class);
+    Route::post('users/{user}/deactivate', [UserController::class, 'deactivate']);
+    Route::post('users/{user}/activate', [UserController::class, 'activate']);
 
     // Document management
     Route::apiResource('documents', DocumentController::class)->except(['update']);

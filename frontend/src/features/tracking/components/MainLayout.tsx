@@ -50,12 +50,25 @@ export const MainLayout = () => {
         }
     };
 
-    const navItems = [
+    const isAdmin = user?.role === 'admin';
+
+    const adminNavItems = [
+        { label: 'Dashboard', path: '/admin', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
+        { label: 'User Management', path: '/admin/users', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z' },
+        { label: 'Client Management', path: '/admin/clients', icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4' },
+        { label: 'Transaction Oversight', path: '/admin/transactions', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4' },
+        { label: 'Reports & Analytics', path: '/admin/reports', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
+        { label: 'Audit Logs', path: '/admin/audit-logs', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
+    ];
+
+    const employeeNavItems = [
         { label: 'Dashboard', path: '/dashboard', icon: 'M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z M15 11a3 3 0 11-6 0 3 3 0 016 0z' },
         { label: 'Import List', path: '/imports', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' },
         { label: 'Export List', path: '/exports', icon: 'M12 19l9 2-9-18-9 18 9-2zm0 0v-8' },
         { label: 'Documents', path: '/documents', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
     ];
+
+    const navItems = isAdmin ? adminNavItems : employeeNavItems;
 
     const settingsItems = [
         { label: 'Profile', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' },
@@ -72,7 +85,7 @@ export const MainLayout = () => {
             {/* Sidebar */}
             <aside className="w-64 h-full flex flex-col pt-8 pb-6 px-4 shrink-0 overflow-y-auto transition-all duration-300 ease-in-out bg-sidebar-bg border-r border-sidebar-border">
                 {/* Logo */}
-                <div className="flex items-center gap-3 px-2 mb-6 cursor-pointer" onClick={() => navigate('/dashboard')}>
+                <div className="flex items-center gap-3 px-2 mb-6 cursor-pointer" onClick={() => navigate(isAdmin ? '/admin' : '/dashboard')}>
                     <div className="w-8 h-8 flex-shrink-0">
                         <svg viewBox="0 0 64 64" className="w-full h-full">
                             <circle cx="32" cy="32" r="30" fill="currentColor" className={sidebarDark ? 'text-white' : 'text-gray-900'} />
@@ -91,7 +104,7 @@ export const MainLayout = () => {
                             <button
                                 key={item.label}
                                 onClick={() => item.path !== '#' && navigate(item.path)}
-                                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${location.pathname === item.path
+                                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${(location.pathname === item.path || (item.path !== '/admin' && location.pathname.startsWith(item.path)))
                                     ? sidebarDark ? 'bg-gray-800 text-white shadow-md' : 'bg-gray-900 text-white shadow-md'
                                     : sidebarDark ? 'text-gray-400 hover:bg-gray-800 hover:text-gray-50' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
                                     }`}
@@ -113,9 +126,8 @@ export const MainLayout = () => {
                             <button
                                 key={item.label}
                                 onClick={() => item.label === 'Profile' && navigate('/profile')}
-                                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
-                                    sidebarDark ? 'text-gray-400 hover:bg-gray-800 hover:text-gray-50' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
-                                }`}
+                                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${sidebarDark ? 'text-gray-400 hover:bg-gray-800 hover:text-gray-50' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
+                                    }`}
                             >
                                 <svg className="w-5 h-5 text-gray-400 group-hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={item.icon} />
@@ -130,9 +142,8 @@ export const MainLayout = () => {
                 <div className="mb-6 mt-auto">
                     <button
                         onClick={toggleTheme}
-                        className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
-                            sidebarDark ? 'text-gray-400 hover:bg-gray-800 hover:text-gray-50' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
-                        }`}
+                        className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${sidebarDark ? 'text-gray-400 hover:bg-gray-800 hover:text-gray-50' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
+                            }`}
                     >
                         {theme === 'light' ? (
                             <>
@@ -163,9 +174,8 @@ export const MainLayout = () => {
                 <div>
                     <button
                         onClick={handleLogout}
-                        className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
-                            sidebarDark ? 'text-gray-400 hover:bg-gray-800 hover:text-gray-50' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
-                        }`}
+                        className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${sidebarDark ? 'text-gray-400 hover:bg-gray-800 hover:text-gray-50' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
+                            }`}
                     >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />

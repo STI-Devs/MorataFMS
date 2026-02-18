@@ -63,7 +63,6 @@ class UserController extends Controller
 
         $validated = $request->validated();
 
-        // Update fillable fields
         if (isset($validated['name'])) {
             $user->name = $validated['name'];
         }
@@ -94,5 +93,31 @@ class UserController extends Controller
         $user->delete();
 
         return response()->json(['message' => 'User deleted successfully.'], 200);
+    }
+
+    /**
+     * Deactivate a user (admin only).
+     */
+    public function deactivate(User $user)
+    {
+        $this->authorize('update', $user);
+
+        $user->is_active = false;
+        $user->save();
+
+        return new UserResource($user);
+    }
+
+    /**
+     * Activate a user (admin only).
+     */
+    public function activate(User $user)
+    {
+        $this->authorize('update', $user);
+
+        $user->is_active = true;
+        $user->save();
+
+        return new UserResource($user);
     }
 }
