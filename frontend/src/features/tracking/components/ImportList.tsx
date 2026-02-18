@@ -62,8 +62,19 @@ export const ImportList = () => {
         per_page: perPage,
     });
 
+    const PLACEHOLDER_IMPORTS: ImportTransaction[] = [
+        { id: 1001, ref: 'IMP-2401', bl: 'MOLU2401001', status: 'Cleared', color: 'bg-green-500', importer: 'Pacific Traders Inc.', date: 'Feb 15, 2025' },
+        { id: 1002, ref: 'IMP-2402', bl: 'MOLU2401002', status: 'Pending', color: 'bg-yellow-500', importer: 'Global Imports Co.', date: 'Feb 18, 2025' },
+        { id: 1003, ref: 'IMP-2403', bl: 'COSU2401003', status: 'In Transit', color: 'bg-green-500', importer: 'Davao Cargo Solutions', date: 'Feb 20, 2025' },
+        { id: 1004, ref: 'IMP-2404', bl: 'HLCU2401004', status: 'Cleared', color: 'bg-green-500', importer: 'Mindanao Freight Ltd.', date: 'Jan 31, 2025' },
+        { id: 1005, ref: 'IMP-2405', bl: 'MSCU2401005', status: 'In Transit', color: 'bg-yellow-500', importer: 'Cebu Port Authority', date: 'Mar 01, 2025' },
+        { id: 1006, ref: 'IMP-2406', bl: 'OOLU2401006', status: 'Delayed', color: 'bg-red-500', importer: 'Manila Bay Logistics', date: 'Jan 16, 2025' },
+        { id: 1007, ref: 'IMP-2407', bl: 'YMLU2401007', status: 'Pending', color: 'bg-yellow-500', importer: 'Southern Cross Trading', date: 'Mar 05, 2025' },
+        { id: 1008, ref: 'IMP-2408', bl: 'EGLV2401008', status: 'Cleared', color: 'bg-green-500', importer: 'Visayas Import Group', date: 'Dec 31, 2024' },
+    ];
+
     const data = useMemo<ImportTransaction[]>(() => {
-        if (!response?.data) return [];
+        if (!response?.data || response.data.length === 0) return PLACEHOLDER_IMPORTS;
         return response.data.map(t => ({
             id: t.id,
             ref: t.customs_ref_no,

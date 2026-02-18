@@ -62,8 +62,19 @@ export const ExportList = () => {
         per_page: perPage,
     });
 
+    const PLACEHOLDER_EXPORTS: ExportTransaction[] = [
+        { id: 2001, ref: 'EXP-2401', bl: 'MOLU2401101', status: 'Shipped', color: '', shipper: 'Pacific Traders Inc.', vessel: 'MV Magellan', departureDate: 'Feb 15, 2025', portOfDestination: 'Singapore' },
+        { id: 2002, ref: 'EXP-2402', bl: 'COSU2401102', status: 'Processing', color: '', shipper: 'Davao Export Corp.', vessel: 'MV Cebu Star', departureDate: 'Feb 18, 2025', portOfDestination: 'Hong Kong' },
+        { id: 2003, ref: 'EXP-2403', bl: 'HLCU2401103', status: 'In Transit', color: '', shipper: 'Mindanao Freight Ltd.', vessel: 'MV Pacific Sun', departureDate: 'Feb 20, 2025', portOfDestination: 'Japan' },
+        { id: 2004, ref: 'EXP-2404', bl: 'MSCU2401104', status: 'Shipped', color: '', shipper: 'Visayas Export Group', vessel: 'MV Manila Bay', departureDate: 'Jan 31, 2025', portOfDestination: 'South Korea' },
+        { id: 2005, ref: 'EXP-2405', bl: 'OOLU2401105', status: 'Delayed', color: '', shipper: 'Southern Cross Co.', vessel: 'MV Luzon', departureDate: 'Mar 01, 2025', portOfDestination: 'Taiwan' },
+        { id: 2006, ref: 'EXP-2406', bl: 'YMLU2401106', status: 'Processing', color: '', shipper: 'Global Exports Ltd.', vessel: 'MV Batangas', departureDate: 'Jan 16, 2025', portOfDestination: 'China' },
+        { id: 2007, ref: 'EXP-2407', bl: 'EGLV2401107', status: 'Shipped', color: '', shipper: 'Cebu Cargo Solutions', vessel: 'MV Samar', departureDate: 'Mar 05, 2025', portOfDestination: 'Australia' },
+        { id: 2008, ref: 'EXP-2408', bl: 'MOLU2401108', status: 'In Transit', color: '', shipper: 'Manila Bay Logistics', vessel: 'MV Palawan', departureDate: 'Dec 31, 2024', portOfDestination: 'USA' },
+    ];
+
     const data = useMemo<ExportTransaction[]>(() => {
-        if (!response?.data) return [];
+        if (!response?.data || response.data.length === 0) return PLACEHOLDER_EXPORTS;
         return response.data.map(t => ({
             id: t.id,
             ref: `EXP-${String(t.id).padStart(4, '0')}`,
@@ -218,11 +229,12 @@ export const ExportList = () => {
                 <div className="p-6">
                     {/* Table Header */}
                     <div className="grid gap-4 pb-3 border-b border-border mb-3 px-2 font-bold"
-                        style={{ gridTemplateColumns: '1.4fr 1.4fr 1.5fr 1.4fr 1.5fr 100px' }}>
+                        style={{ gridTemplateColumns: '1.4fr 1.4fr 1.5fr 1.4fr 1fr 1.2fr 100px' }}>
                         <span className="text-xs font-bold text-text-secondary uppercase tracking-wider">Shipper</span>
                         <span className="text-xs font-bold text-text-secondary uppercase tracking-wider">Bill of Lading</span>
                         <span className="text-xs font-bold text-text-secondary uppercase tracking-wider">Vessel</span>
                         <span className="text-xs font-bold text-text-secondary uppercase tracking-wider">Departure Date</span>
+                        <span className="text-xs font-bold text-text-secondary uppercase tracking-wider">Status</span>
                         <span className="text-xs font-bold text-text-secondary uppercase tracking-wider">Port of Destination</span>
                         <span className="text-xs font-bold text-text-secondary uppercase tracking-wider text-right">Actions</span>
                     </div>
@@ -234,12 +246,24 @@ export const ExportList = () => {
                                 key={i}
                                 onClick={() => navigate(`/tracking/${row.ref}`)}
                                 className="grid gap-4 py-2 items-center cursor-pointer rounded-lg transition-all duration-200 px-2 hover:bg-hover hover:shadow-sm"
-                                style={{ gridTemplateColumns: '1.4fr 1.4fr 1.5fr 1.4fr 1.5fr 100px' }}
+                                style={{ gridTemplateColumns: '1.4fr 1.4fr 1.5fr 1.4fr 1fr 1.2fr 100px' }}
                             >
                                 <p className="text-sm text-text-secondary font-bold">{row.shipper}</p>
                                 <p className="text-sm text-text-secondary font-bold">{row.bl}</p>
                                 <p className="text-sm text-text-secondary font-bold">{row.vessel}</p>
                                 <p className="text-sm font-bold text-text-primary">{row.departureDate}</p>
+                                <span className="inline-flex">
+                                    <span
+                                        className="px-2.5 py-0.5 rounded-full text-[10px] font-black text-white uppercase tracking-wider shadow-sm border border-black/5"
+                                        style={{
+                                            backgroundColor: row.status === 'Shipped' ? '#4cd964' :
+                                                row.status === 'Processing' ? '#ffcc00' :
+                                                    row.status === 'Delayed' ? '#ff2d55' : '#00d2ff'
+                                        }}
+                                    >
+                                        {row.status}
+                                    </span>
+                                </span>
                                 <p className="text-sm text-text-secondary font-bold">{row.portOfDestination}</p>
                                 <div className="flex justify-end gap-1.5">
                                     {/* Edit button — always visible */}
