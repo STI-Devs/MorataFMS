@@ -20,6 +20,7 @@ export const TrackingDashboard = () => {
 
     const transactions = useMemo<Transaction[]>(() => {
         const imports: ImportTransaction[] = (importsData?.data || []).map(t => ({
+            id: t.id,
             ref: t.customs_ref_no,
             bl: t.bl_no,
             status: t.status === 'pending' ? 'Pending' : t.status === 'in_progress' ? 'In Transit' : t.status === 'completed' ? 'Cleared' : 'Delayed',
@@ -29,6 +30,7 @@ export const TrackingDashboard = () => {
         }));
 
         const exports: ExportTransaction[] = (exportsData?.data || []).map(t => ({
+            id: t.id,
             ref: `EXP-${String(t.id).padStart(4, '0')}`,
             bl: t.bl_no,
             status: t.status === 'pending' ? 'Processing' : t.status === 'in_progress' ? 'In Transit' : t.status === 'completed' ? 'Shipped' : 'Delayed',
@@ -44,7 +46,7 @@ export const TrackingDashboard = () => {
 
     const loading = importsLoading || exportsLoading;
 
-    const filteredData = transactions.filter(t => 
+    const filteredData = transactions.filter(t =>
         t.ref.toLowerCase().includes(filter.toLowerCase()) ||
         t.bl.toLowerCase().includes(filter.toLowerCase())
     );
@@ -96,7 +98,7 @@ export const TrackingDashboard = () => {
 
             {/* Main Content */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                 {/* Left: Recent Activity / List */}
+                {/* Left: Recent Activity / List */}
                 <div className="lg:col-span-2 bg-surface rounded-[2rem] border border-border shadow-sm p-6">
                     <div className="flex justify-between items-center mb-6">
                         <h2 className="text-lg font-bold text-text-primary">All Shipments</h2>
@@ -146,13 +148,12 @@ export const TrackingDashboard = () => {
                                                 <div className="text-xs text-text-muted font-normal">{t.bl}</div>
                                             </td>
                                             <td className="py-3">
-                                                 <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide text-white ${
-                                                     t.status === 'Cleared' || t.status === 'Shipped' ? 'bg-green-500' :
-                                                     t.status === 'Pending' || t.status === 'Processing' ? 'bg-yellow-500' :
-                                                     t.status === 'Delayed' ? 'bg-red-500' : 'bg-blue-500'
-                                                 }`}>
-                                                     {t.status}
-                                                 </span>
+                                                <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide text-white ${t.status === 'Cleared' || t.status === 'Shipped' ? 'bg-green-500' :
+                                                        t.status === 'Pending' || t.status === 'Processing' ? 'bg-yellow-500' :
+                                                            t.status === 'Delayed' ? 'bg-red-500' : 'bg-blue-500'
+                                                    }`}>
+                                                    {t.status}
+                                                </span>
                                             </td>
                                             <td className="py-3 text-right pr-2">
                                                 <button className="text-text-muted hover:text-blue-600">
@@ -174,16 +175,16 @@ export const TrackingDashboard = () => {
 
                 {/* Right: Info / Calendar */}
                 <div className="flex flex-col gap-6">
-                     <DateTimeCard type="time" value={dateTime.time} />
-                     <DateTimeCard type="date" value={dateTime.date} />
-                     
-                     <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[2rem] p-6 text-white shadow-lg">
+                    <DateTimeCard type="time" value={dateTime.time} />
+                    <DateTimeCard type="date" value={dateTime.date} />
+
+                    <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[2rem] p-6 text-white shadow-lg">
                         <h3 className="font-bold text-lg mb-2">System Status</h3>
                         <p className="text-blue-100 text-sm mb-4">All systems operational. No delays reported in customs processing today.</p>
                         <button className="w-full py-2 bg-white/10 hover:bg-white/20 rounded-xl text-sm font-bold transition-colors">
                             View Reports
                         </button>
-                     </div>
+                    </div>
                 </div>
             </div>
         </div>
