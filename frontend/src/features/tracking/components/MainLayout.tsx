@@ -94,7 +94,7 @@ export const MainLayout = () => {
 
                 {/* Main Menu */}
                 <div className="mb-8">
-                    <p className="text-gray-400 dark:text-gray-500 text-[11px] uppercase tracking-wider px-3 mb-4 font-bold">Main Menu</p>
+                    <p className={`text-[11px] uppercase tracking-wider px-3 mb-4 font-bold ${theme === 'dark' || theme === 'mix' ? 'text-gray-500' : 'text-gray-400'}`}>Main Menu</p>
                     <nav className="space-y-1">
                         {navItems.map((item) => {
                             const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
@@ -103,12 +103,19 @@ export const MainLayout = () => {
                                     key={item.label}
                                     onClick={() => item.path !== '#' && navigate(item.path)}
                                     className={`w-full text-left flex items-center gap-3 px-3 py-3 rounded-xl text-sm transition-all whitespace-nowrap ${isActive
-                                            ? 'bg-gray-800 text-white shadow-md'
-                                            : 'text-gray-400 hover:bg-white/5 hover:text-white'
+                                            ? theme === 'dark' || theme === 'mix'
+                                                ? 'bg-white/10 text-white shadow-md'
+                                                : 'bg-black/10 text-black shadow-md'
+                                            : theme === 'dark' || theme === 'mix'
+                                                ? 'text-gray-300 hover:bg-white/5 hover:text-white'
+                                                : 'text-gray-600 hover:bg-black/5 hover:text-black'
                                         }`}
                                 >
                                     <svg
-                                        className={`w-5 h-5 ${isActive ? 'text-white' : 'text-gray-400'}`}
+                                        className={`w-5 h-5 ${isActive
+                                                ? theme === 'dark' || theme === 'mix' ? 'text-white' : 'text-black'
+                                                : theme === 'dark' || theme === 'mix' ? 'text-gray-300' : 'text-gray-600'
+                                            }`}
                                         fill="none" stroke="currentColor" viewBox="0 0 24 24"
                                     >
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={item.icon} />
@@ -122,41 +129,50 @@ export const MainLayout = () => {
 
                 {/* Settings */}
                 <div className="mb-8">
-                    <p className="text-gray-400 dark:text-gray-500 text-[11px] uppercase tracking-wider px-3 mb-4 font-bold">Settings</p>
+                    <p className={`text-[11px] uppercase tracking-wider px-3 mb-4 font-bold ${theme === 'dark' || theme === 'mix' ? 'text-gray-500' : 'text-gray-400'}`}>Settings</p>
                     <nav className="space-y-1">
-                        {settingsItems.map((item) => (
-                            <button
-                                key={item.label}
-                                onClick={() => navigate(item.path)}
-                                className={`w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm whitespace-nowrap ${location.pathname === item.path
-                                    ? theme === 'dark' || theme === 'mix'
-                                        ? 'bg-white/10 text-white'
-                                        : 'bg-black/10 text-black'
-                                    : theme === 'dark' || theme === 'mix'
-                                        ? 'text-gray-300 hover:bg-white/5'
-                                        : 'text-gray-600 hover:bg-black/5'
-                                    }`}
-                            >
-                                <svg className={`w-5 h-5 ${theme === 'dark' || theme === 'mix' ? 'text-white' : 'text-black'
-                                    }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={item.icon} />
-                                </svg>
-                                {item.label}
-                            </button>
-                        ))}
+                        {settingsItems.map((item) => {
+                            const isActive = location.pathname === item.path;
+                            return (
+                                <button
+                                    key={item.label}
+                                    onClick={() => navigate(item.path)}
+                                    className={`w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all whitespace-nowrap ${isActive
+                                            ? theme === 'dark' || theme === 'mix'
+                                                ? 'bg-white/10 text-white'
+                                                : 'bg-black/10 text-black'
+                                            : theme === 'dark' || theme === 'mix'
+                                                ? 'text-gray-300 hover:bg-white/5 hover:text-white'
+                                                : 'text-gray-600 hover:bg-black/5 hover:text-black'
+                                        }`}
+                                >
+                                    <svg
+                                        className={`w-5 h-5 ${isActive
+                                                ? theme === 'dark' || theme === 'mix' ? 'text-white' : 'text-black'
+                                                : theme === 'dark' || theme === 'mix' ? 'text-gray-300' : 'text-gray-600'
+                                            }`}
+                                        fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                    >
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={item.icon} />
+                                    </svg>
+                                    {item.label}
+                                </button>
+                            );
+                        })}
                     </nav>
 
                     {/* Theme Toggle Button */}
                     <button
                         onClick={toggleTheme}
-                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm mt-4 ${theme === 'dark' || theme === 'mix'
-                            ? 'text-gray-300 hover:bg-white/5'
-                            : 'text-gray-600 hover:bg-black/5'
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm mt-1 transition-all ${theme === 'dark' || theme === 'mix'
+                                ? 'text-gray-300 hover:bg-white/5 hover:text-white'
+                                : 'text-gray-600 hover:bg-black/5 hover:text-black'
                             }`}
                     >
-                        <svg className={`w-5 h-5 ${theme === 'dark' || theme === 'mix' ? 'text-white' : 'text-black'
-                            }`}
-                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg
+                            className={`w-5 h-5 ${theme === 'dark' || theme === 'mix' ? 'text-gray-300' : 'text-gray-600'}`}
+                            fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                        >
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={
                                 theme === 'light' ? "M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
                                     : theme === 'dark' ? "M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
