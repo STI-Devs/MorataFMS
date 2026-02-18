@@ -174,7 +174,7 @@ export const ImportList = () => {
                             placeholder="Search anything"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-10 pr-4 py-2 bg-input-bg rounded-2xl border border-border-strong text-sm w-64 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-text-primary font-medium transition-all duration-200"
+                            className="pl-10 pr-4 py-2 bg-input-bg rounded-lg border border-border-strong text-sm w-64 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-text-primary font-medium transition-all duration-200"
                         />
                         <Icon name="search" className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
                     </div>
@@ -182,7 +182,7 @@ export const ImportList = () => {
                         <Icon name="filter" className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary z-10 pointer-events-none" />
                         <button
                             onClick={() => setOpenDropdown(openDropdown === 'filter' ? null : 'filter')}
-                            className="pl-9 pr-8 py-2 text-sm rounded-2xl border border-border-strong bg-input-bg text-text-secondary font-bold min-w-[100px] text-left relative flex items-center justify-between focus:outline-none transition-all hover:border-gray-300"
+                            className="pl-9 pr-8 py-2 text-sm rounded-lg border border-border-strong bg-input-bg text-text-secondary font-bold min-w-[100px] text-left relative flex items-center justify-between focus:outline-none transition-all hover:border-gray-300"
                         >
                             {filterType || 'Filter'}
                             <Icon name="chevron-down" className="w-4 h-4 ml-2 text-text-muted absolute right-2" />
@@ -209,7 +209,7 @@ export const ImportList = () => {
                     <div className="relative">
                         <button
                             onClick={() => setOpenDropdown(openDropdown === 'colour' ? null : 'colour')}
-                            className="pr-8 py-2 pl-3 text-sm rounded-2xl border border-border-strong bg-input-bg text-text-secondary font-bold min-w-[140px] text-left relative flex items-center justify-between focus:outline-none transition-all hover:border-gray-300"
+                            className="pr-8 py-2 pl-3 text-sm rounded-lg border border-border-strong bg-input-bg text-text-secondary font-bold min-w-[140px] text-left relative flex items-center justify-between focus:outline-none transition-all hover:border-gray-300"
                         >
                             {filterValue || 'Colour'}
                             <Icon name="chevron-down" className="w-4 h-4 ml-2 text-text-muted absolute right-2" />

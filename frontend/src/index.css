@@ -59,7 +59,10 @@
   --color-border-tint: #1a1a1a;
 }
 
-/* Mix mode: dark sidebar, light content */
+/* Mix mode: dark sidebar, light content area.
+   The sidebar element gets class="dark" applied directly in MainLayout.
+   The content area inherits :root (light) tokens.
+   This class is only on <html> for ThemeContext tracking. */
 .mix {
   --color-sidebar-bg: #0a0a0a;
   --color-sidebar-border: transparent;
