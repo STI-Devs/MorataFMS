@@ -19,7 +19,6 @@ class ExportTransactionController extends Controller
 
         $query = ExportTransaction::with(['shipper', 'stages', 'assignedUser', 'destinationCountry']);
 
-        // Search by BL number, vessel, or shipper name
         if ($search = $request->query('search')) {
             $query->where(function ($q) use ($search) {
                 $q->where('bl_no', 'like', "%{$search}%")
@@ -27,6 +26,12 @@ class ExportTransactionController extends Controller
                     ->orWhereHas('shipper', function ($q) use ($search) {
                         $q->where('name', 'like', "%{$search}%");
                     });
+
+                // Check for ID search (e.g., "EXP-0005" or just "5")
+                $cleanSearch = str_replace('EXP-', '', $search);
+                if (is_numeric($cleanSearch)) {
+                    $q->orWhere('id', intval($cleanSearch));
+                }
             });
         }
 

@@ -1,9 +1,17 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
+import type { IconName } from '../../../components/Icon';
 import { Icon } from '../../../components/Icon';
 import { trackingApi } from '../api/trackingApi';
 import type { ExportTransaction, ImportTransaction, LayoutContext } from '../types';
+import { FilePreviewModal } from './FilePreviewModal';
 import { PageHeader } from './shared/PageHeader';
+import { UploadModal } from './UploadModal';
+
+interface StageUpload {
+    fileName: string;
+    fileObject: File;
+}
 
 export const TrackingDetails = () => {
     const navigate = useNavigate();
@@ -12,6 +20,12 @@ export const TrackingDetails = () => {
     
     const [transaction, setTransaction] = useState<ImportTransaction | ExportTransaction | undefined>(undefined);
     const [loading, setLoading] = useState(true);
+
+    // Upload state
+    const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+    const [selectedStageIndex, setSelectedStageIndex] = useState<number | null>(null);
+    const [stageUploads, setStageUploads] = useState<Record<number, StageUpload>>({});
+    const [previewFile, setPreviewFile] = useState<{ file: File | string | null; name: string } | null>(null);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -57,6 +71,22 @@ export const TrackingDetails = () => {
         fetchData();
     }, [referenceId]);
 
+    // Upload handlers
+    const handleStageUploadClick = (index: number) => {
+        setSelectedStageIndex(index);
+        setIsUploadModalOpen(true);
+    };
+
+    const handleUpload = (file: File) => {
+        if (selectedStageIndex !== null) {
+            setStageUploads(prev => ({
+                ...prev,
+                [selectedStageIndex]: { fileName: file.name, fileObject: file }
+            }));
+            setIsUploadModalOpen(false);
+        }
+    };
+
     if (loading) {
         return (
             <div className="flex items-center justify-center h-64">
@@ -88,26 +118,26 @@ export const TrackingDetails = () => {
         if (transaction.status === 'In Transit' && index < 3) return 'Completed';
         if (transaction.status === 'In Transit' && index === 3) return 'In Progress';
         if (transaction.status === 'Delayed' && index < 2) return 'Completed';
-        if (transaction.status === 'Delayed' && index === 2) return 'In Progress'; // Or specific delayed status
+        if (transaction.status === 'Delayed' && index === 2) return 'In Progress';
         if (transaction.status === 'Pending' && index === 0) return 'In Progress';
         return 'Pending';
     };
 
     const importStages = [
-        { title: 'Bureau of Customs', icon: 'file-text' },
-        { title: 'Philippine Ports Authority', icon: 'truck' }, // approximate icon
-        { title: 'Delivery Order', icon: 'file-text' },
-        { title: 'Port Charges', icon: 'credit-card' }, // need credit-card icon? use file-text for now or add one
-        { title: 'Releasing', icon: 'check-circle' },
-        { title: 'Billing of Liquidation', icon: 'file-text' }
+        { title: 'BOC Document Processing', icon: 'file-text' as IconName },
+        { title: 'Payment for PPA Charges', icon: 'truck' as IconName },
+        { title: 'Delivery Order Request', icon: 'file-text' as IconName },
+        { title: 'Payment for Port Charges', icon: 'file-text' as IconName },
+        { title: 'Releasing of Documents', icon: 'check-circle' as IconName },
+        { title: 'Liquidation and Billing', icon: 'file-text' as IconName }
     ];
 
     const exportStages = [
-        { title: 'BOC Document Processing', icon: 'file-text' },
-        { title: 'Bill of Lading Generation', icon: 'file-text' },
-        { title: 'CO Application and Releasing', icon: 'check-circle' },
-        { title: 'DCCCI Printing', icon: 'file-text' },
-        { title: 'Billing of Liquidation', icon: 'file-text' },
+        { title: 'BOC Document Processing', icon: 'file-text' as IconName },
+        { title: 'Bill of Lading Generation', icon: 'file-text' as IconName },
+        { title: 'CO Application and Releasing', icon: 'check-circle' as IconName },
+        { title: 'DCCCI Printing', icon: 'file-text' as IconName },
+        { title: 'Billing of Liquidation', icon: 'file-text' as IconName },
     ];
 
     const stages = isImport ? importStages : exportStages;
@@ -128,7 +158,6 @@ export const TrackingDetails = () => {
                         <p className="text-sm text-text-secondary font-bold">
                             Bill of Lading: <span className="text-text-primary font-bold">{transaction.bl}</span>
                         </p>
-                        {/* Show generic extra info if available */}
                         {'importer' in transaction && (
                             <p className="text-sm text-text-secondary font-bold mt-1">
                                 Importer: <span className="text-text-primary font-bold">{(transaction as ImportTransaction).importer}</span>
@@ -163,35 +192,94 @@ export const TrackingDetails = () => {
                     const status = getStageStatus(i);
                     const isCompleted = status === 'Completed';
                     const isInProgress = status === 'In Progress';
+                    const upload = stageUploads[i];
                     
                     return (
                         <div
                             key={i}
-                            className={`bg-surface rounded-2xl p-6 border transition-all duration-200 group cursor-default ${
+                            className={`relative bg-surface rounded-2xl p-6 border transition-all duration-200 group ${
                                 isInProgress ? 'border-blue-500 shadow-md ring-1 ring-blue-500' : 'border-border shadow-sm hover:border-border-strong'
                             }`}
                         >
-                            <div className="flex items-center gap-3 mb-4">
+                            {/* Upload Button */}
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleStageUploadClick(i);
+                                }}
+                                className="absolute top-4 right-4 p-2 rounded-full bg-surface-secondary hover:bg-hover text-text-muted hover:text-blue-600 transition-all shadow-sm active:scale-95 z-10 opacity-0 group-hover:opacity-100 focus:opacity-100 border border-border"
+                                title="Upload File"
+                            >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                                </svg>
+                            </button>
+
+                            <div className="flex items-center gap-3 mb-4 pr-10">
                                 <div className={`p-2 rounded-xl transition-colors ${
                                     isCompleted ? 'bg-green-50 text-green-600' :
                                     isInProgress ? 'bg-blue-50 text-blue-600' :
                                     'bg-surface-secondary text-text-muted'
                                 }`}>
-                                    <Icon name={stage.icon as import('../../../components/Icon').IconName} className="w-6 h-6" />
+                                    <Icon name={stage.icon} className="w-6 h-6" />
                                 </div>
                                 <h3 className={`font-bold ${isInProgress ? 'text-blue-700' : 'text-text-primary'}`}>{stage.title}</h3>
                             </div>
-                            <p className={`text-sm font-bold ${
-                                isCompleted ? 'text-green-600' :
-                                isInProgress ? 'text-blue-600' :
-                                'text-gray-400'
-                            }`}>
-                                {status}
-                            </p>
+
+                            {/* Uploaded File Display */}
+                            {upload && (
+                                <div className="mb-3">
+                                    <p className="text-xs font-bold text-text-muted uppercase tracking-wider mb-1">
+                                        File Uploaded
+                                    </p>
+                                    <div
+                                        onClick={() => setPreviewFile({
+                                            file: upload.fileObject,
+                                            name: upload.fileName
+                                        })}
+                                        className="cursor-pointer bg-surface-secondary hover:bg-hover px-3 py-2 rounded-lg border border-border transition-colors group/file"
+                                    >
+                                        <p className="text-sm font-bold text-blue-600 dark:text-blue-400 truncate group-hover/file:underline">
+                                            {upload.fileName}
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="flex items-center gap-2 mt-auto pt-2">
+                                <span className={`w-2 h-2 rounded-full ${
+                                    isCompleted ? 'bg-green-500' :
+                                    isInProgress ? 'bg-blue-500' :
+                                    'bg-gray-300'
+                                }`}></span>
+                                <p className={`text-sm font-bold ${
+                                    isCompleted ? 'text-green-600' :
+                                    isInProgress ? 'text-blue-600' :
+                                    'text-gray-400'
+                                }`}>
+                                    {status}
+                                </p>
+                            </div>
                         </div>
                     );
                 })}
             </div>
+
+            {/* Upload Modal */}
+            <UploadModal
+                isOpen={isUploadModalOpen}
+                onClose={() => setIsUploadModalOpen(false)}
+                onUpload={handleUpload}
+                title={selectedStageIndex !== null ? stages[selectedStageIndex].title : ''}
+            />
+
+            {/* File Preview Modal */}
+            <FilePreviewModal
+                isOpen={!!previewFile}
+                onClose={() => setPreviewFile(null)}
+                file={previewFile?.file || null}
+                fileName={previewFile?.name || ''}
+            />
         </div>
     );
 };

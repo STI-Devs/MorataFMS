@@ -1,7 +1,9 @@
 <?php
 
+use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\CountryController;
+use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\ExportTransactionController;
 use App\Http\Controllers\ImportTransactionController;
 use App\Http\Controllers\UserController;
@@ -30,4 +32,11 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
 
     // Admin-only: User management
     Route::apiResource('users', UserController::class);
+
+    // Document management
+    Route::apiResource('documents', DocumentController::class)->except(['update']);
+    Route::get('documents/{document}/download', [DocumentController::class, 'download']);
+
+    // Audit logs (read-only, supervisor+)
+    Route::get('audit-logs', [AuditLogController::class, 'index']);
 });
