@@ -290,7 +290,7 @@ export const Documents = () => {
                     <input
                         type="text"
                         placeholder="Search documents..."
-                        className="pl-10 pr-4 py-2 bg-input-bg rounded-2xl border border-border-strong text-sm w-64 outline-none focus:ring-2 focus:ring-blue-500 transition-all text-text-primary font-bold"
+                        className="pl-10 pr-4 py-2 bg-input-bg rounded-lg border border-border-strong text-sm w-64 outline-none focus:ring-2 focus:ring-blue-500 transition-all text-text-primary font-bold"
                     />
                     <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -301,7 +301,7 @@ export const Documents = () => {
                 <div className="flex items-center gap-2">
                     <span className="text-sm text-text-secondary font-bold">Sort by</span>
                     <div className="relative group">
-                        <select className="appearance-none bg-input-bg border border-border-strong rounded-2xl pl-3 pr-10 py-2 text-sm text-text-secondary font-bold focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer transition-all hover:border-gray-300 outline-none min-w-[140px]">
+                        <select className="appearance-none bg-input-bg border border-border-strong rounded-lg pl-3 pr-10 py-2 text-sm text-text-secondary font-bold focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer transition-all hover:border-gray-300 outline-none min-w-[140px]">
                             <option>Date Uploaded</option>
                             <option>Name</option>
                             <option>Size</option>
@@ -329,7 +329,7 @@ export const Documents = () => {
             </div>
 
             {/* File List Card */}
-            <div className="bg-surface rounded-[2rem] border border-border shadow-sm transition-colors overflow-hidden">
+            <div className="bg-surface rounded-lg border border-border shadow-md transition-colors overflow-hidden">
                 <div className="p-6 overflow-x-auto">
                     <table className="w-full text-left border-collapse min-w-[800px]">
                         <thead>
@@ -597,7 +597,7 @@ export const Documents = () => {
                                                     <span className="text-[10px] font-bold">DOCX</span>
                                                 </div>
                                                 <div>
-                                                        <p className="text-sm font-semibold text-text-primary truncate">File.docx</p>
+                                                    <p className="text-sm font-semibold text-text-primary truncate">File.docx</p>
                                                     <div className="flex items-center gap-2 mt-0.5">
                                                         <span className="text-xs text-gray-500">60 KB of 120 KB</span>
                                                         <span className="w-1 h-1 rounded-full bg-gray-300"></span>
@@ -709,7 +709,7 @@ export const Documents = () => {
                                         <p className="text-xs text-text-primary font-semibold text-right">{selectedFile.uploadDate}</p>
                                     </div>
                                 </div>
-                                <div className="bg-surface-secondary rounded-2xl p-4 border border-border">
+                                <div className="bg-surface-secondary rounded-lg p-4 border border-border">
                                     <div className="flex items-center gap-3">
                                         <div className={`w-12 h-12 rounded-xl ${selectedFile.uploader.color} flex items-center justify-center text-white font-bold text-lg shadow-sm ring-4 ring-surface`}>
                                             {selectedFile.uploader.initials}
