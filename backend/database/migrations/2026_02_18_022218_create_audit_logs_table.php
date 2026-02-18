@@ -10,14 +10,14 @@ return new class extends Migration {
         Schema::create('audit_logs', function (Blueprint $table) {
             $table->id();
 
-            // Polymorphic: which model was affected
-            $table->morphs('auditable');
+            // Polymorphic: which model was affected (nullable for events like login/logout)
+            $table->nullableMorphs('auditable');
 
             // Who performed the action
             $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
 
-            // What happened
-            $table->enum('event', ['created', 'updated', 'deleted']);
+            // What happened (string to support custom events like login, logout, encoder_reassigned, etc.)
+            $table->string('event');
 
             // Field-level change tracking
             $table->json('old_values')->nullable();
