@@ -40,8 +40,8 @@ export const Profile = () => {
     };
 
     return (
-        <div className="h-full flex items-center justify-center bg-surface">
-            <div className="w-full max-w-4xl bg-surface rounded-3xl shadow-lg p-8">
+        <div className="min-h-full flex items-center justify-center py-8">
+            <div className="w-full max-w-4xl bg-surface rounded-lg shadow-md border border-border p-8">
                 {/* Profile Header */}
                 <div className="mb-8 flex justify-between items-center">
                     <div className="flex items-center gap-3">
@@ -86,7 +86,7 @@ export const Profile = () => {
                 <div className="flex gap-12 items-center">
                     {/* Left Side - Profile Picture */}
                     <div className="flex-shrink-0">
-                        <div className="relative w-80 h-80 bg-gradient-to-br from-gray-100 to-gray-200 rounded-3xl flex items-center justify-center group">
+                        <div className="relative w-80 h-80 bg-surface-secondary rounded-lg flex items-center justify-center group border border-border">
                             {/* Profile Avatar */}
                             <div className="relative">
                                 <div className="w-56 h-56 bg-gradient-to-br from-gray-800 to-gray-600 rounded-full flex items-center justify-center overflow-hidden">
