@@ -94,14 +94,14 @@ export const MainLayout = () => {
         <button
             onClick={() => item.path !== '#' && navigate(item.path)}
             className={`w-full text-left flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${isActive
-                    ? isSidebarDark ? 'bg-white/10 text-white' : 'bg-black/8 text-black'
-                    : isSidebarDark ? 'text-gray-400 hover:bg-white/5 hover:text-white' : 'text-gray-500 hover:bg-black/5 hover:text-black'
+                ? isSidebarDark ? 'bg-white/10 text-white' : 'bg-black/8 text-black'
+                : isSidebarDark ? 'text-gray-400 hover:bg-white/5 hover:text-white' : 'text-gray-500 hover:bg-black/5 hover:text-black'
                 }`}
         >
             <svg
                 className={`w-4 h-4 shrink-0 ${isActive
-                        ? isSidebarDark ? 'text-white' : 'text-black'
-                        : isSidebarDark ? 'text-gray-400' : 'text-gray-500'
+                    ? isSidebarDark ? 'text-white' : 'text-black'
+                    : isSidebarDark ? 'text-gray-400' : 'text-gray-500'
                     }`}
                 fill="none" stroke="currentColor" viewBox="0 0 24 24"
             >
@@ -116,7 +116,7 @@ export const MainLayout = () => {
 
             {/* Sidebar — always dark in mix/dark, light in light */}
             <aside
-                className={`w-64 h-full flex flex-col shrink-0 py-5 px-3 ${isDetailsPage ? 'fixed z-10' : ''} ${isSidebarDark ? 'bg-[#0a0a0a]' : 'bg-gray-100'
+                className={`w-64 h-full flex flex-col shrink-0 py-5 px-3 ${isDetailsPage ? 'fixed z-10' : ''} ${isSidebarDark ? 'bg-[#0d0d0d]' : 'bg-gray-100'
                     }`}
             >
                 {/* Logo */}
@@ -170,8 +170,8 @@ export const MainLayout = () => {
                     <button
                         onClick={toggleTheme}
                         className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all ${isSidebarDark
-                                ? 'text-gray-400 hover:bg-white/5 hover:text-white'
-                                : 'text-gray-500 hover:bg-black/5 hover:text-black'
+                            ? 'text-gray-400 hover:bg-white/5 hover:text-white'
+                            : 'text-gray-500 hover:bg-black/5 hover:text-black'
                             }`}
                     >
                         <svg className={`w-4 h-4 shrink-0 ${isSidebarDark ? 'text-gray-400' : 'text-gray-500'}`}
@@ -195,11 +195,11 @@ export const MainLayout = () => {
                 </div>
             </aside>
 
-            {/* Main Content Area — light in mix/light, dark in dark */}
+            {/* Main Content Area — dark grey card in dark, white in light */}
             <main className={`flex-1 overflow-y-auto p-6 m-3 rounded-2xl relative border ${isDetailsPage ? 'ml-64' : ''
                 } ${isContentDark
-                    ? 'bg-[#0a0a0a] border-white/5'
-                    : 'bg-white border-black/5'
+                    ? 'bg-[#111111] border-[#2a2a2a] shadow-[0_8px_32px_rgba(0,0,0,0.6)]'
+                    : 'bg-white border-black/5 shadow-sm'
                 }`}>
                 <div className="max-w-7xl mx-auto min-h-full flex flex-col">
                     <Outlet context={{ user, dateTime }} />
