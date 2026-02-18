@@ -4,8 +4,7 @@ import { NotFoundPage } from './components/layout/NotFoundPage';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider, GuestRoute, ProtectedRoute, RoleRedirect } from './features/auth';
 import { AuthPage } from './features/auth/components/AuthPage';
-import { Documents, ExportList, ImportList, MainLayout, Profile, TrackingDashboard, TrackingDetails } from './features/tracking';
-import { AdminDashboard } from './features/tracking/components/AdminDashboard';
+import { AdminDashboard, Documents, ExportList, ImportList, MainLayout, Profile, TrackingDetails } from './features/tracking';
 import { UserManagement, ClientManagement, TransactionOversight, ReportsAnalytics, AuditLogs } from './features/admin';
 
 function App() {
@@ -19,28 +18,29 @@ function App() {
             <Route path="/login" element={<AuthPage />} />
           </Route>
 
-          {/* Employee-only routes (encoder, broker, supervisor, manager) */}
-          <Route element={<ProtectedRoute allowedRoles={['encoder', 'broker', 'supervisor', 'manager']} />}>
+          {/* All authenticated routes share the same layout */}
+          <Route element={<ProtectedRoute allowedRoles={['encoder', 'broker', 'supervisor', 'manager', 'admin']} />}>
             <Route element={<MainLayout />}>
-              <Route path="/dashboard" element={<TrackingDashboard />} />
-              <Route path="/imports" element={<ImportList />} />
-              <Route path="/exports" element={<ExportList />} />
-              <Route path="/documents" element={<Documents />} />
-              <Route path="/tracking/:referenceId" element={<TrackingDetails />} />
+              {/* Shared dashboard (content differs by role via AdminDashboard component) */}
+              <Route path="/dashboard" element={<AdminDashboard />} />
               <Route path="/profile" element={<Profile />} />
-            </Route>
-          </Route>
 
-          {/* Admin-only routes */}
-          <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
-            <Route element={<MainLayout />}>
-              <Route path="/admin" element={<AdminDashboard />} />
-              <Route path="/admin/users" element={<UserManagement />} />
-              <Route path="/admin/clients" element={<ClientManagement />} />
-              <Route path="/admin/transactions" element={<TransactionOversight />} />
-              <Route path="/admin/reports" element={<ReportsAnalytics />} />
-              <Route path="/admin/audit-logs" element={<AuditLogs />} />
-              <Route path="/profile" element={<Profile />} />
+              {/* Employee routes */}
+              <Route element={<ProtectedRoute allowedRoles={['encoder', 'broker', 'supervisor', 'manager']} />}>
+                <Route path="/imports" element={<ImportList />} />
+                <Route path="/export" element={<ExportList />} />
+                <Route path="/documents" element={<Documents />} />
+                <Route path="/tracking/:referenceId" element={<TrackingDetails />} />
+              </Route>
+
+              {/* Admin-only routes */}
+              <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+                <Route path="/users" element={<UserManagement />} />
+                <Route path="/clients" element={<ClientManagement />} />
+                <Route path="/transactions" element={<TransactionOversight />} />
+                <Route path="/reports" element={<ReportsAnalytics />} />
+                <Route path="/audit-logs" element={<AuditLogs />} />
+              </Route>
             </Route>
           </Route>
 

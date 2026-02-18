@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { useTheme } from '../../../context/ThemeContext';
+import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '../../auth';
+import { useTheme } from '../../../context/ThemeContext';
 
 export const MainLayout = () => {
     const { user, logout } = useAuth();
@@ -50,66 +50,71 @@ export const MainLayout = () => {
         }
     };
 
-    const isAdmin = user?.role === 'admin';
-
-    const adminNavItems = [
-        { label: 'Dashboard', path: '/admin', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
-        { label: 'User Management', path: '/admin/users', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z' },
-        { label: 'Client Management', path: '/admin/clients', icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4' },
-        { label: 'Transaction Oversight', path: '/admin/transactions', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4' },
-        { label: 'Reports & Analytics', path: '/admin/reports', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
-        { label: 'Audit Logs', path: '/admin/audit-logs', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
+    const adminItems = [
+        { label: 'Dashboard', path: '/dashboard', icon: 'M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z' },
+        { label: 'User Management', path: '/users', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z' },
+        { label: 'Client Management', path: '/clients', icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4' },
+        { label: 'Transaction Oversight', path: '/transactions', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4' },
+        { label: 'Reports & Analytics', path: '/reports', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
+        { label: 'Audit Logs', path: '/audit-logs', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' },
     ];
 
-    const employeeNavItems = [
-        { label: 'Dashboard', path: '/dashboard', icon: 'M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z M15 11a3 3 0 11-6 0 3 3 0 016 0z' },
+    const encoderItems = [
+        { label: 'Tracking', path: '/tracking', icon: 'M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z M15 11a3 3 0 11-6 0 3 3 0 016 0z' },
         { label: 'Import List', path: '/imports', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' },
-        { label: 'Export List', path: '/exports', icon: 'M12 19l9 2-9-18-9 18 9-2zm0 0v-8' },
+        { label: 'Export List', path: '/export', icon: 'M12 19l9 2-9-18-9 18 9-2zm0 0v-8' },
         { label: 'Documents', path: '/documents', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
     ];
 
-    const navItems = isAdmin ? adminNavItems : employeeNavItems;
+    const navItems = user?.role === 'admin' ? adminItems : encoderItems;
 
     const settingsItems = [
-        { label: 'Profile', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' },
-        { label: 'Help', icon: 'M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
-        { label: 'Notifications', icon: 'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9' },
+        { label: 'Profile', path: '/profile', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' },
+        { label: 'Help', path: '/help', icon: 'M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
+        { label: 'Notifications', path: '/notifications', icon: 'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9' },
     ];
 
-    // In mix mode, sidebar needs dark text/icons
-    const sidebarDark = theme === 'dark' || theme === 'mix';
+    const isDetailsPage = location.pathname.startsWith('/tracking');
 
     return (
-        <div className="h-screen flex overflow-hidden font-sans transition-colors duration-300 ease-in-out bg-surface-secondary">
+        <div className={`h-screen flex overflow-hidden text-gray-900 ${theme === 'dark' || theme === 'mix' ? 'bg-black' : 'bg-white'
+            }`}>
 
             {/* Sidebar */}
-            <aside className="w-64 h-full flex flex-col pt-8 pb-6 px-4 shrink-0 overflow-y-auto transition-all duration-300 ease-in-out bg-sidebar-bg border-r border-sidebar-border">
+            <aside className={`w-72 h-full flex flex-col overflow-y-auto py-6 px-4 shrink-0 ${isDetailsPage ? 'fixed z-10' : ''} ${theme === 'dark' || theme === 'mix' ? 'bg-black' : 'bg-white'
+                }`}>
                 {/* Logo */}
-                <div className="flex items-center gap-3 px-2 mb-6 cursor-pointer" onClick={() => navigate(isAdmin ? '/admin' : '/dashboard')}>
+                <div className="flex items-center gap-2 px-2 mb-8 cursor-pointer" onClick={() => navigate('/')}>
                     <div className="w-8 h-8 flex-shrink-0">
                         <svg viewBox="0 0 64 64" className="w-full h-full">
-                            <circle cx="32" cy="32" r="30" fill="currentColor" className={sidebarDark ? 'text-white' : 'text-gray-900'} />
+                            <circle cx="32" cy="32" r="30" fill="currentColor" className={theme === 'dark' || theme === 'mix' ? 'text-white' : 'text-gray-900'} />
                             <path d="M20 32 Q32 20 44 32 Q32 44 20 32" fill="#c41e3a" />
                             <circle cx="32" cy="32" r="8" fill="white" />
                         </svg>
                     </div>
-                    <span className={`font-bold text-lg tracking-tight ${sidebarDark ? 'text-white' : 'text-gray-900'}`}>F.M. Morata</span>
+                    <span className={`font-bold text-sm ${theme === 'dark' || theme === 'mix' ? 'text-white' : 'text-black'
+                        }`}>F.M Morata</span>
                 </div>
 
                 {/* Main Menu */}
                 <div className="mb-8">
-                    <p className={`text-[11px] uppercase tracking-wider px-3 mb-4 font-bold ${sidebarDark ? 'text-gray-500' : 'text-gray-400'}`}>Main Menu</p>
+                    <p className="text-gray-400 dark:text-gray-500 text-[11px] uppercase tracking-wider px-3 mb-4 font-bold">Main Menu</p>
                     <nav className="space-y-1">
                         {navItems.map((item) => (
                             <button
                                 key={item.label}
                                 onClick={() => item.path !== '#' && navigate(item.path)}
-                                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${(location.pathname === item.path || (item.path !== '/admin' && location.pathname.startsWith(item.path)))
-                                    ? sidebarDark ? 'bg-gray-800 text-white shadow-md' : 'bg-gray-900 text-white shadow-md'
-                                    : sidebarDark ? 'text-gray-400 hover:bg-gray-800 hover:text-gray-50' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
+                                className={`w-full text-left flex items-center gap-3 px-3 py-3 rounded-xl text-sm transition-all whitespace-nowrap ${location.pathname === item.path
+                                    ? 'bg-gray-900 text-white dark:bg-zinc-800 dark:text-white shadow-md'
+                                    : theme === 'dark' || theme === 'mix'
+                                        ? 'text-gray-300 hover:bg-white/5'
+                                        : 'text-gray-600 hover:bg-black/5'
                                     }`}
                             >
-                                <svg className={`w-5 h-5 ${location.pathname === item.path ? 'text-white' : 'text-gray-400 group-hover:text-gray-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg className={`w-5 h-5 ${location.pathname === item.path
+                                    ? 'text-white'
+                                    : theme === 'dark' || theme === 'mix' ? 'text-white' : 'text-black'
+                                    }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={item.icon} />
                                 </svg>
                                 {item.label}
@@ -120,61 +125,56 @@ export const MainLayout = () => {
 
                 {/* Settings */}
                 <div className="mb-8">
-                    <p className={`text-[11px] uppercase tracking-wider px-3 mb-4 font-bold ${sidebarDark ? 'text-gray-500' : 'text-gray-400'}`}>Settings</p>
+                    <p className="text-gray-400 dark:text-gray-500 text-[11px] uppercase tracking-wider px-3 mb-4 font-bold">Settings</p>
                     <nav className="space-y-1">
                         {settingsItems.map((item) => (
                             <button
                                 key={item.label}
-                                onClick={() => item.label === 'Profile' && navigate('/profile')}
-                                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${sidebarDark ? 'text-gray-400 hover:bg-gray-800 hover:text-gray-50' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
+                                onClick={() => navigate(item.path)}
+                                className={`w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm whitespace-nowrap ${location.pathname === item.path
+                                    ? theme === 'dark' || theme === 'mix'
+                                        ? 'bg-white/10 text-white'
+                                        : 'bg-black/10 text-black'
+                                    : theme === 'dark' || theme === 'mix'
+                                        ? 'text-gray-300 hover:bg-white/5'
+                                        : 'text-gray-600 hover:bg-black/5'
                                     }`}
                             >
-                                <svg className="w-5 h-5 text-gray-400 group-hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg className={`w-5 h-5 ${theme === 'dark' || theme === 'mix' ? 'text-white' : 'text-black'
+                                    }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={item.icon} />
                                 </svg>
                                 {item.label}
                             </button>
                         ))}
                     </nav>
-                </div>
 
-                {/* Theme Toggle */}
-                <div className="mb-6 mt-auto">
+                    {/* Theme Toggle Button */}
                     <button
                         onClick={toggleTheme}
-                        className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${sidebarDark ? 'text-gray-400 hover:bg-gray-800 hover:text-gray-50' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm mt-4 ${theme === 'dark' || theme === 'mix'
+                            ? 'text-gray-300 hover:bg-white/5'
+                            : 'text-gray-600 hover:bg-black/5'
                             }`}
                     >
-                        {theme === 'light' ? (
-                            <>
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                                </svg>
-                                Light Mode
-                            </>
-                        ) : theme === 'dark' ? (
-                            <>
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                                </svg>
-                                Dark Mode
-                            </>
-                        ) : (
-                            <>
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                                </svg>
-                                Mix Mode
-                            </>
-                        )}
+                        <svg className={`w-5 h-5 ${theme === 'dark' || theme === 'mix' ? 'text-white' : 'text-black'
+                            }`}
+                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={
+                                theme === 'light' ? "M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
+                                    : theme === 'dark' ? "M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
+                                        : "M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
+                            } />
+                        </svg>
+                        {theme === 'light' ? 'Light Mode' : theme === 'dark' ? 'Dark Mode' : 'Mix Mode'}
                     </button>
-                </div>
 
-                {/* Sign Out */}
-                <div>
+                    {/* Sign Out Button */}
                     <button
                         onClick={handleLogout}
-                        className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${sidebarDark ? 'text-gray-400 hover:bg-gray-800 hover:text-gray-50' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm mt-4 ${theme === 'dark' || theme === 'mix'
+                            ? 'text-red-400 hover:bg-white/5'
+                            : 'text-red-600 hover:bg-red-50'
                             }`}
                     >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -183,17 +183,16 @@ export const MainLayout = () => {
                         Sign Out
                     </button>
                 </div>
-            </aside>
+            </aside >
 
-            {/* Main Content Area */}
-            <main
-                id="main-content"
-                className="flex-1 overflow-y-auto relative m-2 rounded-2xl shadow-2xl transition-colors duration-300 ease-in-out bg-surface-elevated p-6"
-                style={{ scrollbarGutter: 'stable' }}
-            >
+            {/* Main Content Area - Rounded Card Look */}
+            < main className={`flex-1 overflow-y-auto p-8 m-4 rounded-[2.5rem] shadow-2xl relative border ${isDetailsPage ? 'ml-80' : ''} ${theme === 'dark' ? 'bg-black border-transparent' : 'bg-white border-white'
+                }`}>
                 {/* Page Content */}
-                <Outlet context={{ user, dateTime }} />
-            </main>
-        </div>
+                < div className="max-w-7xl mx-auto min-h-full flex flex-col" >
+                    <Outlet context={{ user, dateTime }} />
+                </div >
+            </main >
+        </div >
     );
 };
