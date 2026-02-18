@@ -408,18 +408,24 @@ export const Documents = () => {
                                     <td className="py-3 px-2 text-text-secondary font-bold">{file.size}</td>
                                     <td className="py-3 px-2 text-center">
                                         <div className="flex items-center justify-center gap-1">
-                                            <button className="p-1.5 text-text-secondary hover:bg-hover rounded-lg transition-colors" title="Download">
+                                            {/* Download — blue, matches edit button style */}
+                                            <button
+                                                onClick={(e) => e.stopPropagation()}
+                                                className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-md transition-colors"
+                                                title="Download"
+                                            >
                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                                                 </svg>
                                             </button>
+                                            {/* Delete — red X, matches cancel button style */}
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); handleDelete(file.id); }}
-                                                className="p-1.5 text-text-secondary hover:bg-red-50 hover:text-red-500 rounded-lg transition-colors"
+                                                className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md transition-colors"
                                                 title="Delete"
                                             >
                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
                                                 </svg>
                                             </button>
                                         </div>
