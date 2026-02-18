@@ -4,11 +4,23 @@ import { useCancelImport } from '../hooks/useCancelImport';
 import { useCreateImport } from '../hooks/useCreateImport';
 import { useImports } from '../hooks/useImports';
 import { useImportStats } from '../hooks/useImportStats';
-import type { CreateImportPayload, ImportTransaction, LayoutContext } from '../types';
+import type { ApiImportTransaction, CreateImportPayload, LayoutContext } from '../types';
 import { CalendarCard } from './CalendarCard';
 import { CancelTransactionModal } from './CancelTransactionModal';
 import { EncodeModal } from './EncodeModal';
 import { StatusChart } from './StatusChart';
+
+// Extend the local ImportTransaction type to include origin country
+interface ImportRow {
+    id: number;
+    ref: string;
+    bl: string;
+    status: string;
+    color: string;
+    importer: string;
+    originCountry: string;
+    date: string;
+}
 
 import { Icon } from '../../../components/Icon';
 import { Pagination } from '../../../components/Pagination';
@@ -64,15 +76,16 @@ export const ImportList = () => {
         per_page: perPage,
     });
 
-    const data = useMemo<ImportTransaction[]>(() => {
+    const data = useMemo<ImportRow[]>(() => {
         if (!response?.data) return [];
-        return response.data.map(t => ({
+        return response.data.map((t: ApiImportTransaction) => ({
             id: t.id,
             ref: t.customs_ref_no,
             bl: t.bl_no,
             status: t.status === 'pending' ? 'Pending' : t.status === 'in_progress' ? 'In Transit' : t.status === 'completed' ? 'Cleared' : 'Delayed',
             color: t.selective_color === 'green' ? 'bg-green-500' : t.selective_color === 'yellow' ? 'bg-yellow-500' : 'bg-red-500',
             importer: t.importer?.name || 'Unknown',
+            originCountry: t.origin_country?.name || '—',
             date: t.arrival_date || '',
         }));
     }, [response]);
@@ -251,12 +264,13 @@ export const ImportList = () => {
                 <div className="p-6">
                     {/* Table Header */}
                     <div className="grid gap-4 pb-3 border-b border-border mb-3 px-2 font-bold"
-                        style={{ gridTemplateColumns: '50px 1.2fr 1.2fr 1fr 1.5fr 1fr 80px' }}>
+                        style={{ gridTemplateColumns: '50px 1.2fr 1.2fr 1fr 1.2fr 1fr 1fr 80px' }}>
                         <span className="text-xs font-bold text-text-secondary uppercase tracking-wider">BLSC</span>
                         <span className="text-xs font-bold text-text-secondary uppercase tracking-wider">Customs Ref No.</span>
                         <span className="text-xs font-bold text-text-secondary uppercase tracking-wider">Bill of Lading</span>
                         <span className="text-xs font-bold text-text-secondary uppercase tracking-wider">Status</span>
                         <span className="text-xs font-bold text-text-secondary uppercase tracking-wider">Importer</span>
+                        <span className="text-xs font-bold text-text-secondary uppercase tracking-wider">Origin</span>
                         <span className="text-xs font-bold text-text-secondary uppercase tracking-wider">Arrival Date</span>
                         <span className="text-xs font-bold text-text-secondary uppercase tracking-wider text-right">Actions</span>
                     </div>
@@ -268,7 +282,7 @@ export const ImportList = () => {
                                 key={i}
                                 onClick={() => navigate(`/tracking/${row.ref}`)}
                                 className="grid gap-4 py-2 items-center cursor-pointer rounded-xl transition-all duration-200 px-2 hover:bg-hover hover:shadow-sm group"
-                                style={{ gridTemplateColumns: '50px 1.2fr 1.2fr 1fr 1.5fr 1fr 80px' }}
+                                style={{ gridTemplateColumns: '50px 1.2fr 1.2fr 1fr 1.2fr 1fr 1fr 80px' }}
                             >
                                 <span className={`w-2.5 h-2.5 rounded-full ${row.color}`}></span>
                                 <p className="text-sm text-text-primary font-bold">{row.ref}</p>
@@ -286,6 +300,7 @@ export const ImportList = () => {
                                     </span>
                                 </span>
                                 <p className="text-sm text-text-secondary font-bold">{row.importer}</p>
+                                <p className="text-sm text-text-muted font-medium">{row.originCountry}</p>
                                 <p className="text-sm text-text-secondary font-bold">{row.date}</p>
                                 <div className="flex justify-end gap-1.5">
                                     {/* Edit button — always visible */}

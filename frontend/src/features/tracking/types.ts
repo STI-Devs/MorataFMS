@@ -61,6 +61,7 @@ export interface ApiImportTransaction {
     bl_no: string;
     selective_color: string;
     importer: { id: number; name: string } | null;
+    origin_country?: { id: number; name: string; code: string };
     arrival_date: string;
     assigned_user?: { id: number; name: string };
     status: string;
@@ -127,6 +128,7 @@ export interface CreateImportPayload {
     bl_no: string;
     selective_color: 'green' | 'yellow' | 'red';
     importer_id: number;
+    origin_country_id?: number;
     arrival_date: string;
     notes?: string;
 }

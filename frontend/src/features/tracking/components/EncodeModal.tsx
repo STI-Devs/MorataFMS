@@ -22,10 +22,12 @@ export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type,
     const [arrivalDate, setArrivalDate] = useState('');
     const [vessel, setVessel] = useState('');
     const [destinationCountryId, setDestinationCountryId] = useState<number | ''>('');
+    const [originCountryId, setOriginCountryId] = useState<number | ''>('');
 
     // TanStack Query hooks for dropdown data
     const { data: clients = [], isLoading: loadingClients } = useClients(isImport ? 'importer' : 'exporter');
-    const { data: countries = [], isLoading: loadingCountries } = useCountries('export_destination', !isImport);
+    const { data: exportCountries = [], isLoading: loadingExportCountries } = useCountries('export_destination', !isImport);
+    const { data: importCountries = [], isLoading: loadingImportCountries } = useCountries('import_origin', isImport);
 
     // Submission state
     const [submitting, setSubmitting] = useState(false);
@@ -48,6 +50,7 @@ export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type,
             setArrivalDate('');
             setVessel('');
             setDestinationCountryId('');
+            setOriginCountryId('');
             setError(null);
         }
 
@@ -81,6 +84,7 @@ export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type,
                     selective_color: blsc as 'green' | 'yellow' | 'red',
                     importer_id: clientId,
                     arrival_date: arrivalDate,
+                    ...(originCountryId !== '' && { origin_country_id: originCountryId }),
                 };
                 await onSave(payload);
             } else {
@@ -257,12 +261,35 @@ export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type,
                                         value={destinationCountryId}
                                         className={selectClass}
                                         onChange={(e) => setDestinationCountryId(e.target.value ? Number(e.target.value) : '')}
-                                        disabled={loadingCountries}
+                                        disabled={loadingExportCountries}
                                     >
                                         <option value="">
-                                            {loadingCountries ? 'Loading...' : 'Select Destination Country'}
+                                            {loadingExportCountries ? 'Loading...' : 'Select Destination Country'}
                                         </option>
-                                        {countries.map(country => (
+                                        {exportCountries.map(country => (
+                                            <option key={country.id} value={country.id}>{country.name}</option>
+                                        ))}
+                                    </select>
+                                    <Icon name="chevron-down" className="w-4 h-4 absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Import Only: Country of Origin */}
+                        {isImport && (
+                            <div className="space-y-2">
+                                <label className={labelClass}>Country of Origin</label>
+                                <div className="relative">
+                                    <select
+                                        value={originCountryId}
+                                        className={selectClass}
+                                        onChange={(e) => setOriginCountryId(e.target.value ? Number(e.target.value) : '')}
+                                        disabled={loadingImportCountries}
+                                    >
+                                        <option value="">
+                                            {loadingImportCountries ? 'Loading...' : 'Select Origin Country'}
+                                        </option>
+                                        {importCountries.map(country => (
                                             <option key={country.id} value={country.id}>{country.name}</option>
                                         ))}
                                     </select>
