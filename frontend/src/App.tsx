@@ -1,6 +1,7 @@
-import { Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes } from 'react-router-dom';
 import { Toaster } from 'sonner';
-import { NotFoundPage } from './components/layout/NotFoundPage';
+import LandingPage from './components/LandingPage';
+import NotFoundPage from './components/NotFoundPage';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider, GuestRoute, ProtectedRoute, RoleRedirect } from './features/auth';
 import { AuthPage } from './features/auth/components/AuthPage';
@@ -13,6 +14,9 @@ function App() {
       <AuthProvider>
         <Toaster richColors position="top-right" />
         <Routes>
+          {/* Public landing page */}
+          <Route path="/" element={<LandingPage />} />
+
           {/* Guest-only routes */}
           <Route element={<GuestRoute />}>
             <Route path="/login" element={<AuthPage />} />
@@ -21,7 +25,7 @@ function App() {
           {/* All authenticated routes share the same layout */}
           <Route element={<ProtectedRoute allowedRoles={['encoder', 'broker', 'supervisor', 'manager', 'admin']} />}>
             <Route element={<MainLayout />}>
-              {/* Shared dashboard (content differs by role via AdminDashboard component) */}
+              {/* Shared dashboard (content differs by role) */}
               <Route path="/dashboard" element={<AdminDashboard />} />
               <Route path="/profile" element={<Profile />} />
 
@@ -44,8 +48,13 @@ function App() {
             </Route>
           </Route>
 
-          {/* Smart redirect based on role */}
-          <Route path="/" element={<RoleRedirect />} />
+          {/* Redirect /admin to /dashboard */}
+          <Route path="/admin" element={<Navigate to="/dashboard" replace />} />
+
+          {/* Smart redirect for authenticated users hitting /home */}
+          <Route path="/home" element={<RoleRedirect />} />
+
+          {/* 404 */}
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </AuthProvider>
