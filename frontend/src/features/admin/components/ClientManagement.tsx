@@ -138,7 +138,7 @@ export const ClientManagement = () => {
                     { label: 'Importers', value: clients.filter(c => c.type === 'importer' || c.type === 'both').length, icon: 'M19 14l-7 7m0 0l-7-7m7 7V3', color: '#64d2ff' },
                     { label: 'Exporters', value: clients.filter(c => c.type === 'exporter' || c.type === 'both').length, icon: 'M5 10l7-7m0 0l7 7m-7-7v18', color: '#ff9f0a' },
                 ].map(stat => (
-                    <div key={stat.label} className="bg-surface-tint rounded-xl p-4 border border-border-tint">
+                    <div key={stat.label} className="bg-surface-tint rounded-lg p-4 border border-border-tint">
                         <div className="flex items-start justify-between">
                             <div>
                                 <p className="text-3xl font-bold tabular-nums text-text-primary">{stat.value}</p>
@@ -165,12 +165,12 @@ export const ClientManagement = () => {
                         placeholder="Search clients..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border-strong bg-input-bg text-text-primary text-sm placeholder:text-text-muted focus:outline-none focus:border-blue-500/50 transition-colors"
+                        className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border-strong bg-input-bg text-text-primary text-sm placeholder:text-text-muted focus:outline-none focus:border-blue-500/50 transition-colors"
                     />
                 </div>
                 <button
                     onClick={handleCreate}
-                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all"
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all"
                     style={{ backgroundColor: '#0a84ff', color: '#fff' }}
                 >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -181,13 +181,13 @@ export const ClientManagement = () => {
             </div>
 
             {error && (
-                <div className="p-4 rounded-xl text-sm" style={{ backgroundColor: 'rgba(255,69,58,0.1)', color: '#ff453a' }}>
+                <div className="p-4 rounded-lg text-sm" style={{ backgroundColor: 'rgba(255,69,58,0.1)', color: '#ff453a' }}>
                     {error}
                 </div>
             )}
 
             {/* Table */}
-            <div className="bg-surface rounded-xl border border-border overflow-hidden">
+            <div className="bg-surface rounded-lg border border-border overflow-hidden">
                 {isLoading ? (
                     <div className="p-16 flex items-center justify-center">
                         <div className="w-8 h-8 rounded-full border-2 border-transparent animate-spin" style={{ borderTopColor: '#0a84ff' }} />

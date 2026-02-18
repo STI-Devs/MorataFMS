@@ -137,13 +137,13 @@ export const ImportList = () => {
                         icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z',
                     },
                 ].map(stat => (
-                    <div key={stat.label} className="bg-surface-tint rounded-xl p-4 border border-border-tint">
+                    <div key={stat.label} className="bg-surface-tint rounded-lg p-4 border border-border-tint">
                         <div className="flex items-start justify-between">
                             <div>
                                 <p className="text-3xl font-bold tabular-nums text-text-primary">{stat.value}</p>
                                 <p className="text-xs mt-1 text-text-secondary font-medium">{stat.label}</p>
                             </div>
-                            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${stat.color}22` }}>
+                            <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${stat.color}22` }}>
                                 <svg className="w-5 h-5" fill="none" stroke={stat.color} viewBox="0 0 24 24" strokeWidth={1.8}>
                                     <path strokeLinecap="round" strokeLinejoin="round" d={stat.icon} />
                                 </svg>
@@ -178,7 +178,7 @@ export const ImportList = () => {
                         </button>
 
                         {openDropdown === 'filter' && (
-                            <div className="absolute top-full left-0 mt-1 w-full bg-surface-elevated border border-border-strong rounded-xl shadow-lg z-[100] py-1">
+                            <div className="absolute top-full left-0 mt-1 w-full bg-surface-elevated border border-border-strong rounded-lg shadow-lg z-[100] py-1">
                                 {['SC', 'Status'].map((opt) => (
                                     <div
                                         key={opt}
@@ -240,13 +240,13 @@ export const ImportList = () => {
                     <div className="flex items-center gap-2 ml-auto">
                         <button
                             onClick={handleReset}
-                            className="bg-input-bg border border-border-strong text-text-secondary text-xs font-bold py-2.5 px-6 rounded-xl uppercase tracking-wider transition-all hover:border-gray-300 shadow-sm"
+                            className="bg-input-bg border border-border-strong text-text-secondary text-xs font-bold py-2.5 px-6 rounded-lg uppercase tracking-wider transition-all hover:border-gray-300 shadow-sm"
                         >
                             DEFAULT
                         </button>
                         <button
                             onClick={() => setIsEncodeModalOpen(true)}
-                            className="w-10 h-10 bg-blue-600 hover:bg-blue-700 text-white rounded-xl flex items-center justify-center shadow-sm transition-all border border-blue-700/20"
+                            className="w-10 h-10 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center justify-center shadow-sm transition-all border border-blue-700/20"
                             title="Encode new transaction"
                         >
                             <Icon name="plus" className="w-5 h-5" />
@@ -256,7 +256,7 @@ export const ImportList = () => {
             </div>
 
             {/* Transaction List Card */}
-            <div className={`bg-surface rounded-xl border border-border transition-all duration-300 ease-in-out overflow-hidden ${isFetching ? 'opacity-60' : 'opacity-100'}`}>
+            <div className={`bg-surface rounded-lg border border-border transition-all duration-300 ease-in-out overflow-hidden ${isFetching ? 'opacity-60' : 'opacity-100'}`}>
                 <div className="p-6">
                     {/* Table Header */}
                     <div className="grid gap-4 pb-3 border-b border-border mb-3 px-2 font-bold"
@@ -276,7 +276,7 @@ export const ImportList = () => {
                             <div
                                 key={i}
                                 onClick={() => navigate(`/tracking/${row.ref}`)}
-                                className="grid gap-4 py-2 items-center cursor-pointer rounded-xl transition-all duration-200 px-2 hover:bg-hover hover:shadow-sm group"
+                                className="grid gap-4 py-2 items-center cursor-pointer rounded-lg transition-all duration-200 px-2 hover:bg-hover hover:shadow-sm group"
                                 style={{ gridTemplateColumns: '50px 1.2fr 1.2fr 1fr 1.5fr 1fr 80px' }}
                             >
                                 <span className={`w-2.5 h-2.5 rounded-full ${row.color}`}></span>

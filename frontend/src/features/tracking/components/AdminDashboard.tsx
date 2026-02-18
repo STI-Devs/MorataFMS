@@ -85,7 +85,7 @@ export const AdminDashboard = () => {
                 {statCards.map((stat) => (
                     <div
                         key={stat.label}
-                        className="bg-surface rounded-xl p-5 border border-border transition-all hover:-translate-y-0.5 hover:shadow-sm"
+                        className="bg-surface rounded-lg p-5 border border-border transition-all hover:-translate-y-0.5 hover:shadow-sm"
                     >
                         <div className="flex items-start justify-between mb-3">
                             <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${stat.color}20` }}>
@@ -105,14 +105,14 @@ export const AdminDashboard = () => {
             </div>
 
             {/* Quick Links Grid */}
-            <div className="bg-surface rounded-xl border border-border p-5">
+            <div className="bg-surface rounded-lg border border-border p-5">
                 <h2 className="text-sm font-bold mb-4 text-text-primary">Quick Actions</h2>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                     {quickLinks.map((link) => (
                         <button
                             key={link.label}
                             onClick={() => navigate(link.path)}
-                            className="flex flex-col items-center gap-2.5 p-4 rounded-xl border border-border transition-all hover:-translate-y-0.5 hover:bg-hover hover:border-border-strong text-center"
+                            className="flex flex-col items-center gap-2.5 p-4 rounded-lg border border-border transition-all hover:-translate-y-0.5 hover:bg-hover hover:border-border-strong text-center"
                         >
                             <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${link.color}18` }}>
                                 <svg className="w-4.5 h-4.5" fill="none" stroke={link.color} viewBox="0 0 24 24" strokeWidth={1.8}>
@@ -126,7 +126,7 @@ export const AdminDashboard = () => {
             </div>
 
             {/* System Status Banner */}
-            <div className="bg-surface rounded-xl border border-border p-4 flex items-center justify-between gap-4">
+            <div className="bg-surface rounded-lg border border-border p-4 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                     <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
                     <div>

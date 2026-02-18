@@ -149,7 +149,7 @@ export const UserManagement = () => {
                     { label: 'Inactive', value: users.filter(u => !u.is_active).length, icon: 'M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z', color: '#ff453a' },
                     { label: 'Admins', value: users.filter(u => u.role === 'admin').length, icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z', color: '#bf5af2' },
                 ].map(stat => (
-                    <div key={stat.label} className="bg-surface-tint rounded-xl p-4 border border-border-tint">
+                    <div key={stat.label} className="bg-surface-tint rounded-lg p-4 border border-border-tint">
                         <div className="flex items-start justify-between">
                             <div>
                                 <p className="text-3xl font-bold tabular-nums text-text-primary">{stat.value}</p>
@@ -176,12 +176,12 @@ export const UserManagement = () => {
                         placeholder="Search users..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border-strong bg-input-bg text-text-primary text-sm placeholder:text-text-muted focus:outline-none focus:border-blue-500/50 transition-colors"
+                        className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border-strong bg-input-bg text-text-primary text-sm placeholder:text-text-muted focus:outline-none focus:border-blue-500/50 transition-colors"
                     />
                 </div>
                 <button
                     onClick={handleCreate}
-                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all"
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all"
                     style={{ backgroundColor: '#0a84ff', color: '#fff' }}
                 >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -192,13 +192,13 @@ export const UserManagement = () => {
             </div>
 
             {error && (
-                <div className="p-4 rounded-xl text-sm" style={{ backgroundColor: 'rgba(255,69,58,0.1)', color: '#ff453a' }}>
+                <div className="p-4 rounded-lg text-sm" style={{ backgroundColor: 'rgba(255,69,58,0.1)', color: '#ff453a' }}>
                     {error}
                 </div>
             )}
 
             {/* Table */}
-            <div className="bg-surface rounded-xl border border-border overflow-hidden">
+            <div className="bg-surface rounded-lg border border-border overflow-hidden">
                 {isLoading ? (
                     <div className="p-16 flex items-center justify-center">
                         <div className="w-8 h-8 rounded-full border-2 border-transparent animate-spin" style={{ borderTopColor: '#0a84ff' }} />

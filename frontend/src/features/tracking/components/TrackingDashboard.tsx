@@ -83,9 +83,9 @@ export const TrackingDashboard = () => {
                     { label: 'Total Exports', value: totalExports, color: '#ff9f0a', icon: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4', sub: 'all time' },
                     { label: 'Cleared / Shipped', value: totalCleared, color: '#64d2ff', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', sub: 'completed' },
                 ].map(stat => (
-                    <div key={stat.label} className="bg-surface-tint rounded-xl p-5 border border-border-tint transition-all hover:-translate-y-0.5 hover:shadow-sm">
+                    <div key={stat.label} className="bg-surface-tint rounded-lg p-5 border border-border-tint transition-all hover:-translate-y-0.5 hover:shadow-sm">
                         <div className="flex items-start justify-between mb-3">
-                            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${stat.color}22` }}>
+                            <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${stat.color}22` }}>
                                 <svg className="w-5 h-5" fill="none" stroke={stat.color} viewBox="0 0 24 24" strokeWidth={1.8}>
                                     <path strokeLinecap="round" strokeLinejoin="round" d={stat.icon} />
                                 </svg>
@@ -101,7 +101,7 @@ export const TrackingDashboard = () => {
             {/* Main Content */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Left: Shipments Table */}
-                <div className="lg:col-span-2 bg-surface rounded-xl border border-border overflow-hidden">
+                <div className="lg:col-span-2 bg-surface rounded-lg border border-border overflow-hidden">
                     <div className="flex justify-between items-center p-5 border-b border-border">
                         <h2 className="text-base font-bold text-text-primary">All Shipments</h2>
                         <div className="relative">
@@ -110,7 +110,7 @@ export const TrackingDashboard = () => {
                                 placeholder="Search ref or BL..."
                                 value={filter}
                                 onChange={(e) => setFilter(e.target.value)}
-                                className="pl-9 pr-4 py-2 bg-input-bg rounded-xl border border-border-strong text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none w-52 text-text-primary"
+                                className="pl-9 pr-4 py-2 bg-input-bg rounded-lg border border-border-strong text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none w-52 text-text-primary"
                             />
                             <Icon name="search" className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
                         </div>
@@ -185,7 +185,7 @@ export const TrackingDashboard = () => {
                 {/* Right: Info Panel */}
                 <div className="flex flex-col gap-4">
                     {/* Time Card */}
-                    <div className="bg-surface-tint rounded-xl border border-border-tint p-5 text-center">
+                    <div className="bg-surface-tint rounded-lg border border-border-tint p-5 text-center">
                         <p className="text-4xl font-bold tabular-nums text-text-primary tracking-tight">{dateTime.time}</p>
                         <p className="text-sm text-text-secondary mt-1">{dateTime.date}</p>
                         <div className="flex items-center justify-center gap-1.5 mt-3 text-xs text-text-muted font-medium">
@@ -198,7 +198,7 @@ export const TrackingDashboard = () => {
                     </div>
 
                     {/* Status Breakdown */}
-                    <div className="bg-surface-tint rounded-xl border border-border-tint p-5 flex-1">
+                    <div className="bg-surface-tint rounded-lg border border-border-tint p-5 flex-1">
                         <h3 className="text-sm font-bold text-text-primary mb-4">Status Breakdown</h3>
                         <div className="space-y-3">
                             {[
@@ -219,7 +219,7 @@ export const TrackingDashboard = () => {
                     </div>
 
                     {/* System Status */}
-                    <div className="bg-surface rounded-xl border border-border p-4">
+                    <div className="bg-surface rounded-lg border border-border p-4">
                         <div className="flex items-center gap-2 mb-2">
                             <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
                             <h3 className="text-sm font-bold text-text-primary">System Status</h3>
