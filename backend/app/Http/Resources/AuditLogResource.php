@@ -18,7 +18,7 @@ class AuditLogResource extends JsonResource
             'id' => $this->id,
             // Main schema fields
             'event' => $this->event,
-            'auditable_type' => $this->model_name,
+            'auditable_type' => $this->auditable_type,
             'auditable_id' => $this->auditable_id,
             'old_values' => $this->old_values,
             'new_values' => $this->new_values,

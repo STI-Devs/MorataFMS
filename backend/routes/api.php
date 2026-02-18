@@ -42,6 +42,7 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
     Route::get('documents/{document}/download', [DocumentController::class, 'download']);
 
     // Audit logs (read-only, supervisor+)
+    Route::get('audit-logs/actions', [AuditLogController::class, 'actions']);
     Route::get('audit-logs', [AuditLogController::class, 'index']);
 
     // Admin: Reports & Analytics

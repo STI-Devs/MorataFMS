@@ -85,12 +85,8 @@ export const MainLayout = () => {
                 }`}>
                 {/* Logo */}
                 <div className="flex items-center gap-2 px-2 mb-8 cursor-pointer" onClick={() => navigate('/')}>
-                    <div className="w-8 h-8 flex-shrink-0">
-                        <svg viewBox="0 0 64 64" className="w-full h-full">
-                            <circle cx="32" cy="32" r="30" fill="currentColor" className={theme === 'dark' || theme === 'mix' ? 'text-white' : 'text-gray-900'} />
-                            <path d="M20 32 Q32 20 44 32 Q32 44 20 32" fill="#c41e3a" />
-                            <circle cx="32" cy="32" r="8" fill="white" />
-                        </svg>
+                    <div className="w-8 h-8">
+                        <img src="/logo.jpg" alt="F.M Morata Logo" className="w-full h-full object-cover rounded-full" />
                     </div>
                     <span className={`font-bold text-sm ${theme === 'dark' || theme === 'mix' ? 'text-white' : 'text-black'
                         }`}>F.M Morata</span>
