@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Client;
+use App\Models\Country;
 use App\Models\ExportTransaction;
 use App\Models\User;
 
@@ -65,11 +66,13 @@ test('export transactions can be filtered by status', function () {
 test('authenticated users can create export transactions with valid data', function () {
     $user = User::factory()->create();
     $client = Client::factory()->exporter()->create();
+    $country = Country::factory()->create();
 
     $payload = [
         'shipper_id' => $client->id,
         'bl_no' => 'BL-EXP-12345',
         'vessel' => 'MV Pacific Star',
+        'destination_country_id' => $country->id,
     ];
 
     $response = $this->actingAs($user)
@@ -92,11 +95,13 @@ test('authenticated users can create export transactions with valid data', funct
 test('creating an export transaction auto-creates stages', function () {
     $user = User::factory()->create();
     $client = Client::factory()->exporter()->create();
+    $country = Country::factory()->create();
 
     $this->actingAs($user)->postJson('/api/export-transactions', [
         'shipper_id' => $client->id,
         'bl_no' => 'BL-STAGE-EXP-001',
         'vessel' => 'MV Stage Test',
+        'destination_country_id' => $country->id,
     ]);
 
     $transaction = ExportTransaction::where('bl_no', 'BL-STAGE-EXP-001')->first();
@@ -118,17 +123,20 @@ test('creating export transaction fails without required fields', function () {
             'shipper_id',
             'bl_no',
             'vessel',
+            'destination_country_id',
         ]);
 });
 
 test('creating export transaction fails with non-existent shipper', function () {
     $user = User::factory()->create();
+    $country = Country::factory()->create();
 
     $response = $this->actingAs($user)
         ->postJson('/api/export-transactions', [
             'shipper_id' => 99999,
             'bl_no' => 'BL-001',
             'vessel' => 'MV Test',
+            'destination_country_id' => $country->id,
         ]);
 
     $response->assertUnprocessable()
@@ -140,12 +148,14 @@ test('creating export transaction fails with non-existent shipper', function () 
 test('mass assignment of status is ignored on create', function () {
     $user = User::factory()->create();
     $client = Client::factory()->exporter()->create();
+    $country = Country::factory()->create();
 
     $response = $this->actingAs($user)
         ->postJson('/api/export-transactions', [
             'shipper_id' => $client->id,
             'bl_no' => 'BL-HACK-EXP-001',
             'vessel' => 'MV Hacker Ship',
+            'destination_country_id' => $country->id,
             'status' => 'completed', // Attacker trying to skip workflow
         ]);
 
@@ -157,12 +167,14 @@ test('mass assignment of assigned_user_id is ignored on create', function () {
     $user = User::factory()->create();
     $otherUser = User::factory()->create();
     $client = Client::factory()->exporter()->create();
+    $country = Country::factory()->create();
 
     $response = $this->actingAs($user)
         ->postJson('/api/export-transactions', [
             'shipper_id' => $client->id,
             'bl_no' => 'BL-HACK-EXP-002',
             'vessel' => 'MV Spoof Ship',
+            'destination_country_id' => $country->id,
             'assigned_user_id' => $otherUser->id, // Attacker trying to assign to someone else
         ]);
 

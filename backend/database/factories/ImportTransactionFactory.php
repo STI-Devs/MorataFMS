@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Client;
+use App\Models\Country;
 use App\Models\ImportTransaction;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -20,6 +21,7 @@ class ImportTransactionFactory extends Factory
             'bl_no' => 'BL-' . fake()->unique()->numerify('########'),
             'selective_color' => fake()->randomElement(['green', 'yellow', 'red']),
             'importer_id' => Client::factory(),
+            'origin_country_id' => Country::factory()->importOrigin(),
             'arrival_date' => fake()->dateTimeBetween('now', '+30 days'),
             'status' => fake()->randomElement(['pending', 'in_progress', 'completed']),
             'notes' => fake()->optional()->sentence(),

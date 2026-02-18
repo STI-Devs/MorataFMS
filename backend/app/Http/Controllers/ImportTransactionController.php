@@ -17,7 +17,7 @@ class ImportTransactionController extends Controller
     {
         $this->authorize('viewAny', ImportTransaction::class);
 
-        $query = ImportTransaction::with(['importer', 'stages', 'assignedUser']);
+        $query = ImportTransaction::with(['importer', 'originCountry', 'stages', 'assignedUser']);
 
         // Search by customs ref or BL number
         if ($search = $request->query('search')) {
@@ -62,7 +62,7 @@ class ImportTransactionController extends Controller
         $transaction->status = 'pending';
         $transaction->save();
 
-        $transaction->load(['importer', 'stages', 'assignedUser']);
+        $transaction->load(['importer', 'originCountry', 'stages', 'assignedUser']);
 
         return (new ImportTransactionResource($transaction))
             ->response()
@@ -111,7 +111,7 @@ class ImportTransactionController extends Controller
         $import_transaction->notes = $request->input('reason');
         $import_transaction->save();
 
-        $import_transaction->load(['importer', 'stages', 'assignedUser']);
+        $import_transaction->load(['importer', 'originCountry', 'stages', 'assignedUser']);
 
         return new ImportTransactionResource($import_transaction);
     }

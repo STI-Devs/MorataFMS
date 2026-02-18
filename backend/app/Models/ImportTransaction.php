@@ -8,7 +8,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
-
 class ImportTransaction extends Model
 {
     use HasFactory, Auditable;
@@ -21,6 +20,7 @@ class ImportTransaction extends Model
         'bl_no',
         'selective_color',
         'importer_id',
+        'origin_country_id',
         'arrival_date',
         'notes',
     ];
@@ -33,6 +33,11 @@ class ImportTransaction extends Model
     public function importer(): BelongsTo
     {
         return $this->belongsTo(Client::class, 'importer_id');
+    }
+
+    public function originCountry(): BelongsTo
+    {
+        return $this->belongsTo(Country::class, 'origin_country_id');
     }
 
     public function assignedUser(): BelongsTo

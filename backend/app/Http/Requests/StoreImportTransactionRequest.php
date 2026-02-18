@@ -18,6 +18,7 @@ class StoreImportTransactionRequest extends FormRequest
             'bl_no' => ['required', 'string', 'max:50'],
             'selective_color' => ['required', 'in:green,yellow,red'],
             'importer_id' => ['required', 'exists:clients,id'],
+            'origin_country_id' => ['nullable', 'exists:countries,id'],
             'arrival_date' => ['required', 'date'],
             'notes' => ['nullable', 'string', 'max:1000'],
         ];
@@ -32,6 +33,7 @@ class StoreImportTransactionRequest extends FormRequest
             'selective_color.in' => 'Selective Color must be green, yellow, or red.',
             'importer_id.required' => 'Please select an importer.',
             'importer_id.exists' => 'The selected importer does not exist.',
+            'origin_country_id.exists' => 'The selected country of origin does not exist.',
             'arrival_date.required' => 'Arrival date is required.',
             'arrival_date.date' => 'Arrival date must be a valid date.',
         ];

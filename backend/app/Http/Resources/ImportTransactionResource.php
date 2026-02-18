@@ -18,6 +18,11 @@ class ImportTransactionResource extends JsonResource
                 'id' => $this->importer?->id,
                 'name' => $this->importer?->name,
             ],
+            'origin_country' => $this->whenLoaded('originCountry', fn() => [
+                'id' => $this->originCountry->id,
+                'name' => $this->originCountry->name,
+                'code' => $this->originCountry->code,
+            ]),
             'arrival_date' => $this->arrival_date?->format('Y-m-d'),
             'assigned_user' => $this->whenLoaded('assignedUser', fn() => [
                 'id' => $this->assignedUser->id,

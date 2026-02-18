@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Client;
+use App\Models\Country;
 use App\Models\ImportTransaction;
 use App\Models\User;
 
@@ -65,12 +66,14 @@ test('import transactions can be filtered by status', function () {
 test('authenticated users can create import transactions with valid data', function () {
     $user = User::factory()->create();
     $client = Client::factory()->importer()->create();
+    $country = Country::factory()->importOrigin()->create();
 
     $payload = [
         'customs_ref_no' => 'REF-2026-001',
         'bl_no' => 'BL-12345678',
         'selective_color' => 'green',
         'importer_id' => $client->id,
+        'origin_country_id' => $country->id,
         'arrival_date' => '2026-03-01',
     ];
 
@@ -83,14 +86,34 @@ test('authenticated users can create import transactions with valid data', funct
         ->assertJsonPath('data.selective_color', 'green')
         ->assertJsonPath('data.status', 'pending')
         ->assertJsonPath('data.importer.id', $client->id)
-        ->assertJsonPath('data.importer.name', $client->name);
+        ->assertJsonPath('data.importer.name', $client->name)
+        ->assertJsonPath('data.origin_country.id', $country->id)
+        ->assertJsonPath('data.origin_country.name', $country->name);
 
     $this->assertDatabaseHas('import_transactions', [
         'customs_ref_no' => 'REF-2026-001',
         'bl_no' => 'BL-12345678',
         'assigned_user_id' => $user->id,
+        'origin_country_id' => $country->id,
     ]);
+});
 
+test('authenticated users can create import transactions without origin country', function () {
+    $user = User::factory()->create();
+    $client = Client::factory()->importer()->create();
+
+    $response = $this->actingAs($user)
+        ->postJson('/api/import-transactions', [
+            'customs_ref_no' => 'REF-2026-002',
+            'bl_no' => 'BL-87654321',
+            'selective_color' => 'yellow',
+            'importer_id' => $client->id,
+            'arrival_date' => '2026-03-01',
+            // origin_country_id intentionally omitted — it's optional
+        ]);
+
+    $response->assertCreated()
+        ->assertJsonPath('data.status', 'pending');
 });
 
 test('creating an import transaction auto-creates stages', function () {
@@ -160,6 +183,24 @@ test('creating import transaction fails with non-existent importer', function ()
 
     $response->assertUnprocessable()
         ->assertJsonValidationErrors(['importer_id']);
+});
+
+test('creating import transaction fails with non-existent origin country', function () {
+    $user = User::factory()->create();
+    $client = Client::factory()->importer()->create();
+
+    $response = $this->actingAs($user)
+        ->postJson('/api/import-transactions', [
+            'customs_ref_no' => 'REF-001',
+            'bl_no' => 'BL-001',
+            'selective_color' => 'green',
+            'importer_id' => $client->id,
+            'origin_country_id' => 99999,
+            'arrival_date' => '2026-03-01',
+        ]);
+
+    $response->assertUnprocessable()
+        ->assertJsonValidationErrors(['origin_country_id']);
 });
 
 // --- Security: Mass Assignment Protection ---
