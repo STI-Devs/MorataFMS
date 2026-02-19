@@ -120,59 +120,6 @@ export const TransactionOversight = () => {
                 ))}
             </div>
 
-            {/* Filter Bar */}
-            <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
-                <div className="relative flex-1 max-w-sm">
-                    <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                    <input
-                        type="text"
-                        placeholder="Search by ref, BL, client, encoder..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border-strong bg-input-bg text-text-primary text-sm placeholder:text-text-muted focus:outline-none focus:border-blue-500/50 transition-colors"
-                    />
-                </div>
-
-                <div className="flex rounded-lg border border-border-strong overflow-hidden">
-                    {(['all', 'import', 'export'] as TypeFilter[]).map((t) => (
-                        <button
-                            key={t}
-                            onClick={() => setTypeFilter(t)}
-                            className={`px-4 py-2.5 text-sm font-semibold capitalize transition-colors ${typeFilter === t
-                                ? 'bg-text-primary text-surface'
-                                : 'bg-input-bg text-text-secondary hover:text-text-primary'
-                                }`}
-                        >
-                            {t === 'all' ? 'All Types' : t === 'import' ? 'Imports' : 'Exports'}
-                        </button>
-                    ))}
-                </div>
-
-                <select
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-                    className="px-4 py-2.5 rounded-lg border border-border-strong bg-input-bg text-text-primary text-sm focus:outline-none focus:border-blue-500/50 transition-colors"
-                >
-                    <option value="all">All Statuses</option>
-                    <option value="pending">Pending</option>
-                    <option value="in_progress">In Progress</option>
-                    <option value="completed">Completed</option>
-                    <option value="cancelled">Cancelled</option>
-                </select>
-
-                <button
-                    onClick={loadTransactions}
-                    className="px-4 py-2.5 rounded-lg border border-border-strong bg-input-bg text-text-secondary text-sm font-semibold hover:text-text-primary transition-colors flex items-center gap-2"
-                >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                    Refresh
-                </button>
-            </div>
-
             {error && (
                 <div className="p-4 rounded-lg text-sm" style={{ backgroundColor: 'rgba(255,69,58,0.1)', color: '#ff453a' }}>
                     {error}
@@ -181,6 +128,58 @@ export const TransactionOversight = () => {
 
             {/* Table */}
             <div className="bg-surface rounded-lg border border-border overflow-hidden">
+                {/* Controls - integrated into the card */}
+                <div className="p-3 border-b border-border flex flex-col sm:flex-row gap-3 items-stretch sm:items-center bg-surface-subtle">
+                    <div className="relative flex-1 max-w-sm">
+                        <svg className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        <input
+                            type="text"
+                            placeholder="Search..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-9 pr-3 h-9 rounded-md border border-border-strong bg-input-bg text-text-primary text-sm placeholder:text-text-muted focus:outline-none focus:border-blue-500/50 transition-colors"
+                        />
+                    </div>
+
+                    <div className="flex h-9 rounded-md border border-border-strong overflow-hidden shrink-0">
+                        {(['all', 'import', 'export'] as TypeFilter[]).map((t) => (
+                            <button
+                                key={t}
+                                onClick={() => setTypeFilter(t)}
+                                className={`px-3 py-1 text-xs font-bold capitalize transition-colors ${typeFilter === t
+                                    ? 'bg-text-primary text-surface'
+                                    : 'bg-input-bg text-text-secondary hover:text-text-primary'
+                                    }`}
+                            >
+                                {t === 'all' ? 'All' : t === 'import' ? 'Imports' : 'Exports'}
+                            </button>
+                        ))}
+                    </div>
+
+                    <select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+                        className="px-3 h-9 rounded-md border border-border-strong bg-input-bg text-text-primary text-xs focus:outline-none focus:border-blue-500/50 transition-colors shrink-0"
+                    >
+                        <option value="all">All Statuses</option>
+                        <option value="pending">Pending</option>
+                        <option value="in_progress">In Progress</option>
+                        <option value="completed">Completed</option>
+                        <option value="cancelled">Cancelled</option>
+                    </select>
+
+                    <button
+                        onClick={loadTransactions}
+                        className="px-3 h-9 rounded-md border border-border-strong bg-input-bg text-text-secondary text-xs font-semibold hover:text-text-primary transition-colors flex items-center gap-1.5 shrink-0"
+                    >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        Refresh
+                    </button>
+                </div>
                 {isLoading ? (
                     <div className="p-16 flex items-center justify-center">
                         <div className="w-8 h-8 rounded-full border-2 border-transparent animate-spin" style={{ borderTopColor: '#0a84ff' }} />

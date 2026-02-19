@@ -102,17 +102,17 @@ export const TrackingDashboard = () => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Left: Shipments Table */}
                 <div className="lg:col-span-2 bg-surface rounded-lg border border-border overflow-hidden">
-                    <div className="flex justify-between items-center p-5 border-b border-border">
-                        <h2 className="text-base font-bold text-text-primary">All Shipments</h2>
+                    <div className="flex justify-between items-center p-3 border-b border-border bg-surface-subtle">
+                        <h2 className="text-sm font-bold text-text-primary">All Shipments</h2>
                         <div className="relative">
+                            <Icon name="search" className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
                             <input
                                 type="text"
                                 placeholder="Search ref or BL..."
                                 value={filter}
                                 onChange={(e) => setFilter(e.target.value)}
-                                className="pl-9 pr-4 py-2 bg-input-bg rounded-lg border border-border-strong text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none w-52 text-text-primary"
+                                className="pl-9 pr-3 h-9 bg-input-bg rounded-md border border-border-strong text-sm focus:outline-none focus:border-blue-500/50 transition-colors w-52 text-text-primary placeholder:text-text-muted"
                             />
-                            <Icon name="search" className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
                         </div>
                     </div>
 
@@ -137,7 +137,7 @@ export const TrackingDashboard = () => {
                                         return (
                                             <tr
                                                 key={i}
-                                                className="border-b border-border/50 hover:bg-hover transition-colors cursor-pointer"
+                                                className={`border-b border-border/50 hover:bg-hover transition-colors cursor-pointer ${i % 2 !== 0 ? 'bg-surface-secondary/40' : ''}`}
                                                 onClick={() => navigate(`/tracking/${t.ref}`)}
                                             >
                                                 <td className="px-5 py-3.5">
@@ -156,8 +156,8 @@ export const TrackingDashboard = () => {
                                                     <p className="text-xs text-text-muted">{t.bl}</p>
                                                 </td>
                                                 <td className="px-5 py-3.5">
-                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold" style={{ color: s.color, backgroundColor: s.bg }}>
-                                                        <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ backgroundColor: s.color }} />
+                                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold" style={{ color: s.color, backgroundColor: s.bg }}>
+                                                        <span className="w-1.5 h-1.5 rounded-full inline-block shadow-sm" style={{ backgroundColor: s.color, boxShadow: `0 0 4px ${s.color}` }} />
                                                         {t.status}
                                                     </span>
                                                 </td>

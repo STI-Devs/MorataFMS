@@ -116,48 +116,56 @@ export const AuditLogs = () => {
                 ))}
             </div>
 
-            {/* Filter Bar */}
-            <div className="bg-surface rounded-lg border border-border p-4">
-                <div className="flex flex-wrap gap-3 items-center">
-                    <input
-                        type="text"
-                        placeholder="Search description or user…"
-                        value={search}
-                        onChange={e => handleSearch(e.target.value)}
-                        className={`${inputCls} flex-1 min-w-[200px]`}
-                    />
-                    <select value={actionFilter} onChange={e => handleAction(e.target.value)} className={inputCls}>
-                        <option value="">All Actions</option>
-                        {availableActions.map(a => (
-                            <option key={a} value={a}>{getActionCfg(a).label}</option>
-                        ))}
-                    </select>
-                    <input type="date" value={dateFrom} onChange={e => handleDateFrom(e.target.value)} className={inputCls} />
-                    <input type="date" value={dateTo} onChange={e => handleDateTo(e.target.value)} className={inputCls} />
-                    {(search || actionFilter || dateFrom || dateTo) && (
-                        <button
-                            onClick={() => { setSearch(''); setActionFilter(''); setDateFrom(''); setDateTo(''); setPage(1); }}
-                            className="px-4 py-2.5 rounded-lg text-sm font-semibold border border-border-strong bg-input-bg text-text-secondary hover:text-text-primary transition-colors"
-                        >
-                            Clear
-                        </button>
-                    )}
-                </div>
-            </div>
-
-            {error && (
-                <div className="p-4 rounded-lg text-sm" style={{ backgroundColor: 'rgba(255,69,58,0.1)', color: '#ff453a' }}>
-                    {error}
-                </div>
-            )}
-
             {/* Table */}
             <div className="bg-surface rounded-lg border border-border overflow-hidden">
-                <div className="px-5 py-4 border-b border-border flex justify-between items-center">
-                    <h2 className="text-sm font-bold text-text-primary">Event Log</h2>
-                    <span className="text-xs font-semibold px-2 py-1 rounded-md bg-surface-tint border border-border-tint text-text-secondary">
-                        {meta.total} total · Page {meta.current_page} of {meta.last_page}
-                    </span>
+                <div className="px-5 py-4 border-b border-border flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <div className="flex items-center gap-3">
+                        <h2 className="text-sm font-bold text-text-primary">Event Log</h2>
+                        <span className="text-xs font-semibold px-2 py-1 rounded-md bg-surface-tint border border-border-tint text-text-secondary">
+                            {meta.total} total · Page {meta.current_page} of {meta.last_page}
+                        </span>
+                    </div>
+
+                    {/* Integrated Filters */}
+                    <div className="flex flex-wrap gap-2 items-center">
+                        <input
+                            type="text"
+                            placeholder="Search..."
+                            value={search}
+                            onChange={e => handleSearch(e.target.value)}
+                            className={`${inputCls} min-w-[150px] !h-8 !py-0 !text-xs`}
+                        />
+                        <select
+                            value={actionFilter}
+                            onChange={e => handleAction(e.target.value)}
+                            className={`${inputCls} !h-8 !py-0 !text-xs`}
+                        >
+                            <option value="">All Actions</option>
+                            {availableActions.map(a => (
+                                <option key={a} value={a}>{getActionCfg(a).label}</option>
+                            ))}
+                        </select>
+                        <input
+                            type="date"
+                            value={dateFrom}
+                            onChange={e => handleDateFrom(e.target.value)}
+                            className={`${inputCls} !h-8 !py-0 !text-xs`}
+                        />
+                        <input
+                            type="date"
+                            value={dateTo}
+                            onChange={e => handleDateTo(e.target.value)}
+                            className={`${inputCls} !h-8 !py-0 !text-xs`}
+                        />
+                        {(search || actionFilter || dateFrom || dateTo) && (
+                            <button
+                                onClick={() => { setSearch(''); setActionFilter(''); setDateFrom(''); setDateTo(''); setPage(1); }}
+                                className="px-3 h-8 rounded-md text-xs font-semibold border border-border-strong bg-input-bg text-text-secondary hover:text-text-primary transition-colors"
+                            >
+                                Clear
+                            </button>
+                        )}
+                    </div>
                 </div>
 
                 {isLoading ? (

@@ -57,5 +57,10 @@ class DatabaseSeeder extends Seeder
         ]);
         $encoder->role = 'encoder';
         $encoder->save();
+
+        // Seed transactions last (requires users and clients)
+        $this->call([
+            TransactionSeeder::class,
+        ]);
     }
 }

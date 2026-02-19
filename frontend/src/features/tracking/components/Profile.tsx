@@ -40,8 +40,8 @@ export const Profile = () => {
     };
 
     return (
-        <div className="min-h-full flex items-center justify-center py-8">
-            <div className="w-full max-w-4xl bg-surface rounded-lg shadow-md border border-border p-8">
+        <div className="min-h-full flex items-center justify-center py-8 px-4">
+            <div className="w-full max-w-2xl bg-surface rounded-lg shadow-md border border-border p-8">
                 {/* Profile Header */}
                 <div className="mb-8 flex justify-between items-center">
                     <div className="flex items-center gap-3">
@@ -83,32 +83,28 @@ export const Profile = () => {
                     </div>
                 </div>
 
-                <div className="flex gap-12 items-center">
-                    {/* Left Side - Profile Picture */}
-                    <div className="flex-shrink-0">
-                        <div className="relative w-80 h-80 bg-surface-secondary rounded-lg flex items-center justify-center group border border-border">
-                            {/* Profile Avatar */}
-                            <div className="relative">
-                                <div className="w-56 h-56 bg-gradient-to-br from-gray-800 to-gray-600 rounded-full flex items-center justify-center overflow-hidden">
-                                    <svg className="w-36 h-36 text-white" fill="currentColor" viewBox="0 0 24 24">
-                                        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-                                    </svg>
-                                </div>
-
-                                {/* Camera Icon */}
-                                <button className="absolute -top-2 -right-2 w-12 h-12 bg-surface rounded-full shadow-lg flex items-center justify-center hover:bg-hover transition-colors">
-                                    <svg className="w-6 h-6 text-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                                    </svg>
-                                </button>
+                <div className="flex flex-col items-center gap-8">
+                    {/* Top - Profile Picture (centered) */}
+                    <div className="flex justify-center">
+                        <div className="relative">
+                            <div className="w-36 h-36 bg-gradient-to-br from-gray-800 to-gray-600 rounded-full flex items-center justify-center overflow-hidden border-4 border-border">
+                                <svg className="w-24 h-24 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                                </svg>
                             </div>
+                            {/* Camera Icon */}
+                            <button className="absolute -bottom-1 -right-1 w-9 h-9 bg-surface border border-border rounded-full shadow-lg flex items-center justify-center hover:bg-hover transition-colors">
+                                <svg className="w-4 h-4 text-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                            </button>
                         </div>
                     </div>
 
-                    {/* Right Side - Profile Information */}
-                    <div className="flex-1">
-                        <div className="space-y-7">
+                    {/* Bottom - Profile Information */}
+                    <div className="w-full">
+                        <div className="space-y-5">
                             {/* Name Field */}
                             <div className="flex items-center">
                                 <label className="text-base font-semibold text-text-secondary w-36">Name:</label>

@@ -111,7 +111,7 @@ export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type,
     ];
 
     const inputClass =
-        'w-full px-4 py-3 bg-input-bg border border-border-strong rounded-xl text-sm font-bold text-text-primary focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 outline-none transition-all placeholder:text-text-muted';
+        'w-full px-4 py-3 bg-input-bg border border-border-strong rounded-lg text-sm font-bold text-text-primary focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 outline-none transition-all placeholder:text-text-muted';
 
     const labelClass =
         'text-[11px] font-black text-text-muted uppercase tracking-widest ml-1';
@@ -124,13 +124,13 @@ export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type,
             onClick={onClose}
         >
             <div
-                className="bg-surface rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200 border border-border transition-all"
+                className="bg-surface rounded-xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200 border border-border transition-all"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b border-border">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center text-white shadow-lg ring-4 ring-blue-50">
+                        <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-lg ring-4 ring-surface" style={{ backgroundColor: '#0a84ff' }}>
                             <Icon name="plus" className="w-6 h-6" />
                         </div>
                         <div>
@@ -144,7 +144,7 @@ export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type,
                     </div>
                     <button
                         onClick={onClose}
-                        className="p-2 text-text-muted hover:text-text-secondary hover:bg-hover rounded-xl transition-all"
+                        className="p-2 text-text-muted hover:text-text-secondary hover:bg-hover rounded-lg transition-all"
                     >
                         <Icon name="x" className="w-6 h-6" />
                     </button>
@@ -292,14 +292,15 @@ export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type,
                             type="button"
                             onClick={onClose}
                             disabled={submitting}
-                            className="flex-1 px-6 py-4 bg-surface-secondary border border-border-strong text-text-secondary rounded-2xl text-sm font-bold hover:bg-hover transition-all active:scale-95 disabled:opacity-50"
+                            className="flex-1 px-6 py-4 bg-surface-secondary border border-border-strong text-text-secondary rounded-lg text-sm font-bold hover:bg-hover transition-all active:scale-95 disabled:opacity-50"
                         >
                             Cancel
                         </button>
                         <button
                             type="submit"
                             disabled={submitting}
-                            className="flex-1 px-6 py-4 bg-blue-600 text-white rounded-2xl text-sm font-bold hover:bg-blue-700 transition-all shadow-xl active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="flex-1 px-6 py-4 text-white rounded-lg text-sm font-bold transition-all shadow-xl active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:brightness-90"
+                            style={{ backgroundColor: '#0a84ff' }}
                         >
                             {submitting ? (
                                 <>
