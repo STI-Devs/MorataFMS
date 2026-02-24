@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { ConfirmationModal } from '../../../components/ConfirmationModal';
+import { Pagination } from '../../../components/Pagination';
+import { Icon } from '../../../components/Icon';
 
 interface LayoutContext {
     user?: { name: string; role: string };
@@ -19,13 +21,13 @@ interface FileData {
 }
 
 export const Documents = () => {
-    const { user } = useOutletContext<LayoutContext>();
+    const { dateTime } = useOutletContext<LayoutContext>();
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
     const [selectedFile, setSelectedFile] = useState<FileData | null>(null);
     const [isFileDetailsOpen, setIsFileDetailsOpen] = useState(false);
     const [selectedFiles, setSelectedFiles] = useState<number[]>([]);
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 10;
+    const [itemsPerPage, setItemsPerPage] = useState(10);
 
     // Confirmation Modal State
     const [confirmModal, setConfirmModal] = useState<{
@@ -254,82 +256,65 @@ export const Documents = () => {
         setCurrentPage(page);
     };
 
-    const goToPrevPage = () => {
-        if (currentPage > 1) setCurrentPage(currentPage - 1);
-    };
 
-    const goToNextPage = () => {
-        if (currentPage < totalPages) setCurrentPage(currentPage + 1);
-    };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-5 p-4">
             {/* Header */}
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-end">
                 <div>
-                    <h1 className="text-2xl font-bold text-text-primary">Documents</h1>
+                    <h1 className="text-3xl font-bold mb-1 text-text-primary">Documents</h1>
+                    <p className="text-sm text-text-secondary">Manage and track all shipment documentation</p>
                 </div>
-                <div className="flex items-center gap-3">
-                    {/* User Profile */}
-                    <div className="flex items-center gap-3 ml-4 pl-4 border-l border-border-strong">
-                        <div className="text-right">
-                            <p className="text-sm font-bold text-text-primary">{user?.name || 'FirstN LastN'}</p>
-                            <p className="text-xs text-text-muted">Document in charge</p>
-                        </div>
-                        <div className="w-10 h-10 rounded-full bg-[#1a2332] flex items-center justify-center text-white font-semibold shadow-sm border-2 border-surface">
-                            {user?.name ? user.name.split(' ').map((n) => n[0]).join('') : 'FL'}
-                        </div>
-                    </div>
+                <div className="text-right hidden sm:block">
+                    <p className="text-2xl font-bold tabular-nums text-text-primary">{dateTime.time}</p>
+                    <p className="text-sm text-text-secondary">{dateTime.date}</p>
                 </div>
-            </div>
-
-            {/* Controls Bar */}
-            <div className="flex justify-end items-center gap-4">
-                {/* Search */}
-                <div className="relative">
-                    <input
-                        type="text"
-                        placeholder="Search documents..."
-                        className="pl-10 pr-4 py-2 bg-input-bg rounded-2xl border border-border-strong text-sm w-64 outline-none focus:ring-2 focus:ring-blue-500 transition-all text-text-primary font-bold"
-                    />
-                    <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                </div>
-
-                {/* Sort By */}
-                <div className="flex items-center gap-2">
-                    <span className="text-sm text-text-secondary font-bold">Sort by</span>
-                    <div className="relative group">
-                        <select className="appearance-none bg-input-bg border border-border-strong rounded-2xl pl-3 pr-10 py-2 text-sm text-text-secondary font-bold focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer transition-all hover:border-gray-300 outline-none min-w-[140px]">
-                            <option>Date Uploaded</option>
-                            <option>Name</option>
-                            <option>Size</option>
-                            <option>Type</option>
-                        </select>
-                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-text-muted group-hover:text-text-secondary transition-colors">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                            </svg>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Upload Button */}
-                <button
-                    type="button"
-                    onClick={() => setIsUploadModalOpen(true)}
-                    className="flex items-center gap-2 bg-input-bg border border-border-strong text-text-primary px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-hover transition-colors shadow-sm"
-                >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-                    </svg>
-                    Upload
-                </button>
             </div>
 
             {/* File List Card */}
-            <div className="bg-surface rounded-[2rem] border border-border shadow-sm transition-colors overflow-hidden">
+            <div className="bg-surface rounded-lg border border-border overflow-hidden">
+                {/* Controls - integrated into the card */}
+                <div className="p-3 border-b border-border flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between bg-surface-subtle">
+                    <div className="flex items-center gap-3 flex-1">
+                        <div className="relative flex-1 max-w-sm">
+                            <svg className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                            <input
+                                type="text"
+                                placeholder="Search documents..."
+                                className="w-full pl-9 pr-3 h-9 rounded-md border border-border-strong bg-input-bg text-text-primary text-sm placeholder:text-text-muted focus:outline-none focus:border-blue-500/50 transition-colors"
+                            />
+                        </div>
+                        <div className="relative">
+                            <button className="px-3 h-9 rounded-md border border-border-strong bg-input-bg text-text-secondary text-xs font-semibold min-w-[140px] text-left flex items-center justify-between focus:outline-none transition-colors hover:text-text-primary group">
+                                Sort by: Date
+                                <Icon name="chevron-down" className="w-3.5 h-3.5 ml-2 text-text-muted" />
+                            </button>
+                        </div>
+                        {selectedFiles.length > 0 && (
+                            <button
+                                onClick={handleDeleteSelected}
+                                className="px-3 h-9 rounded-md border border-red-200 bg-red-50 text-red-600 text-xs font-semibold hover:bg-red-100 transition-colors flex items-center gap-1.5"
+                            >
+                                <Icon name="trash" className="w-3.5 h-3.5" />
+                                Delete ({selectedFiles.length})
+                            </button>
+                        )}
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => setIsUploadModalOpen(true)}
+                        className="flex items-center gap-1.5 px-3.5 h-9 rounded-md text-xs font-bold transition-all shadow-sm hover:shadow-md"
+                        style={{ backgroundColor: '#0a84ff', color: '#fff' }}
+                    >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                        </svg>
+                        Upload Document
+                    </button>
+                </div>
                 <div className="p-6 overflow-x-auto">
                     <table className="w-full text-left border-collapse min-w-[800px]">
                         <thead>
@@ -338,7 +323,7 @@ export const Documents = () => {
                                     <div className="relative flex items-center justify-center group">
                                         <input
                                             type="checkbox"
-                                            className="peer w-5 h-5 rounded border-2 border-gray-900 text-transparent focus:ring-0 cursor-pointer appearance-none bg-white checked:bg-[#1a2332] checked:border-[#1a2332] transition-all shadow-md group-hover:border-blue-500"
+                                            className="peer w-5 h-5 rounded border-2 border-text-muted text-transparent focus:ring-0 cursor-pointer appearance-none bg-surface transition-all shadow-md group-hover:border-primary checked:bg-primary checked:border-primary"
                                             checked={files.length > 0 && selectedFiles.length === files.length}
                                             onChange={handleSelectAll}
                                         />
@@ -356,17 +341,17 @@ export const Documents = () => {
                             </tr>
                         </thead>
                         <tbody className="text-sm text-text-primary font-medium">
-                            {currentFiles.map((file) => (
+                            {currentFiles.map((file, index) => (
                                 <tr
                                     key={file.id}
                                     onClick={() => handleFileClick(file)}
-                                    className={`border-b border-border cursor-pointer transition-all duration-200 hover:bg-hover hover:shadow-sm ${selectedFiles.includes(file.id) ? 'bg-blue-50' : ''}`}
+                                    className={`border-b border-border cursor-pointer transition-all duration-200 hover:bg-hover hover:shadow-sm ${selectedFiles.includes(file.id) ? 'bg-primary/5' : (index % 2 !== 0 ? 'bg-surface-secondary/40' : '')}`}
                                 >
                                     <td className="py-3 px-2" onClick={(e) => e.stopPropagation()}>
                                         <div className="relative flex items-center justify-center group">
                                             <input
                                                 type="checkbox"
-                                                className="peer w-5 h-5 rounded border-2 border-gray-900 text-transparent focus:ring-0 cursor-pointer appearance-none bg-white checked:bg-[#1a2332] checked:border-[#1a2332] transition-all shadow-md group-hover:border-blue-500"
+                                                className="peer w-5 h-5 rounded border-2 border-text-muted text-transparent focus:ring-0 cursor-pointer appearance-none bg-surface transition-all shadow-md group-hover:border-primary checked:bg-primary checked:border-primary"
                                                 checked={selectedFiles.includes(file.id)}
                                                 onChange={(e) => handleSelectOne(e, file.id)}
                                             />
@@ -377,7 +362,10 @@ export const Documents = () => {
                                     </td>
                                     <td className="py-3 px-2">
                                         <div className="flex items-center gap-3">
-                                            <div className={`w-8 h-8 rounded flex items-center justify-center ${file.iconColor}`}>
+                                            <div className={`w-8 h-8 rounded-md flex items-center justify-center transition-colors ${file.type === 'pdf' ? 'text-red-500 bg-red-50 dark:bg-red-900/20' :
+                                                file.type === 'docx' ? 'text-blue-500 bg-blue-50 dark:bg-blue-900/20' :
+                                                    file.type === 'jpg' ? 'text-orange-500 bg-orange-50 dark:bg-orange-900/20' : 'text-gray-500 bg-gray-50 dark:bg-gray-800/20'
+                                                }`}>
                                                 {file.type === 'pdf' ? (
                                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
@@ -408,18 +396,24 @@ export const Documents = () => {
                                     <td className="py-3 px-2 text-text-secondary font-bold">{file.size}</td>
                                     <td className="py-3 px-2 text-center">
                                         <div className="flex items-center justify-center gap-1">
-                                            <button className="p-1.5 text-text-secondary hover:bg-hover rounded-lg transition-colors" title="Download">
+                                            {/* Download — blue, matches edit button style */}
+                                            <button
+                                                onClick={(e) => e.stopPropagation()}
+                                                className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-md transition-colors"
+                                                title="Download"
+                                            >
                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                                                 </svg>
                                             </button>
+                                            {/* Delete — red X, matches cancel button style */}
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); handleDelete(file.id); }}
-                                                className="p-1.5 text-text-secondary hover:bg-red-50 hover:text-red-500 rounded-lg transition-colors"
+                                                className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md transition-colors"
                                                 title="Delete"
                                             >
                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
                                                 </svg>
                                             </button>
                                         </div>
@@ -453,78 +447,16 @@ export const Documents = () => {
                     </div>
                 )}
 
-                {/* Pagination Controls */}
-                {totalPages > 1 && (
-                    <div className="px-6 py-4 border-t border-border flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-sm text-text-secondary">
-                            <span>Show</span>
-                            <select
-                                value={itemsPerPage}
-                                className="px-2 py-1 bg-surface-secondary border border-border-strong rounded text-text-primary font-medium outline-none focus:ring-2 focus:ring-blue-500"
-                            >
-                                <option value={10}>10</option>
-                            </select>
-                            <span>of {totalPages} pages</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                            <button
-                                onClick={goToPrevPage}
-                                disabled={currentPage === 1}
-                                className="w-8 h-8 flex items-center justify-center text-text-secondary bg-surface-secondary rounded hover:bg-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                            >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-                                </svg>
-                            </button>
-                            {Array.from({ length: Math.min(totalPages, 3) }, (_, i) => i + 1).map((page) => (
-                                <button
-                                    key={page}
-                                    onClick={() => goToPage(page)}
-                                    className={`w-8 h-8 flex items-center justify-center text-sm font-medium rounded transition-colors ${currentPage === page
-                                        ? 'bg-[#1a2332] text-white'
-                                        : 'text-text-secondary bg-surface-secondary hover:bg-hover'
-                                        }`}
-                                >
-                                    {page}
-                                </button>
-                            ))}
-                            {totalPages > 4 && (
-                                <>
-                                    <span className="px-2 text-text-muted">...</span>
-                                    <button
-                                        onClick={() => goToPage(totalPages)}
-                                        className={`w-8 h-8 flex items-center justify-center text-sm font-medium rounded transition-colors ${currentPage === totalPages
-                                            ? 'bg-[#1a2332] text-white'
-                                            : 'text-text-secondary bg-surface-secondary hover:bg-hover'
-                                            }`}
-                                    >
-                                        {totalPages}
-                                    </button>
-                                </>
-                            )}
-                            {totalPages === 4 && (
-                                <button
-                                    onClick={() => goToPage(4)}
-                                    className={`w-8 h-8 flex items-center justify-center text-sm font-medium rounded transition-colors ${currentPage === 4
-                                        ? 'bg-[#1a2332] text-white'
-                                        : 'text-text-secondary bg-surface-secondary hover:bg-hover'
-                                        }`}
-                                >
-                                    4
-                                </button>
-                            )}
-                            <button
-                                onClick={goToNextPage}
-                                disabled={currentPage === totalPages}
-                                className="w-8 h-8 flex items-center justify-center text-text-secondary bg-surface-secondary rounded hover:bg-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                            >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                )}
+                {/* Pagination */}
+                <div className="p-4 border-t border-border">
+                    <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={goToPage}
+                        perPage={itemsPerPage}
+                        onPerPageChange={setItemsPerPage}
+                    />
+                </div>
             </div>
 
             {/* Upload Modal */}
@@ -567,8 +499,10 @@ export const Documents = () => {
 
                                 <div className="space-y-3">
                                     <div className="flex items-center gap-3 p-3 border border-border rounded-xl bg-surface shadow-sm group cursor-pointer hover:border-border-strong transition-colors">
-                                        <div className="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center text-red-500 shrink-0 group-hover:scale-110 transition-transform duration-200">
-                                            <span className="text-[10px] font-bold">PDF</span>
+                                        <div className="w-10 h-10 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-500 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-200">
+                                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                            </svg>
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <p className="text-sm font-semibold text-text-primary truncate">File.pdf</p>
@@ -590,14 +524,16 @@ export const Documents = () => {
                                         </button>
                                     </div>
 
-                                    <div className="p-3 border border-blue-100 rounded-xl bg-blue-50/30 group cursor-default hover:border-blue-200 transition-colors">
+                                    <div className="p-3 border border-border rounded-xl bg-surface shadow-sm group cursor-default transition-colors">
                                         <div className="flex items-start justify-between mb-2">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 shrink-0 group-hover:scale-110 transition-transform duration-200">
-                                                    <span className="text-[10px] font-bold">DOCX</span>
+                                                <div className="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-200">
+                                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                    </svg>
                                                 </div>
                                                 <div>
-                                                        <p className="text-sm font-semibold text-text-primary truncate">File.docx</p>
+                                                    <p className="text-sm font-semibold text-text-primary truncate">File.docx</p>
                                                     <div className="flex items-center gap-2 mt-0.5">
                                                         <span className="text-xs text-gray-500">60 KB of 120 KB</span>
                                                         <span className="w-1 h-1 rounded-full bg-gray-300"></span>
@@ -617,7 +553,7 @@ export const Documents = () => {
                                             </button>
                                         </div>
                                         <div className="relative w-full h-1.5 bg-surface-secondary rounded-full overflow-hidden">
-                                            <div className="absolute top-0 left-0 h-full bg-[#1a2332] w-3/4 rounded-full transition-all duration-300"></div>
+                                            <div className="absolute top-0 left-0 h-full bg-blue-600 w-3/4 rounded-full transition-all duration-300"></div>
                                         </div>
                                         <div className="flex justify-end mt-1">
                                             <span className="text-[10px] font-bold text-text-secondary">75%</span>
@@ -673,8 +609,14 @@ export const Documents = () => {
                             </div>
                             <div className="p-8">
                                 <div className="flex flex-col items-center mb-8">
-                                    <div className="w-24 h-32 bg-surface border border-border shadow-sm rounded-xl flex items-center justify-center mb-4 ring-8 ring-surface-secondary relative group">
-                                        <div className={`w-12 h-12 flex items-center justify-center ${selectedFile.iconColor}`}>
+                                    <div className={`w-24 h-32 shadow-sm rounded-xl flex items-center justify-center mb-4 ring-8 ring-surface-secondary relative group ${selectedFile.type === 'pdf' ? 'bg-red-50 dark:bg-red-900/20' :
+                                        selectedFile.type === 'docx' ? 'bg-blue-50 dark:bg-blue-900/20' :
+                                            selectedFile.type === 'jpg' ? 'bg-orange-50 dark:bg-orange-900/20' : 'bg-gray-50 dark:bg-gray-800/20'
+                                        }`}>
+                                        <div className={`w-12 h-12 rounded-lg flex items-center justify-center shadow-sm bg-transparent ${selectedFile.type === 'pdf' ? 'text-red-500' :
+                                            selectedFile.type === 'docx' ? 'text-blue-500' :
+                                                selectedFile.type === 'jpg' ? 'text-orange-500' : 'text-gray-500'
+                                            }`}>
                                             {selectedFile.type === 'pdf' ? (
                                                 <svg className="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
@@ -693,8 +635,8 @@ export const Documents = () => {
                                     <h3 className="text-lg font-bold text-text-primary text-center mb-1">{selectedFile.name}</h3>
                                     <div className="flex items-center gap-2">
                                         <span className="text-xs text-gray-400">{selectedFile.size}</span>
-                                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-50 text-green-700 text-[10px] font-bold border border-green-100 uppercase tracking-wider">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                                        <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 text-xs font-bold border border-green-200 dark:border-green-800 shadow-sm">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-green-500 dark:bg-green-400 shadow-sm"></span>
                                             Public
                                         </span>
                                     </div>
@@ -709,7 +651,7 @@ export const Documents = () => {
                                         <p className="text-xs text-text-primary font-semibold text-right">{selectedFile.uploadDate}</p>
                                     </div>
                                 </div>
-                                <div className="bg-surface-secondary rounded-2xl p-4 border border-border">
+                                <div className="bg-surface-secondary rounded-lg p-4 border border-border">
                                     <div className="flex items-center gap-3">
                                         <div className={`w-12 h-12 rounded-xl ${selectedFile.uploader.color} flex items-center justify-center text-white font-bold text-lg shadow-sm ring-4 ring-surface`}>
                                             {selectedFile.uploader.initials}

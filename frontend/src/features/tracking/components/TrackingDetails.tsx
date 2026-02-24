@@ -17,7 +17,7 @@ export const TrackingDetails = () => {
     const navigate = useNavigate();
     const { referenceId } = useParams();
     const { user } = useOutletContext<LayoutContext>();
-    
+
     const [transaction, setTransaction] = useState<ImportTransaction | ExportTransaction | undefined>(undefined);
     const [loading, setLoading] = useState(true);
 
@@ -37,6 +37,7 @@ export const TrackingDetails = () => {
                     if (importsRes.data.length > 0) {
                         const t = importsRes.data[0];
                         setTransaction({
+                            id: t.id,
                             ref: t.customs_ref_no,
                             bl: t.bl_no,
                             status: t.status === 'pending' ? 'Pending' : t.status === 'in_progress' ? 'In Transit' : t.status === 'completed' ? 'Cleared' : 'Delayed',
@@ -50,6 +51,7 @@ export const TrackingDetails = () => {
                         if (exportsRes.data.length > 0) {
                             const t = exportsRes.data[0];
                             setTransaction({
+                                id: t.id,
                                 ref: `EXP-${String(t.id).padStart(4, '0')}`,
                                 bl: t.bl_no,
                                 status: t.status === 'pending' ? 'Processing' : t.status === 'in_progress' ? 'In Transit' : t.status === 'completed' ? 'Shipped' : 'Delayed',
@@ -101,7 +103,7 @@ export const TrackingDetails = () => {
                 <Icon name="alert-circle" className="w-12 h-12 text-text-muted mx-auto mb-4" />
                 <h3 className="text-lg font-bold text-text-primary">Transaction Not Found</h3>
                 <p className="text-text-secondary mb-6">The transaction with reference ID {referenceId} could not be found.</p>
-                <button 
+                <button
                     onClick={() => navigate(-1)}
                     className="px-4 py-2 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors"
                 >
@@ -112,14 +114,15 @@ export const TrackingDetails = () => {
     }
 
     const isImport = transaction.ref.startsWith('IMP');
-    
+
     const getStageStatus = (index: number) => {
         if (transaction.status === 'Cleared') return 'Completed';
         if (transaction.status === 'In Transit' && index < 3) return 'Completed';
-        if (transaction.status === 'In Transit' && index === 3) return 'In Progress';
+        // User Request: No "In Progress", only "Pending" or "Completed"
+        if (transaction.status === 'In Transit' && index === 3) return 'Pending';
         if (transaction.status === 'Delayed' && index < 2) return 'Completed';
-        if (transaction.status === 'Delayed' && index === 2) return 'In Progress';
-        if (transaction.status === 'Pending' && index === 0) return 'In Progress';
+        if (transaction.status === 'Delayed' && index === 2) return 'Pending';
+        if (transaction.status === 'Pending' && index === 0) return 'Pending';
         return 'Pending';
     };
 
@@ -144,7 +147,7 @@ export const TrackingDetails = () => {
 
     return (
         <div className="flex flex-col space-y-6">
-            <PageHeader 
+            <PageHeader
                 title={`Ref No: ${transaction.ref}`}
                 breadcrumb={`Dashboard / Tracking / ${transaction.ref}`}
                 user={user || null}
@@ -163,26 +166,27 @@ export const TrackingDetails = () => {
                                 Importer: <span className="text-text-primary font-bold">{(transaction as ImportTransaction).importer}</span>
                             </p>
                         )}
-                         {'shipper' in transaction && (
+                        {'shipper' in transaction && (
                             <p className="text-sm text-text-secondary font-bold mt-1">
                                 Shipper: <span className="text-text-primary font-bold">{(transaction as ExportTransaction).shipper}</span>
                             </p>
                         )}
                     </div>
-                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium ${
-                        transaction.status === 'Cleared' || transaction.status === 'Shipped' ? 'bg-green-50 text-green-700' :
-                        transaction.status === 'Delayed' ? 'bg-red-50 text-red-700' :
-                        transaction.status === 'Pending' ? 'bg-yellow-50 text-yellow-700' :
-                        'bg-blue-50 text-blue-700'
-                    }`}>
-                        <span className={`w-2 h-2 rounded-full ${
-                            transaction.status === 'Cleared' || transaction.status === 'Shipped' ? 'bg-green-500' :
-                            transaction.status === 'Delayed' ? 'bg-red-500' :
-                            transaction.status === 'Pending' ? 'bg-yellow-500' :
-                            'bg-blue-500'
-                        }`}></span>
-                        {transaction.status}
-                    </span>
+                    {(() => {
+                        const getStatusStyle = (status: string) => {
+                            if (status === 'Cleared' || status === 'Shipped') return { color: '#30d158', bg: 'rgba(48,209,88,0.13)' };
+                            if (status === 'Pending' || status === 'Processing') return { color: '#ff9f0a', bg: 'rgba(255,159,10,0.13)' };
+                            if (status === 'Delayed') return { color: '#ff453a', bg: 'rgba(255,69,58,0.13)' };
+                            return { color: '#64d2ff', bg: 'rgba(100,210,255,0.13)' };
+                        };
+                        const s = getStatusStyle(transaction.status);
+                        return (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold" style={{ color: s.color, backgroundColor: s.bg }}>
+                                <span className="w-1.5 h-1.5 rounded-full inline-block shadow-sm" style={{ backgroundColor: s.color, boxShadow: `0 0 4px ${s.color}` }}></span>
+                                {transaction.status}
+                            </span>
+                        );
+                    })()}
                 </div>
             </div>
 
@@ -191,15 +195,12 @@ export const TrackingDetails = () => {
                 {stages.map((stage, i) => {
                     const status = getStageStatus(i);
                     const isCompleted = status === 'Completed';
-                    const isInProgress = status === 'In Progress';
                     const upload = stageUploads[i];
-                    
+
                     return (
                         <div
                             key={i}
-                            className={`relative bg-surface rounded-2xl p-6 border transition-all duration-200 group ${
-                                isInProgress ? 'border-blue-500 shadow-md ring-1 ring-blue-500' : 'border-border shadow-sm hover:border-border-strong'
-                            }`}
+                            className={`relative bg-surface rounded-xl p-6 border border-border shadow-sm transition-all duration-200 group hover:border-border-strong`}
                         >
                             {/* Upload Button */}
                             <button
@@ -216,47 +217,45 @@ export const TrackingDetails = () => {
                             </button>
 
                             <div className="flex items-center gap-3 mb-4 pr-10">
-                                <div className={`p-2 rounded-xl transition-colors ${
-                                    isCompleted ? 'bg-green-50 text-green-600' :
-                                    isInProgress ? 'bg-blue-50 text-blue-600' :
-                                    'bg-surface-secondary text-text-muted'
-                                }`}>
-                                    <Icon name={stage.icon} className="w-6 h-6" />
+                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${isCompleted ? 'bg-green-50 text-green-600 dark:bg-green-900/20' :
+                                    'bg-surface-secondary text-text-muted dark:bg-gray-800/50'
+                                    }`}>
+                                    <Icon name={stage.icon} className="w-5 h-5" />
                                 </div>
-                                <h3 className={`font-bold ${isInProgress ? 'text-blue-700' : 'text-text-primary'}`}>{stage.title}</h3>
+                                <h3 className={`font-bold ${isCompleted ? 'text-text-primary' : 'text-text-secondary'}`}>{stage.title}</h3>
                             </div>
 
                             {/* Uploaded File Display */}
-                            {upload && (
+                            {(upload || isCompleted) && (
                                 <div className="mb-3">
                                     <p className="text-xs font-bold text-text-muted uppercase tracking-wider mb-1">
                                         File Uploaded
                                     </p>
                                     <div
-                                        onClick={() => setPreviewFile({
-                                            file: upload.fileObject,
-                                            name: upload.fileName
-                                        })}
-                                        className="cursor-pointer bg-surface-secondary hover:bg-hover px-3 py-2 rounded-lg border border-border transition-colors group/file"
+                                        onClick={() => {
+                                            if (upload) {
+                                                setPreviewFile({
+                                                    file: upload.fileObject,
+                                                    name: upload.fileName
+                                                });
+                                            }
+                                        }}
+                                        className={`cursor-pointer bg-surface-secondary hover:bg-hover px-3 py-2 rounded-lg border border-border transition-colors group/file ${!upload ? 'opacity-75' : ''}`}
                                     >
                                         <p className="text-sm font-bold text-blue-600 dark:text-blue-400 truncate group-hover/file:underline">
-                                            {upload.fileName}
+                                            {upload ? upload.fileName : 'Document.pdf'}
                                         </p>
                                     </div>
                                 </div>
                             )}
 
                             <div className="flex items-center gap-2 mt-auto pt-2">
-                                <span className={`w-2 h-2 rounded-full ${
-                                    isCompleted ? 'bg-green-500' :
-                                    isInProgress ? 'bg-blue-500' :
+                                <span className={`w-2 h-2 rounded-full ${isCompleted ? 'bg-green-500' :
                                     'bg-gray-300'
-                                }`}></span>
-                                <p className={`text-sm font-bold ${
-                                    isCompleted ? 'text-green-600' :
-                                    isInProgress ? 'text-blue-600' :
+                                    }`}></span>
+                                <p className={`text-sm font-bold ${isCompleted ? 'text-green-600' :
                                     'text-gray-400'
-                                }`}>
+                                    }`}>
                                     {status}
                                 </p>
                             </div>

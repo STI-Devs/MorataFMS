@@ -82,7 +82,7 @@ export const trackingApi = {
     },
 
     // --- Countries (for dropdowns) ---
-    getCountries: async (type?: 'export_destination' | 'import_origin'): Promise<ApiCountry[]> => {
+    getCountries: async (type?: 'export_destination'): Promise<ApiCountry[]> => {
         const response = await api.get('/api/countries', {
             params: type ? { type } : undefined,
         });

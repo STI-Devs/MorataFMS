@@ -1,6 +1,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
+
 /* ============================================
    SEMANTIC DESIGN TOKENS
    Change colors once here → all components update.
@@ -35,28 +38,37 @@
 }
 
 .dark {
-  --color-surface: #0a0a0a;
-  --color-surface-secondary: #0a0a0a;
-  --color-surface-elevated: #141414;
+  /* Outer background — pure black */
+  --color-surface: #1a1a1a;
+  --color-surface-secondary: #141414;
+  --color-surface-elevated: #222222;
 
-  --color-border: #1a1a1a;
-  --color-border-strong: #2a2a2a;
+  /* Borders — subtle but visible */
+  --color-border: #2a2a2a;
+  --color-border-strong: #333333;
 
-  --color-text-primary: #f9fafb;
-  --color-text-secondary: #9ca3af;
-  --color-text-muted: #6b7280;
+  /* Text */
+  --color-text-primary: #f5f5f5;
+  --color-text-secondary: #a1a1aa;
+  --color-text-muted: #71717a;
 
-  --color-hover: rgba(255, 255, 255, 0.05);
-  --color-input-bg: #141414;
+  /* Interactive */
+  --color-hover: rgba(255, 255, 255, 0.06);
+  --color-input-bg: #222222;
 
-  --color-sidebar-bg: #0a0a0a;
+  /* Sidebar */
+  --color-sidebar-bg: #0d0d0d;
   --color-sidebar-border: transparent;
 
-  --color-surface-tint: #0a0a0a;
-  --color-border-tint: #1a1a1a;
+  /* Tint (stat cards) */
+  --color-surface-tint: #1e1e1e;
+  --color-border-tint: #2a2a2a;
 }
 
-/* Mix mode: dark sidebar, light content */
+/* Mix mode: dark sidebar, light content area.
+   The sidebar element gets class="dark" applied directly in MainLayout.
+   The content area inherits :root (light) tokens.
+   This class is only on <html> for ThemeContext tracking. */
 .mix {
   --color-sidebar-bg: #0a0a0a;
   --color-sidebar-border: transparent;

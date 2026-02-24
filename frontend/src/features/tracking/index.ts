@@ -1,3 +1,4 @@
+export { AdminDashboard } from './components/AdminDashboard';
 export { CalendarCard } from './components/CalendarCard';
 export { Documents } from './components/Documents';
 export { ExportList } from './components/ExportList';
