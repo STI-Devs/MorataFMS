@@ -30,13 +30,17 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
     Route::get('/clients', [ClientController::class, 'index']);
     Route::get('/countries', [CountryController::class, 'index']);
 
-    // Admin-only: User management
-    Route::apiResource('users', UserController::class);
-
     // Document management
     Route::apiResource('documents', DocumentController::class)->except(['update']);
     Route::get('documents/{document}/download', [DocumentController::class, 'download']);
 
-    // Audit logs (read-only, supervisor+)
-    Route::get('audit-logs', [AuditLogController::class, 'index']);
+    // Admin-only routes — tighter throttle (20 req/min) for heavier DB queries
+    Route::middleware('throttle:20,1')->group(function () {
+        Route::apiResource('users', UserController::class);
+        Route::apiResource('clients', ClientController::class)->except(['index']);
+
+        // Audit logs (read-only, supervisor+)
+        Route::get('audit-logs', [AuditLogController::class, 'index']);
+        Route::get('audit-logs/actions', [AuditLogController::class, 'actions']);
+    });
 });

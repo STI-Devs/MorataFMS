@@ -56,32 +56,38 @@ class Document extends Model
         string $documentableType,
         int $documentableId,
         string $type,
-        string $filename
+        string $filename,
+        string $blNo = '',
+        int $year = 0,
     ): string {
-        $transactionType = str($documentableType)
-            ->afterLast('\\')
-            ->snake()
-            ->value();
-        $timestamp = now()->timestamp;
-        $safeName = str($filename)->slug('_')->value();
+        $folder = str_contains($documentableType, 'Import') ? 'imports' : 'exports';
+        $year = $year ?: now()->year;
+        $blSlug = $blNo
+            ? str($blNo)->slug('-')->upper()->value()
+            : (string) $documentableId;
+        $basename = pathinfo($filename, PATHINFO_FILENAME);
+        $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+        $safeName = str($basename)->slug('_')->value();
+        $unique = substr(uniqid(), -6); // short unique suffix to prevent overwrites
 
-        return "documents/{$transactionType}/{$documentableId}/{$type}_{$timestamp}_{$safeName}";
+        return "documents/{$folder}/{$year}/{$blSlug}/{$type}_{$safeName}_{$unique}.{$ext}";
     }
 
     // Document type labels
     public static function getTypeLabels(): array
     {
         return [
-            'invoice' => 'Invoice',
-            'packing_list' => 'Packing List',
-            'bl' => 'Bill of Lading',
-            'co' => 'Certificate of Origin',
-            'cil' => 'Certificate of Inspection & Loading',
-            'phytosanitary' => 'Phytosanitary Certificate',
-            'export_declaration' => 'Export Declaration',
-            'import_entry' => 'Import Entry',
-            'delivery_order' => 'Delivery Order',
-            'other' => 'Other',
+            // Import stages
+            'boc' => 'BOC Document Processing',
+            'ppa' => 'Payment for PPA Charges',
+            'do' => 'Delivery Order Request',
+            'port_charges' => 'Payment for Port Charges',
+            'releasing' => 'Releasing of Documents',
+            'billing' => 'Liquidation and Billing',
+            // Export stages
+            'bl_generation' => 'Bill of Lading Generation',
+            'co' => 'CO Application and Releasing',
+            'dccci' => 'DCCCI Printing',
         ];
     }
 }

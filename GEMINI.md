@@ -237,6 +237,52 @@ export const useCreateImport = () => {
 };
 ```
 
+### Lazy Query Pattern (`enabled` flag)
+Use `enabled` to defer a query until a condition is met (e.g., a modal is open). Always add an `enabled` param with a default of `true` for backward compatibility.
+```typescript
+// Hook: gate the query behind an enabled flag
+export const useClients = (type?: 'importer' | 'exporter', enabled = true) => {
+    return useQuery<ApiClient[]>({
+        queryKey: ['clients', type],
+        queryFn: () => trackingApi.getClients(type),
+        staleTime: Infinity,
+        enabled, // query only fires when enabled = true
+    });
+};
+
+// Consumer: only fetch when modal is open
+const { data: clients } = useClients('importer', isOpen);
+```
+
+### Background Prefetch Pattern (`prefetchQuery`)
+Use `prefetchQuery` in a parent page component to warm the cache **before** the user opens a modal or navigates to a sub-page. This gives instant dropdown population with zero wasted calls if the action is never triggered.
+
+> **Rule:** Use this for static/lookup data (`staleTime: Infinity`) that is needed in a modal or child component. The query keys MUST match the hooks used in the modal exactly.
+
+```typescript
+// In the parent page component (e.g., ImportList.tsx)
+import { useQueryClient } from '@tanstack/react-query';
+
+const queryClient = useQueryClient();
+
+useEffect(() => {
+    // Fires once on mount, non-blocking. Cache hit on subsequent renders.
+    queryClient.prefetchQuery({
+        queryKey: ['clients', 'importer'], // must match useClients('importer') key
+        queryFn: () => trackingApi.getClients('importer'),
+        staleTime: Infinity,
+    });
+}, [queryClient]);
+```
+
+**When to use each approach:**
+
+| Data Type | Approach |
+|---|---|
+| Static lookup (clients, countries) | `prefetchQuery` on parent mount + `enabled: isOpen` on hook |
+| Frequently changing data | Fetch on open (`enabled: isOpen`) — no prefetch |
+| Data needed immediately on page | Plain `useQuery` with no `enabled` flag |
+
 ### Backend (Rate Limiting)
 *   All authenticated routes use `throttle:60,1` (60 requests/minute per user).
 *   Login has its own rate limiter (5 attempts).

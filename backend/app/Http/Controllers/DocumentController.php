@@ -43,30 +43,43 @@ class DocumentController extends Controller
         $file = $request->file('file');
         $validated = $request->validated();
 
-        // Generate S3 path
+        // Look up BL number from the transaction for a human-readable S3 path
+        $transaction = $validated['documentable_type']::find($validated['documentable_id']);
+        $blNo = $transaction?->bl_no ?? '';
+
+        // Generate S3 path: documents/{imports|exports}/{year}/{BL}/{type}/{timestamp}_{name}
         $path = Document::generateS3Path(
             $validated['documentable_type'],
             $validated['documentable_id'],
             $validated['type'],
-            $file->getClientOriginalName()
+            $file->getClientOriginalName(),
+            $blNo,
+            now()->year,
         );
 
-        // Store file in S3
-        $storedPath = Storage::disk('s3')->putFileAs(
-            dirname($path),
-            $file,
-            basename($path)
-        );
+        // Upload file to S3 — wrap in transaction so DB record only saves if S3 succeeds
+        $document = \DB::transaction(function () use ($file, $path, $validated, $request) {
+            // writeStream is the only confirmed-working method for this S3 config
+            $stream = fopen($file->getRealPath(), 'r');
+            try {
+                Storage::disk('s3')->writeStream($path, $stream);
+            } finally {
+                if (is_resource($stream))
+                    fclose($stream);
+            }
 
-        // Create document record
-        $document = new Document($validated);
-        $document->documentable_type = $validated['documentable_type'];
-        $document->documentable_id = $validated['documentable_id'];
-        $document->filename = $file->getClientOriginalName();
-        $document->path = $storedPath;
-        $document->size_bytes = $file->getSize();
-        $document->uploaded_by = $request->user()->id;
-        $document->save();
+
+            $document = new Document($validated);
+            $document->documentable_type = $validated['documentable_type'];
+            $document->documentable_id = $validated['documentable_id'];
+            $document->filename = $file->getClientOriginalName();
+            $document->path = $path;
+            $document->size_bytes = $file->getSize();
+            $document->uploaded_by = $request->user()->id;
+            $document->save();
+
+            return $document;
+        });
 
         $document->load('uploadedBy');
 
@@ -96,12 +109,7 @@ class DocumentController extends Controller
     {
         $this->authorize('view', $document);
 
-        // Check if file exists in S3
-        if (!Storage::disk('s3')->exists($document->path)) {
-            abort(404, 'File not found in storage.');
-        }
-
-        // Get the file stream from S3
+        // readStream throws UnableToReadFile if the path doesn't exist in S3
         $stream = Storage::disk('s3')->readStream($document->path);
 
         return response()->streamDownload(function () use ($stream) {
@@ -120,12 +128,9 @@ class DocumentController extends Controller
     {
         $this->authorize('delete', $document);
 
-        // Delete from S3
-        if (Storage::disk('s3')->exists($document->path)) {
-            Storage::disk('s3')->delete($document->path);
-        }
+        // delete() is a no-op if the file doesn't exist — no exists() check needed
+        Storage::disk('s3')->delete($document->path);
 
-        // Delete database record
         $document->delete();
 
         return response()->noContent();

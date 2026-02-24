@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\CancelTransactionRequest;
 use App\Http\Requests\StoreExportTransactionRequest;
 use App\Http\Resources\ExportTransactionResource;
 use App\Models\ExportTransaction;
@@ -92,23 +93,18 @@ class ExportTransactionController extends Controller
      * PATCH /api/export-transactions/{export_transaction}/cancel
      * Cancel an export transaction with a reason.
      */
-    public function cancel(Request $request, ExportTransaction $export_transaction)
+    public function cancel(CancelTransactionRequest $request, ExportTransaction $export_transaction)
     {
         $this->authorize('update', $export_transaction);
 
-        // Only pending or in_progress can be cancelled
         if (!in_array($export_transaction->status, ['pending', 'in_progress'])) {
             return response()->json([
                 'message' => 'Only pending or in-progress transactions can be cancelled.',
             ], 422);
         }
 
-        $request->validate([
-            'reason' => 'required|string|max:500',
-        ]);
-
         $export_transaction->status = 'cancelled';
-        $export_transaction->notes = $request->input('reason');
+        $export_transaction->notes = $request->validated()['reason'];
         $export_transaction->save();
 
         $export_transaction->load(['shipper', 'stages', 'assignedUser', 'destinationCountry']);

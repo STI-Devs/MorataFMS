@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { createContext, useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { authApi } from '../api/authApi';
 import type { AuthState, LoginCredentials, RegisterCredentials, User } from '../types/auth.types';
 
@@ -21,6 +22,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isAuthenticated: false,
     isLoading: true,
   });
+
+  // Listen for unauthorized events from axios interceptor
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      // Only show the toast if we actually had a user stored
+      if (localStorage.getItem('user')) {
+        toast.error('You have been signed out. Please log in again to continue.', {
+          duration: 6000,
+        });
+      }
+      
+      localStorage.removeItem('user');
+      setAuthState({
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+      });
+    };
+
+    window.addEventListener('auth:unauthorized', handleUnauthorized as EventListener);
+    return () => window.removeEventListener('auth:unauthorized', handleUnauthorized as EventListener);
+  }, []);
 
   // Verify session with backend on page load
   useEffect(() => {

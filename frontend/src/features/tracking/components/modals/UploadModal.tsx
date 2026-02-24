@@ -1,14 +1,18 @@
 import React, { useState } from 'react';
-import { Icon } from '../../../components/Icon';
+import { Icon } from '../../../../components/Icon';
 
 interface UploadModalProps {
     isOpen: boolean;
     onClose: () => void;
     onUpload: (file: File) => void;
     title: string;
+    isLoading?: boolean;
+    errorMessage?: string;
 }
 
-export const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onUpload, title }) => {
+const ACCEPTED_TYPES = '.pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png';
+
+export const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onUpload, title, isLoading = false, errorMessage }) => {
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [isDragging, setIsDragging] = useState(false);
 
@@ -21,9 +25,8 @@ export const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onUpl
     };
 
     const handleUploadClick = () => {
-        if (selectedFile) {
+        if (selectedFile && !isLoading) {
             onUpload(selectedFile);
-            setSelectedFile(null);
         }
     };
 
@@ -50,6 +53,13 @@ export const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onUpl
         return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
     };
 
+    const handleClose = () => {
+        if (!isLoading) {
+            setSelectedFile(null);
+            onClose();
+        }
+    };
+
     return (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[150] p-4">
             <div className="bg-surface rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200 border border-border">
@@ -65,8 +75,9 @@ export const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onUpl
                         </div>
                     </div>
                     <button
-                        onClick={onClose}
-                        className="p-2 rounded-xl text-text-muted hover:text-text-primary hover:bg-hover transition-all"
+                        onClick={handleClose}
+                        disabled={isLoading}
+                        className="p-2 rounded-xl text-text-muted hover:text-text-primary hover:bg-hover transition-all disabled:opacity-50"
                     >
                         <Icon name="x" className="w-5 h-5" />
                     </button>
@@ -89,6 +100,7 @@ export const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onUpl
                             type="file"
                             id="stage-file-upload"
                             className="hidden"
+                            accept={ACCEPTED_TYPES}
                             onChange={handleFileChange}
                         />
                         <svg className="w-10 h-10 text-text-muted mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -97,7 +109,7 @@ export const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onUpl
                         <span className="text-sm font-medium text-text-secondary">
                             {isDragging ? 'Drop file here' : 'Click or drag & drop a file'}
                         </span>
-                        <span className="text-xs text-text-muted mt-1">PDF, DOCX, JPG, PNG up to 10 MB</span>
+                        <span className="text-xs text-text-muted mt-1">PDF, DOCX, XLS, JPG, PNG up to 10 MB</span>
                     </div>
 
                     {/* Selected File Display */}
@@ -112,30 +124,49 @@ export const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onUpl
                             </div>
                             <button
                                 onClick={(e) => { e.stopPropagation(); setSelectedFile(null); }}
-                                className="p-1 text-text-muted hover:text-red-500 transition-colors"
+                                disabled={isLoading}
+                                className="p-1 text-text-muted hover:text-red-500 transition-colors disabled:opacity-50"
                             >
                                 <Icon name="x" className="w-4 h-4" />
                             </button>
                         </div>
                     )}
 
+                    {/* Error Message */}
+                    {errorMessage && (
+                        <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl">
+                            <Icon name="alert-circle" className="w-4 h-4 text-red-500 shrink-0" />
+                            <p className="text-sm text-red-600 dark:text-red-400">{errorMessage}</p>
+                        </div>
+                    )}
+
                     {/* Upload Button */}
                     <button
                         onClick={handleUploadClick}
-                        disabled={!selectedFile}
+                        disabled={!selectedFile || isLoading}
                         className={`w-full py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${
-                            !selectedFile
+                            !selectedFile || isLoading
                                 ? 'bg-surface-secondary text-text-muted cursor-not-allowed border border-border'
                                 : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg active:scale-[0.98]'
                         }`}
                     >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                        </svg>
-                        Upload Document
+                        {isLoading ? (
+                            <>
+                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                Uploading to S3...
+                            </>
+                        ) : (
+                            <>
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                </svg>
+                                Upload Document
+                            </>
+                        )}
                     </button>
                 </div>
             </div>
         </div>
     );
 };
+

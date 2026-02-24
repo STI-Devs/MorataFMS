@@ -13,6 +13,8 @@ class CountryController extends Controller
      */
     public function index(Request $request)
     {
+        $this->authorize('viewAny', Country::class);
+
         $query = Country::active()->orderBy('name');
 
         if ($request->query('type') === 'export_destination') {

@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useTheme } from '../../../context/ThemeContext';
 import { transactionApi } from '../api/transactionApi';
-import type { OversightTransaction, EncoderUser } from '../types/transaction.types';
+import type { EncoderUser, OversightTransaction } from '../types/transaction.types';
 
 interface ReassignModalProps {
     isOpen: boolean;
@@ -51,8 +51,9 @@ export const ReassignModal = ({ isOpen, onClose, transaction, onSuccess }: Reass
             }
             onSuccess(transaction.id, transaction.type, result.assigned_to, result.assigned_user_id);
             onClose();
-        } catch (err: any) {
-            setError(err.response?.data?.message || 'Failed to reassign encoder.');
+        } catch (err: unknown) {
+            const e = err as { response?: { data?: { message?: string } } };
+            setError(e.response?.data?.message || 'An error occurred');
         } finally {
             setIsLoading(false);
         }

@@ -1,12 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { auditLogApi } from '../api/auditLogApi';
-import type { AuditLogEntry, AuditLogMeta, AuditLogFilters } from '../types/auditLog.types';
-
-interface LayoutContext {
-    user?: { name: string; role: string };
-    dateTime: { time: string; date: string };
-}
+import type { LayoutContext } from '../../tracking/types';
+import { useAuditActions, useAuditLogs } from '../hooks/useAuditLogs';
 
 const ACTION_CFG: Record<string, { label: string; color: string; bg: string }> = {
     login: { label: 'Login', color: '#30d158', bg: 'rgba(48,209,88,0.13)' },
@@ -26,55 +21,32 @@ const formatDate = (iso: string) => {
 export const AuditLogs = () => {
     const { dateTime } = useOutletContext<LayoutContext>();
 
-    const [logs, setLogs] = useState<AuditLogEntry[]>([]);
-    const [meta, setMeta] = useState<AuditLogMeta>({ current_page: 1, last_page: 1, per_page: 25, total: 0 });
-    const [availableActions, setAvailableActions] = useState<string[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState('');
     const [search, setSearch] = useState('');
     const [actionFilter, setActionFilter] = useState('');
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
     const [page, setPage] = useState(1);
 
-    const loadLogs = useCallback(async (filters: AuditLogFilters) => {
-        try {
-            setIsLoading(true);
-            setError('');
-            const res = await auditLogApi.getLogs(filters);
-            setLogs(res.data);
-            setMeta(res.meta);
-        } catch (err: any) {
-            setError(err.response?.data?.message || 'Failed to load audit logs.');
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
+    const filters = {
+        search: search || undefined,
+        action: actionFilter || undefined,
+        date_from: dateFrom || undefined,
+        date_to: dateTo || undefined,
+        page,
+        per_page: 25,
+    };
 
-    const loadActions = useCallback(async () => {
-        try {
-            const res = await auditLogApi.getActions();
-            setAvailableActions(res.data);
-        } catch { /* non-critical */ }
-    }, []);
+    const { data, isLoading, isError } = useAuditLogs(filters);
+    const { data: availableActions = [] } = useAuditActions();
 
-    useEffect(() => { loadActions(); }, [loadActions]);
-
-    useEffect(() => {
-        loadLogs({
-            search: search || undefined,
-            action: actionFilter || undefined,
-            date_from: dateFrom || undefined,
-            date_to: dateTo || undefined,
-            page,
-            per_page: 25,
-        });
-    }, [loadLogs, search, actionFilter, dateFrom, dateTo, page]);
+    const logs = data?.data ?? [];
+    const meta = data?.meta ?? { current_page: 1, last_page: 1, per_page: 25, total: 0 };
 
     const handleSearch = (val: string) => { setSearch(val); setPage(1); };
     const handleAction = (val: string) => { setActionFilter(val); setPage(1); };
     const handleDateFrom = (val: string) => { setDateFrom(val); setPage(1); };
     const handleDateTo = (val: string) => { setDateTo(val); setPage(1); };
+    const handleClear = () => { setSearch(''); setActionFilter(''); setDateFrom(''); setDateTo(''); setPage(1); };
 
     const inputCls = 'px-3 py-2.5 rounded-lg border border-border-strong bg-input-bg text-text-primary text-sm placeholder:text-text-muted focus:outline-none focus:border-blue-500/50 transition-colors';
 
@@ -96,9 +68,9 @@ export const AuditLogs = () => {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {[
                     { label: 'Total Events', value: meta.total, color: '#0a84ff', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' },
-                    { label: 'Logins', value: logs.filter(l => l.action === 'login').length + (page > 1 ? '+' : ''), color: '#30d158', icon: 'M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1' },
-                    { label: 'Status Changes', value: logs.filter(l => l.action === 'status_changed').length + (page > 1 ? '+' : ''), color: '#ff9f0a', icon: 'M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15' },
-                    { label: 'Reassignments', value: logs.filter(l => l.action === 'encoder_reassigned').length + (page > 1 ? '+' : ''), color: '#bf5af2', icon: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4' },
+                    { label: 'Logins', value: logs.filter(l => l.action === 'login').length, color: '#30d158', icon: 'M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1' },
+                    { label: 'Status Changes', value: logs.filter(l => l.action === 'status_changed').length, color: '#ff9f0a', icon: 'M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15' },
+                    { label: 'Reassignments', value: logs.filter(l => l.action === 'encoder_reassigned').length, color: '#bf5af2', icon: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4' },
                 ].map(({ label, value, color, icon }) => (
                     <div key={label} className="bg-surface-tint rounded-lg p-4 border border-border-tint">
                         <div className="flex items-start justify-between">
@@ -126,7 +98,7 @@ export const AuditLogs = () => {
                         </span>
                     </div>
 
-                    {/* Integrated Filters */}
+                    {/* Filters */}
                     <div className="flex flex-wrap gap-2 items-center">
                         <input
                             type="text"
@@ -145,21 +117,11 @@ export const AuditLogs = () => {
                                 <option key={a} value={a}>{getActionCfg(a).label}</option>
                             ))}
                         </select>
-                        <input
-                            type="date"
-                            value={dateFrom}
-                            onChange={e => handleDateFrom(e.target.value)}
-                            className={`${inputCls} !h-8 !py-0 !text-xs`}
-                        />
-                        <input
-                            type="date"
-                            value={dateTo}
-                            onChange={e => handleDateTo(e.target.value)}
-                            className={`${inputCls} !h-8 !py-0 !text-xs`}
-                        />
+                        <input type="date" value={dateFrom} onChange={e => handleDateFrom(e.target.value)} className={`${inputCls} !h-8 !py-0 !text-xs`} />
+                        <input type="date" value={dateTo} onChange={e => handleDateTo(e.target.value)} className={`${inputCls} !h-8 !py-0 !text-xs`} />
                         {(search || actionFilter || dateFrom || dateTo) && (
                             <button
-                                onClick={() => { setSearch(''); setActionFilter(''); setDateFrom(''); setDateTo(''); setPage(1); }}
+                                onClick={handleClear}
                                 className="px-3 h-8 rounded-md text-xs font-semibold border border-border-strong bg-input-bg text-text-secondary hover:text-text-primary transition-colors"
                             >
                                 Clear
@@ -171,6 +133,10 @@ export const AuditLogs = () => {
                 {isLoading ? (
                     <div className="p-16 flex items-center justify-center">
                         <div className="w-8 h-8 rounded-full border-2 border-transparent animate-spin" style={{ borderTopColor: '#0a84ff' }} />
+                    </div>
+                ) : isError ? (
+                    <div className="p-16 text-center">
+                        <p className="text-sm text-red-500 font-medium">Failed to load audit logs. Please try again.</p>
                     </div>
                 ) : logs.length === 0 ? (
                     <div className="py-16 text-center">

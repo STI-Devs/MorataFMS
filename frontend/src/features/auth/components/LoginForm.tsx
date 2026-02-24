@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import { getLoginError } from "../utils/authErrors";
 
 export const LoginForm = ({ onToggleSignup }: { onToggleSignup: () => void }) => {
   const location = useLocation();
@@ -35,20 +36,7 @@ export const LoginForm = ({ onToggleSignup }: { onToggleSignup: () => void }) =>
       navigate('/dashboard');
     } catch (err: unknown) {
       console.error("Login failed:", err);
-      let errorMessage = "An unexpected error occurred. Please try again.";
-
-      if (typeof err === 'object' && err !== null && 'response' in err) {
-        const errorResponse = err as { response?: { data?: { message?: string }, status?: number } };
-        if (errorResponse.response?.data?.message) {
-          errorMessage = errorResponse.response.data.message;
-        } else if (errorResponse.response) {
-          errorMessage = `Login failed (Status: ${errorResponse.response.status || 'unknown'})`;
-        }
-      } else if (err instanceof Error) {
-        errorMessage = err.message;
-      }
-
-      setError(errorMessage);
+      setError(getLoginError(err));
     } finally {
       setIsLoading(false);
     }

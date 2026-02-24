@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useTheme } from '../../../context/ThemeContext';
-import type { Client, CreateClientData, UpdateClientData, ClientType, Country } from '../types/client.types';
 import api from '../../../lib/axios';
+import type { Client, ClientType, Country, CreateClientData, UpdateClientData } from '../types/client.types';
 
 interface ClientFormModalProps {
     isOpen: boolean;
@@ -76,8 +76,9 @@ export const ClientFormModal = ({ isOpen, onClose, onSubmit, client, mode }: Cli
         try {
             await onSubmit(formData);
             onClose();
-        } catch (err: any) {
-            setError(err.response?.data?.message || 'An error occurred');
+        } catch (err: unknown) {
+            const e = err as { response?: { data?: { message?: string } } };
+            setError(e.response?.data?.message || 'An error occurred');
         } finally {
             setIsSubmitting(false);
         }

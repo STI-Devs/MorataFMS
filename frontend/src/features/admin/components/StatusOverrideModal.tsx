@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useTheme } from '../../../context/ThemeContext';
 import { transactionApi } from '../api/transactionApi';
 import type { OversightTransaction } from '../types/transaction.types';
@@ -43,8 +43,9 @@ export const StatusOverrideModal = ({ isOpen, onClose, transaction, onSuccess }:
             }
             onSuccess(transaction.id, transaction.type, result.status);
             onClose();
-        } catch (err: any) {
-            setError(err.response?.data?.message || 'Failed to update status.');
+        } catch (err: unknown) {
+            const e = err as { response?: { data?: { message?: string } } };
+            setError(e.response?.data?.message || 'An error occurred');
         } finally {
             setIsLoading(false);
         }

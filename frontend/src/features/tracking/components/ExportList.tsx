@@ -4,9 +4,10 @@ import { useCancelExport } from '../hooks/useCancelExport';
 import { useCreateExport } from '../hooks/useCreateExport';
 import { useExports } from '../hooks/useExports';
 import { useExportStats } from '../hooks/useExportStats';
+import { usePrefetchEncodeData } from '../hooks/usePrefetchEncodeData';
 import type { CreateExportPayload, ExportTransaction, LayoutContext } from '../types';
-import { CancelTransactionModal } from './CancelTransactionModal';
-import { EncodeModal } from './EncodeModal';
+import { CancelTransactionModal } from './modals/CancelTransactionModal';
+import { EncodeModal } from './modals/EncodeModal';
 
 import { Icon } from '../../../components/Icon';
 import { Pagination } from '../../../components/Pagination';
@@ -17,6 +18,8 @@ export const ExportList = () => {
     const createExport = useCreateExport();
     const cancelExport = useCancelExport();
     const [cancelTarget, setCancelTarget] = useState<{ id: number; ref: string } | null>(null);
+
+    usePrefetchEncodeData('export');
 
     const { dateTime } = useOutletContext<LayoutContext>();
 

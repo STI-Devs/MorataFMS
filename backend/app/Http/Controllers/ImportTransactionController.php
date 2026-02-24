@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\CancelTransactionRequest;
 use App\Http\Requests\StoreImportTransactionRequest;
 use App\Http\Resources\ImportTransactionResource;
 use App\Models\ImportTransaction;
@@ -92,23 +93,18 @@ class ImportTransactionController extends Controller
      * PATCH /api/import-transactions/{import_transaction}/cancel
      * Cancel an import transaction with a reason.
      */
-    public function cancel(Request $request, ImportTransaction $import_transaction)
+    public function cancel(CancelTransactionRequest $request, ImportTransaction $import_transaction)
     {
         $this->authorize('update', $import_transaction);
 
-        // Only pending or in_progress can be cancelled
         if (!in_array($import_transaction->status, ['pending', 'in_progress'])) {
             return response()->json([
                 'message' => 'Only pending or in-progress transactions can be cancelled.',
             ], 422);
         }
 
-        $request->validate([
-            'reason' => 'required|string|max:500',
-        ]);
-
         $import_transaction->status = 'cancelled';
-        $import_transaction->notes = $request->input('reason');
+        $import_transaction->notes = $request->validated()['reason'];
         $import_transaction->save();
 
         $import_transaction->load(['importer', 'originCountry', 'stages', 'assignedUser']);

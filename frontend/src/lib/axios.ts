@@ -14,14 +14,22 @@ const api = axios.create({
 api.interceptors.response.use(
     (response) => response,
     (error) => {
-        if (error.response?.status === 401) {
-            // Don't redirect if already on auth routes (prevents loops)
+        const status = error.response?.status;
+        const message: string = error.response?.data?.message ?? '';
+
+        // 401 = Sanctum session expired/invalid ("Unauthenticated.")
+        // 419 = CSRF token mismatch (Page Expired)
+        // Guard: only act on genuine auth failures, not misused 401s from custom code
+        const isSessionExpired =
+            (status === 401 && message.toLowerCase().includes('unauthenticated')) ||
+            status === 419;
+
+        if (isSessionExpired) {
             const url = error.config?.url || '';
             const isAuthRoute = url.includes('/auth/') || url.includes('/sanctum/');
 
             if (!isAuthRoute) {
-                localStorage.removeItem('user');
-                window.location.href = '/login';
+                window.dispatchEvent(new CustomEvent('auth:unauthorized'));
             }
         }
         return Promise.reject(error);

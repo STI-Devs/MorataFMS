@@ -1,14 +1,11 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useMemo, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { transactionApi } from '../api/transactionApi';
+import type { LayoutContext } from '../../tracking/types';
+import { useAllTransactions } from '../hooks/useTransactions';
+import type { OversightTransaction } from '../types/transaction.types';
 import { ReassignModal } from './ReassignModal';
 import { StatusOverrideModal } from './StatusOverrideModal';
-import type { OversightTransaction } from '../types/transaction.types';
-
-interface LayoutContext {
-    user?: { name: string; role: string };
-    dateTime: { time: string; date: string };
-}
 
 type TypeFilter = 'all' | 'import' | 'export';
 type StatusFilter = 'all' | 'pending' | 'in_progress' | 'completed' | 'cancelled';
@@ -27,31 +24,21 @@ const TYPE_CFG: Record<string, { color: string; bg: string }> = {
 
 export const TransactionOversight = () => {
     const { dateTime } = useOutletContext<LayoutContext>();
+    const qc = useQueryClient();
 
-    const [transactions, setTransactions] = useState<OversightTransaction[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
     const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
     const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
     const [reassignTarget, setReassignTarget] = useState<OversightTransaction | null>(null);
     const [statusTarget, setStatusTarget] = useState<OversightTransaction | null>(null);
-    const [stats, setStats] = useState({ total: 0, imports: 0, exports: 0 });
 
-    useEffect(() => { loadTransactions(); }, []);
+    const { data, isLoading, isError, refetch } = useAllTransactions();
 
-    const loadTransactions = async () => {
-        try {
-            setIsLoading(true);
-            const res = await transactionApi.getAllTransactions();
-            setTransactions(res.data);
-            setStats({ total: res.total, imports: res.imports_count, exports: res.exports_count });
-            setError('');
-        } catch (err: any) {
-            setError(err.response?.data?.message || 'Failed to load transactions.');
-        } finally {
-            setIsLoading(false);
-        }
+    const transactions: OversightTransaction[] = data?.data ?? [];
+    const stats = {
+        total: data?.total ?? 0,
+        imports: data?.imports_count ?? 0,
+        exports: data?.exports_count ?? 0,
     };
 
     const filteredTransactions = useMemo(() => {
@@ -69,18 +56,13 @@ export const TransactionOversight = () => {
         });
     }, [transactions, typeFilter, statusFilter, searchTerm]);
 
-    const handleReassignSuccess = (id: number, type: 'import' | 'export', assignedTo: string, assignedUserId: number) => {
-        setTransactions((prev) =>
-            prev.map((t) =>
-                t.id === id && t.type === type ? { ...t, assigned_to: assignedTo, assigned_user_id: assignedUserId } : t
-            )
-        );
+    // Optimistic updates after modal success — invalidate to get fresh data
+    const handleReassignSuccess = () => {
+        qc.invalidateQueries({ queryKey: ['admin', 'transactions'] });
     };
 
-    const handleStatusSuccess = (id: number, type: 'import' | 'export', newStatus: string) => {
-        setTransactions((prev) =>
-            prev.map((t) => (t.id === id && t.type === type ? { ...t, status: newStatus } : t))
-        );
+    const handleStatusSuccess = () => {
+        qc.invalidateQueries({ queryKey: ['admin', 'transactions'] });
     };
 
     return (
@@ -120,15 +102,8 @@ export const TransactionOversight = () => {
                 ))}
             </div>
 
-            {error && (
-                <div className="p-4 rounded-lg text-sm" style={{ backgroundColor: 'rgba(255,69,58,0.1)', color: '#ff453a' }}>
-                    {error}
-                </div>
-            )}
-
             {/* Table */}
             <div className="bg-surface rounded-lg border border-border overflow-hidden">
-                {/* Controls - integrated into the card */}
                 <div className="p-3 border-b border-border flex flex-col sm:flex-row gap-3 items-stretch sm:items-center bg-surface-subtle">
                     <div className="relative flex-1 max-w-sm">
                         <svg className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -171,7 +146,7 @@ export const TransactionOversight = () => {
                     </select>
 
                     <button
-                        onClick={loadTransactions}
+                        onClick={() => refetch()}
                         className="px-3 h-9 rounded-md border border-border-strong bg-input-bg text-text-secondary text-xs font-semibold hover:text-text-primary transition-colors flex items-center gap-1.5 shrink-0"
                     >
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -180,9 +155,14 @@ export const TransactionOversight = () => {
                         Refresh
                     </button>
                 </div>
+
                 {isLoading ? (
                     <div className="p-16 flex items-center justify-center">
                         <div className="w-8 h-8 rounded-full border-2 border-transparent animate-spin" style={{ borderTopColor: '#0a84ff' }} />
+                    </div>
+                ) : isError ? (
+                    <div className="p-16 text-center">
+                        <p className="text-sm text-red-500 font-medium">Failed to load transactions. Please try again.</p>
                     </div>
                 ) : filteredTransactions.length === 0 ? (
                     <div className="p-12 text-center">

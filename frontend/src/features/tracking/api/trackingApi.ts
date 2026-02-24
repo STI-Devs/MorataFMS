@@ -7,7 +7,7 @@ import type {
     CreateExportPayload,
     CreateImportPayload,
     PaginatedResponse,
-    TransactionStats,
+    TransactionStats
 } from '../types';
 
 export const trackingApi = {
@@ -87,6 +87,46 @@ export const trackingApi = {
             params: type ? { type } : undefined,
         });
         return response.data.data;
+    },
+
+    // --- Documents ---
+    getDocuments: async (params: {
+        documentable_type: DocumentableType;
+        documentable_id: number;
+    }): Promise<ApiDocument[]> => {
+        const response = await api.get('/api/documents', { params });
+        return response.data.data;
+    },
+
+    uploadDocument: async (payload: UploadDocumentPayload): Promise<ApiDocument> => {
+        const formData = new FormData();
+        formData.append('file', payload.file);
+        formData.append('type', payload.type);
+        formData.append('documentable_type', payload.documentable_type);
+        formData.append('documentable_id', String(payload.documentable_id));
+
+        const response = await api.post('/api/documents', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        return response.data.data;
+    },
+
+    downloadDocument: async (id: number, filename: string): Promise<void> => {
+        const response = await api.get(`/api/documents/${id}/download`, {
+            responseType: 'blob',
+        });
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', filename);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+    },
+
+    deleteDocument: async (id: number): Promise<void> => {
+        await api.delete(`/api/documents/${id}`);
     },
 };
 

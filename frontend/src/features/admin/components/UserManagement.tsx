@@ -1,13 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { userApi } from '../api/userApi';
+import type { LayoutContext } from '../../tracking/types';
+import { useActivateUser, useCreateUser, useDeactivateUser, useUpdateUser, useUsers } from '../hooks/useUsers';
+import type { CreateUserData, UpdateUserData, User } from '../types/user.types';
 import { UserFormModal } from './UserFormModal';
-import type { User, CreateUserData, UpdateUserData } from '../types/user.types';
-
-interface LayoutContext {
-    user?: { name: string; role: string };
-    dateTime: { time: string; date: string };
-}
 
 const roleConfig: Record<string, { label: string; color: string; icon: string }> = {
     admin: {
@@ -54,70 +50,37 @@ function RoleBadge({ role }: { role: string }) {
 
 export const UserManagement = () => {
     const { dateTime } = useOutletContext<LayoutContext>();
-    const [users, setUsers] = useState<User[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
-    const [error, setError] = useState('');
 
-    useEffect(() => { loadUsers(); }, []);
-
-    const PLACEHOLDER_USERS: User[] = [
-        { id: 1, name: 'Maria Santos', email: 'maria.santos@morata.com', role: 'admin', is_active: true, created_at: '2024-01-10', updated_at: '2024-01-10' },
-        { id: 2, name: 'Juan dela Cruz', email: 'juan.delacruz@morata.com', role: 'manager', is_active: true, created_at: '2024-02-14', updated_at: '2024-02-14' },
-        { id: 3, name: 'Ana Reyes', email: 'ana.reyes@morata.com', role: 'supervisor', is_active: true, created_at: '2024-03-05', updated_at: '2024-03-05' },
-        { id: 4, name: 'Carlo Mendoza', email: 'carlo.mendoza@morata.com', role: 'broker', is_active: true, created_at: '2024-04-20', updated_at: '2024-04-20' },
-        { id: 5, name: 'Liza Villanueva', email: 'liza.villanueva@morata.com', role: 'encoder', is_active: true, created_at: '2024-05-11', updated_at: '2024-05-11' },
-        { id: 6, name: 'Ramon Garcia', email: 'ramon.garcia@morata.com', role: 'encoder', is_active: false, created_at: '2024-06-01', updated_at: '2024-06-01' },
-        { id: 7, name: 'Sofia Aquino', email: 'sofia.aquino@morata.com', role: 'broker', is_active: true, created_at: '2024-07-22', updated_at: '2024-07-22' },
-    ];
-
-    const loadUsers = async () => {
-        try {
-            setIsLoading(true);
-            const response = await userApi.getUsers();
-            setUsers(response.data?.length ? response.data : PLACEHOLDER_USERS);
-            setError('');
-        } catch (err: any) {
-            setUsers(PLACEHOLDER_USERS);
-            setError('');
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    const { data: users = [], isLoading, isError } = useUsers();
+    const createUser = useCreateUser();
+    const updateUser = useUpdateUser();
+    const deactivateUser = useDeactivateUser();
+    const activateUser = useActivateUser();
 
     const handleCreateUser = async (data: CreateUserData | UpdateUserData) => {
-        await userApi.createUser(data as CreateUserData);
-        await loadUsers();
+        await createUser.mutateAsync(data as CreateUserData);
+        setIsModalOpen(false);
     };
 
     const handleUpdateUser = async (data: CreateUserData | UpdateUserData) => {
         if (selectedUser) {
-            await userApi.updateUser(selectedUser.id, data as UpdateUserData);
-            await loadUsers();
+            await updateUser.mutateAsync({ id: selectedUser.id, data: data as UpdateUserData });
+            setIsModalOpen(false);
         }
     };
 
     const handleDeactivate = async (userId: number) => {
         if (window.confirm('Are you sure you want to deactivate this user?')) {
-            try {
-                await userApi.deactivateUser(userId);
-                await loadUsers();
-            } catch (err: any) {
-                alert(err.response?.data?.message || 'Failed to deactivate user');
-            }
+            await deactivateUser.mutateAsync(userId);
         }
     };
 
     const handleActivate = async (userId: number) => {
-        try {
-            await userApi.activateUser(userId);
-            await loadUsers();
-        } catch (err: any) {
-            alert(err.response?.data?.message || 'Failed to activate user');
-        }
+        await activateUser.mutateAsync(userId);
     };
 
     const handleEdit = (user: User) => {
@@ -178,7 +141,6 @@ export const UserManagement = () => {
 
             {/* Table */}
             <div className="bg-surface rounded-lg border border-border overflow-hidden">
-                {/* Controls - integrated into the card */}
                 <div className="p-3 border-b border-border flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between bg-surface-subtle">
                     <div className="relative flex-1 max-w-sm">
                         <svg className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -203,9 +165,14 @@ export const UserManagement = () => {
                         Create User
                     </button>
                 </div>
+
                 {isLoading ? (
                     <div className="p-16 flex items-center justify-center">
                         <div className="w-8 h-8 rounded-full border-2 border-transparent animate-spin" style={{ borderTopColor: '#0a84ff' }} />
+                    </div>
+                ) : isError ? (
+                    <div className="p-16 text-center">
+                        <p className="text-sm text-red-500 font-medium">Failed to load users. Please try again.</p>
                     </div>
                 ) : filteredUsers.length === 0 ? (
                     <div className="p-16 text-center">
@@ -268,7 +235,8 @@ export const UserManagement = () => {
                                                 {user.is_active ? (
                                                     <button
                                                         onClick={() => handleDeactivate(user.id)}
-                                                        className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+                                                        disabled={deactivateUser.isPending}
+                                                        className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
                                                         style={{ backgroundColor: 'rgba(255,69,58,0.12)', color: '#ff453a' }}
                                                     >
                                                         Deactivate
@@ -276,7 +244,8 @@ export const UserManagement = () => {
                                                 ) : (
                                                     <button
                                                         onClick={() => handleActivate(user.id)}
-                                                        className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+                                                        disabled={activateUser.isPending}
+                                                        className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
                                                         style={{ backgroundColor: 'rgba(48,209,88,0.12)', color: '#30d158' }}
                                                     >
                                                         Activate

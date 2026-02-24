@@ -4,9 +4,10 @@ import { useCancelImport } from '../hooks/useCancelImport';
 import { useCreateImport } from '../hooks/useCreateImport';
 import { useImports } from '../hooks/useImports';
 import { useImportStats } from '../hooks/useImportStats';
+import { usePrefetchEncodeData } from '../hooks/usePrefetchEncodeData';
 import type { CreateImportPayload, ImportTransaction, LayoutContext } from '../types';
-import { CancelTransactionModal } from './CancelTransactionModal';
-import { EncodeModal } from './EncodeModal';
+import { CancelTransactionModal } from './modals/CancelTransactionModal';
+import { EncodeModal } from './modals/EncodeModal';
 
 import { Icon } from '../../../components/Icon';
 import { Pagination } from '../../../components/Pagination';
@@ -20,6 +21,8 @@ export const ImportList = () => {
     const createImport = useCreateImport();
     const cancelImport = useCancelImport();
     const [cancelTarget, setCancelTarget] = useState<{ id: number; ref: string } | null>(null);
+
+    usePrefetchEncodeData('import');
 
     const [searchQuery, setSearchQuery] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');

@@ -139,3 +139,28 @@ export interface CreateExportPayload {
     notes?: string;
 }
 
+// --- Document API Types ---
+
+export interface ApiDocument {
+    id: number;
+    type: string;
+    filename: string;
+    size_bytes: number;
+    formatted_size: string;
+    version: number;
+    uploaded_by: { id: number; name: string } | null;
+    created_at: string;
+    updated_at: string;
+}
+
+export type DocumentableType =
+    | 'App\\Models\\ImportTransaction'
+    | 'App\\Models\\ExportTransaction';
+
+export interface UploadDocumentPayload {
+    file: File;
+    type: string;
+    documentable_type: DocumentableType;
+    documentable_id: number;
+}
+

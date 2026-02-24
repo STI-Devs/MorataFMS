@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Icon } from '../../../components/Icon';
-import { useClients } from '../hooks/useClients';
-import { useCountries } from '../hooks/useCountries';
-import type { CreateExportPayload, CreateImportPayload } from '../types';
+import { Icon } from '../../../../components/Icon';
+import { useClients } from '../../hooks/useClients';
+import { useCountries } from '../../hooks/useCountries';
+import type { CreateExportPayload, CreateImportPayload } from '../../types';
 
 interface EncodeModalProps {
     isOpen: boolean;
@@ -24,8 +24,8 @@ export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type,
     const [destinationCountryId, setDestinationCountryId] = useState<number | ''>('');
 
     // TanStack Query hooks for dropdown data
-    const { data: clients = [], isLoading: loadingClients } = useClients(isImport ? 'importer' : 'exporter');
-    const { data: countries = [], isLoading: loadingCountries } = useCountries('export_destination', !isImport);
+    const { data: clients = [], isLoading: loadingClients } = useClients(isImport ? 'importer' : 'exporter', isOpen);
+    const { data: countries = [], isLoading: loadingCountries } = useCountries('export_destination', isOpen && !isImport);
 
     // Submission state
     const [submitting, setSubmitting] = useState(false);

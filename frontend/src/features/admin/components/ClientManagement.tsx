@@ -1,14 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { clientApi } from '../api/clientApi';
+import type { LayoutContext } from '../../tracking/types';
+import { useClients, useClientTransactions, useCreateClient, useToggleClient, useUpdateClient } from '../hooks/useClients';
+import type { Client, CreateClientData, UpdateClientData } from '../types/client.types';
 import { ClientFormModal } from './ClientFormModal';
 import { TransactionHistoryModal } from './TransactionHistoryModal';
-import type { Client, CreateClientData, UpdateClientData, ImportTransaction, ExportTransaction } from '../types/client.types';
-
-interface LayoutContext {
-    user?: { name: string; role: string };
-    dateTime: { time: string; date: string };
-}
 
 const typeConfig: Record<string, { label: string; color: string; icon: string }> = {
     importer: { label: 'Importer', color: '#0a84ff', icon: 'M19 14l-7 7m0 0l-7-7m7 7V3' },
@@ -33,80 +29,40 @@ function TypeBadge({ type }: { type: string }) {
 
 export const ClientManagement = () => {
     const { dateTime } = useOutletContext<LayoutContext>();
-    const [clients, setClients] = useState<Client[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
     const [isFormModalOpen, setIsFormModalOpen] = useState(false);
     const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
     const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
     const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+    const [historyClientId, setHistoryClientId] = useState<number | null>(null);
+    const [historyClientName, setHistoryClientName] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
-    const [error, setError] = useState('');
-    const [transactionHistory, setTransactionHistory] = useState<{
-        clientName: string;
-        imports: ImportTransaction[];
-        exports: ExportTransaction[];
-    }>({ clientName: '', imports: [], exports: [] });
 
-    useEffect(() => { loadClients(); }, []);
-
-    const PLACEHOLDER_CLIENTS: Client[] = [
-        { id: 1, name: 'Pacific Traders Inc.', type: 'importer', country_id: 1, country: { id: 1, name: 'Philippines', code: 'PH' }, contact_person: 'Jose Reyes', contact_email: 'jose@pacifictraders.ph', contact_phone: '+63 82 123 4567', address: 'Davao City, Philippines', is_active: true, created_at: '2024-01-10', updated_at: '2024-01-10' },
-        { id: 2, name: 'Davao Export Corp.', type: 'exporter', country_id: 1, country: { id: 1, name: 'Philippines', code: 'PH' }, contact_person: 'Maria Cruz', contact_email: 'maria@davaocorp.ph', contact_phone: '+63 82 234 5678', address: 'Davao City, Philippines', is_active: true, created_at: '2024-02-14', updated_at: '2024-02-14' },
-        { id: 3, name: 'Global Imports Co.', type: 'both', country_id: 2, country: { id: 2, name: 'Singapore', code: 'SG' }, contact_person: 'John Tan', contact_email: 'john@globalimports.sg', contact_phone: '+65 6123 4567', address: 'Singapore', is_active: true, created_at: '2024-03-05', updated_at: '2024-03-05' },
-        { id: 4, name: 'Mindanao Freight Ltd.', type: 'importer', country_id: 1, country: { id: 1, name: 'Philippines', code: 'PH' }, contact_person: 'Ana Villanueva', contact_email: 'ana@mindanaofreight.ph', contact_phone: '+63 82 345 6789', address: 'Cagayan de Oro, PH', is_active: true, created_at: '2024-04-20', updated_at: '2024-04-20' },
-        { id: 5, name: 'Cebu Cargo Solutions', type: 'exporter', country_id: 1, country: { id: 1, name: 'Philippines', code: 'PH' }, contact_person: 'Carlo Santos', contact_email: 'carlo@cebucargo.ph', contact_phone: '+63 32 456 7890', address: 'Cebu City, Philippines', is_active: true, created_at: '2024-05-11', updated_at: '2024-05-11' },
-        { id: 6, name: 'Southern Cross Trading', type: 'both', country_id: 3, country: { id: 3, name: 'Australia', code: 'AU' }, contact_person: 'James Wilson', contact_email: 'james@southerncross.au', contact_phone: '+61 2 1234 5678', address: 'Sydney, Australia', is_active: false, created_at: '2024-06-01', updated_at: '2024-06-01' },
-        { id: 7, name: 'Manila Bay Logistics', type: 'importer', country_id: 1, country: { id: 1, name: 'Philippines', code: 'PH' }, contact_person: 'Liza Aquino', contact_email: 'liza@manilabay.ph', contact_phone: '+63 2 567 8901', address: 'Manila, Philippines', is_active: true, created_at: '2024-07-22', updated_at: '2024-07-22' },
-        { id: 8, name: 'Visayas Import Group', type: 'importer', country_id: 1, country: { id: 1, name: 'Philippines', code: 'PH' }, contact_person: 'Ramon Garcia', contact_email: 'ramon@visayasimport.ph', contact_phone: '+63 33 678 9012', address: 'Iloilo City, Philippines', is_active: true, created_at: '2024-08-15', updated_at: '2024-08-15' },
-    ];
-
-    const loadClients = async () => {
-        try {
-            setIsLoading(true);
-            const response = await clientApi.getClients();
-            setClients(response.data?.length ? response.data : PLACEHOLDER_CLIENTS);
-            setError('');
-        } catch (err: any) {
-            setClients(PLACEHOLDER_CLIENTS);
-            setError('');
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    const { data: clients = [], isLoading, isError } = useClients();
+    const createClient = useCreateClient();
+    const updateClient = useUpdateClient();
+    const toggleClient = useToggleClient();
+    const { data: transactionHistory } = useClientTransactions(historyClientId);
 
     const handleCreateClient = async (data: CreateClientData | UpdateClientData) => {
-        await clientApi.createClient(data as CreateClientData);
-        await loadClients();
+        await createClient.mutateAsync(data as CreateClientData);
+        setIsFormModalOpen(false);
     };
 
     const handleUpdateClient = async (data: CreateClientData | UpdateClientData) => {
         if (selectedClient) {
-            await clientApi.updateClient(selectedClient.id, data as UpdateClientData);
-            await loadClients();
+            await updateClient.mutateAsync({ id: selectedClient.id, data: data as UpdateClientData });
+            setIsFormModalOpen(false);
         }
     };
 
     const handleToggleActive = async (clientId: number) => {
-        try {
-            await clientApi.toggleActiveClient(clientId);
-            await loadClients();
-        } catch (err: any) {
-            alert(err.response?.data?.message || 'Failed to toggle client status');
-        }
+        await toggleClient.mutateAsync(clientId);
     };
 
-    const handleViewTransactions = async (client: Client) => {
-        try {
-            const history = await clientApi.getClientTransactions(client.id);
-            setTransactionHistory({
-                clientName: client.name,
-                imports: history.transactions.imports,
-                exports: history.transactions.exports,
-            });
-            setIsHistoryModalOpen(true);
-        } catch (err: any) {
-            alert(err.response?.data?.message || 'Failed to load transaction history');
-        }
+    const handleViewTransactions = (client: Client) => {
+        setHistoryClientId(client.id);
+        setHistoryClientName(client.name);
+        setIsHistoryModalOpen(true);
     };
 
     const handleEdit = (client: Client) => {
@@ -168,7 +124,6 @@ export const ClientManagement = () => {
 
             {/* Table */}
             <div className="bg-surface rounded-lg border border-border overflow-hidden">
-                {/* Controls - integrated into the card */}
                 <div className="p-3 border-b border-border flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between bg-surface-subtle">
                     <div className="relative flex-1 max-w-sm">
                         <svg className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -193,9 +148,14 @@ export const ClientManagement = () => {
                         Create Client
                     </button>
                 </div>
+
                 {isLoading ? (
                     <div className="p-16 flex items-center justify-center">
                         <div className="w-8 h-8 rounded-full border-2 border-transparent animate-spin" style={{ borderTopColor: '#0a84ff' }} />
+                    </div>
+                ) : isError ? (
+                    <div className="p-16 text-center">
+                        <p className="text-sm text-red-500 font-medium">Failed to load clients. Please try again.</p>
                     </div>
                 ) : filteredClients.length === 0 ? (
                     <div className="p-16 text-center">
@@ -273,7 +233,8 @@ export const ClientManagement = () => {
                                                 </button>
                                                 <button
                                                     onClick={() => handleToggleActive(client.id)}
-                                                    className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+                                                    disabled={toggleClient.isPending}
+                                                    className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
                                                     style={client.is_active
                                                         ? { backgroundColor: 'rgba(255,69,58,0.12)', color: '#ff453a' }
                                                         : { backgroundColor: 'rgba(48,209,88,0.12)', color: '#30d158' }
@@ -304,10 +265,10 @@ export const ClientManagement = () => {
 
             <TransactionHistoryModal
                 isOpen={isHistoryModalOpen}
-                onClose={() => setIsHistoryModalOpen(false)}
-                clientName={transactionHistory.clientName}
-                imports={transactionHistory.imports}
-                exports={transactionHistory.exports}
+                onClose={() => { setIsHistoryModalOpen(false); setHistoryClientId(null); }}
+                clientName={historyClientName}
+                imports={transactionHistory?.transactions?.imports ?? []}
+                exports={transactionHistory?.transactions?.exports ?? []}
             />
         </div>
     );

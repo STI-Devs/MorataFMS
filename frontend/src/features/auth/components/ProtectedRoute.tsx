@@ -1,4 +1,4 @@
-import { Navigate, Outlet, useLocation } from 'react-router-dom';
+import { Navigate, Outlet, useLocation, useOutletContext } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
 interface ProtectedRouteProps {
@@ -8,6 +8,7 @@ interface ProtectedRouteProps {
 export function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
   const { isAuthenticated, isLoading, user } = useAuth();
   const location = useLocation();
+  const parentContext = useOutletContext();
 
   if (isLoading) {
     return (
@@ -23,10 +24,9 @@ export function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
 
   // Role-based access control
   if (allowedRoles && user && !allowedRoles.includes(user.role)) {
-    // Redirect to the correct dashboard based on role
-    const redirectTo = user.role === 'admin' ? '/admin' : '/dashboard';
-    return <Navigate to={redirectTo} replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 
-  return <Outlet />;
+  // Forward parent context (e.g. MainLayout's { user, dateTime }) to nested pages
+  return <Outlet context={parentContext} />;
 }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import { getRegisterError } from "../utils/authErrors";
 
 export const SignupForm = ({ onToggleLogin }: { onToggleLogin: () => void }) => {
     const location = useLocation();
@@ -57,21 +58,7 @@ export const SignupForm = ({ onToggleLogin }: { onToggleLogin: () => void }) => 
             navigate('/dashboard');
         } catch (err: unknown) {
             console.error("Registration failed:", err);
-            let errorMessage = "Registration failed. Please try again.";
-
-            if (typeof err === 'object' && err !== null && 'response' in err) {
-                const errorResponse = err as { response?: { data?: { message?: string, errors?: Record<string, string[]> } } };
-                if (errorResponse.response?.data?.errors) {
-                    // Flatten Laravel validation errors
-                    errorMessage = Object.values(errorResponse.response.data.errors).flat()[0];
-                } else if (errorResponse.response?.data?.message) {
-                    errorMessage = errorResponse.response.data.message;
-                }
-            } else if (err instanceof Error) {
-                errorMessage = err.message;
-            }
-
-            setError(errorMessage);
+            setError(getRegisterError(err));
         } finally {
             setIsLoading(false);
         }

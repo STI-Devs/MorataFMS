@@ -1,18 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { reportApi } from '../api/reportApi';
-import type {
-    MonthlyReportResponse,
-    ClientReportResponse,
-    TurnaroundReportResponse,
-    MonthlyDataPoint,
-    ClientReportRow,
-} from '../types/report.types';
-
-interface LayoutContext {
-    user?: { name: string; role: string };
-    dateTime: { time: string; date: string };
-}
+import type { LayoutContext } from '../../tracking/types';
+import { useClientReport, useMonthlyReport, useTurnaroundReport } from '../hooks/useReports';
+import type { ClientReportResponse, ClientReportRow, MonthlyDataPoint, MonthlyReportResponse, TurnaroundReportResponse } from '../types/report.types';
 
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const MONTH_FULL = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -63,9 +53,9 @@ const BarChart = ({ data }: { data: MonthlyDataPoint[] }) => {
 
 // ─── CSV Export ───────────────────────────────────────────────────────────────
 const downloadCSV = (
-    monthly: MonthlyReportResponse | null,
-    clients: ClientReportResponse | null,
-    turnaround: TurnaroundReportResponse | null,
+    monthly: MonthlyReportResponse | undefined,
+    clients: ClientReportResponse | undefined,
+    turnaround: TurnaroundReportResponse | undefined,
     year: number,
     month: number
 ) => {
@@ -106,35 +96,21 @@ export const ReportsAnalytics = () => {
     const currentYear = new Date().getFullYear();
     const [year, setYear] = useState(currentYear);
     const [month, setMonth] = useState(0);
-
-    const [monthly, setMonthly] = useState<MonthlyReportResponse | null>(null);
-    const [clients, setClients] = useState<ClientReportResponse | null>(null);
-    const [turnaround, setTurnaround] = useState<TurnaroundReportResponse | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState('');
     const [sortKey, setSortKey] = useState<keyof ClientReportRow>('total');
     const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
-    const loadAll = useCallback(async () => {
-        try {
-            setIsLoading(true);
-            setError('');
-            const [m, c, t] = await Promise.all([
-                reportApi.getMonthly(year),
-                reportApi.getClients(year, month || undefined),
-                reportApi.getTurnaround(year, month || undefined),
-            ]);
-            setMonthly(m);
-            setClients(c);
-            setTurnaround(t);
-        } catch (err: any) {
-            setError(err.response?.data?.message || 'Failed to load report data.');
-        } finally {
-            setIsLoading(false);
-        }
-    }, [year, month]);
+    // TanStack Query — only refetches when year/month actually change, not on every clock tick
+    const { data: monthly, isLoading: loadingMonthly, refetch: refetchMonthly } = useMonthlyReport(year);
+    const { data: clients, isLoading: loadingClients, refetch: refetchClients } = useClientReport(year, month || undefined);
+    const { data: turnaround, isLoading: loadingTurnaround, refetch: refetchTurnaround } = useTurnaroundReport(year, month || undefined);
 
-    useEffect(() => { loadAll(); }, [loadAll]);
+    const isLoading = loadingMonthly || loadingClients || loadingTurnaround;
+
+    const handleRefresh = () => {
+        refetchMonthly();
+        refetchClients();
+        refetchTurnaround();
+    };
 
     const sortedClients = [...(clients?.clients ?? [])].sort((a, b) => {
         const va = a[sortKey] as number;
@@ -152,7 +128,6 @@ export const ReportsAnalytics = () => {
     );
 
     const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - i);
-
     const selectCls = 'px-4 py-2.5 rounded-lg border border-border-strong bg-input-bg text-text-primary text-sm font-medium focus:outline-none focus:border-blue-500/50 transition-colors';
 
     return (
@@ -191,7 +166,7 @@ export const ReportsAnalytics = () => {
                         {MONTH_FULL.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
                     </select>
                     <button
-                        onClick={loadAll}
+                        onClick={handleRefresh}
                         className="px-4 py-2.5 rounded-lg border border-border-strong bg-input-bg text-text-secondary text-sm font-semibold flex items-center gap-2 hover:text-text-primary transition-colors"
                     >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -220,12 +195,6 @@ export const ReportsAnalytics = () => {
                         Export PDF
                     </button>
                 </div>
-
-                {error && (
-                    <div className="p-4 rounded-lg text-sm" style={{ backgroundColor: 'rgba(255,69,58,0.1)', color: '#ff453a' }}>
-                        {error}
-                    </div>
-                )}
 
                 {isLoading ? (
                     <div className="py-20 flex items-center justify-center">

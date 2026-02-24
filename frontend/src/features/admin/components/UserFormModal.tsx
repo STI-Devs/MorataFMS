@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useTheme } from '../../../context/ThemeContext';
-import type { User, CreateUserData, UpdateUserData, UserRole } from '../types/user.types';
+import type { CreateUserData, UpdateUserData, User, UserRole } from '../types/user.types';
 
 interface UserFormModalProps {
     isOpen: boolean;
@@ -59,8 +59,9 @@ export const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode }: UserFor
                 await onSubmit(updateData);
             }
             onClose();
-        } catch (err: any) {
-            setError(err.response?.data?.message || 'An error occurred');
+        } catch (err: unknown) {
+            const e = err as { response?: { data?: { message?: string } } };
+            setError(e.response?.data?.message || 'An error occurred');
         } finally {
             setIsSubmitting(false);
         }

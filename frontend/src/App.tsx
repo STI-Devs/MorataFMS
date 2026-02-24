@@ -1,10 +1,12 @@
-import { Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes } from 'react-router-dom';
 import { Toaster } from 'sonner';
-import { NotFoundPage } from './components/layout/NotFoundPage';
+import NotFoundPage from './components/NotFoundPage';
 import { ThemeProvider } from './context/ThemeContext';
-import { AuthProvider, GuestRoute, ProtectedRoute, RoleRedirect } from './features/auth';
+import { AdminDashboard, AuditLogs, ClientManagement, ReportsAnalytics, TransactionOversight, UserManagement } from './features/admin';
+import { AuthProvider, GuestRoute, ProtectedRoute } from './features/auth';
 import { AuthPage } from './features/auth/components/AuthPage';
-import { Documents, ExportList, ImportList, MainLayout, Profile, TrackingDashboard, TrackingDetails } from './features/tracking';
+import LandingPage from './features/landing/LandingPage';
+import { ArchivesPage, Documents, ExportList, ImportList, MainLayout, Profile, TrackingDetails } from './features/tracking';
 
 function App() {
   return (
@@ -12,30 +14,44 @@ function App() {
       <AuthProvider>
         <Toaster richColors position="top-right" />
         <Routes>
+          {/* Public landing page */}
+          <Route path="/" element={<LandingPage />} />
+
           {/* Guest-only routes */}
           <Route element={<GuestRoute />}>
             <Route path="/login" element={<AuthPage />} />
           </Route>
 
-          {/* Employee-only routes (encoder, broker, supervisor, manager) */}
-          <Route element={<ProtectedRoute allowedRoles={['encoder', 'broker', 'supervisor', 'manager']} />}>
+          {/* All authenticated users — outer guard prevents MainLayout from rendering for guests */}
+          <Route element={<ProtectedRoute allowedRoles={['encoder', 'broker', 'supervisor', 'manager', 'admin']} />}>
             <Route element={<MainLayout />}>
-              <Route path="/dashboard" element={<TrackingDashboard />} />
+
+              {/* Routes accessible by ALL roles */}
+              <Route path="/dashboard" element={<AdminDashboard />} />
+              <Route path="/profile" element={<Profile />} />
               <Route path="/imports" element={<ImportList />} />
               <Route path="/exports" element={<ExportList />} />
+              <Route path="/export" element={<ExportList />} />
               <Route path="/documents" element={<Documents />} />
+              <Route path="/archives" element={<ArchivesPage />} />
               <Route path="/tracking/:referenceId" element={<TrackingDetails />} />
-              <Route path="/profile" element={<Profile />} />
+
+              {/* Admin-only routes — nested guard redirects non-admins to /dashboard immediately */}
+              <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+                <Route path="/users" element={<UserManagement />} />
+                <Route path="/clients" element={<ClientManagement />} />
+                <Route path="/transactions" element={<TransactionOversight />} />
+                <Route path="/reports" element={<ReportsAnalytics />} />
+                <Route path="/audit-logs" element={<AuditLogs />} />
+              </Route>
+
             </Route>
           </Route>
 
-          {/* Admin-only routes */}
-          <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
-          <Route path="/admin" element={<div className="flex h-screen items-center justify-center text-text-secondary"><p className="text-lg">Admin Panel — Coming Soon</p></div>} />
-          </Route>
+          {/* Redirect /admin to /dashboard */}
+          <Route path="/admin" element={<Navigate to="/dashboard" replace />} />
 
-          {/* Smart redirect based on role */}
-          <Route path="/" element={<RoleRedirect />} />
+          {/* 404 */}
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </AuthProvider>

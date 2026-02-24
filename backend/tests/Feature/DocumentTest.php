@@ -37,7 +37,7 @@ test('encoder can upload a document to an import transaction', function () {
 
     $response = $this->postJson('/api/documents', [
         'file' => $file,
-        'type' => 'invoice',
+        'type' => 'boc',
         'documentable_type' => 'App\Models\ImportTransaction',
         'documentable_id' => $import->id,
     ]);
@@ -49,7 +49,7 @@ test('encoder can upload a document to an import transaction', function () {
 
     // Verify database record
     $this->assertDatabaseHas('documents', [
-        'type' => 'invoice',
+        'type' => 'boc',
         'documentable_type' => 'App\Models\ImportTransaction',
         'documentable_id' => $import->id,
         'uploaded_by' => $user->id,
@@ -69,7 +69,7 @@ test('file upload validates file type', function () {
 
     $response = $this->postJson('/api/documents', [
         'file' => $file,
-        'type' => 'invoice',
+        'type' => 'boc',
         'documentable_type' => 'App\Models\ImportTransaction',
         'documentable_id' => $import->id,
     ]);
@@ -87,7 +87,7 @@ test('file upload validates file size limit', function () {
 
     $response = $this->postJson('/api/documents', [
         'file' => $file,
-        'type' => 'invoice',
+        'type' => 'boc',
         'documentable_type' => 'App\Models\ImportTransaction',
         'documentable_id' => $import->id,
     ]);
@@ -122,7 +122,7 @@ test('file upload validates documentable_id exists', function () {
 
     $response = $this->postJson('/api/documents', [
         'file' => $file,
-        'type' => 'invoice',
+        'type' => 'boc',
         'documentable_type' => 'App\Models\ImportTransaction',
         'documentable_id' => 99999, // Non-existent ID
     ]);
@@ -168,7 +168,7 @@ test('user can download their uploaded document', function () {
     $this->actingAs($user);
     $uploadResponse = $this->postJson('/api/documents', [
         'file' => $file,
-        'type' => 'invoice',
+        'type' => 'boc',
         'documentable_type' => 'App\Models\ImportTransaction',
         'documentable_id' => $import->id,
     ]);
@@ -193,7 +193,7 @@ test('supervisor can delete any document', function () {
     $file = UploadedFile::fake()->create('invoice.pdf', 100, 'application/pdf');
     $uploadResponse = $this->postJson('/api/documents', [
         'file' => $file,
-        'type' => 'invoice',
+        'type' => 'boc',
         'documentable_type' => 'App\Models\ImportTransaction',
         'documentable_id' => $import->id,
     ]);
@@ -225,7 +225,7 @@ test('encoder cannot delete another users document', function () {
     $file = UploadedFile::fake()->create('invoice.pdf', 100, 'application/pdf');
     $uploadResponse = $this->postJson('/api/documents', [
         'file' => $file,
-        'type' => 'invoice',
+        'type' => 'boc',
         'documentable_type' => 'App\Models\ImportTransaction',
         'documentable_id' => $import->id,
     ]);
@@ -249,7 +249,7 @@ test('user can delete their own uploaded document', function () {
     $file = UploadedFile::fake()->create('invoice.pdf', 100, 'application/pdf');
     $uploadResponse = $this->postJson('/api/documents', [
         'file' => $file,
-        'type' => 'invoice',
+        'type' => 'boc',
         'documentable_type' => 'App\Models\ImportTransaction',
         'documentable_id' => $import->id,
     ]);
@@ -267,6 +267,9 @@ test('user can delete their own uploaded document', function () {
 });
 
 test('document generates correct S3 path', function () {
+    $year = now()->year;
+
+    // Without BL number — falls back to documentable_id
     $path = Document::generateS3Path(
         'App\Models\ImportTransaction',
         42,
@@ -274,6 +277,19 @@ test('document generates correct S3 path', function () {
         'my-invoice.pdf'
     );
 
-    expect($path)->toContain('documents/import_transaction/42/invoice_');
-    expect($path)->toContain('my_invoicepdf'); // Filename with extension slugified (dots removed)
+    expect($path)->toContain("documents/imports/{$year}/42/invoice_my_invoice_");
+    expect($path)->toContain('.pdf'); // Extension preserved correctly
+
+    // With BL number — uses BL slug as folder
+    $pathWithBl = Document::generateS3Path(
+        'App\Models\ExportTransaction',
+        10,
+        'bl',
+        'bill-of-lading.pdf',
+        'BL-78542136',
+        2025
+    );
+
+    expect($pathWithBl)->toContain('documents/exports/2025/BL-78542136/bl_bill_of_lading_');
+    expect($pathWithBl)->toContain('.pdf');
 });
