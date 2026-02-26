@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTheme } from '../../../context/ThemeContext';
+import { getApiError } from '../../../lib/apiErrors';
 import { transactionApi } from '../api/transactionApi';
 import type { OversightTransaction } from '../types/transaction.types';
 
@@ -44,8 +45,8 @@ export const StatusOverrideModal = ({ isOpen, onClose, transaction, onSuccess }:
             onSuccess(transaction.id, transaction.type, result.status);
             onClose();
         } catch (err: unknown) {
-            const e = err as { response?: { data?: { message?: string } } };
-            setError(e.response?.data?.message || 'An error occurred');
+            console.error('Status override failed:', err);
+            setError(getApiError(err, 'override status'));
         } finally {
             setIsLoading(false);
         }

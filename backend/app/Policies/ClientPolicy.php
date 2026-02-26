@@ -16,11 +16,13 @@ class ClientPolicy
     }
 
     /**
-     * Only supervisor+ can create clients.
+     * Any authenticated user can create a basic client record.
+     * Encoders need this to register new clients on-the-fly during archive uploads.
+     * Full client details can be enriched by managers later.
      */
     public function create(User $user): bool
     {
-        return $user->isSupervisorOrAbove();
+        return true;
     }
 
     /**

@@ -74,7 +74,7 @@ test('authenticated users can create import transactions with valid data', funct
         'selective_color' => 'green',
         'importer_id' => $client->id,
         'origin_country_id' => $country->id,
-        'arrival_date' => '2026-03-01',
+        'arrival_date' => '2025-06-15',
     ];
 
     $response = $this->actingAs($user)
@@ -108,7 +108,7 @@ test('authenticated users can create import transactions without origin country'
             'bl_no' => 'BL-87654321',
             'selective_color' => 'yellow',
             'importer_id' => $client->id,
-            'arrival_date' => '2026-03-01',
+            'arrival_date' => '2025-06-15',
             // origin_country_id intentionally omitted — it's optional
         ]);
 
@@ -125,7 +125,7 @@ test('creating an import transaction auto-creates stages', function () {
         'bl_no' => 'BL-STAGE-001',
         'selective_color' => 'yellow',
         'importer_id' => $client->id,
-        'arrival_date' => '2026-03-15',
+        'arrival_date' => '2025-06-15',
     ]);
 
     $transaction = ImportTransaction::where('customs_ref_no', 'REF-STAGE-001')->first();
@@ -162,7 +162,7 @@ test('creating import transaction fails with invalid selective color', function 
             'bl_no' => 'BL-001',
             'selective_color' => 'purple',
             'importer_id' => $client->id,
-            'arrival_date' => '2026-03-01',
+            'arrival_date' => '2025-06-15',
         ]);
 
     $response->assertUnprocessable()
@@ -178,7 +178,7 @@ test('creating import transaction fails with non-existent importer', function ()
             'bl_no' => 'BL-001',
             'selective_color' => 'green',
             'importer_id' => 99999,
-            'arrival_date' => '2026-03-01',
+            'arrival_date' => '2025-06-15',
         ]);
 
     $response->assertUnprocessable()
@@ -196,7 +196,7 @@ test('creating import transaction fails with non-existent origin country', funct
             'selective_color' => 'green',
             'importer_id' => $client->id,
             'origin_country_id' => 99999,
-            'arrival_date' => '2026-03-01',
+            'arrival_date' => '2025-06-15',
         ]);
 
     $response->assertUnprocessable()
@@ -215,7 +215,7 @@ test('mass assignment of status is ignored on create', function () {
             'bl_no' => 'BL-HACK-001',
             'selective_color' => 'green',
             'importer_id' => $client->id,
-            'arrival_date' => '2026-03-01',
+            'arrival_date' => '2025-06-15',
             'status' => 'completed', // Attacker trying to skip workflow
         ]);
 
@@ -234,7 +234,7 @@ test('mass assignment of assigned_user_id is ignored on create', function () {
             'bl_no' => 'BL-HACK-002',
             'selective_color' => 'green',
             'importer_id' => $client->id,
-            'arrival_date' => '2026-03-01',
+            'arrival_date' => '2025-06-15',
             'assigned_user_id' => $otherUser->id, // Attacker trying to assign to someone else
         ]);
 

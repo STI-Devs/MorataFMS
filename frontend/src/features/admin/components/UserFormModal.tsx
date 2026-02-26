@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTheme } from '../../../context/ThemeContext';
+import { getApiError } from '../../../lib/apiErrors';
 import type { CreateUserData, UpdateUserData, User, UserRole } from '../types/user.types';
 
 interface UserFormModalProps {
@@ -60,8 +61,8 @@ export const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode }: UserFor
             }
             onClose();
         } catch (err: unknown) {
-            const e = err as { response?: { data?: { message?: string } } };
-            setError(e.response?.data?.message || 'An error occurred');
+            console.error('Save user failed:', err);
+            setError(getApiError(err, 'save user'));
         } finally {
             setIsSubmitting(false);
         }

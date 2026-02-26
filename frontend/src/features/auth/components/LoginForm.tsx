@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { getLoginError } from '../../../lib/apiErrors';
 import { useAuth } from "../hooks/useAuth";
-import { getLoginError } from "../utils/authErrors";
 
 export const LoginForm = ({ onToggleSignup }: { onToggleSignup: () => void }) => {
   const location = useLocation();

@@ -1,5 +1,5 @@
 import React from 'react';
-import type { TransactionType } from '../types/document.types';
+import type { TransactionType } from '../../types/document.types';
 
 interface ArchiveTypeCardProps {
     type: TransactionType;

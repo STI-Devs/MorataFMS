@@ -63,12 +63,20 @@ export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type,
 
     if (!isOpen) return null;
 
-    // Today's date for min attribute
-    const today = new Date().toISOString().split('T')[0];
+    // ── Inline validation ────────────────────────────────────────────────────
+    const blTrimmed = bl.trim();
+    const blLongEnough = blTrimmed.length >= 4;
+    const blFormatValid = /^[A-Za-z0-9-]*$/.test(blTrimmed);
+    const vesselValid = !isImport ? vessel.trim().length >= 2 : true;
+    const hasClient = clientId !== '';
+    const hasBlsc = isImport ? blsc !== '' : true;
+    const hasCountry = isImport || destinationCountryId !== '';
+    const hasArrival = !isImport || arrivalDate !== '';
+    const canSubmit = hasClient && blLongEnough && blFormatValid && hasBlsc && hasCountry && hasArrival && vesselValid && !submitting;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (clientId === '') return;
+        if (!canSubmit) return;
 
         setSubmitting(true);
         setError(null);
@@ -180,18 +188,23 @@ export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type,
                             </div>
                         )}
 
-                        {/* Ref ID / Ref No */}
+                        {/* Import Only: Customs Ref No (required, validated) */}
                         {isImport && (
                             <div className="space-y-2">
-                                <label className={labelClass}>Customs Ref No.</label>
+                                <label className={labelClass}>Customs Ref No. <span className="text-red-400">*</span></label>
                                 <input
                                     required
                                     type="text"
+                                    maxLength={50}
+                                    pattern="[A-Za-z0-9\-\/]+"
                                     value={ref}
                                     placeholder="e.g. REF-2024-001"
                                     className={inputClass}
                                     onChange={(e) => setRef(e.target.value)}
                                 />
+                                {ref.length > 0 && !/^[A-Za-z0-9\-\/]+$/.test(ref) && (
+                                    <p className="text-[10px] text-red-400 ml-1 font-semibold">Only letters, numbers, hyphens, and slashes allowed</p>
+                                )}
                             </div>
                         )}
 
@@ -219,31 +232,45 @@ export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type,
                             </div>
                         </div>
 
-                        {/* Bill of Lading */}
+                        {/* Bill of Lading — min 4 chars, alphanumeric + hyphen */}
                         <div className="space-y-2">
-                            <label className={labelClass}>Bill of Lading</label>
+                            <label className={labelClass}>Bill of Lading <span className="text-red-400">*</span></label>
                             <input
                                 required
                                 type="text"
+                                minLength={4}
+                                maxLength={50}
+                                pattern="[A-Za-z0-9\-]+"
                                 value={bl}
-                                placeholder="e.g. BL-78542136"
+                                placeholder="e.g. MAEU123456789"
                                 className={inputClass}
                                 onChange={(e) => setBl(e.target.value)}
                             />
+                            {blTrimmed.length > 0 && blTrimmed.length < 4 && (
+                                <p className="text-[10px] text-red-400 ml-1 font-semibold">Must be at least 4 characters</p>
+                            )}
+                            {blTrimmed.length >= 4 && !blFormatValid && (
+                                <p className="text-[10px] text-red-400 ml-1 font-semibold">Only letters, numbers, and hyphens allowed</p>
+                            )}
                         </div>
 
                         {/* Export Only: Vessel */}
                         {!isImport && (
                             <div className="space-y-2">
-                                <label className={labelClass}>Vessel</label>
+                                <label className={labelClass}>Vessel <span className="text-red-400">*</span></label>
                                 <input
                                     required
                                     type="text"
+                                    minLength={2}
+                                    maxLength={100}
                                     value={vessel}
                                     placeholder="Enter Vessel Name"
                                     className={inputClass}
                                     onChange={(e) => setVessel(e.target.value)}
                                 />
+                                {vessel.length > 0 && vessel.trim().length < 2 && (
+                                    <p className="text-[10px] text-red-400 ml-1 font-semibold">Must be at least 2 characters</p>
+                                )}
                             </div>
                         )}
 
@@ -274,15 +301,16 @@ export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type,
                         {/* Import Only: Arrival Date */}
                         {isImport && (
                             <div className="space-y-2 md:col-span-2">
-                                <label className={labelClass}>Arrival Date</label>
+                                <label className={labelClass}>Arrival Date <span className="text-red-400">*</span></label>
                                 <input
                                     required
                                     type="date"
                                     value={arrivalDate}
-                                    min={today}
+                                    min="2000-01-01"
                                     className={inputClass}
                                     onChange={(e) => setArrivalDate(e.target.value)}
                                 />
+                                <p className="text-[10px] text-text-muted ml-1">Expected vessel arrival date (ETA)</p>
                             </div>
                         )}
                     </div>
@@ -298,7 +326,7 @@ export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type,
                         </button>
                         <button
                             type="submit"
-                            disabled={submitting}
+                            disabled={!canSubmit}
                             className="flex-1 px-6 py-4 text-white rounded-lg text-sm font-bold transition-all shadow-xl active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:brightness-90"
                             style={{ backgroundColor: '#0a84ff' }}
                         >

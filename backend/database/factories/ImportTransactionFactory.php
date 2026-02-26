@@ -22,7 +22,7 @@ class ImportTransactionFactory extends Factory
             'selective_color' => fake()->randomElement(['green', 'yellow', 'red']),
             'importer_id' => Client::factory(),
             'origin_country_id' => Country::factory()->importOrigin(),
-            'arrival_date' => fake()->dateTimeBetween('now', '+30 days'),
+            'arrival_date' => fake()->dateTimeBetween('-2 years', 'now'),
             'status' => fake()->randomElement(['pending', 'in_progress', 'completed']),
             'notes' => fake()->optional()->sentence(),
         ];

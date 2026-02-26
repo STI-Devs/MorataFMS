@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuditLogController;
+use App\Http\Controllers\ArchiveController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\CountryController;
 use App\Http\Controllers\DocumentController;
@@ -33,6 +34,14 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
     // Document management
     Route::apiResource('documents', DocumentController::class)->except(['update']);
     Route::get('documents/{document}/download', [DocumentController::class, 'download']);
+
+    // Legacy archive uploads — strict validation (past-date enforced at API level)
+    Route::prefix('archives')->group(function () {
+        Route::get('/', [ArchiveController::class, 'index']);
+        Route::post('import', [ArchiveController::class, 'storeImport']);
+        Route::post('export', [ArchiveController::class, 'storeExport']);
+    });
+
 
     // Admin-only routes — tighter throttle (20 req/min) for heavier DB queries
     Route::middleware('throttle:20,1')->group(function () {

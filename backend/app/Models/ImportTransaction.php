@@ -27,6 +27,7 @@ class ImportTransaction extends Model
 
     protected $casts = [
         'arrival_date' => 'date',
+        'is_archive' => 'boolean',
     ];
 
     // Relationships

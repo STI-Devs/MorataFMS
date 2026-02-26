@@ -268,6 +268,8 @@ test('user can delete their own uploaded document', function () {
 
 test('document generates correct S3 path', function () {
     $year = now()->year;
+    $monthPad = str_pad(now()->month, 2, '0', STR_PAD_LEFT);
+    $monthName = date('F');
 
     // Without BL number — falls back to documentable_id
     $path = Document::generateS3Path(
@@ -277,7 +279,7 @@ test('document generates correct S3 path', function () {
         'my-invoice.pdf'
     );
 
-    expect($path)->toContain("documents/imports/{$year}/42/invoice_my_invoice_");
+    expect($path)->toContain("documents/imports/{$year}/{$monthPad}-{$monthName}/42/invoice_my_invoice_");
     expect($path)->toContain('.pdf'); // Extension preserved correctly
 
     // With BL number — uses BL slug as folder
@@ -287,9 +289,11 @@ test('document generates correct S3 path', function () {
         'bl',
         'bill-of-lading.pdf',
         'BL-78542136',
-        2025
+        2025,
+        false,
+        7, // July
     );
 
-    expect($pathWithBl)->toContain('documents/exports/2025/BL-78542136/bl_bill_of_lading_');
+    expect($pathWithBl)->toContain('documents/exports/2025/07-July/BL-78542136/bl_bill_of_lading_');
     expect($pathWithBl)->toContain('.pdf');
 });

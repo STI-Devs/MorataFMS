@@ -24,6 +24,11 @@ class ExportTransaction extends Model
         'notes',
     ];
 
+    protected $casts = [
+        'export_date' => 'date',
+        'is_archive' => 'boolean',
+    ];
+
     // Relationships
     public function shipper(): BelongsTo
     {

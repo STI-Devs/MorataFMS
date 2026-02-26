@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTheme } from '../../../context/ThemeContext';
+import { getApiError } from '../../../lib/apiErrors';
 import { transactionApi } from '../api/transactionApi';
 import type { EncoderUser, OversightTransaction } from '../types/transaction.types';
 
@@ -52,8 +53,8 @@ export const ReassignModal = ({ isOpen, onClose, transaction, onSuccess }: Reass
             onSuccess(transaction.id, transaction.type, result.assigned_to, result.assigned_user_id);
             onClose();
         } catch (err: unknown) {
-            const e = err as { response?: { data?: { message?: string } } };
-            setError(e.response?.data?.message || 'An error occurred');
+            console.error('Reassign failed:', err);
+            setError(getApiError(err, 'reassign encoder'));
         } finally {
             setIsLoading(false);
         }

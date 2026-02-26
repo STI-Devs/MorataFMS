@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { Toaster } from 'sonner';
-import NotFoundPage from './components/NotFoundPage';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { NotFoundPage } from './components/layout/NotFoundPage';
 import { ThemeProvider } from './context/ThemeContext';
 import { AdminDashboard, AuditLogs, ClientManagement, ReportsAnalytics, TransactionOversight, UserManagement } from './features/admin';
 import { AuthProvider, GuestRoute, ProtectedRoute } from './features/auth';
@@ -13,7 +14,8 @@ function App() {
     <ThemeProvider>
       <AuthProvider>
         <Toaster richColors position="top-right" />
-        <Routes>
+        <ErrorBoundary>
+          <Routes>
           {/* Public landing page */}
           <Route path="/" element={<LandingPage />} />
 
@@ -54,6 +56,7 @@ function App() {
           {/* 404 */}
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
+        </ErrorBoundary>
       </AuthProvider>
     </ThemeProvider>
   );

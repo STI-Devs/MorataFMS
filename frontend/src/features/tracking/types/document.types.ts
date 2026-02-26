@@ -1,21 +1,9 @@
-export type DocType =
-    | 'Bill of Lading'
-    | 'Commercial Invoice'
-    | 'Packing List'
-    | 'Customs Declaration'
-    | 'Certificate of Origin'
-    | 'Inspection Report'
-    | 'Import Manifest'
-    | 'Export License'
-    | 'Shipping Instructions';
-
-export type FileExt = 'pdf' | 'docx' | 'jpg';
+export type FileExt = 'pdf' | 'docx' | 'jpg' | string;
 export type TransactionType = 'import' | 'export';
 
 export interface TransactionDocument {
     id: number;
     name: string;
-    docType: DocType;
     stage: string;
     uploadDate: string;
     uploader: { name: string; initials: string; color: string };
@@ -34,23 +22,26 @@ export interface DocumentTransaction {
 }
 
 // ─── Archive types (legacy 2022–2025 files) ──────────────────────────────────
+// Mirrors the S3 path: documents/{imports|exports}/{year}/{BL}/{stage}/{timestamp}_{filename}
 
 export interface ArchiveDocument {
     id: number;
-    name: string;
-    docType: DocType;
-    type: TransactionType;
-    client: string;
-    refNo: string;       // optional ref — may be blank for old files
-    fileDate: string;    // date on the physical document
-    uploadDate: string;
-    uploader: { name: string; initials: string; color: string };
-    size: string;
-    ext: FileExt;
+    type: TransactionType;           // 'import' | 'export' — from path segment
+    bl_no: string;                   // Bill of Lading — from path segment
+    month: number;                   // Archive period month (1-12)
+    client: string;                  // Client name (importer/shipper)
+    transaction_date: string;        // ISO date string (YYYY-MM-DD)
+    stage: string;                   // e.g. 'boc', 'ppa', 'do', 'billing' — from path segment
+    filename: string;                // original filename (stripped of timestamp prefix)
+    formatted_size: string;          // e.g. '1.1 MB'
+    uploaded_at: string;             // ISO timestamp
+    uploader: { id: number; name: string } | null;
 }
 
 export interface ArchiveYear {
     year: number;
+    imports: number;
+    exports: number;
     documents: ArchiveDocument[];
 }
 
@@ -85,10 +76,11 @@ export const IMPORT_STAGES = [
 ] as const;
 
 export const EXPORT_STAGES = [
-    { key: 'docs_prep', label: 'Docs Preparation' },
+    { key: 'boc', label: 'BOC Processing' },
+    { key: 'bl_generation', label: 'BL Generation' },
     { key: 'co', label: 'CO Processing' },
-    { key: 'cil', label: 'CIL Processing' },
-    { key: 'bl', label: 'BL Processing' },
+    { key: 'dccci', label: 'DCCCI Printing' },
+    { key: 'billing', label: 'Billing' },
 ] as const;
 
 export const ARCHIVE_YEARS = [2022, 2023, 2024, 2025] as const;

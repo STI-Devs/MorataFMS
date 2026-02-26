@@ -43,18 +43,30 @@ class DocumentController extends Controller
         $file = $request->file('file');
         $validated = $request->validated();
 
-        // Look up BL number from the transaction for a human-readable S3 path
+        // Look up BL number and date from the transaction for a human-readable S3 path
         $transaction = $validated['documentable_type']::find($validated['documentable_id']);
         $blNo = $transaction?->bl_no ?? '';
 
-        // Generate S3 path: documents/{imports|exports}/{year}/{BL}/{type}/{timestamp}_{name}
+        // Derive year and month from transaction date:
+        // arrival_date (imports) → export_date (exports) → created_at → now()
+        $transactionDate = $transaction?->arrival_date
+            ?? $transaction?->export_date
+            ?? $transaction?->created_at
+            ?? now();
+        $transactionYear = $transactionDate->year;
+        $transactionMonth = $transactionDate->month;
+
+        // Generate S3 path: {documents|archives}/{imports|exports}/{year}/{MM-Month}/{BL}/{type}_{name}
+        $isArchive = (bool) ($transaction?->is_archive ?? false);
         $path = Document::generateS3Path(
             $validated['documentable_type'],
             $validated['documentable_id'],
             $validated['type'],
             $file->getClientOriginalName(),
             $blNo,
-            now()->year,
+            $transactionYear,
+            $isArchive,
+            $transactionMonth,
         );
 
         // Upload file to S3 — wrap in transaction so DB record only saves if S3 succeeds

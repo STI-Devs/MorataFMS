@@ -52,6 +52,8 @@ class Document extends Model
     }
 
     // Helper to generate S3 path for documents
+    // $isArchive controls root prefix: archives/ vs documents/
+    // Path: {root}/{folder}/{year}/{MM-Month}/{BL}/{type}_{name}_{unique}.{ext}
     public static function generateS3Path(
         string $documentableType,
         int $documentableId,
@@ -59,9 +61,15 @@ class Document extends Model
         string $filename,
         string $blNo = '',
         int $year = 0,
+        bool $isArchive = false,
+        int $month = 0,
     ): string {
+        $root = $isArchive ? 'archives' : 'documents';
         $folder = str_contains($documentableType, 'Import') ? 'imports' : 'exports';
         $year = $year ?: now()->year;
+        $month = $month ?: now()->month;
+        $monthPad = str_pad($month, 2, '0', STR_PAD_LEFT);
+        $monthName = date('F', mktime(0, 0, 0, $month, 1));
         $blSlug = $blNo
             ? str($blNo)->slug('-')->upper()->value()
             : (string) $documentableId;
@@ -70,7 +78,7 @@ class Document extends Model
         $safeName = str($basename)->slug('_')->value();
         $unique = substr(uniqid(), -6); // short unique suffix to prevent overwrites
 
-        return "documents/{$folder}/{$year}/{$blSlug}/{$type}_{$safeName}_{$unique}.{$ext}";
+        return "{$root}/{$folder}/{$year}/{$monthPad}-{$monthName}/{$blSlug}/{$type}_{$safeName}_{$unique}.{$ext}";
     }
 
     // Document type labels

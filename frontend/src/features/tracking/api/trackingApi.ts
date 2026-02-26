@@ -2,12 +2,15 @@ import api from '../../../lib/axios';
 import type {
     ApiClient,
     ApiCountry,
+    ApiDocument,
     ApiExportTransaction,
     ApiImportTransaction,
     CreateExportPayload,
     CreateImportPayload,
+    DocumentableType,
     PaginatedResponse,
-    TransactionStats
+    TransactionStats,
+    UploadDocumentPayload,
 } from '../types';
 
 export const trackingApi = {
@@ -86,6 +89,43 @@ export const trackingApi = {
         const response = await api.get('/api/countries', {
             params: type ? { type } : undefined,
         });
+        return response.data.data;
+    },
+
+    // --- Create Client (for archive uploads when client not in DB) ---
+    createClient: async (data: { name: string; type: 'importer' | 'exporter' | 'both' }): Promise<ApiClient> => {
+        const response = await api.post('/api/clients', data);
+        return response.data.data;
+    },
+
+    // --- Dedicated Archive Endpoints (strict: file_date must be past or today) ---
+    getArchives: async (): Promise<import('../types/document.types').ArchiveYear[]> => {
+        const response = await api.get('/api/archives');
+        return response.data.data;
+    },
+
+    createArchiveImport: async (data: {
+        bl_no: string;
+        selective_color: 'green' | 'yellow' | 'red';
+        importer_id: number;
+        file_date: string;          // YYYY-MM-DD, must be <= today (enforced by backend)
+        customs_ref_no?: string;
+        origin_country_id?: number;
+        notes?: string;
+    }): Promise<ApiImportTransaction> => {
+        const response = await api.post('/api/archives/import', data);
+        return response.data.data;
+    },
+
+    createArchiveExport: async (data: {
+        bl_no: string;
+        shipper_id: number;
+        destination_country_id: number;
+        file_date: string;          // YYYY-MM-DD, must be <= today (enforced by backend)
+        vessel?: string;
+        notes?: string;
+    }): Promise<ApiExportTransaction> => {
+        const response = await api.post('/api/archives/export', data);
         return response.data.data;
     },
 

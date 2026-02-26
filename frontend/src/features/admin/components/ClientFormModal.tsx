@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTheme } from '../../../context/ThemeContext';
+import { getApiError } from '../../../lib/apiErrors';
 import api from '../../../lib/axios';
 import type { Client, ClientType, Country, CreateClientData, UpdateClientData } from '../types/client.types';
 
@@ -77,8 +78,8 @@ export const ClientFormModal = ({ isOpen, onClose, onSubmit, client, mode }: Cli
             await onSubmit(formData);
             onClose();
         } catch (err: unknown) {
-            const e = err as { response?: { data?: { message?: string } } };
-            setError(e.response?.data?.message || 'An error occurred');
+            console.error('Save client failed:', err);
+            setError(getApiError(err, 'save client'));
         } finally {
             setIsSubmitting(false);
         }
