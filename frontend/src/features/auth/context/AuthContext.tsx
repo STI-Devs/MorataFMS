@@ -4,7 +4,7 @@ import { authApi } from '../api/authApi';
 import type { AuthState, LoginCredentials, RegisterCredentials, User } from '../types/auth.types';
 
 interface AuthContextType extends AuthState {
-  login: (credentials: LoginCredentials) => Promise<void>;
+  login: (credentials: LoginCredentials) => Promise<User>;
   register: (credentials: RegisterCredentials) => Promise<void>;
   logout: () => Promise<void>;
   setUser: (user: User | null) => void;
@@ -31,12 +31,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       authApi.getCurrentUser()
         .then((response) => {
           // Session is valid — use fresh user data from backend
-          // Handle both wrapped { data: User } and direct User response
-          const raw = response as unknown as Record<string, unknown>;
-          const userData = (raw.data ? raw.data : raw) as User;
+          // Depending on API resource wrapping, the user might be under .data or directly in the response
+          const userData = (response as any).data ?? response;
           localStorage.setItem('user', JSON.stringify(userData));
           setAuthState({
-            user: userData,
+            user: userData as User,
             isAuthenticated: true,
             isLoading: false,
           });
@@ -56,7 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const login = async (credentials: LoginCredentials) => {
+  const login = async (credentials: LoginCredentials): Promise<User> => {
     try {
       const response = await authApi.login(credentials);
 
@@ -68,6 +67,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: true,
         isLoading: false,
       });
+
+      return response.user;
     } catch (error) {
       console.error('Login failed:', error);
       throw error;

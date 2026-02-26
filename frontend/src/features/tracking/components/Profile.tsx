@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../../auth';
 
 export const Profile = () => {
@@ -8,6 +8,15 @@ export const Profile = () => {
         password: '',
         confirmPassword: '',
     });
+
+    useEffect(() => {
+        if (user) {
+            setFormData(prev => ({
+                ...prev,
+                name: user.name || '',
+            }));
+        }
+    }, [user]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;

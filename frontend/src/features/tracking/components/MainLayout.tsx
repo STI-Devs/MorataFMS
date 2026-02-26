@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useLocation, Outlet } from 'react-router-dom';
+import { useNavigate, useLocation, Outlet, Navigate } from 'react-router-dom';
 import { useAuth } from '../../auth';
 import { useTheme } from '../../../context/ThemeContext';
 
@@ -67,6 +67,12 @@ export const MainLayout = () => {
 
     const isAdmin = user?.role === 'admin';
     const navItems = isAdmin ? adminItems : encoderItems;
+
+    // Guard: redirect non-admins who try to navigate to admin-only paths
+    const adminPaths = ['/transactions', '/users', '/clients', '/reports', '/audit-logs'];
+    if (!isAdmin && adminPaths.some(p => location.pathname === p || location.pathname.startsWith(p + '/'))) {
+        return <Navigate to="/tracking" replace />;
+    }
 
     const settingsItems = [
         { label: 'Profile', path: '/profile', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' },
@@ -200,12 +206,12 @@ export const MainLayout = () => {
             </aside>
 
             {/* Main Content Area — flush, no gap, no rounded corners */}
-            <main className={`flex-1 overflow-y-auto p-6 relative ${isDetailsPage ? 'ml-64' : ''
+            <main className={`flex-1 overflow-y-auto p-6 relative flex flex-col ${isDetailsPage ? 'ml-64' : ''
                 } ${isContentDark
                     ? 'bg-[#111111]'
                     : 'bg-white'
                 }`}>
-                <div className="max-w-7xl mx-auto min-h-full flex flex-col">
+                <div className="max-w-7xl w-full mx-auto flex-1 flex flex-col min-h-0">
                     <Outlet context={{ user, dateTime }} />
                 </div>
             </main>

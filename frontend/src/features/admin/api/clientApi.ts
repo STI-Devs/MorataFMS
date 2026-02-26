@@ -2,9 +2,11 @@ import api from '../../../lib/axios';
 import type { Client, CreateClientData, UpdateClientData, ClientTransactionHistory } from '../types/client.types';
 
 export const clientApi = {
-    // Get all clients
-    async getClients(): Promise<{ data: Client[] }> {
-        const response = await api.get('/api/clients');
+    // Get all clients (optional type filter for dropdowns)
+    async getClients(type?: 'importer' | 'exporter'): Promise<{ data: Client[] }> {
+        const response = await api.get('/api/clients', {
+            params: type ? { type } : undefined,
+        });
         return response.data;
     },
 

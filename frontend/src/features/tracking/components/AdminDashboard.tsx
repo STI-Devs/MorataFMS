@@ -1,9 +1,11 @@
 import { useMemo, useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 
-import { Icon } from '../../../components/Icon';
-import { useExports } from '../hooks/useExports';
-import { useImports } from '../hooks/useImports';
+import { StatusBadge } from '../../../components/StatusBadge';
+import { Spinner } from '../../../components/Spinner';
+import { EmptyState } from '../../../components/EmptyState';
+import { useTransactionList } from '../hooks/useTransactionList';
+import { mapImportTransaction, mapExportTransaction } from '../utils/mappers';
 
 interface LayoutContext {
     user?: { name: string; role: string };
@@ -27,29 +29,7 @@ const quickLinks = [
     { label: 'New Import', path: '/imports', color: '#64d2ff', icon: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12' },
 ];
 
-/* ── Status helpers ───────────────────────────────────────── */
-const getImportStyle = (s: string) => {
-    if (s === 'Cleared') return { color: '#30d158', bg: 'rgba(48,209,88,0.12)' };
-    if (s === 'Pending') return { color: '#ff9f0a', bg: 'rgba(255,159,10,0.12)' };
-    if (s === 'Delayed') return { color: '#ff453a', bg: 'rgba(255,69,58,0.12)' };
-    return { color: '#64d2ff', bg: 'rgba(100,210,255,0.12)' };
-};
 
-const getExportStyle = (s: string) => {
-    if (s === 'Shipped') return { color: '#30d158', bg: 'rgba(48,209,88,0.12)' };
-    if (s === 'Processing') return { color: '#ff9f0a', bg: 'rgba(255,159,10,0.12)' };
-    if (s === 'Delayed') return { color: '#ff453a', bg: 'rgba(255,69,58,0.12)' };
-    return { color: '#64d2ff', bg: 'rgba(100,210,255,0.12)' };
-};
-
-const StatusBadge = ({ label, style }: { label: string; style: { color: string; bg: string } }) => (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] uppercase font-bold tracking-wider w-fit justify-self-start"
-        style={{ color: style.color, backgroundColor: style.bg }}>
-        <span className="w-1.5 h-1.5 rounded-full shrink-0"
-            style={{ backgroundColor: style.color, boxShadow: `0 0 5px ${style.color}` }} />
-        {label}
-    </span>
-);
 
 const ColH = ({ children }: { children: React.ReactNode }) => (
     <span className="text-[10px] font-bold text-text-muted uppercase tracking-[0.08em] whitespace-nowrap">{children}</span>
@@ -64,49 +44,16 @@ export const AdminDashboard = () => {
     const userName = user?.name || 'User';
 
     /* Live Tracking data */
-    const { data: importsData, isLoading: importsLoading } = useImports();
-    const { data: exportsData, isLoading: exportsLoading } = useExports();
+    const { data: importsData, isLoading: importsLoading } = useTransactionList('import');
+    const { data: exportsData, isLoading: exportsLoading } = useTransactionList('export');
 
-    const imports = useMemo(() =>
-        (importsData?.data || []).map(t => ({
-            id: t.id,
-            ref: t.customs_ref_no,
-            bl: t.bl_no,
-            status: t.status === 'pending' ? 'Pending' : t.status === 'in_progress' ? 'In Transit' : t.status === 'completed' ? 'Cleared' : 'Delayed',
-            color: t.selective_color === 'green' ? 'bg-green-500' : t.selective_color === 'yellow' ? 'bg-yellow-500' : 'bg-red-500',
-            importer: t.importer?.name || 'Unknown',
-            date: t.arrival_date || '—',
-        })), [importsData]);
+    const imports = useMemo(() => importsData?.data.map(mapImportTransaction) ?? [], [importsData]);
+    const exports = useMemo(() => exportsData?.data.map(mapExportTransaction) ?? [], [exportsData]);
 
-    const exports = useMemo(() =>
-        (exportsData?.data || []).map(t => ({
-            id: t.id,
-            ref: `EXP-${String(t.id).padStart(4, '0')}`,
-            bl: t.bl_no,
-            status: t.status === 'pending' ? 'Processing' : t.status === 'in_progress' ? 'In Transit' : t.status === 'completed' ? 'Shipped' : 'Delayed',
-            shipper: t.shipper?.name || 'Unknown',
-            vessel: t.vessel || '—',
-            departureDate: t.created_at ? new Date(t.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—',
-            portOfDestination: t.destination_country?.name || '—',
-        })), [exportsData]);
 
-    /* ── Shared spinner / empty state ── */
-    const Spinner = ({ color }: { color: string }) => (
-        <div className="flex-1 flex items-center justify-center py-10">
-            <div className="w-7 h-7 border-[3px] border-transparent rounded-full animate-spin" style={{ borderTopColor: color }} />
-        </div>
-    );
-
-    const Empty = ({ label }: { label: string }) => (
-        <div className="flex-1 flex flex-col items-center justify-center py-10 gap-2 text-text-muted">
-            <Icon name="search" className="w-6 h-6 opacity-30" />
-            <p className="text-xs">No active {label}.</p>
-        </div>
-    );
 
     return (
-        <div style={{ height: tab === 'live' ? 'calc(100vh - 3rem)' : undefined }}
-            className={`flex flex-col ${tab === 'live' ? 'overflow-hidden gap-5' : 'space-y-5 p-4'}`}>
+        <div className={`flex flex-col flex-1 min-h-0 ${tab === 'live' ? 'overflow-hidden gap-5' : 'space-y-5 p-4'}`}>
 
             {/* ── Header ── */}
             <div className={`shrink-0 flex justify-between items-end ${tab === 'live' ? 'px-4 pt-4' : ''}`}>
@@ -217,22 +164,19 @@ export const AdminDashboard = () => {
 
                         <div className="flex-1 min-h-0 overflow-y-auto flex flex-col">
                             {importsLoading ? <Spinner color="#30d158" /> :
-                                imports.length === 0 ? <Empty label="imports" /> :
-                                    imports.map((row, i) => {
-                                        const s = getImportStyle(row.status);
-                                        return (
-                                            <div key={row.id} onClick={() => navigate(`/tracking/${row.ref}`)}
-                                                className={`grid px-4 py-1.5 items-center cursor-pointer hover:bg-hover/60 transition-colors border-b border-border/30 ${i % 2 !== 0 ? 'bg-surface-secondary/30' : ''}`}
-                                                style={{ gridTemplateColumns: '22px repeat(5, 1fr)' }}>
-                                                <span className={`w-2 h-2 rounded-full shrink-0 ${row.color}`} />
-                                                <p className="text-xs font-bold text-text-primary truncate pr-2">{row.ref}</p>
-                                                <p className="text-xs text-text-secondary truncate pr-2">{row.bl || '—'}</p>
-                                                <StatusBadge label={row.status} style={s} />
-                                                <p className="text-xs text-text-secondary truncate pr-2">{row.importer}</p>
-                                                <p className="text-xs text-text-muted">{row.date}</p>
-                                            </div>
-                                        );
-                                    })}
+                                imports.length === 0 ? <EmptyState label="imports" /> :
+                                    imports.map((row, i) => (
+                                        <div key={row.id} onClick={() => navigate(`/tracking/${row.ref}`)}
+                                            className={`grid px-4 py-1.5 items-center cursor-pointer hover:bg-hover/60 transition-colors border-b border-border/30 ${i % 2 !== 0 ? 'bg-surface-secondary/30' : ''}`}
+                                            style={{ gridTemplateColumns: '22px repeat(5, 1fr)' }}>
+                                            <span className={`w-2 h-2 rounded-full shrink-0 ${row.color}`} />
+                                            <p className="text-xs font-bold text-text-primary truncate pr-2">{row.ref}</p>
+                                            <p className="text-xs text-text-secondary truncate pr-2">{row.bl || '—'}</p>
+                                            <StatusBadge status={row.status} />
+                                            <p className="text-xs text-text-secondary truncate pr-2">{row.importer}</p>
+                                            <p className="text-xs text-text-muted">{row.date}</p>
+                                        </div>
+                                    ))}
                         </div>
                     </div>
 
@@ -254,22 +198,19 @@ export const AdminDashboard = () => {
 
                         <div className="flex-1 min-h-0 overflow-y-auto flex flex-col">
                             {exportsLoading ? <Spinner color="#0a84ff" /> :
-                                exports.length === 0 ? <Empty label="exports" /> :
-                                    exports.map((row, i) => {
-                                        const s = getExportStyle(row.status);
-                                        return (
-                                            <div key={row.id} onClick={() => navigate(`/tracking/${row.ref}`)}
-                                                className={`grid px-4 py-1.5 items-center cursor-pointer hover:bg-hover/60 transition-colors border-b border-border/30 ${i % 2 !== 0 ? 'bg-surface-secondary/30' : ''}`}
-                                                style={{ gridTemplateColumns: 'repeat(6, 1fr)' }}>
-                                                <p className="text-xs font-bold text-text-primary truncate pr-2">{row.shipper}</p>
-                                                <p className="text-xs text-text-secondary truncate pr-2">{row.bl || '—'}</p>
-                                                <p className="text-xs text-text-secondary truncate pr-2">{row.vessel}</p>
-                                                <p className="text-xs text-text-muted">{row.departureDate}</p>
-                                                <StatusBadge label={row.status} style={s} />
-                                                <p className="text-xs text-text-secondary truncate">{row.portOfDestination}</p>
-                                            </div>
-                                        );
-                                    })}
+                                exports.length === 0 ? <EmptyState label="exports" /> :
+                                    exports.map((row, i) => (
+                                        <div key={row.id} onClick={() => navigate(`/tracking/${row.ref}`)}
+                                            className={`grid px-4 py-1.5 items-center cursor-pointer hover:bg-hover/60 transition-colors border-b border-border/30 ${i % 2 !== 0 ? 'bg-surface-secondary/30' : ''}`}
+                                            style={{ gridTemplateColumns: 'repeat(6, 1fr)' }}>
+                                            <p className="text-xs font-bold text-text-primary truncate pr-2">{row.shipper}</p>
+                                            <p className="text-xs text-text-secondary truncate pr-2">{row.bl || '—'}</p>
+                                            <p className="text-xs text-text-secondary truncate pr-2">{row.vessel}</p>
+                                            <p className="text-xs text-text-muted">{row.departureDate}</p>
+                                            <StatusBadge status={row.status} />
+                                            <p className="text-xs text-text-secondary truncate">{row.portOfDestination}</p>
+                                        </div>
+                                    ))}
                         </div>
                     </div>
 

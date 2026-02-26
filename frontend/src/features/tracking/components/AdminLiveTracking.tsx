@@ -2,36 +2,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { Icon } from '../../../components/Icon';
-import { useExports } from '../hooks/useExports';
-import { useImports } from '../hooks/useImports';
+import { useTransactionList } from '../hooks/useTransactionList';
+import { mapImportTransaction, mapExportTransaction } from '../utils/mappers';
 import type { ExportTransaction, ImportTransaction } from '../types';
 
-const getImportStatusStyle = (status: string) => {
-    switch (status) {
-        case 'Cleared': return { color: '#30d158', bg: 'rgba(48,209,88,0.15)' };
-        case 'Pending': return { color: '#ff9f0a', bg: 'rgba(255,159,10,0.15)' };
-        case 'Delayed': return { color: '#ff453a', bg: 'rgba(255,69,58,0.15)' };
-        default: return { color: '#64d2ff', bg: 'rgba(100,210,255,0.15)' };
-    }
-};
 
-const getExportStatusStyle = (status: string) => {
-    switch (status) {
-        case 'Shipped': return { color: '#30d158', bg: 'rgba(48,209,88,0.15)' };
-        case 'Processing': return { color: '#ff9f0a', bg: 'rgba(255,159,10,0.15)' };
-        case 'Delayed': return { color: '#ff453a', bg: 'rgba(255,69,58,0.15)' };
-        default: return { color: '#64d2ff', bg: 'rgba(100,210,255,0.15)' };
-    }
-};
-
-const StatusBadge = ({ status, style }: { status: string; style: { color: string; bg: string } }) => (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap w-fit justify-self-start"
-        style={{ color: style.color, backgroundColor: style.bg }}>
-        <span className="w-1.5 h-1.5 rounded-full shrink-0"
-            style={{ backgroundColor: style.color, boxShadow: `0 0 5px ${style.color}` }} />
-        {status}
-    </span>
-);
 
 const ColH = ({ children }: { children: React.ReactNode }) => (
     <span className="text-[10px] font-bold uppercase tracking-[0.08em] whitespace-nowrap" style={{ color: 'rgba(255,255,255,0.35)' }}>{children}</span>
@@ -67,35 +42,17 @@ export const AdminLiveTracking = () => {
         return () => clearInterval(id);
     }, []);
 
-    const { data: importsData, isLoading: importsLoading } = useImports();
-    const { data: exportsData, isLoading: exportsLoading } = useExports();
+    const { data: importsData, isLoading: importsLoading } = useTransactionList('import');
+    const { data: exportsData, isLoading: exportsLoading } = useTransactionList('export');
 
     const imports = useMemo<ImportTransaction[]>(() =>
-        (importsData?.data || []).map(t => ({
-            id: t.id,
-            ref: t.customs_ref_no,
-            bl: t.bl_no,
-            status: t.status === 'pending' ? 'Pending' : t.status === 'in_progress' ? 'In Transit' : t.status === 'completed' ? 'Cleared' : 'Delayed',
-            color: t.selective_color === 'green' ? '#30d158' : t.selective_color === 'yellow' ? '#ff9f0a' : '#ff453a',
-            importer: t.importer?.name || 'Unknown',
-            date: t.arrival_date || '',
-        })), [importsData]);
+        (importsData?.data || []).map(mapImportTransaction), [importsData]);
 
     const exports = useMemo<ExportTransaction[]>(() =>
-        (exportsData?.data || []).map(t => ({
-            id: t.id,
-            ref: `EXP-${String(t.id).padStart(4, '0')}`,
-            bl: t.bl_no,
-            status: t.status === 'pending' ? 'Processing' : t.status === 'in_progress' ? 'In Transit' : t.status === 'completed' ? 'Shipped' : 'Delayed',
-            color: '',
-            shipper: t.shipper?.name || 'Unknown',
-            vessel: t.vessel || '—',
-            departureDate: t.created_at ? new Date(t.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '',
-            portOfDestination: t.destination_country?.name || '—',
-        })), [exportsData]);
+        (exportsData?.data || []).map(mapExportTransaction), [exportsData]);
 
     return (
-        <div className="h-screen w-screen flex flex-col overflow-hidden p-6 gap-5"
+        <div className="min-h-screen w-full flex flex-col p-6 gap-5"
             style={{ backgroundColor: '#0d0d0f' }}>
 
             {/* Centered Header */}
@@ -140,12 +97,11 @@ export const AdminLiveTracking = () => {
                 );
             })()}
 
-            {/* Two panels */}
-            <div className="flex gap-3 flex-1 min-h-0">
+            {/* ── Two panels side by side, each growing to their content ── */}
+            <div className="flex flex-col lg:flex-row gap-4 items-start pb-6">
 
-                {/* Import Panel */}
-                <div className="flex-1 min-w-0 flex flex-col rounded-lg overflow-hidden"
-                    style={{ backgroundColor: '#161618', border: '1px solid rgba(255,255,255,0.08)' }}>
+                {/* ─── Import Transactions Panel ─── */}
+                <div className="w-full lg:flex-1 lg:min-w-0 flex flex-col bg-surface border border-border/60 rounded-lg shadow-sm">
                     <div className="shrink-0 px-4 py-2.5 flex items-center justify-between"
                         style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
                         <div className="flex items-center gap-2">
@@ -158,41 +114,44 @@ export const AdminLiveTracking = () => {
                         </span>
                     </div>
                     <div className="shrink-0 grid px-4 py-1.5"
-                        style={{ gridTemplateColumns: '22px repeat(5, 1fr)', borderBottom: '1px solid rgba(255,255,255,0.05)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
+                        style={{ gridTemplateColumns: '28px 1.4fr 1.3fr 110px 1.5fr 1fr', borderBottom: '1px solid rgba(255,255,255,0.05)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
                         <ColH>SC</ColH><ColH>Customs Ref No.</ColH><ColH>Bill of Lading</ColH>
-                        <ColH>Status</ColH><ColH>Importer</ColH><ColH>Arrival</ColH>
+                        <div className="text-center"><ColH>Status</ColH></div><ColH>Importer</ColH><div className="text-center"><ColH>Arrival</ColH></div>
                     </div>
-                    <div className="flex-1 min-h-0 overflow-y-auto flex flex-col">
-                        {importsLoading ? <Spinner color="#30d158" /> :
+                    {/* Rows — natural growth */}
+                    <div className="flex flex-col">
+                        {importsLoading ? (<Spinner color="#30d158" />) :
                             imports.length === 0 ? <EmptyState label="imports" /> :
                                 imports.map((row, i) => {
-                                    const s = getImportStatusStyle(row.status);
                                     return (
                                         <div key={row.id} onClick={() => navigate(`/tracking/${row.ref}`)}
                                             className="grid px-4 py-1.5 items-center cursor-pointer transition-colors"
                                             style={{
-                                                gridTemplateColumns: '22px repeat(5, 1fr)',
+                                                gridTemplateColumns: '28px 1.4fr 1.3fr 110px 1.5fr 1fr',
                                                 borderBottom: '1px solid rgba(255,255,255,0.04)',
                                                 backgroundColor: i % 2 !== 0 ? 'rgba(255,255,255,0.02)' : 'transparent',
                                             }}
                                             onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)')}
                                             onMouseLeave={e => (e.currentTarget.style.backgroundColor = i % 2 !== 0 ? 'rgba(255,255,255,0.02)' : 'transparent')}
                                         >
-                                            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: row.color as string }} />
+                                            <span className={`w-2 h-2 rounded-full shrink-0 ${row.color}`} />
                                             <p className="text-xs font-bold truncate pr-2" style={{ color: '#ffffff' }}>{row.ref}</p>
                                             <p className="text-xs truncate pr-2" style={{ color: 'rgba(255,255,255,0.55)' }}>{row.bl || '—'}</p>
-                                            <StatusBadge status={row.status} style={s} />
+                                            <div className="flex justify-center">
+                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap" style={{ backgroundColor: 'rgba(255,255,255,0.1)', color: '#fff' }}>
+                                                    {row.status}
+                                                </span>
+                                            </div>
                                             <p className="text-xs truncate pr-2" style={{ color: 'rgba(255,255,255,0.55)' }}>{row.importer}</p>
-                                            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>{row.date || '—'}</p>
+                                            <p className="text-xs text-center truncate" style={{ color: 'rgba(255,255,255,0.35)' }}>{row.date || '—'}</p>
                                         </div>
                                     );
                                 })}
                     </div>
                 </div>
 
-                {/* Export Panel */}
-                <div className="flex-1 min-w-0 flex flex-col rounded-lg overflow-hidden"
-                    style={{ backgroundColor: '#161618', border: '1px solid rgba(255,255,255,0.08)' }}>
+                {/* ─── Export Transactions Panel ─── */}
+                <div className="w-full lg:flex-1 lg:min-w-0 flex flex-col bg-surface border border-border/60 rounded-lg shadow-sm">
                     <div className="shrink-0 px-4 py-2.5 flex items-center justify-between"
                         style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
                         <div className="flex items-center gap-2">
@@ -205,20 +164,20 @@ export const AdminLiveTracking = () => {
                         </span>
                     </div>
                     <div className="shrink-0 grid px-4 py-1.5"
-                        style={{ gridTemplateColumns: 'repeat(6, 1fr)', borderBottom: '1px solid rgba(255,255,255,0.05)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
+                        style={{ gridTemplateColumns: '1.5fr 1.1fr 1.1fr 1.2fr 100px 1fr', borderBottom: '1px solid rgba(255,255,255,0.05)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
                         <ColH>Shipper</ColH><ColH>Bill of Lading</ColH><ColH>Vessel</ColH>
-                        <ColH>Departure</ColH><ColH>Status</ColH><ColH>Destination</ColH>
+                        <ColH>Departure</ColH><div className="text-center"><ColH>Status</ColH></div><div className="text-center"><ColH>Destination</ColH></div>
                     </div>
-                    <div className="flex-1 min-h-0 overflow-y-auto flex flex-col">
-                        {exportsLoading ? <Spinner color="#0a84ff" /> :
+                    {/* Outer shell — no fixed height, let it grow so MainLayout scrolls */}
+                    <div className="flex flex-col">
+                        {exportsLoading ? (<Spinner color="#0a84ff" />) :
                             exports.length === 0 ? <EmptyState label="exports" /> :
                                 exports.map((row, i) => {
-                                    const s = getExportStatusStyle(row.status);
                                     return (
                                         <div key={row.id} onClick={() => navigate(`/tracking/${row.ref}`)}
                                             className="grid px-4 py-1.5 items-center cursor-pointer transition-colors"
                                             style={{
-                                                gridTemplateColumns: 'repeat(6, 1fr)',
+                                                gridTemplateColumns: '1.5fr 1.1fr 1.1fr 1.2fr 100px 1fr',
                                                 borderBottom: '1px solid rgba(255,255,255,0.04)',
                                                 backgroundColor: i % 2 !== 0 ? 'rgba(255,255,255,0.02)' : 'transparent',
                                             }}
@@ -228,9 +187,13 @@ export const AdminLiveTracking = () => {
                                             <p className="text-xs font-bold truncate pr-2" style={{ color: '#ffffff' }}>{row.shipper}</p>
                                             <p className="text-xs truncate pr-2" style={{ color: 'rgba(255,255,255,0.55)' }}>{row.bl || '—'}</p>
                                             <p className="text-xs truncate pr-2" style={{ color: 'rgba(255,255,255,0.55)' }}>{row.vessel}</p>
-                                            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>{row.departureDate || '—'}</p>
-                                            <StatusBadge status={row.status} style={s} />
-                                            <p className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.55)' }}>{row.portOfDestination}</p>
+                                            <p className="text-xs pr-2 truncate" style={{ color: 'rgba(255,255,255,0.35)' }}>{row.departureDate || '—'}</p>
+                                            <div className="flex justify-center">
+                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap" style={{ backgroundColor: 'rgba(255,255,255,0.1)', color: '#fff' }}>
+                                                    {row.status}
+                                                </span>
+                                            </div>
+                                            <p className="text-xs truncate text-center" style={{ color: 'rgba(255,255,255,0.55)' }}>{row.portOfDestination}</p>
                                         </div>
                                     );
                                 })}

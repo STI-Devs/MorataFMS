@@ -36,9 +36,9 @@ export const authApi = {
         await api.post(`/api/auth/logout`);
     },
 
-    // Get current user
-    async getCurrentUser(): Promise<User> {
-        const response = await api.get<User>(`/api/user`);
+    // Get current user — backend returns { data: User }
+    async getCurrentUser(): Promise<{ data: User }> {
+        const response = await api.get<{ data: User }>(`/api/user`);
         return response.data;
     },
 };

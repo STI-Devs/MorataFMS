@@ -1,6 +1,5 @@
 import api from '../../../lib/axios';
 import type {
-    ApiClient,
     ApiCountry,
     ApiExportTransaction,
     ApiImportTransaction,
@@ -71,14 +70,6 @@ export const trackingApi = {
 
     cancelExport: async (id: number, reason: string): Promise<void> => {
         await api.patch(`/api/export-transactions/${id}/cancel`, { reason });
-    },
-
-    // --- Clients (for dropdowns) ---
-    getClients: async (type?: 'importer' | 'exporter'): Promise<ApiClient[]> => {
-        const response = await api.get('/api/clients', {
-            params: type ? { type } : undefined,
-        });
-        return response.data.data;
     },
 
     // --- Countries (for dropdowns) ---

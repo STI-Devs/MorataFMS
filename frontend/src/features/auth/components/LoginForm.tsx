@@ -31,8 +31,9 @@ export const LoginForm = ({ onToggleSignup }: { onToggleSignup: () => void }) =>
     setError(null);
 
     try {
-      await login({ email, password });
-      navigate('/transactions');
+      const loggedInUser = await login({ email, password });
+      const role = loggedInUser?.role ?? 'encoder';
+      navigate(role === 'admin' ? '/transactions' : '/tracking');
     } catch (err: unknown) {
       console.error("Login failed:", err);
       let errorMessage = "An unexpected error occurred. Please try again.";

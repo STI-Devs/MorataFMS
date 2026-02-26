@@ -58,8 +58,7 @@ export function ActionMenu({ items }: ActionMenuProps) {
                     e.stopPropagation();
                     setIsOpen(prev => !prev);
                 }}
-                className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 
-                    text-gray-500 dark:text-gray-400 transition-colors"
+                className="p-1.5 rounded-lg hover:bg-hover text-text-secondary transition-colors"
                 title="Actions"
             >
                 <Icon name="more-vertical" className="w-4 h-4" />
@@ -68,9 +67,9 @@ export function ActionMenu({ items }: ActionMenuProps) {
             {/* Dropdown */}
             {isOpen && (
                 <div
-                    className="absolute right-0 top-full mt-1 z-50 w-44 
-                        bg-white dark:bg-gray-800 
-                        border border-gray-200 dark:border-gray-700 
+                    className="absolute right-0 top-full mt-1 z-50 w-44
+                        bg-surface-elevated
+                        border border-border-strong
                         rounded-lg shadow-lg overflow-hidden
                         animate-in fade-in duration-150"
                 >
@@ -84,8 +83,8 @@ export function ActionMenu({ items }: ActionMenuProps) {
                                 item.onClick();
                             }}
                             className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-left
-                                text-gray-700 dark:text-gray-300 
-                                hover:bg-gray-50 dark:hover:bg-white/5 
+                                text-text-primary
+                                hover:bg-hover
                                 transition-colors"
                         >
                             <Icon name={item.icon} className="w-4 h-4 opacity-60" />
@@ -96,7 +95,7 @@ export function ActionMenu({ items }: ActionMenuProps) {
                     {/* Separator + Danger items */}
                     {dangerItems.length > 0 && (
                         <>
-                            <div className="border-t border-gray-200 dark:border-gray-700 my-0.5" />
+                            <div className="border-t border-border my-0.5" />
                             {dangerItems.map((item) => (
                                 <button
                                     key={item.label}
@@ -106,8 +105,8 @@ export function ActionMenu({ items }: ActionMenuProps) {
                                         item.onClick();
                                     }}
                                     className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-left
-                                        text-red-600 dark:text-red-400 
-                                        hover:bg-red-50 dark:hover:bg-red-900/20 
+                                        text-red-500
+                                        hover:bg-hover
                                         transition-colors"
                                 >
                                     <Icon name={item.icon} className="w-4 h-4 opacity-75" />
