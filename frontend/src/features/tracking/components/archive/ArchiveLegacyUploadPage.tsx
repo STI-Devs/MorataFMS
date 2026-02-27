@@ -305,25 +305,26 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
                     <SectionHeader step={2} label="Transaction Details" />
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
 
-                        <div className="space-y-2">
+                        {/* ── Archive Date — full width ─────────────────────── */}
+                        <div className="sm:col-span-2 space-y-2">
                             <label className={labelClass}>Archive Date <span className="text-red-400">*</span></label>
                             {/* Toggle: Month / Exact */}
                             <div className="inline-flex bg-surface-subtle p-1 rounded-lg border border-border">
                                 <button type="button"
                                     onClick={() => handleDateModeChange('month')}
-                                    className={`px-4 py-1.5 text-xs font-bold tracking-wide transition-all rounded-md ${
+                                    className={`px-4 py-1.5 text-xs font-bold tracking-wide transition-all rounded-md border ${
                                         dateMode === 'month'
-                                            ? 'bg-white dark:bg-zinc-800 shadow text-text-primary'
-                                            : 'text-text-muted hover:text-text-primary'
+                                            ? 'bg-white dark:bg-zinc-800 shadow border-green-500 text-text-primary'
+                                            : 'border-transparent text-text-muted hover:text-text-primary'
                                     }`}>
                                     Month
                                 </button>
                                 <button type="button"
                                     onClick={() => handleDateModeChange('exact')}
-                                    className={`px-4 py-1.5 text-xs font-bold tracking-wide transition-all rounded-md ${
+                                    className={`px-4 py-1.5 text-xs font-bold tracking-wide transition-all rounded-md border ${
                                         dateMode === 'exact'
-                                            ? 'bg-white dark:bg-zinc-800 shadow text-text-primary'
-                                            : 'text-text-muted hover:text-text-primary'
+                                            ? 'bg-white dark:bg-zinc-800 shadow border-green-500 text-text-primary'
+                                            : 'border-transparent text-text-muted hover:text-text-primary'
                                     }`}>
                                     Exact Date
                                 </button>
@@ -331,47 +332,40 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
                             {/* Month picker */}
                             {dateMode === 'month' && (
                                 <>
-                                    <input
-                                        type="month"
-                                        required
-                                        value={monthYear}
-                                        min="2000-01"
-                                        max={(() => { const n = new Date(); return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}`; })()}
-                                        onChange={e => handleMonthYearChange(e.target.value)}
-                                        className={inputClass}
-                                    />
+                                    <div className="max-w-xs">
+                                        <input
+                                            type="month"
+                                            required
+                                            value={monthYear}
+                                            min="2015-01"
+                                            max={(() => { const n = new Date(); return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}`; })()}
+                                            onChange={e => handleMonthYearChange(e.target.value)}
+                                            className={inputClass}
+                                        />
+                                    </div>
                                     <p className="text-[10px] text-text-muted ml-1">Select the month and year of the archived document</p>
                                 </>
                             )}
                             {/* Exact date picker */}
                             {dateMode === 'exact' && (
                                 <>
-                                    <input
-                                        type="date"
-                                        required
-                                        value={form.fileDate}
-                                        onChange={e => handleExactDateChange(e.target.value)}
-                                        min="2000-01-01"
-                                        max={new Date().toISOString().split('T')[0]}
-                                        className={inputClass}
-                                    />
+                                    <div className="max-w-xs">
+                                        <input
+                                            type="date"
+                                            required
+                                            value={form.fileDate}
+                                            onChange={e => handleExactDateChange(e.target.value)}
+                                            min="2015-01-01"
+                                            max={new Date().toISOString().split('T')[0]}
+                                            className={inputClass}
+                                        />
+                                    </div>
                                     <p className="text-[10px] text-text-muted ml-1">Enter the exact arrival/export date if known</p>
                                 </>
                             )}
                         </div>
 
-                        {isImport && (
-                            <div className="space-y-2">
-                                <label className={labelClass}>BLSC (Selective Color) <span className="text-red-400">*</span></label>
-                                <div className="relative">
-                                    <select required value={form.blsc} onChange={e => set('blsc', e.target.value)} className={selectClass}>
-                                        {BLSC_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                                    </select>
-                                    <Icon name="chevron-down" className="w-4 h-4 absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                                </div>
-                            </div>
-                        )}
-
+                        {/* ── Row 2: Customs Ref No. | Bill of Lading ──────── */}
                         {isImport && (
                             <div className="space-y-2">
                                 <label className={labelClass}>Customs Ref No. <span className="normal-case font-normal opacity-60">(optional)</span></label>
@@ -380,7 +374,6 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
                             </div>
                         )}
 
-                        {/* Bill of Lading — REQUIRED, min 4 chars, alphanumeric + hyphen */}
                         <div className="space-y-2">
                             <label className={labelClass}>Bill of Lading <span className="text-red-400">*</span></label>
                             <input type="text" required minLength={4} maxLength={50}
@@ -394,6 +387,19 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
                                 <p className="text-[10px] text-red-400 ml-1 font-semibold">Only letters, numbers, and hyphens allowed</p>
                             )}
                         </div>
+
+                        {/* ── Row 3: BLSC | Importer ───────────────────────── */}
+                        {isImport && (
+                            <div className="space-y-2">
+                                <label className={labelClass}>BLSC (Selective Color) <span className="text-red-400">*</span></label>
+                                <div className="relative">
+                                    <select required value={form.blsc} onChange={e => set('blsc', e.target.value)} className={selectClass}>
+                                        {BLSC_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                                    </select>
+                                    <Icon name="chevron-down" className="w-4 h-4 absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                </div>
+                            </div>
+                        )}
 
                         {/* Client — Dropdown with checkbox fallback */}
                         <div className="space-y-2">
@@ -443,6 +449,7 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
                             )}
                         </div>
 
+                        {/* ── Row 4 (export only): Vessel | Destination Country */}
                         {!isImport && (
                             <div className="space-y-2">
                                 <label className={labelClass}>Vessel <span className="normal-case font-normal opacity-60">(optional)</span></label>
@@ -470,7 +477,6 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
                                 </div>
                             </div>
                         )}
-
 
                     </div>
                 </div>

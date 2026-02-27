@@ -31,6 +31,8 @@ export interface ArchiveDocument {
     month: number;                   // Archive period month (1-12)
     client: string;                  // Client name (importer/shipper)
     transaction_date: string;        // ISO date string (YYYY-MM-DD)
+    transaction_id: number;          // Parent transaction ID (for document uploads)
+    documentable_type: string;       // 'App\\Models\\ImportTransaction' | 'App\\Models\\ExportTransaction'
     stage: string;                   // e.g. 'boc', 'ppa', 'do', 'billing' — from path segment
     filename: string;                // original filename (stripped of timestamp prefix)
     formatted_size: string;          // e.g. '1.1 MB'
@@ -83,7 +85,12 @@ export const EXPORT_STAGES = [
     { key: 'billing', label: 'Billing' },
 ] as const;
 
-export const ARCHIVE_YEARS = [2022, 2023, 2024, 2025] as const;
+// Dynamic: 2015 → current year, newest first. Auto-expands each year without code changes.
+const _currentYear = new Date().getFullYear();
+export const ARCHIVE_YEARS: number[] = Array.from(
+    { length: _currentYear - 2015 + 1 },
+    (_, i) => _currentYear - i
+);
 
 export const BLSC_OPTIONS = [
     { value: 'green', label: 'Green' },

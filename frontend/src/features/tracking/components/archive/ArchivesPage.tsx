@@ -7,6 +7,8 @@ import { trackingApi } from '../../api/trackingApi';
 import { useArchives } from '../../hooks/useArchives';
 import type { LayoutContext } from '../../types';
 import type { ArchiveDocument, ArchiveYear, TransactionType } from '../../types/document.types';
+import { EXPORT_STAGES, IMPORT_STAGES } from '../../types/document.types';
+import { AddArchiveDocumentModal } from './AddArchiveDocumentModal';
 import { ArchiveDocumentRow } from './ArchiveDocumentRow';
 import { ArchiveLegacyUploadPage } from './ArchiveLegacyUploadPage';
 import { ArchiveYearCard } from './ArchiveYearCard';
@@ -92,6 +94,14 @@ const ArchivalDivider = ({ label }: { label: string }) => (
     </div>
 );
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+// Convert ALL CAPS client names to Title Case for readability
+const toTitleCase = (str: string) =>
+    str.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+
+type SortKey = 'bl' | 'client' | 'period' | 'files';
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export const ArchivesPage = () => {
@@ -102,6 +112,13 @@ export const ArchivesPage = () => {
     const [drill, setDrill]               = useState<DrillState>({ level: 'years' });
     const [showLegacyUpload, setShowLegacyUpload] = useState(false);
     const [search, setSearch]             = useState('');
+    const [sortKey, setSortKey]           = useState<SortKey>('period');
+    const [sortDir, setSortDir]           = useState<'asc' | 'desc'>('desc');
+
+    // Add document to existing BL modal state
+    const [addDocModal, setAddDocModal] = useState<{
+        isOpen: boolean; blNo: string; type: TransactionType; docs: ArchiveDocument[];
+    }>({ isOpen: false, blNo: '', type: 'import', docs: [] });
 
     const [confirmModal, setConfirmModal] = useState<{
         isOpen: boolean; title: string; message: string;
@@ -185,9 +202,12 @@ export const ArchivesPage = () => {
     })();
 
     // ── Shared page chrome (header + stat bar remain constant) ─────────────────
-    const totalDocs = archiveData.reduce((s, y) => s + y.documents.length, 0);
-    const yearRange = archiveData.length > 0
-        ? `${Math.min(...archiveData.map(y => y.year))} – ${Math.max(...archiveData.map(y => y.year))}`
+    const totalDocs    = archiveData.reduce((s, y) => s + y.documents.length, 0);
+    const uniqueBLs    = new Set(archiveData.flatMap(y => y.documents.map(d => d.bl_no))).size;
+    const totalImports = archiveData.reduce((s, y) => s + y.imports, 0);
+    const totalExports = archiveData.reduce((s, y) => s + y.exports, 0);
+    const yearRange    = archiveData.length > 0
+        ? `${Math.min(...archiveData.map(y => y.year))}–${Math.max(...archiveData.map(y => y.year))}`
         : '—';
 
     return (
@@ -231,17 +251,19 @@ export const ArchivesPage = () => {
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0"
                     style={{ borderColor: 'rgba(255,159,10,0.12)' }}>
-                    {[
-                        { label: 'Document Index', value: totalDocs.toLocaleString() },
-                        { label: 'Archive Groups', value: archiveData.length },
-                        { label: 'Total Records', value: totalDocs.toLocaleString() },
-                        { label: 'Coverage', value: yearRange },
-                    ].map(({ label, value }) => (
-                        <div key={label} className="px-4 py-3 bg-surface">
-                            <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider">{label}</p>
-                            <p className="text-lg font-black text-text-primary tabular-nums mt-0.5">{value}</p>
-                        </div>
-                    ))}
+                    {
+                        [
+                            { label: 'Total Documents', value: totalDocs.toLocaleString() },
+                            { label: 'Unique BLs',      value: uniqueBLs.toLocaleString() },
+                            { label: 'Imports / Exports', value: `${totalImports} / ${totalExports}` },
+                            { label: 'Coverage',        value: yearRange },
+                        ].map(({ label, value }) => (
+                            <div key={label} className="px-4 py-3 bg-surface">
+                                <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider">{label}</p>
+                                <p className="text-lg font-black text-text-primary tabular-nums mt-0.5">{value}</p>
+                            </div>
+                        ))
+                    }
                 </div>
             </div>
 
@@ -254,8 +276,8 @@ export const ArchivesPage = () => {
                     <Breadcrumb parts={breadcrumbParts} />
 
                     <div className="flex items-center gap-2 ml-auto">
-                        {/* Search (only relevant when showing files) */}
-                        {drill.level === 'files' && (
+                        {/* Search — BL folder level only */}
+                        {drill.level === 'bls' && (
                             <div className="relative">
                                 <svg className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted"
                                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -263,9 +285,30 @@ export const ArchivesPage = () => {
                                         d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                 </svg>
                                 <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-                                    placeholder="Filter files…"
-                                    className="pl-8 pr-3 h-8 w-48 rounded-md border border-border-strong bg-input-bg text-text-primary text-xs placeholder:text-text-muted focus:outline-none focus:border-blue-500/50 transition-colors" />
+                                    placeholder="Search BL / client…"
+                                    className="pl-8 pr-3 h-8 w-44 rounded-md border border-border-strong bg-input-bg text-text-primary text-xs placeholder:text-text-muted focus:outline-none focus:border-blue-500/50 transition-colors" />
                             </div>
+                        )}
+
+                        {/* Sort — BL folder level only */}
+                        {drill.level === 'bls' && (
+                            <select
+                                value={`${sortKey}:${sortDir}`}
+                                onChange={e => {
+                                    const [k, d] = e.target.value.split(':');
+                                    setSortKey(k as SortKey);
+                                    setSortDir(d as 'asc' | 'desc');
+                                }}
+                                className="h-8 px-2 rounded-md border border-border-strong bg-input-bg text-text-primary text-xs focus:outline-none focus:border-blue-500/50 transition-colors"
+                            >
+                                <option value="period:desc">Period ↓ (Newest)</option>
+                                <option value="period:asc">Period ↑ (Oldest)</option>
+                                <option value="bl:asc">BL Number A→Z</option>
+                                <option value="bl:desc">BL Number Z→A</option>
+                                <option value="client:asc">Client A→Z</option>
+                                <option value="files:desc">Most Files</option>
+                                <option value="files:asc">Fewest Files</option>
+                            </select>
                         )}
                         <button onClick={() => setShowLegacyUpload(true)}
                             className="flex items-center gap-1.5 px-3 h-8 rounded-md text-xs font-bold text-white shrink-0"
@@ -373,6 +416,24 @@ export const ArchivesPage = () => {
                         acc[key] = [...(acc[key] ?? []), d];
                         return acc;
                     }, {});
+
+                    // Apply search filter at BL level (BL number or client name)
+                    const filteredBlEntries = Object.entries(blGroups)
+                        .filter(([blNo, blDocs]) => {
+                            if (!search) return true;
+                            const q = search.toLowerCase();
+                            return blNo.toLowerCase().includes(q) || blDocs[0]?.client?.toLowerCase().includes(q);
+                        })
+                        .sort(([aNo, aDocs], [bNo, bDocs]) => {
+                            const dir = sortDir === 'asc' ? 1 : -1;
+                            if (sortKey === 'bl')     return aNo.localeCompare(bNo) * dir;
+                            if (sortKey === 'client') return (aDocs[0]?.client ?? '').localeCompare(bDocs[0]?.client ?? '') * dir;
+                            if (sortKey === 'files')  return (aDocs.length - bDocs.length) * dir;
+                            // default: period (transaction_date)
+                            const aDate = aDocs[0]?.transaction_date ?? '';
+                            const bDate = bDocs[0]?.transaction_date ?? '';
+                            return aDate.localeCompare(bDate) * dir;
+                        });
                     const color = FOLDER_COLOR[drill.type];
 
                     // Format date: "Jan 2024" for archive (last day of month = month-only precision)
@@ -391,32 +452,70 @@ export const ArchivesPage = () => {
                     return (
                         <div>
                             <div className="grid items-center gap-4 px-4 py-2 border-b border-border bg-surface-subtle"
-                                style={{ gridTemplateColumns: '24px 1fr 1fr 100px 80px 24px' }}>
-                                {['', 'BL Number', 'Client', 'Period', 'Files', ''].map((h, i) => (
+                                style={{ gridTemplateColumns: '24px 1fr 1fr 120px auto 32px 24px' }}>
+                                {['', 'BL Number', 'Client', 'Period', 'Stages', '', ''].map((h, i) => (
                                     <span key={i} className="text-[10px] font-bold text-text-muted uppercase tracking-wider">{h}</span>
                                 ))}
                             </div>
-                            {Object.entries(blGroups).map(([blNo, blDocs]) => {
-                                const firstDoc = blDocs[0];
+                            {filteredBlEntries.length === 0 ? (
+                                <div className="py-14 flex flex-col items-center gap-3 text-text-muted">
+                                    <Icon name="file-text" className="w-9 h-9 opacity-30" />
+                                    <p className="text-sm font-semibold">No BLs match &ldquo;{search}&rdquo;</p>
+                                </div>
+                            ) : filteredBlEntries.map(([blNo, blDocs]) => {
+                                const firstDoc     = blDocs[0];
+                                const uploadedKeys = new Set(blDocs.map(d => d.stage));
+                                const stageList    = drill.type === 'import' ? IMPORT_STAGES : EXPORT_STAGES;
+                                const doneCount    = stageList.filter(s => uploadedKeys.has(s.key)).length;
+                                const isComplete   = doneCount === stageList.length;
                                 return (
-                                    <button key={blNo} onClick={() => nav({ level: 'files', year: drill.year, type: drill.type, month: drill.month, bl: blNo })}
+                                    <div key={blNo}
                                         className="w-full grid items-center gap-4 px-4 py-3 border-b border-border/50 hover:bg-hover transition-colors text-left group"
-                                        style={{ gridTemplateColumns: '24px 1fr 1fr 100px 80px 24px' }}>
+                                        style={{ gridTemplateColumns: '24px 1fr 1fr 120px auto 32px 24px' }}>
                                         <FolderIcon color={color} />
-                                        <span className="text-sm font-semibold text-text-primary truncate group-hover:underline underline-offset-2">
+                                        <button onClick={() => nav({ level: 'files', year: drill.year, type: drill.type, month: drill.month, bl: blNo })}
+                                            className="text-sm font-semibold text-text-primary truncate group-hover:underline underline-offset-2 text-left font-mono">
                                             {blNo}/
-                                        </span>
+                                        </button>
                                         <span className="text-xs text-text-secondary truncate">
-                                            {firstDoc?.client ?? '—'}
+                                            {toTitleCase(firstDoc?.client ?? '—')}
                                         </span>
                                         <span className="text-xs text-text-muted tabular-nums">
                                             {firstDoc?.transaction_date ? formatPeriod(firstDoc.transaction_date) : '—'}
                                         </span>
-                                        <span className="text-xs text-text-muted shrink-0">
-                                            {blDocs.length} {blDocs.length === 1 ? 'file' : 'files'}
-                                        </span>
-                                        <ChevronRight />
-                                    </button>
+
+                                        {/* Stage completeness dots */}
+                                        <div className="flex items-center gap-1" title={`${doneCount}/${stageList.length} stages uploaded`}>
+                                            {stageList.map(s => (
+                                                <span key={s.key}
+                                                    className={`w-2 h-2 rounded-full transition-colors ${
+                                                        uploadedKeys.has(s.key)
+                                                            ? 'bg-green-500'
+                                                            : 'bg-border-strong'
+                                                    }`}
+                                                    title={s.label}
+                                                />
+                                            ))}
+                                            <span className={`text-[10px] font-bold ml-1 ${
+                                                isComplete ? 'text-green-500' : 'text-amber-500'
+                                            }`}>
+                                                {doneCount}/{stageList.length}
+                                            </span>
+                                        </div>
+
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setAddDocModal({ isOpen: true, blNo, type: drill.type, docs: blDocs });
+                                            }}
+                                            className="w-7 h-7 rounded-md flex items-center justify-center border border-border text-text-muted hover:bg-hover hover:text-text-primary transition-colors"
+                                            title="Add document to this BL">
+                                            <Icon name="plus" className="w-3.5 h-3.5" />
+                                        </button>
+                                        <button onClick={() => nav({ level: 'files', year: drill.year, type: drill.type, month: drill.month, bl: blNo })}>
+                                            <ChevronRight />
+                                        </button>
+                                    </div>
                                 );
                             })}
                         </div>
@@ -426,17 +525,12 @@ export const ArchivesPage = () => {
                 {/* ── LEVEL 5: Files ───────────────────────────────────── */}
                 {drill.level === 'files' && (() => {
                     const fileDocs = drill.year.documents
-                        .filter(d => d.type === drill.type && d.month === drill.month && (d.bl_no || '(no BL)') === drill.bl)
-                        .filter(d => {
-                            if (!search) return true;
-                            const q = search.toLowerCase();
-                            return d.filename.toLowerCase().includes(q) || d.stage.toLowerCase().includes(q);
-                        });
+                        .filter(d => d.type === drill.type && d.month === drill.month && (d.bl_no || '(no BL)') === drill.bl);
 
                     if (fileDocs.length === 0) return (
                         <div className="py-14 flex flex-col items-center gap-3 text-text-muted">
                             <Icon name="file-text" className="w-9 h-9 opacity-30" />
-                            <p className="text-sm font-semibold">No files{search ? ' match your search' : ' in this folder'}</p>
+                            <p className="text-sm font-semibold">No files in this folder</p>
                         </div>
                     );
 
@@ -460,6 +554,14 @@ export const ArchivesPage = () => {
             <ConfirmationModal isOpen={confirmModal.isOpen} onClose={() => setConfirmModal(m => ({ ...m, isOpen: false }))}
                 onConfirm={confirmModal.onConfirm} title={confirmModal.title} message={confirmModal.message}
                 confirmText={confirmModal.confirmText} confirmButtonClass={confirmModal.confirmButtonClass} />
+
+            <AddArchiveDocumentModal
+                isOpen={addDocModal.isOpen}
+                onClose={() => setAddDocModal(m => ({ ...m, isOpen: false }))}
+                blNo={addDocModal.blNo}
+                type={addDocModal.type}
+                existingDocs={addDocModal.docs}
+            />
         </div>
     );
 };
