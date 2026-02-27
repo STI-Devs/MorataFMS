@@ -17,21 +17,18 @@ export const ArchiveYearCard = ({ archive, onClick }: Props) => {
         <div
             onClick={onClick}
             role="button"
-            className="group grid items-center gap-4 cursor-pointer border-b border-border/50 hover:bg-hover transition-all duration-150 px-4"
+            className="group grid items-center gap-4 px-4 cursor-pointer border-b border-border/50 hover:bg-hover transition-all duration-150"
             style={{ gridTemplateColumns: '24px 1fr 80px 100px 24px', minHeight: '64px' }}
         >
-            {/* Folder icon */}
-            <div className="flex items-center justify-center"
-                style={{ borderLeft: '2px solid rgba(255,159,10,0.35)' }}>
-                <svg className="w-4 h-4 ml-2 transition-all duration-200 group-hover:scale-110"
-                    fill="none" stroke="rgba(255,159,10,0.65)" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75}
-                        d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />
-                </svg>
-            </div>
+            {/* Folder icon — same 24px cell as ColHeader's empty first column */}
+            <svg className="w-4 h-4 shrink-0 transition-all duration-200 group-hover:scale-110"
+                fill="none" stroke="rgba(255,159,10,0.65)" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75}
+                    d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />
+            </svg>
 
-            {/* Year + type badges */}
-            <div className="min-w-0 py-3.5 flex flex-col justify-center gap-1.5">
+            {/* Year + type badges — same 1fr cell as ColHeader "Name" */}
+            <div className="min-w-0 py-3 flex flex-col justify-center gap-1">
                 <p className="text-[9px] font-bold tracking-[0.2em] uppercase"
                     style={{ color: 'rgba(255,159,10,0.55)' }}>
                     FY {archive.year}
@@ -55,32 +52,21 @@ export const ArchiveYearCard = ({ archive, onClick }: Props) => {
                 </div>
             </div>
 
-            {/* FILES column — total document files */}
-            <div className="text-right">
-                <p className="text-sm font-semibold tabular-nums text-text-secondary">
-                    {archive.documents.length}
-                </p>
-                <p className="text-[10px] text-text-muted">files</p>
-            </div>
+            {/* Files — 80px cell matching ColHeader "Files" */}
+            <span className="text-xs text-text-muted tabular-nums text-right">
+                {archive.documents.length} {archive.documents.length === 1 ? 'file' : 'files'}
+            </span>
 
-            {/* BL RECORDS column — number of BL transactions */}
-            <div className="text-right">
-                <p className="text-sm font-semibold tabular-nums text-text-primary">
-                    {blCount}
-                </p>
-                <p className="text-[10px] text-text-muted">
-                    {blCount === 1 ? 'BL' : 'BLs'}
-                </p>
-            </div>
+            {/* BL Records — 100px cell matching ColHeader "BL Records" */}
+            <span className="text-xs text-text-muted tabular-nums text-right">
+                {blCount} {blCount === 1 ? 'BL' : 'BLs'}
+            </span>
 
-            {/* Chevron */}
-            <div className="flex items-center justify-center">
-                <svg className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform duration-150"
-                    style={{ color: 'rgba(255,159,10,0.5)' }}
-                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-            </div>
+            {/* Chevron — 24px cell */}
+            <svg className="w-3.5 h-3.5 text-text-muted shrink-0 group-hover:translate-x-0.5 transition-transform duration-150"
+                fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
         </div>
     );
 };
