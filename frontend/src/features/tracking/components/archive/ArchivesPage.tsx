@@ -512,15 +512,16 @@ export const ArchivesPage = () => {
                     const types: TransactionType[] = ['import', 'export'];
                     return (
                         <div>
-                            <ColHeader cols={['', 'Name', 'Files', '']} template="24px 1fr 80px 24px" alignRight={new Set([2])} />
+                            <ColHeader cols={['', 'Name', 'BLs', '']} template="24px 1fr 80px 24px" alignRight={new Set([2])} />
                             {types.map(txType => {
-                                const count = drill.year.documents.filter(d => d.type === txType).length;
-                                if (count === 0) return null;
+                                const typeDocs = drill.year.documents.filter(d => d.type === txType);
+                                if (typeDocs.length === 0) return null;
+                                const blCount = new Set(typeDocs.map(d => d.bl_no)).size;
                                 return (
                                     <FolderRow key={txType}
                                         icon={<FolderSVG color={FOLDER_COLOR[txType]} />}
                                         label={FOLDER_LABEL[txType] + '/'}
-                                        meta={`${count} ${count === 1 ? 'file' : 'files'}`}
+                                        meta={`${blCount} ${blCount === 1 ? 'BL' : 'BLs'}`}
                                         onClick={() => nav({ level: 'months', year: drill.year, type: txType })}
                                         template="24px 1fr 80px 24px"
                                     />
@@ -533,23 +534,25 @@ export const ArchivesPage = () => {
                 {/* ── LEVEL 3: Month folders ────────────────────────────────── */}
                 {!globalSearch.trim() && drill.level === 'months' && (() => {
                     const typeDocs = drill.year.documents.filter(d => d.type === drill.type);
-                    const monthGroups = typeDocs.reduce<Record<number, number>>((acc, d) => {
-                        acc[d.month] = (acc[d.month] ?? 0) + 1;
+                    // Group by month → count unique BLs per month
+                    const monthBlMap = typeDocs.reduce<Record<number, Set<string>>>((acc, d) => {
+                        if (!acc[d.month]) acc[d.month] = new Set();
+                        acc[d.month].add(d.bl_no ?? String(d.id));
                         return acc;
                     }, {});
                     const color = FOLDER_COLOR[drill.type];
-                    const sortedMonths = Object.entries(monthGroups)
-                        .map(([m, count]) => ({ month: Number(m), count }))
+                    const sortedMonths = Object.entries(monthBlMap)
+                        .map(([m, bls]) => ({ month: Number(m), blCount: bls.size }))
                         .sort((a, b) => a.month - b.month);
 
                     return (
                         <div>
-                            <ColHeader cols={['', 'Name', 'Files', '']} template="24px 1fr 80px 24px" alignRight={new Set([2])} />
-                            {sortedMonths.map(({ month, count }) => (
+                            <ColHeader cols={['', 'Name', 'BLs', '']} template="24px 1fr 80px 24px" alignRight={new Set([2])} />
+                            {sortedMonths.map(({ month, blCount }) => (
                                 <FolderRow key={month}
                                     icon={<FolderSVG color={color} />}
                                     label={MONTH_NAMES[month - 1] + '/'}
-                                    meta={`${count} ${count === 1 ? 'file' : 'files'}`}
+                                    meta={`${blCount} ${blCount === 1 ? 'BL' : 'BLs'}`}
                                     onClick={() => nav({ level: 'bls', year: drill.year, type: drill.type, month })}
                                     template="24px 1fr 80px 24px"
                                 />
