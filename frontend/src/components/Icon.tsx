@@ -25,7 +25,8 @@ export type IconName =
     | 'credit-card'
     | 'alert-circle'
     | 'more-vertical'
-    | 'ban';
+    | 'ban'
+    | 'archive';
 
 interface IconProps extends SVGProps<SVGSVGElement> {
     name: IconName;
@@ -57,6 +58,7 @@ const ICONS: Record<IconName, ReactElement> = {
     'x': <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />,
     'more-vertical': <><circle cx="12" cy="5" r="1" fill="currentColor" /><circle cx="12" cy="12" r="1" fill="currentColor" /><circle cx="12" cy="19" r="1" fill="currentColor" /></>,
     'ban': <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />,
+    'archive': <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />,
 };
 
 export const Icon: React.FC<IconProps> = ({ name, className = "w-5 h-5", ...props }) => {

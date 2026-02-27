@@ -30,6 +30,8 @@ export interface ArchiveDocument {
     bl_no: string;                   // Bill of Lading — from path segment
     month: number;                   // Archive period month (1-12)
     client: string;                  // Client name (importer/shipper)
+    selective_color?: 'green' | 'yellow' | 'red' | null; // Import only — BLSC
+    destination_country?: string | null;                  // Export only — destination
     transaction_date: string;        // ISO date string (YYYY-MM-DD)
     transaction_id: number;          // Parent transaction ID (for document uploads)
     documentable_type: string;       // 'App\\Models\\ImportTransaction' | 'App\\Models\\ExportTransaction'

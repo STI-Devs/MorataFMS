@@ -54,6 +54,7 @@ class ArchiveController extends Controller
                     'bl_no' => $t->bl_no,
                     'month' => $t->arrival_date?->month ?? $t->created_at->month,
                     'client' => $t->importer?->name ?? 'Unknown',
+                    'selective_color' => $t->selective_color,
                     'transaction_date' => ($t->arrival_date ?? $t->created_at)->toDateString(),
                     'transaction_id' => $t->id,
                     'documentable_type' => 'App\\Models\\ImportTransaction',
@@ -69,7 +70,7 @@ class ArchiveController extends Controller
             ]);
 
         $exports = ExportTransaction::where('is_archive', true)
-            ->with(['documents.uploadedBy', 'shipper'])
+            ->with(['documents.uploadedBy', 'shipper', 'destinationCountry'])
             ->get()
             ->map(fn($t) => [
                 'transaction_type' => 'export',
@@ -84,6 +85,7 @@ class ArchiveController extends Controller
                     'bl_no' => $t->bl_no,
                     'month' => $t->export_date?->month ?? $t->created_at->month,
                     'client' => $t->shipper?->name ?? 'Unknown',
+                    'destination_country' => $t->destinationCountry?->name ?? null,
                     'transaction_date' => ($t->export_date ?? $t->created_at)->toDateString(),
                     'transaction_id' => $t->id,
                     'documentable_type' => 'App\\Models\\ExportTransaction',
