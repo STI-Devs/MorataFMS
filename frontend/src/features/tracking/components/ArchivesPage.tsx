@@ -202,7 +202,7 @@ export const ArchivesPage = () => {
                             <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Archive Completeness</p>
                             <CircularProgress pct={globalPct} />
                         </div>
-                        <div className="flex-1 grid grid-cols-2 gap-x-5 gap-y-3 mt-1">
+                        <div className="flex-1 grid grid-cols-2 gap-x-5 gap-y-3">
                             <div>
                                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Total BL Records</p>
                                 <p className="text-2xl font-black text-gray-800 tabular-nums leading-tight mt-0.5">{totalBLs.toLocaleString()}</p>
