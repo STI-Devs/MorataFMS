@@ -270,8 +270,8 @@ const YearRow = ({ yr, isOpen, toggleYear, filterType, filterStatus, nav, openMe
                 </div>
             </div>
 
-            {isOpen && (
-                <div>
+            <div className={`grid transition-all duration-300 ease-in-out ${isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+                <div className="overflow-hidden">
                     <div className="grid items-center gap-3 px-5 py-2 border-b border-t border-gray-100 bg-gray-50/70 sticky top-0 z-10"
                         style={{ gridTemplateColumns: '28px 1fr 70px 80px 80px 110px 120px 100px' }}>
                         {['', 'Folder Name', 'Files', 'BL Records', 'Completion', 'Status', 'Last Updated', 'Actions'].map((h, i) => (
@@ -287,7 +287,7 @@ const YearRow = ({ yr, isOpen, toggleYear, filterType, filterStatus, nav, openMe
                             onViewHistory={onViewHistory} />
                     ))}
                 </div>
-            )}
+            </div>
         </div>
     );
 };
