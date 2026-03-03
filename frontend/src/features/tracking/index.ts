@@ -1,4 +1,4 @@
-export { ArchivesPage } from './components/archive/ArchivesPage';
+export { ArchivesPage } from './components/ArchivesPage';
 export { CalendarCard } from './components/dashboard/CalendarCard';
 export { TrackingDashboard } from './components/dashboard/TrackingDashboard';
 export { Documents } from './components/documents/Documents';

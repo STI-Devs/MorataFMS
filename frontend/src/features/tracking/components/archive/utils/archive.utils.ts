@@ -12,6 +12,13 @@ export type ViewMode = 'folder' | 'document';
 export type DocStatusFilter = 'all' | 'complete' | 'incomplete';
 export type SortKey = 'bl' | 'client' | 'period' | 'files';
 
+const ROLE_RANK: Record<string, number> = {
+    encoder: 1, broker: 2, supervisor: 3, manager: 4, admin: 5,
+};
+export const hasRoleAtLeast = (userRole: string | undefined, minRole: string): boolean =>
+    (ROLE_RANK[userRole ?? ''] ?? 0) >= (ROLE_RANK[minRole] ?? 99);
+
+
 export const FOLDER_COLOR = { import: '#16a34a', export: '#2563eb' } as const;
 export const FOLDER_LABEL = { import: 'imports', export: 'exports' } as const;
 export const MONTH_NAMES = [

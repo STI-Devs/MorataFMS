@@ -1,17 +1,24 @@
+import { useState } from 'react';
+import { useAuth } from '../../../auth/hooks/useAuth';
 import type { ArchiveDocument, ArchiveYear, TransactionType } from '../../types/document.types';
 import { EXPORT_STAGES, IMPORT_STAGES } from '../../types/document.types';
+import { UploadHistoryPanel } from './UploadHistoryPanel';
 import { FolderSVG } from './ui/FolderSVG';
 import type { DocStatusFilter, DrillState } from './utils/archive.utils';
-import { FOLDER_COLOR, MONTH_NAMES, computeGlobalCompleteness } from './utils/archive.utils';
+import { FOLDER_COLOR, MONTH_NAMES, computeGlobalCompleteness, hasRoleAtLeast } from './utils/archive.utils';
 
 interface FolderRowMenuProps {
     folderName: string;
     menuKey: string;
     openMenuKey: string | null;
     setOpenMenuKey: (key: string | null) => void;
+    docs: ArchiveDocument[];
+    type: TransactionType;
+    canDelete: boolean;
+    onViewHistory: () => void;
 }
 
-export const FolderRowMenu = ({ folderName, menuKey, openMenuKey, setOpenMenuKey }: FolderRowMenuProps) => (
+export const FolderRowMenu = ({ folderName, menuKey, openMenuKey, setOpenMenuKey, canDelete, onViewHistory }: FolderRowMenuProps) => (
     <div className="relative">
         <button
             title="More options"
@@ -32,6 +39,7 @@ export const FolderRowMenu = ({ folderName, menuKey, openMenuKey, setOpenMenuKey
             <>
                 <div className="fixed inset-0 z-20" onClick={() => setOpenMenuKey(null)} />
                 <div className="absolute right-0 top-8 z-30 w-56 bg-white rounded-xl border border-gray-200 shadow-lg py-1 overflow-hidden">
+                    {/* Download */}
                     <button
                         onClick={() => { setOpenMenuKey(null); alert(`Downloading ${folderName}... (backend pending)`); }}
                         className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-gray-50 transition-colors">
@@ -46,8 +54,9 @@ export const FolderRowMenu = ({ folderName, menuKey, openMenuKey, setOpenMenuKey
 
                     <div className="my-1 border-t border-gray-100" />
 
+                    {/* Upload History */}
                     <button
-                        onClick={() => { setOpenMenuKey(null); alert('View Upload History — (coming soon)'); }}
+                        onClick={() => { setOpenMenuKey(null); onViewHistory(); }}
                         className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-gray-50 transition-colors">
                         <svg className="w-4 h-4 shrink-0 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -58,19 +67,23 @@ export const FolderRowMenu = ({ folderName, menuKey, openMenuKey, setOpenMenuKey
                         </div>
                     </button>
 
-                    <div className="my-1 border-t border-gray-100" />
-
-                    <button
-                        onClick={() => { setOpenMenuKey(null); alert('Delete Folder — (coming soon, admin only)'); }}
-                        className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-red-50 transition-colors">
-                        <svg className="w-4 h-4 shrink-0 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                        <div>
-                            <p className="text-xs font-semibold text-red-600">Delete Folder</p>
-                            <p className="text-[10px] text-red-400">Admin only — irreversible</p>
-                        </div>
-                    </button>
+                    {/* Delete — supervisor+ only */}
+                    {canDelete && (
+                        <>
+                            <div className="my-1 border-t border-gray-100" />
+                            <button
+                                onClick={() => { setOpenMenuKey(null); alert('Delete Folder — (backend pending)'); }}
+                                className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-red-50 transition-colors">
+                                <svg className="w-4 h-4 shrink-0 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                                <div>
+                                    <p className="text-xs font-semibold text-red-600">Delete Folder</p>
+                                    <p className="text-[10px] text-red-400">Supervisor+ only — irreversible</p>
+                                </div>
+                            </button>
+                        </>
+                    )}
                 </div>
             </>
         )}
@@ -86,9 +99,12 @@ interface SubFolderRowProps {
     nav: (next: DrillState) => void;
     openMenuKey: string | null;
     setOpenMenuKey: (key: string | null) => void;
+    onViewHistory: (folderName: string, docs: ArchiveDocument[], type: TransactionType) => void;
 }
 
-export const SubFolderRow = ({ groupKey, docs, yr, filterStatus, nav, openMenuKey, setOpenMenuKey }: SubFolderRowProps) => {
+export const SubFolderRow = ({ groupKey, docs, yr, filterStatus, nav, openMenuKey, setOpenMenuKey, onViewHistory }: SubFolderRowProps) => {
+    const { user } = useAuth();
+    const canDelete = hasRoleAtLeast(user?.role, 'supervisor');
     const [monthStr, txType] = groupKey.split('|') as [string, TransactionType];
     const month = Number(monthStr);
 
@@ -155,6 +171,10 @@ export const SubFolderRow = ({ groupKey, docs, yr, filterStatus, nav, openMenuKe
                     menuKey={groupKey}
                     openMenuKey={openMenuKey}
                     setOpenMenuKey={setOpenMenuKey}
+                    docs={docs}
+                    type={txType}
+                    canDelete={canDelete}
+                    onViewHistory={() => onViewHistory(folderName, docs, txType)}
                 />
             </div>
         </div>
@@ -171,9 +191,10 @@ interface YearRowProps {
     nav: (next: DrillState) => void;
     openMenuKey: string | null;
     setOpenMenuKey: (key: string | null) => void;
+    onViewHistory: (folderName: string, docs: ArchiveDocument[], type: TransactionType) => void;
 }
 
-const YearRow = ({ yr, isOpen, toggleYear, filterType, filterStatus, nav, openMenuKey, setOpenMenuKey }: YearRowProps) => {
+const YearRow = ({ yr, isOpen, toggleYear, filterType, filterStatus, nav, openMenuKey, setOpenMenuKey, onViewHistory }: YearRowProps) => {
     const grouped = new Map<string, ArchiveDocument[]>();
     for (const doc of yr.documents) {
         const k = `${doc.month}|${doc.type}`;
@@ -262,7 +283,8 @@ const YearRow = ({ yr, isOpen, toggleYear, filterType, filterStatus, nav, openMe
                     ) : visibleGroups.map(([key, docs]) => (
                         <SubFolderRow key={key} groupKey={key} docs={docs} yr={yr}
                             filterStatus={filterStatus} nav={nav}
-                            openMenuKey={openMenuKey} setOpenMenuKey={setOpenMenuKey} />
+                            openMenuKey={openMenuKey} setOpenMenuKey={setOpenMenuKey}
+                            onViewHistory={onViewHistory} />
                     ))}
                 </div>
             )}
@@ -271,6 +293,12 @@ const YearRow = ({ yr, isOpen, toggleYear, filterType, filterStatus, nav, openMe
 };
 
 // ─── Main FolderView export ────────────────────────────────────────────────────
+interface HistoryTarget {
+    folderName: string;
+    docs: ArchiveDocument[];
+    type: TransactionType;
+}
+
 interface ArchivesFolderViewProps {
     archiveData: ArchiveYear[];
     filterYear: string;
@@ -288,6 +316,7 @@ export const ArchivesFolderView = ({
     archiveData, filterYear, filterType, filterStatus,
     expandedYears, toggleYear, nav, openMenuKey, setOpenMenuKey, onOpenUpload,
 }: ArchivesFolderViewProps) => {
+    const [historyTarget, setHistoryTarget] = useState<HistoryTarget | null>(null);
     const filteredYears = filterYear === 'all' ? archiveData : archiveData.filter(y => String(y.year) === filterYear);
 
     if (filteredYears.length === 0) return (
@@ -309,18 +338,29 @@ export const ArchivesFolderView = ({
     );
 
     return (
-        <div>
-            {filteredYears.map(yr => (
-                <YearRow key={yr.year} yr={yr}
-                    isOpen={expandedYears.has(yr.year)}
-                    toggleYear={toggleYear}
-                    filterType={filterType}
-                    filterStatus={filterStatus}
-                    nav={nav}
-                    openMenuKey={openMenuKey}
-                    setOpenMenuKey={setOpenMenuKey}
-                />
-            ))}
-        </div>
+        <>
+            <div>
+                {filteredYears.map(yr => (
+                    <YearRow key={yr.year} yr={yr}
+                        isOpen={expandedYears.has(yr.year)}
+                        toggleYear={toggleYear}
+                        filterType={filterType}
+                        filterStatus={filterStatus}
+                        nav={nav}
+                        openMenuKey={openMenuKey}
+                        setOpenMenuKey={setOpenMenuKey}
+                        onViewHistory={(folderName, docs, type) => setHistoryTarget({ folderName, docs, type })}
+                    />
+                ))}
+            </div>
+
+            <UploadHistoryPanel
+                isOpen={historyTarget !== null}
+                onClose={() => setHistoryTarget(null)}
+                folderName={historyTarget?.folderName ?? ''}
+                docs={historyTarget?.docs ?? []}
+                type={historyTarget?.type ?? 'import'}
+            />
+        </>
     );
 };

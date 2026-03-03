@@ -38,6 +38,7 @@ export interface ArchiveDocument {
     stage: string;                   // e.g. 'boc', 'ppa', 'do', 'billing' — from path segment
     filename: string;                // original filename (stripped of timestamp prefix)
     formatted_size: string;          // e.g. '1.1 MB'
+    size_bytes: number;              // raw byte count (for summing total storage)
     uploaded_at: string;             // ISO timestamp
     uploader: { id: number; name: string } | null;
 }

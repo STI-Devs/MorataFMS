@@ -1,28 +1,28 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { ConfirmationModal } from '../../../../components/ConfirmationModal';
-import { Icon } from '../../../../components/Icon';
-import { trackingApi } from '../../api/trackingApi';
-import { useArchives } from '../../hooks/useArchives';
-import type { LayoutContext } from '../../types';
-import type { ArchiveDocument, ArchiveYear, TransactionType } from '../../types/document.types';
-import { EXPORT_STAGES, IMPORT_STAGES } from '../../types/document.types';
-import { AddArchiveDocumentModal } from './AddArchiveDocumentModal';
-import { ArchiveDocumentRow } from './ArchiveDocumentRow';
-import { ArchiveLegacyUploadPage } from './ArchiveLegacyUploadPage';
-import { ArchivesFolderView } from './ArchivesFolderView';
-import { ArchivesBLView, ArchivesDocumentView, GlobalSearchResults } from './ArchivesViews';
-import { Breadcrumb } from './ui/Breadcrumb';
-import { CircularProgress } from './ui/CircularProgress';
-import { ColHeader } from './ui/ColHeader';
-import { EmptyState } from './ui/EmptyState';
-import { ViewToggle } from './ui/ViewToggle';
-import type { DocStatusFilter, DrillState, SortKey, ViewMode } from './utils/archive.utils';
+import { ConfirmationModal } from '../../../components/ConfirmationModal';
+import { Icon } from '../../../components/Icon';
+import { trackingApi } from '../api/trackingApi';
+import { useArchives } from '../hooks/useArchives';
+import type { LayoutContext } from '../types';
+import type { ArchiveDocument, ArchiveYear, TransactionType } from '../types/document.types';
+import { EXPORT_STAGES, IMPORT_STAGES } from '../types/document.types';
+import { AddArchiveDocumentModal } from './archive/AddArchiveDocumentModal';
+import { ArchiveDocumentRow } from './archive/ArchiveDocumentRow';
+import { ArchiveLegacyUploadPage } from './archive/ArchiveLegacyUploadPage';
+import { ArchivesFolderView } from './archive/ArchivesFolderView';
+import { ArchivesBLView, ArchivesDocumentView, GlobalSearchResults } from './archive/ArchivesViews';
+import { Breadcrumb } from './archive/ui/Breadcrumb';
+import { CircularProgress } from './archive/ui/CircularProgress';
+import { ColHeader } from './archive/ui/ColHeader';
+import { EmptyState } from './archive/ui/EmptyState';
+import { ViewToggle } from './archive/ui/ViewToggle';
+import type { DocStatusFilter, DrillState, SortKey, ViewMode } from './archive/utils/archive.utils';
 import {
     computeGlobalCompleteness, countIncompleteBLs,
     FOLDER_LABEL, MONTH_NAMES,
-} from './utils/archive.utils';
+} from './archive/utils/archive.utils';
 
 export const ArchivesPage = () => {
     const { dateTime } = useOutletContext<LayoutContext>();
@@ -146,18 +146,35 @@ export const ArchivesPage = () => {
     const completedBLs  = totalBLs - incompleteBLs;
     const totalImports  = archiveData.reduce((s, y) => s + y.imports, 0);
     const totalExports  = archiveData.reduce((s, y) => s + y.exports, 0);
+    const totalDocs     = archiveData.reduce((s, y) => s + y.documents.length, 0);
+    const totalStorageBytes = archiveData.reduce(
+        (s, y) => s + y.documents.reduce((ds, d) => ds + (d.size_bytes ?? 0), 0), 0
+    );
+    const formatBytes = (bytes: number) => {
+        if (bytes === 0) return '0 B';
+        const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(1024));
+        return `${(bytes / Math.pow(1024, i)).toFixed(i === 0 ? 0 : 2)} ${units[i]}`;
+    };
     const availableYears = archiveData.map(y => y.year);
     const oldestYear = availableYears.length ? Math.min(...availableYears) : null;
     const newestYear = availableYears.length ? Math.max(...availableYears) : null;
 
     // ── Breadcrumb ─────────────────────────────────────────────────────────────
+    // navToYear: go back to the year accordion AND auto-expand that year so
+    // the sub-folders are immediately visible (avoids the empty 'types'/'months' states).
+    const navToYear = (yr: ArchiveYear) => {
+        nav({ level: 'years' });
+        setExpandedYears(prev => new Set([...prev, yr.year]));
+    };
+
     const baseCrumb = { label: 'Archives', onClick: drill.level !== 'years' ? () => nav({ level: 'years' }) : undefined };
     const breadcrumbParts = (() => {
         if (drill.level === 'years')  return [baseCrumb];
         if (drill.level === 'types')  return [baseCrumb, { label: String(drill.year.year) }];
-        if (drill.level === 'months') return [baseCrumb, { label: String(drill.year.year), onClick: () => nav({ level: 'types', year: drill.year }) }, { label: FOLDER_LABEL[drill.type as keyof typeof FOLDER_LABEL] + '/' }];
-        if (drill.level === 'bls')    return [baseCrumb, { label: String(drill.year.year), onClick: () => nav({ level: 'types', year: drill.year }) }, { label: FOLDER_LABEL[drill.type as keyof typeof FOLDER_LABEL] + '/', onClick: () => nav({ level: 'months', year: drill.year, type: drill.type }) }, { label: MONTH_NAMES[drill.month - 1] + '/' }];
-        return [baseCrumb, { label: String(drill.year.year), onClick: () => nav({ level: 'types', year: drill.year }) }, { label: FOLDER_LABEL[drill.type as keyof typeof FOLDER_LABEL] + '/', onClick: () => nav({ level: 'months', year: drill.year, type: drill.type }) }, { label: MONTH_NAMES[drill.month - 1] + '/', onClick: () => nav({ level: 'bls', year: drill.year, type: drill.type, month: drill.month }) }, { label: drill.bl + '/' }];
+        if (drill.level === 'months') return [baseCrumb, { label: String(drill.year.year), onClick: () => navToYear(drill.year) }, { label: FOLDER_LABEL[drill.type as keyof typeof FOLDER_LABEL] + '/' }];
+        if (drill.level === 'bls')    return [baseCrumb, { label: String(drill.year.year), onClick: () => navToYear(drill.year) }, { label: FOLDER_LABEL[drill.type as keyof typeof FOLDER_LABEL] + '/', onClick: () => navToYear(drill.year) }, { label: MONTH_NAMES[drill.month - 1] + '/' }];
+        return [baseCrumb, { label: String(drill.year.year), onClick: () => navToYear(drill.year) }, { label: FOLDER_LABEL[drill.type as keyof typeof FOLDER_LABEL] + '/', onClick: () => navToYear(drill.year) }, { label: MONTH_NAMES[drill.month - 1] + '/', onClick: () => nav({ level: 'bls', year: drill.year, type: drill.type, month: drill.month }) }, { label: drill.bl + '/' }];
     })();
 
     return (
@@ -180,8 +197,8 @@ export const ArchivesPage = () => {
                 <div className="flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-gray-100">
                     {/* Left: completeness ring + KPIs */}
                     <div className="p-5 flex items-start gap-5 min-w-0">
-                        <div className="shrink-0">
-                            <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Doc. Completeness</p>
+                        <div className="shrink-0 flex flex-col items-center">
+                            <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Archive Completeness</p>
                             <CircularProgress pct={globalPct} />
                         </div>
                         <div className="flex-1 grid grid-cols-2 gap-x-5 gap-y-3 mt-1">
@@ -209,6 +226,23 @@ export const ArchivesPage = () => {
                                 <div className="flex items-baseline gap-2">
                                     <span className="text-lg font-black text-indigo-600 tabular-nums">{totalExports}</span>
                                     <span className="text-[10px] font-bold text-indigo-400 uppercase">Export</span>
+                                </div>
+                            </div>
+                            {/* Storage — spans full row */}
+                            <div className="col-span-2 pt-2.5 mt-1 border-t border-gray-100 flex items-center justify-between gap-4">
+                                <div>
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Storage Used</p>
+                                    <p className="text-2xl font-black text-gray-800 tabular-nums leading-tight mt-0.5">
+                                        {formatBytes(totalStorageBytes)}
+                                    </p>
+                                    <p className="text-[10px] text-gray-400 mt-0.5">{totalDocs.toLocaleString()} files stored in cloud</p>
+                                </div>
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                    <svg className="w-3.5 h-3.5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75}
+                                            d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+                                    </svg>
+                                    <span className="text-[10px] font-bold text-orange-500 uppercase tracking-wider">Cloud Storage</span>
                                 </div>
                             </div>
                         </div>
@@ -287,7 +321,7 @@ export const ArchivesPage = () => {
                     className="flex items-center gap-2 px-5 h-10 rounded-xl text-sm font-bold text-white shrink-0 hover:opacity-90 shadow-sm"
                     style={{ backgroundColor: '#f97316' }}>
                     <Icon name="plus" className="w-4 h-4" />
-                    + Upload Document
+                    Upload Document
                 </button>
             </div>
 
@@ -297,10 +331,22 @@ export const ArchivesPage = () => {
                 {/* Toolbar: breadcrumb + sort + view toggle */}
                 <div className="flex items-center justify-between gap-3 px-5 py-3 border-b border-gray-100 bg-white">
                     <div className="flex items-center gap-2">
-                        <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
-                        </svg>
-                        <Breadcrumb parts={breadcrumbParts} />
+                        {viewMode === 'document' ? (
+                            <>
+                                <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                <span className="text-sm font-semibold text-gray-700">All BL Records</span>
+                                <span className="text-xs text-gray-400 font-medium">· {flatDocumentList.length} entries</span>
+                            </>
+                        ) : (
+                            <>
+                                <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
+                                </svg>
+                                <Breadcrumb parts={breadcrumbParts} />
+                            </>
+                        )}
                     </div>
                     <div className="flex items-center gap-2 ml-auto shrink-0">
                         {drill.level === 'bls' && viewMode === 'folder' && (
