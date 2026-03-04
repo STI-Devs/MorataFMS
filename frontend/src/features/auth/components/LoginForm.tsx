@@ -1,10 +1,9 @@
-import { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { getLoginError } from '../../../lib/apiErrors';
 import { useAuth } from "../hooks/useAuth";
 
-export const LoginForm = ({ onToggleSignup }: { onToggleSignup: () => void }) => {
-  const location = useLocation();
+export const LoginForm = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -13,18 +12,6 @@ export const LoginForm = ({ onToggleSignup }: { onToggleSignup: () => void }) =>
 
   const { login } = useAuth();
   const navigate = useNavigate();
-
-  // Clear fields when switching away from login (wait for panel cover)
-  useEffect(() => {
-    if (location.pathname !== "/login") {
-      const timer = setTimeout(() => {
-        setEmail("");
-        setPassword("");
-        setError(null);
-      }, 600);
-      return () => clearTimeout(timer);
-    }
-  }, [location.pathname]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -44,14 +31,14 @@ export const LoginForm = ({ onToggleSignup }: { onToggleSignup: () => void }) =>
 
   return (
     <div className="w-full">
-      <form className="space-y-4 mb-6" onSubmit={handleSubmit}>
+      <form className="space-y-4" onSubmit={handleSubmit}>
         {/* Email Input */}
         <div>
           <input
             type="email"
-            placeholder="Enter your email"
+            placeholder="ENTER YOUR EMAIL"
             required
-            className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent text-xs bg-white text-gray-900 disabled:cursor-not-allowed disabled:bg-gray-50"
+            className="w-full px-0 py-2.5 border-0 border-b border-white/20 bg-transparent focus:outline-none focus:border-white/60 text-[11px] text-white/60 placeholder-white/40 tracking-[0.15em] transition-colors"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             disabled={isLoading}
@@ -62,9 +49,9 @@ export const LoginForm = ({ onToggleSignup }: { onToggleSignup: () => void }) =>
         <div className="relative">
           <input
             type={showPassword ? "text" : "password"}
-            placeholder="Enter your Password"
+            placeholder="ENTER YOUR PASSWORD"
             required
-            className="w-full px-4 py-2.5 pr-10 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent text-xs bg-white text-gray-900 disabled:cursor-not-allowed disabled:bg-gray-50"
+            className="w-full px-0 py-2.5 pr-8 border-0 border-b border-white/20 bg-transparent focus:outline-none focus:border-white/60 text-[11px] text-white/60 placeholder-white/40 tracking-[0.15em] transition-colors"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             disabled={isLoading}
@@ -72,7 +59,7 @@ export const LoginForm = ({ onToggleSignup }: { onToggleSignup: () => void }) =>
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            className="absolute right-0 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
           >
             {showPassword ? (
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -89,7 +76,7 @@ export const LoginForm = ({ onToggleSignup }: { onToggleSignup: () => void }) =>
 
         {/* Error Message */}
         {error && (
-          <div className="text-red-500 text-[10px] text-center bg-red-50 py-2 rounded-xl border border-red-100">
+          <div className="text-red-400 text-[10px] text-center py-1 tracking-widest uppercase">
             {error}
           </div>
         )}
@@ -98,27 +85,11 @@ export const LoginForm = ({ onToggleSignup }: { onToggleSignup: () => void }) =>
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full bg-[#1a2332] text-white py-2.5 rounded-full font-medium hover:bg-[#2a3342] transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full border border-white/30 text-white py-3 font-black hover:bg-white hover:text-black transition-all text-xs tracking-[0.3em] uppercase disabled:opacity-50 disabled:cursor-not-allowed mt-2"
         >
-          {isLoading ? "Signing in..." : "Login"}
+          {isLoading ? "SIGNING IN..." : "LOGIN"}
         </button>
       </form>
-
-      {/* Sign Up Link */}
-      <div className="text-center">
-        <span className="text-gray-500 text-xs">Don't have an account? </span>
-        <button
-          type="button"
-          disabled={isLoading}
-          onClick={(e) => {
-            e.preventDefault();
-            onToggleSignup();
-          }}
-          className="text-gray-900 font-medium text-xs hover:underline disabled:cursor-not-allowed disabled:no-underline disabled:text-gray-400"
-        >
-          Sign Up
-        </button>
-      </div>
     </div>
   );
 };

@@ -15,7 +15,7 @@ import {
 import { StageUploadRow } from '../documents/StageUploadRow';
 import { ArchiveTypeCard } from './ArchiveTypeCard';
 
-// ─── Style tokens ─────────────────────────────────────────────────────────────
+// ΓöÇΓöÇΓöÇ Style tokens ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
 const inputClass =
     'w-full px-4 py-3 bg-input-bg border border-border-strong rounded-lg text-sm font-bold text-text-primary focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 outline-none transition-all placeholder:text-text-muted';
@@ -25,7 +25,7 @@ const selectClass = `${inputClass} appearance-none cursor-pointer`;
 const labelClass =
     'text-[11px] font-black text-text-muted uppercase tracking-widest ml-1';
 
-// ─── Section header ────────────────────────────────────────────────────────────
+// ΓöÇΓöÇΓöÇ Section header ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
 const SectionHeader = ({ step, label }: { step: number; label: string }) => (
     <div className="flex items-center gap-3 mb-5">
@@ -37,7 +37,7 @@ const SectionHeader = ({ step, label }: { step: number; label: string }) => (
     </div>
 );
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ΓöÇΓöÇΓöÇ Helpers ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
 const EMPTY_STAGE_UPLOAD: StageUpload = { file: null };
 
@@ -52,7 +52,7 @@ const makeInitialForm = (year: number): ArchiveFormState => ({
     fileDate: '',
 });
 
-// ─── Component ────────────────────────────────────────────────────────────────
+// ΓöÇΓöÇΓöÇ Component ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
 interface Props {
     defaultYear?: number;
@@ -61,10 +61,10 @@ interface Props {
 }
 
 export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, onBack, onSubmit }) => {
-    const [form, setForm]               = useState<ArchiveFormState>(makeInitialForm(defaultYear));
+    const [form, setForm] = useState<ArchiveFormState>(makeInitialForm(defaultYear));
     const [stageUploads, setStageUploads] = useState<Record<string, StageUpload>>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [error, setError]             = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
     // Smart date picker mode: 'month' = month-only precision, 'exact' = full date
     const [dateMode, setDateMode] = useState<'month' | 'exact'>('month');
@@ -96,7 +96,7 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
         setDateMode(mode);
     };
 
-    // Handle exact date change — also keep monthYear in sync
+    // Handle exact date change ΓÇö also keep monthYear in sync
     const handleExactDateChange = (val: string) => {
         set('fileDate', val);
         if (val) {
@@ -108,12 +108,12 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
     };
 
     // Client dropdown state
-    const [clients, setClients]         = useState<ApiClient[]>([]);
+    const [clients, setClients] = useState<ApiClient[]>([]);
     const [selectedClientId, setSelectedClientId] = useState<number | ''>('');
-    const [useCustomClient, setUseCustomClient]   = useState(false);
+    const [useCustomClient, setUseCustomClient] = useState(false);
 
     // Country dropdown for exports
-    const [countries, setCountries]     = useState<ApiCountry[]>([]);
+    const [countries, setCountries] = useState<ApiCountry[]>([]);
     const [selectedCountryId, setSelectedCountryId] = useState<number | ''>('');
 
     const isImport = form.type === 'import';
@@ -153,18 +153,18 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
         set('client', found?.name ?? '');
     };
 
-    const stages       = isImport ? IMPORT_STAGES : EXPORT_STAGES;
+    const stages = isImport ? IMPORT_STAGES : EXPORT_STAGES;
     const uploadedCount = Object.values(stageUploads).filter(u => u.file !== null).length;
 
-    // ── Validation ────────────────────────────────────────────────────────────
-    const hasClient  = useCustomClient ? form.client.trim().length > 0 : selectedClientId !== '';
-    const hasBl      = form.bl.trim().length >= 4;
-    const blValid    = /^[A-Za-z0-9-]+$/.test(form.bl.trim());
+    // ΓöÇΓöÇ Validation ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+    const hasClient = useCustomClient ? form.client.trim().length > 0 : selectedClientId !== '';
+    const hasBl = form.bl.trim().length >= 4;
+    const blValid = /^[A-Za-z0-9-]+$/.test(form.bl.trim());
     const hasCountry = isImport || selectedCountryId !== '';
-    const hasBlsc    = !isImport || form.blsc !== '';
-    const hasDate    = dateMode === 'month' ? monthYear.length > 0 : form.fileDate.length > 0;
+    const hasBlsc = !isImport || form.blsc !== '';
+    const hasDate = dateMode === 'month' ? monthYear.length > 0 : form.fileDate.length > 0;
 
-    const canSubmit  = hasClient && hasBl && blValid && hasCountry && hasBlsc && hasDate && uploadedCount > 0 && !isSubmitting;
+    const canSubmit = hasClient && hasBl && blValid && hasCountry && hasBlsc && hasDate && uploadedCount > 0 && !isSubmitting;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -174,7 +174,7 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
         setError(null);
 
         try {
-            // 1. Resolve client ID — create new client if using custom name
+            // 1. Resolve client ID ΓÇö create new client if using custom name
             let clientId: number;
             if (useCustomClient) {
                 const clientType = isImport ? 'importer' : 'exporter';
@@ -188,7 +188,7 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
             }
 
             // 2. Create the transaction via the dedicated archive endpoint
-            // (backend enforces file_date must be past-or-today — cannot be bypassed)
+            // (backend enforces file_date must be past-or-today ΓÇö cannot be bypassed)
             let transactionId: number;
             let documentableType: DocumentableType;
 
@@ -199,7 +199,7 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
                 // User provided an exact date
                 fileDate = form.fileDate;
             } else {
-                // Month mode — last day of month, clamped to today
+                // Month mode ΓÇö last day of month, clamped to today
                 const lastDay = new Date(y, m, 0).getDate();
                 const today = new Date();
                 const isCurrentMonth = y === today.getFullYear() && m === today.getMonth() + 1;
@@ -275,57 +275,54 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
                 <button
                     type="button"
                     onClick={onBack}
-                    className="p-2 text-text-muted hover:text-text-secondary hover:bg-hover rounded-lg transition-all"
+                    className="shrink-0 p-2 -ml-2 text-text-muted hover:text-text-secondary hover:bg-hover rounded-lg transition-all"
                 >
                     <Icon name="chevron-left" className="w-5 h-5" />
                 </button>
-                <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-lg ring-4 ring-surface"
-                    style={{ backgroundColor: '#ff9f0a' }}>
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-lg ring-4 ring-surface bg-gradient-to-br from-blue-600 to-indigo-600">
                     <Icon name="clock" className="w-6 h-6" />
                 </div>
                 <div>
                     <h2 className="text-xl font-bold text-text-primary">Upload Legacy Document</h2>
-                    <p className="text-xs text-text-muted font-medium">Add files from the 2022–2025 physical archive</p>
+                    <p className="text-xs text-text-muted font-medium">Add files from the 2022ΓÇô2025 physical archive</p>
                 </div>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-8">
 
-                {/* ── 1. Transaction Type ──────────────────────────────────── */}
+                {/* ΓöÇΓöÇ 1. Transaction Type ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
                 <div>
                     <SectionHeader step={1} label="Transaction Type" />
                     <div className="flex flex-col sm:flex-row gap-3">
-                        <ArchiveTypeCard type="import" isActive={isImport}  onClick={() => handleTypeChange('import')} />
+                        <ArchiveTypeCard type="import" isActive={isImport} onClick={() => handleTypeChange('import')} />
                         <ArchiveTypeCard type="export" isActive={!isImport} onClick={() => handleTypeChange('export')} />
                     </div>
                 </div>
 
-                {/* ── 2. Transaction Details ───────────────────────────────── */}
+                {/* ΓöÇΓöÇ 2. Transaction Details ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
                 <div>
                     <SectionHeader step={2} label="Transaction Details" />
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
 
-                        {/* ── Archive Date — full width ─────────────────────── */}
+                        {/* ΓöÇΓöÇ Archive Date ΓÇö full width ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
                         <div className="sm:col-span-2 space-y-2">
                             <label className={labelClass}>Archive Date <span className="text-red-400">*</span></label>
                             {/* Toggle: Month / Exact */}
                             <div className="inline-flex bg-surface-subtle p-1 rounded-lg border border-border">
                                 <button type="button"
                                     onClick={() => handleDateModeChange('month')}
-                                    className={`px-4 py-1.5 text-xs font-bold tracking-wide transition-all rounded-md border ${
-                                        dateMode === 'month'
-                                            ? 'bg-white dark:bg-zinc-800 shadow border-green-500 text-text-primary'
-                                            : 'border-transparent text-text-muted hover:text-text-primary'
-                                    }`}>
+                                    className={`px-4 py-1.5 text-xs font-bold tracking-wide transition-all rounded-md border ${dateMode === 'month'
+                                        ? 'bg-white dark:bg-zinc-800 shadow border-green-500 text-text-primary'
+                                        : 'border-transparent text-text-muted hover:text-text-primary'
+                                        }`}>
                                     Month
                                 </button>
                                 <button type="button"
                                     onClick={() => handleDateModeChange('exact')}
-                                    className={`px-4 py-1.5 text-xs font-bold tracking-wide transition-all rounded-md border ${
-                                        dateMode === 'exact'
-                                            ? 'bg-white dark:bg-zinc-800 shadow border-green-500 text-text-primary'
-                                            : 'border-transparent text-text-muted hover:text-text-primary'
-                                    }`}>
+                                    className={`px-4 py-1.5 text-xs font-bold tracking-wide transition-all rounded-md border ${dateMode === 'exact'
+                                        ? 'bg-white dark:bg-zinc-800 shadow border-green-500 text-text-primary'
+                                        : 'border-transparent text-text-muted hover:text-text-primary'
+                                        }`}>
                                     Exact Date
                                 </button>
                             </div>
@@ -365,7 +362,7 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
                             )}
                         </div>
 
-                        {/* ── Row 2: Customs Ref No. | Bill of Lading ──────── */}
+                        {/* ΓöÇΓöÇ Row 2: Customs Ref No. | Bill of Lading ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
                         {isImport && (
                             <div className="space-y-2">
                                 <label className={labelClass}>Customs Ref No. <span className="normal-case font-normal opacity-60">(optional)</span></label>
@@ -388,7 +385,7 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
                             )}
                         </div>
 
-                        {/* ── Row 3: BLSC | Importer ───────────────────────── */}
+                        {/* ΓöÇΓöÇ Row 3: BLSC | Importer ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
                         {isImport && (
                             <div className="space-y-2">
                                 <label className={labelClass}>BLSC (Selective Color) <span className="text-red-400">*</span></label>
@@ -401,7 +398,7 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
                             </div>
                         )}
 
-                        {/* Client — Dropdown with checkbox fallback */}
+                        {/* Client ΓÇö Dropdown with checkbox fallback */}
                         <div className="space-y-2">
                             <label className={labelClass}>{isImport ? 'Importer' : 'Shipper'} <span className="text-red-400">*</span></label>
                             {!useCustomClient && (
@@ -434,7 +431,7 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
                                     }}
                                     className="w-3.5 h-3.5 rounded accent-amber-500 cursor-pointer"
                                 />
-                                <span className="text-xs text-text-muted font-semibold">Not in list — enter name manually</span>
+                                <span className="text-xs text-text-muted font-semibold">Not in list ΓÇö enter name manually</span>
                             </label>
                             {useCustomClient && (
                                 <input
@@ -449,7 +446,7 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
                             )}
                         </div>
 
-                        {/* ── Row 4 (export only): Vessel | Destination Country */}
+                        {/* ΓöÇΓöÇ Row 4 (export only): Vessel | Destination Country */}
                         {!isImport && (
                             <div className="space-y-2">
                                 <label className={labelClass}>Vessel <span className="normal-case font-normal opacity-60">(optional)</span></label>
@@ -481,15 +478,14 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
                     </div>
                 </div>
 
-                {/* ── 3. Stage Documents ───────────────────────────────────── */}
+                {/* ΓöÇΓöÇ 3. Stage Documents ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
                 <div>
                     <SectionHeader step={3} label="Stage Documents" />
                     <p className="text-xs text-text-muted mb-4 -mt-2 ml-1">
                         Attach a file to each stage that has a document to archive.
                         {uploadedCount > 0 && (
                             <span
-                                className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold"
-                                style={{ backgroundColor: 'rgba(255,159,10,0.12)', color: '#ff9f0a' }}
+                                className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/10 text-blue-500"
                             >
                                 {uploadedCount} file{uploadedCount !== 1 ? 's' : ''} attached
                             </span>
@@ -508,7 +504,7 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
                     </div>
                 </div>
 
-                {/* ── Actions ──────────────────────────────────────────────── */}
+                {/* ΓöÇΓöÇ Actions ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
                 {error && (
                     <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
                         <Icon name="alert-circle" className="w-4 h-4 text-red-500 shrink-0" />
@@ -527,8 +523,7 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
                     <button
                         type="submit"
                         disabled={!canSubmit}
-                        className="flex-1 px-6 py-4 text-white rounded-lg text-sm font-bold transition-all shadow-xl active:scale-95 flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-90"
-                        style={{ backgroundColor: '#ff9f0a' }}
+                        className="flex-1 px-6 py-4 text-white rounded-lg text-sm font-bold transition-all shadow-xl active:scale-95 flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-90 bg-gradient-to-r from-blue-600 to-indigo-600"
                     >
                         {isSubmitting ? (
                             <>

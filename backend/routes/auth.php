@@ -7,8 +7,6 @@ use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use Illuminate\Support\Facades\Route;
 
-// /register is intentionally removed — user creation is handled by admins via UserController.
-
 // Login has a named rate limiter (5 attempts) registered in AppServiceProvider.
 Route::post('/login', [AuthenticatedSessionController::class, 'store'])
     ->middleware('guest')

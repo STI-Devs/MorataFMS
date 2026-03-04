@@ -13,7 +13,6 @@ import { ArchiveDocumentRow } from './archive/ArchiveDocumentRow';
 import { ArchiveLegacyUploadPage } from './archive/ArchiveLegacyUploadPage';
 import { ArchivesFolderView } from './archive/ArchivesFolderView';
 import { ArchivesBLView, ArchivesDocumentView, GlobalSearchResults } from './archive/ArchivesViews';
-import { ExportReportDropdown } from './archive/ExportReportDropdown';
 import { Breadcrumb } from './archive/ui/Breadcrumb';
 import { CircularProgress } from './archive/ui/CircularProgress';
 import { ColHeader } from './archive/ui/ColHeader';
@@ -24,26 +23,27 @@ import {
     computeGlobalCompleteness, countIncompleteBLs,
     FOLDER_LABEL, MONTH_NAMES,
 } from './archive/utils/archive.utils';
+import { exportArchiveCSV } from './archive/utils/export.utils';
 
 export const ArchivesPage = () => {
     const { dateTime } = useOutletContext<LayoutContext>();
-    const queryClient  = useQueryClient();
+    const queryClient = useQueryClient();
     const { data: archiveData = [], isLoading, isError } = useArchives();
 
-    // ── State ──────────────────────────────────────────────────────────────────
-    const [drill, setDrill]                       = useState<DrillState>({ level: 'years' });
+    // ΓöÇΓöÇ State ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+    const [drill, setDrill] = useState<DrillState>({ level: 'years' });
     const [showLegacyUpload, setShowLegacyUpload] = useState(false);
-    const [search, setSearch]                     = useState('');
-    const [globalSearch, setGlobalSearch]         = useState('');
-    const [sortKey, setSortKey]                   = useState<SortKey>('period');
-    const [sortDir, setSortDir]                   = useState<'asc' | 'desc'>('desc');
-    const [viewMode, setViewMode]                 = useState<ViewMode>('folder');
-    const [filterYear, setFilterYear]             = useState<string>('all');
-    const [filterType, setFilterType]             = useState<string>('all');
-    const [filterStatus, setFilterStatus]         = useState<DocStatusFilter>('all');
+    const [search, setSearch] = useState('');
+    const [globalSearch, setGlobalSearch] = useState('');
+    const [sortKey, setSortKey] = useState<SortKey>('period');
+    const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+    const [viewMode, setViewMode] = useState<ViewMode>('folder');
+    const [filterYear, setFilterYear] = useState<string>('all');
+    const [filterType, setFilterType] = useState<string>('all');
+    const [filterStatus, setFilterStatus] = useState<DocStatusFilter>('all');
     const [incompleteFilterActive, setIncompleteFilterActive] = useState(false);
-    const [expandedYears, setExpandedYears]       = useState<Set<number>>(new Set());
-    const [openMenuKey, setOpenMenuKey]           = useState<string | null>(null);
+    const [expandedYears, setExpandedYears] = useState<Set<number>>(new Set());
+    const [openMenuKey, setOpenMenuKey] = useState<string | null>(null);
 
     const [addDocModal, setAddDocModal] = useState<{
         isOpen: boolean; blNo: string; type: TransactionType; docs: ArchiveDocument[];
@@ -52,9 +52,9 @@ export const ArchivesPage = () => {
     const [confirmModal, setConfirmModal] = useState<{
         isOpen: boolean; title: string; message: string;
         confirmText?: string; confirmButtonClass?: string; onConfirm: () => void;
-    }>({ isOpen: false, title: '', message: '', onConfirm: () => {} });
+    }>({ isOpen: false, title: '', message: '', onConfirm: () => { } });
 
-    // ── Helpers ────────────────────────────────────────────────────────────────
+    // ΓöÇΓöÇ Helpers ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
     const toggleYear = (year: number) =>
         setExpandedYears(prev => {
             const next = new Set(prev);
@@ -77,7 +77,7 @@ export const ArchivesPage = () => {
 
     const nav = (next: DrillState) => { setDrill(next); setSearch(''); setGlobalSearch(''); setIncompleteFilterActive(false); };
 
-    // ── Computed ───────────────────────────────────────────────────────────────
+    // ΓöÇΓöÇ Computed ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
     const globalResults = useMemo(() => {
         const q = globalSearch.trim().toLowerCase();
         if (!q) return [];
@@ -85,7 +85,7 @@ export const ArchivesPage = () => {
         for (const yearData of archiveData) {
             for (const doc of yearData.documents) {
                 const blNo = doc.bl_no || '(no BL)';
-                const key  = `${blNo}|${doc.type}|${yearData.year}|${doc.month}`;
+                const key = `${blNo}|${doc.type}|${yearData.year}|${doc.month}`;
                 if (!seen.has(key)) seen.set(key, { blNo, client: doc.client, type: doc.type, year: yearData, month: doc.month, fileCount: 0 });
                 seen.get(key)!.fileCount++;
             }
@@ -98,7 +98,7 @@ export const ArchivesPage = () => {
         for (const yearData of archiveData) {
             for (const doc of yearData.documents) {
                 const blNo = doc.bl_no || '(no BL)';
-                const key  = `${blNo}|${doc.type}|${yearData.year}`;
+                const key = `${blNo}|${doc.type}|${yearData.year}`;
                 if (!blMap.has(key)) blMap.set(key, { blNo, client: doc.client, type: doc.type, year: yearData.year, month: doc.month, stages: new Set(), yearData });
                 blMap.get(key)!.stages.add(doc.stage);
             }
@@ -110,29 +110,33 @@ export const ArchivesPage = () => {
             if (filterType !== 'all' && r.type !== filterType) return false;
             const required = r.type === 'import' ? IMPORT_STAGES : EXPORT_STAGES;
             const isComplete = required.every(s => r.stages.has(s.key));
-            if (filterStatus === 'complete'   && !isComplete) return false;
-            if (filterStatus === 'incomplete' &&  isComplete) return false;
+            if (filterStatus === 'complete' && !isComplete) return false;
+            if (filterStatus === 'incomplete' && isComplete) return false;
             if (incompleteFilterActive && isComplete) return false;
             return true;
         });
     }, [archiveData, globalSearch, filterYear, filterType, filterStatus, incompleteFilterActive]);
 
-    // ── Early returns ──────────────────────────────────────────────────────────
+    // ΓöÇΓöÇ Early returns ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
     if (showLegacyUpload) {
         const currentYear = drill.level !== 'years' ? drill.year.year : new Date().getFullYear() - 1;
         return (
-            <ArchiveLegacyUploadPage
-                defaultYear={currentYear}
-                onBack={() => setShowLegacyUpload(false)}
-                onSubmit={() => { setShowLegacyUpload(false); queryClient.invalidateQueries({ queryKey: ['archives'] }); }}
-            />
+            <div className="flex justify-center py-10 px-6">
+                <div className="w-full max-w-2xl">
+                    <ArchiveLegacyUploadPage
+                        defaultYear={currentYear}
+                        onBack={() => setShowLegacyUpload(false)}
+                        onSubmit={() => { setShowLegacyUpload(false); queryClient.invalidateQueries({ queryKey: ['archives'] }); }}
+                    />
+                </div>
+            </div>
         );
     }
 
     if (isLoading) return (
         <div className="flex flex-col items-center justify-center py-32 gap-4">
-            <div className="w-8 h-8 border-2 border-orange-400/25 border-t-orange-400 rounded-full animate-spin" />
-            <p className="text-sm text-gray-400 font-medium">Loading archives…</p>
+            <div className="w-8 h-8 border-2 border-blue-400/25 border-t-blue-500 rounded-full animate-spin" />
+            <p className="text-sm text-text-muted font-medium">Loading archives…</p>
         </div>
     );
 
@@ -140,14 +144,14 @@ export const ArchivesPage = () => {
         <EmptyState icon="alert-circle" title="Failed to load archives" subtitle="Check your connection and try again." />
     );
 
-    // ── Stats ──────────────────────────────────────────────────────────────────
-    const globalPct     = computeGlobalCompleteness(archiveData);
+    // ΓöÇΓöÇ Stats ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+    const globalPct = computeGlobalCompleteness(archiveData);
     const incompleteBLs = countIncompleteBLs(archiveData);
-    const totalBLs      = new Set(archiveData.flatMap(y => y.documents.map(d => `${d.bl_no}|${d.type}|${y.year}`))).size;
-    const completedBLs  = totalBLs - incompleteBLs;
-    const totalImports  = archiveData.reduce((s, y) => s + y.imports, 0);
-    const totalExports  = archiveData.reduce((s, y) => s + y.exports, 0);
-    const totalDocs     = archiveData.reduce((s, y) => s + y.documents.length, 0);
+    const totalBLs = new Set(archiveData.flatMap(y => y.documents.map(d => `${d.bl_no}|${d.type}|${y.year}`))).size;
+    const completedBLs = totalBLs - incompleteBLs;
+    const totalImports = archiveData.reduce((s, y) => s + y.imports, 0);
+    const totalExports = archiveData.reduce((s, y) => s + y.exports, 0);
+    const totalDocs = archiveData.reduce((s, y) => s + y.documents.length, 0);
     const totalStorageBytes = archiveData.reduce(
         (s, y) => s + y.documents.reduce((ds, d) => ds + (d.size_bytes ?? 0), 0), 0
     );
@@ -158,10 +162,8 @@ export const ArchivesPage = () => {
         return `${(bytes / Math.pow(1024, i)).toFixed(i === 0 ? 0 : 2)} ${units[i]}`;
     };
     const availableYears = archiveData.map(y => y.year);
-    const oldestYear = availableYears.length ? Math.min(...availableYears) : null;
-    const newestYear = availableYears.length ? Math.max(...availableYears) : null;
 
-    // ── Breadcrumb ─────────────────────────────────────────────────────────────
+    // ΓöÇΓöÇ Breadcrumb ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
     // navToYear: go back to the year accordion AND auto-expand that year so
     // the sub-folders are immediately visible (avoids the empty 'types'/'months' states).
     const navToYear = (yr: ArchiveYear) => {
@@ -171,136 +173,126 @@ export const ArchivesPage = () => {
 
     const baseCrumb = { label: 'Archives', onClick: drill.level !== 'years' ? () => nav({ level: 'years' }) : undefined };
     const breadcrumbParts = (() => {
-        if (drill.level === 'years')  return [baseCrumb];
-        if (drill.level === 'types')  return [baseCrumb, { label: String(drill.year.year) }];
+        if (drill.level === 'years') return [baseCrumb];
+        if (drill.level === 'types') return [baseCrumb, { label: String(drill.year.year) }];
         if (drill.level === 'months') return [baseCrumb, { label: String(drill.year.year), onClick: () => navToYear(drill.year) }, { label: FOLDER_LABEL[drill.type as keyof typeof FOLDER_LABEL] + '/' }];
-        if (drill.level === 'bls')    return [baseCrumb, { label: String(drill.year.year), onClick: () => navToYear(drill.year) }, { label: FOLDER_LABEL[drill.type as keyof typeof FOLDER_LABEL] + '/', onClick: () => navToYear(drill.year) }, { label: MONTH_NAMES[drill.month - 1] + '/' }];
+        if (drill.level === 'bls') return [baseCrumb, { label: String(drill.year.year), onClick: () => navToYear(drill.year) }, { label: FOLDER_LABEL[drill.type as keyof typeof FOLDER_LABEL] + '/', onClick: () => navToYear(drill.year) }, { label: MONTH_NAMES[drill.month - 1] + '/' }];
         return [baseCrumb, { label: String(drill.year.year), onClick: () => navToYear(drill.year) }, { label: FOLDER_LABEL[drill.type as keyof typeof FOLDER_LABEL] + '/', onClick: () => navToYear(drill.year) }, { label: MONTH_NAMES[drill.month - 1] + '/', onClick: () => nav({ level: 'bls', year: drill.year, type: drill.type, month: drill.month }) }, { label: drill.bl + '/' }];
     })();
 
     return (
-        <div className="min-h-screen bg-gray-50 p-4 pb-10 space-y-5">
+        <div className="w-full p-8 pb-12 space-y-7">
 
             {/* Page header */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-xl font-black tracking-tight text-gray-800">Archive Dashboard</h1>
-                    <p className="text-xs text-gray-400 mt-0.5">Historical import &amp; export document storage</p>
+                    <h1 className="text-4xl font-bold tracking-tight text-text-primary">Archive Dashboard</h1>
+                    <p className="text-base text-text-muted mt-1">Historical import &amp; export document storage</p>
                 </div>
-                <div className="ml-auto text-right hidden sm:block">
-                    <p className="text-sm font-semibold tabular-nums text-gray-600">{dateTime.time}</p>
-                    <p className="text-xs text-gray-400">{dateTime.date}</p>
+                <div className="text-right shrink-0">
+                    <p className="text-2xl font-bold tabular-nums text-text-primary">{dateTime.time}</p>
+                    <p className="text-sm text-text-muted">{dateTime.date}</p>
                 </div>
             </div>
 
-            {/* Top summary card */}
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-                <div className="flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-gray-100">
-                    {/* Left: completeness ring + KPIs */}
-                    <div className="p-5 flex items-start gap-5 min-w-0">
-                        <div className="shrink-0 flex flex-col items-center">
-                            <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Archive Completeness</p>
-                            <CircularProgress pct={globalPct} />
-                        </div>
-                        <div className="flex-1 grid grid-cols-2 gap-x-5 gap-y-3">
-                            <div>
-                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Total BL Records</p>
-                                <p className="text-2xl font-black text-gray-800 tabular-nums leading-tight mt-0.5">{totalBLs.toLocaleString()}</p>
-                                <p className="text-[10px] text-gray-400 mt-0.5">{oldestYear && newestYear ? `${oldestYear} – ${newestYear}` : 'No records'}</p>
-                            </div>
-                            <div>
-                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Fully Documented</p>
-                                <p className="text-2xl font-black text-emerald-600 tabular-nums leading-tight mt-0.5">{completedBLs.toLocaleString()}</p>
-                                <p className="text-[10px] text-emerald-500 mt-0.5">Compliant records</p>
-                            </div>
-                            <div>
-                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Missing Documents</p>
-                                <p className="text-2xl font-black text-red-500 tabular-nums leading-tight mt-0.5">{incompleteBLs.toLocaleString()}</p>
-                                <p className="text-[10px] text-red-400 mt-0.5">Incomplete records</p>
-                            </div>
-                            <div>
-                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">I/E Split</p>
-                                <div className="flex items-baseline gap-2 mt-1">
-                                    <span className="text-lg font-black text-blue-600 tabular-nums">{totalImports}</span>
-                                    <span className="text-[10px] font-bold text-blue-400 uppercase">Import</span>
-                                </div>
-                                <div className="flex items-baseline gap-2">
-                                    <span className="text-lg font-black text-indigo-600 tabular-nums">{totalExports}</span>
-                                    <span className="text-[10px] font-bold text-indigo-400 uppercase">Export</span>
-                                </div>
-                            </div>
-                            {/* Storage — spans full row */}
-                            <div className="col-span-2 pt-2.5 mt-1 border-t border-gray-100 flex items-center justify-between gap-4">
-                                <div>
-                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Storage Used</p>
-                                    <p className="text-2xl font-black text-gray-800 tabular-nums leading-tight mt-0.5">
-                                        {formatBytes(totalStorageBytes)}
-                                    </p>
-                                    <p className="text-[10px] text-gray-400 mt-0.5">{totalDocs.toLocaleString()} files stored in cloud</p>
-                                </div>
-                                <div className="flex items-center gap-1.5 shrink-0">
-                                    <svg className="w-3.5 h-3.5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75}
-                                            d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
-                                    </svg>
-                                    <span className="text-[10px] font-bold text-orange-500 uppercase tracking-wider">Cloud Storage</span>
-                                </div>
-                            </div>
+            {/* Stats cards row */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+                {/* Archive Completeness */}
+                <div className="bg-surface rounded-xl border border-border shadow-sm p-6 flex items-center gap-5">
+                    <CircularProgress pct={globalPct} />
+                    <div className="min-w-0">
+                        <p className="text-xs font-bold text-text-muted uppercase tracking-wider">Completeness</p>
+                        <p className="text-4xl font-black text-text-primary tabular-nums mt-1">{globalPct}%</p>
+                        <p className="text-sm text-text-muted mt-1">{totalBLs.toLocaleString()} total BLs</p>
+                    </div>
+                </div>
+                {/* Fully Documented */}
+                <div className="bg-surface rounded-xl border border-border shadow-sm p-6">
+                    <p className="text-xs font-bold text-text-muted uppercase tracking-wider">Fully Documented</p>
+                    <p className="text-4xl font-black text-emerald-500 tabular-nums mt-2">{completedBLs.toLocaleString()}</p>
+                    <p className="text-sm text-emerald-500 mt-1">Compliant records</p>
+                </div>
+                {/* Missing Documents */}
+                <div className="bg-surface rounded-xl border border-border shadow-sm p-6">
+                    <p className="text-xs font-bold text-text-muted uppercase tracking-wider">Missing Documents</p>
+                    <p className="text-4xl font-black text-red-500 tabular-nums mt-2">{incompleteBLs.toLocaleString()}</p>
+                    <p className="text-sm text-red-400 mt-1">Incomplete records</p>
+                </div>
+                {/* Storage + I/E Split */}
+                <div className="bg-surface rounded-xl border border-border shadow-sm p-6">
+                    <p className="text-xs font-bold text-text-muted uppercase tracking-wider">Storage Used</p>
+                    <p className="text-4xl font-black text-text-primary tabular-nums mt-2">{formatBytes(totalStorageBytes)}</p>
+                    <div className="flex items-center gap-3 mt-2">
+                        <span className="text-sm font-bold text-blue-500 tabular-nums">{totalImports} <span className="text-blue-400 font-normal">imp</span></span>
+                        <span className="text-text-muted text-sm">/</span>
+                        <span className="text-sm font-bold text-indigo-500 tabular-nums">{totalExports} <span className="text-indigo-400 font-normal">exp</span></span>
+                        <span className="text-sm text-text-muted ml-auto">{totalDocs} files</span>
+                    </div>
+                </div>
+            </div>
+
+            {/* Filter row */}
+            <div className="bg-surface rounded-xl border border-border shadow-sm p-5">
+                <div className="flex flex-wrap gap-5 items-end">
+                    {/* Year */}
+                    <div className="min-w-[150px]">
+                        <p className="text-xs font-bold text-text-muted uppercase tracking-widest mb-2">Year</p>
+                        <select value={filterYear} onChange={e => setFilterYear(e.target.value)}
+                            className="w-full h-10 px-3 rounded-lg border border-border-strong bg-input-bg text-sm font-semibold text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/70 cursor-pointer shadow-sm appearance-none">
+                            <option value="all">All Years</option>
+                            {availableYears.map(y => <option key={y} value={String(y)}>{y}</option>)}
+                        </select>
+                        {filterYear !== 'all' && (
+                            <button onClick={() => setFilterYear('all')}
+                                className="mt-1.5 text-xs text-blue-500 hover:text-blue-700 font-semibold flex items-center gap-1">
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                                Clear
+                            </button>
+                        )}
+                    </div>
+
+                    {/* I/E Type */}
+                    <div>
+                        <p className="text-xs font-bold text-text-muted uppercase tracking-widest mb-2">I/E Type</p>
+                        <div className="flex items-center gap-2">
+                            {(['all', 'import', 'export'] as const).map(t => (
+                                <button key={t} onClick={() => setFilterType(t)}
+                                    className={`px-4 py-2 rounded-lg text-sm font-semibold border transition-all ${filterType === t
+                                        ? 'bg-blue-500/10 border-blue-500/40 text-blue-500'
+                                        : 'bg-surface-secondary border-border text-text-secondary hover:bg-hover'
+                                        }`}>
+                                    {t === 'all' ? 'All' : t.charAt(0).toUpperCase() + t.slice(1)}
+                                </button>
+                            ))}
                         </div>
                     </div>
 
-                    {/* Right: filters */}
-                    <div className="p-5 flex-1">
-                        <div className="grid grid-cols-3 gap-3">
-                            <div>
-                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Year</p>
-                                <select value={filterYear} onChange={e => setFilterYear(e.target.value)}
-                                    className="w-full h-9 px-3 rounded-lg border border-gray-200 bg-white text-sm font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-400/30 focus:border-orange-400/70 cursor-pointer shadow-sm appearance-none">
-                                    <option value="all">All Years</option>
-                                    {availableYears.map(y => <option key={y} value={String(y)}>{y}</option>)}
-                                </select>
-                                {filterYear !== 'all' && (
-                                    <button onClick={() => setFilterYear('all')}
-                                        className="mt-1.5 text-[10px] text-orange-500 hover:text-orange-700 font-semibold flex items-center gap-1">
-                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                        </svg>
-                                        Clear filter
-                                    </button>
-                                )}
-                            </div>
-                            <div>
-                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">I/E Type</p>
-                                <div className="flex flex-col gap-1.5">
-                                    {(['all', 'import', 'export'] as const).map(t => (
-                                        <button key={t} onClick={() => setFilterType(t)}
-                                            className={`flex items-center justify-between px-3 py-1.5 rounded-lg text-sm font-semibold border transition-all w-full ${filterType === t ? 'bg-blue-50 border-blue-300 text-blue-700' : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'}`}>
-                                            {t === 'all' ? 'All Types' : t.charAt(0).toUpperCase() + t.slice(1)}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                            <div>
-                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Document Status</p>
-                                <div className="flex flex-col gap-1.5">
-                                    {([{ value: 'all', label: 'All' }, { value: 'complete', label: 'Complete' }, { value: 'incomplete', label: 'Incomplete' }] as const).map(({ value, label }) => (
-                                        <button key={value}
-                                            onClick={() => { setFilterStatus(value); setIncompleteFilterActive(false); }}
-                                            className={`flex items-center justify-between px-3 py-1.5 rounded-lg text-sm font-semibold border transition-all w-full ${filterStatus === value ? 'bg-orange-50 border-orange-300 text-orange-700' : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'}`}>
-                                            {label}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
+                    {/* Document Status */}
+                    <div>
+                        <p className="text-xs font-bold text-text-muted uppercase tracking-widest mb-2">Document Status</p>
+                        <div className="flex items-center gap-2">
+                            {([{ value: 'all', label: 'All' }, { value: 'complete', label: 'Complete' }, { value: 'incomplete', label: 'Incomplete' }] as const).map(({ value, label }) => (
+                                <button key={value}
+                                    onClick={() => { setFilterStatus(value); setIncompleteFilterActive(false); }}
+                                    className={`px-4 py-2 rounded-lg text-sm font-semibold border transition-all ${filterStatus === value
+                                        ? 'bg-orange-500/10 border-orange-500/40 text-orange-500'
+                                        : 'bg-surface-secondary border-border text-text-secondary hover:bg-hover'
+                                        }`}>
+                                    {label}
+                                </button>
+                            ))}
                         </div>
                     </div>
                 </div>
             </div>
+
 
             {/* Search + Upload row */}
             <div className="flex items-center gap-3">
                 <div className="relative flex-1">
-                    <svg className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+                    <svg className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none"
                         fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
@@ -308,42 +300,48 @@ export const ArchivesPage = () => {
                         onChange={e => setGlobalSearch(e.target.value)}
                         onKeyDown={e => e.key === 'Escape' && setGlobalSearch('')}
                         placeholder="Search BL No., Importer, Exporter, Year…"
-                        className="w-full pl-10 pr-10 h-10 rounded-xl border border-gray-200 bg-white text-sm font-medium text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-400/30 focus:border-orange-400/60 transition-all shadow-sm" />
+                        className="w-full pl-11 pr-10 h-11 rounded-xl border border-border-strong bg-input-bg text-sm font-medium text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/60 transition-all shadow-sm" />
                     {globalSearch && (
                         <button onClick={() => setGlobalSearch('')}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
+                            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition-colors">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                             </svg>
                         </button>
                     )}
                 </div>
-                <ExportReportDropdown archiveData={archiveData} availableYears={availableYears} />
+                <button onClick={() => exportArchiveCSV(archiveData)}
+                    title="Export all BL records as CSV"
+                    className="flex items-center gap-2 px-5 h-11 rounded-xl text-sm font-bold text-white shrink-0 shadow-sm transition-all hover:opacity-90 bg-gradient-to-r from-blue-600 to-indigo-600">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Export CSV
+                </button>
                 <button onClick={() => setShowLegacyUpload(true)}
-                    className="flex items-center gap-2 px-5 h-10 rounded-xl text-sm font-bold text-white shrink-0 hover:opacity-90 shadow-sm"
-                    style={{ backgroundColor: '#f97316' }}>
+                    className="flex items-center gap-2 px-5 h-11 rounded-xl text-sm font-bold text-white shrink-0 shadow-sm transition-all hover:opacity-90 bg-gradient-to-r from-blue-600 to-indigo-600">
                     <Icon name="plus" className="w-4 h-4" />
                     Upload Document
                 </button>
             </div>
 
             {/* Browser card */}
-            <div className="rounded-2xl border border-gray-200 overflow-hidden bg-white shadow-sm">
+            <div className="rounded-xl border border-border overflow-hidden bg-surface shadow-sm">
 
                 {/* Toolbar: breadcrumb + sort + view toggle */}
-                <div className="flex items-center justify-between gap-3 px-5 py-3 border-b border-gray-100 bg-white">
+                <div className="flex items-center justify-between gap-3 px-5 py-3 border-b border-border bg-surface">
                     <div className="flex items-center gap-2">
                         {viewMode === 'document' ? (
                             <>
-                                <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg className="w-4 h-4 text-text-muted shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                 </svg>
-                                <span className="text-sm font-semibold text-gray-700">All BL Records</span>
-                                <span className="text-xs text-gray-400 font-medium">· {flatDocumentList.length} entries</span>
+                                <span className="text-sm font-semibold text-text-primary">All BL Records</span>
+                                <span className="text-xs text-text-muted font-medium">· {flatDocumentList.length} entries</span>
                             </>
                         ) : (
                             <>
-                                <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg className="w-4 h-4 text-text-muted shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
                                 </svg>
                                 <Breadcrumb parts={breadcrumbParts} />
@@ -354,7 +352,7 @@ export const ArchivesPage = () => {
                         {drill.level === 'bls' && viewMode === 'folder' && (
                             <select value={`${sortKey}:${sortDir}`}
                                 onChange={e => { const [k, d] = e.target.value.split(':'); setSortKey(k as SortKey); setSortDir(d as 'asc' | 'desc'); }}
-                                className="h-8 px-2 rounded-lg border border-gray-200 bg-white text-gray-600 text-xs focus:outline-none focus:ring-1 focus:ring-orange-400/40">
+                                className="h-8 px-2 rounded-lg border border-border-strong bg-input-bg text-text-secondary text-xs focus:outline-none focus:ring-1 focus:ring-blue-500/40">
                                 <option value="period:desc">Period ↓ (Newest)</option>
                                 <option value="period:asc">Period ↑ (Oldest)</option>
                                 <option value="bl:asc">BL Number A→Z</option>
@@ -406,7 +404,7 @@ export const ArchivesPage = () => {
                 {/* BL folder view (drill level: bls) */}
                 {viewMode === 'folder' && !globalSearch.trim() && drill.level === 'bls' && (
                     <ArchivesBLView
-                        drill={drill}
+                        drill={drill as Extract<DrillState, { level: 'bls' }>}
                         search={search}
                         sortKey={sortKey}
                         sortDir={sortDir}
@@ -417,8 +415,9 @@ export const ArchivesPage = () => {
 
                 {/* File view (drill level: files) */}
                 {drill.level === 'files' && (() => {
-                    const fileDocs = drill.year.documents
-                        .filter((d: ArchiveDocument) => d.type === drill.type && d.month === drill.month && (d.bl_no || '(no BL)') === drill.bl);
+                    const d = drill as Extract<DrillState, { level: 'files' }>;
+                    const fileDocs = d.year.documents
+                        .filter((doc: ArchiveDocument) => doc.type === d.type && doc.month === d.month && (doc.bl_no || '(no BL)') === d.bl);
                     if (fileDocs.length === 0) return <EmptyState icon="file-text" title="No files in this folder" />;
                     return (
                         <div>

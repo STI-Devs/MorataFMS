@@ -1,10 +1,8 @@
 import api from '../../../lib/axios';
-import type { AuthResponse, LoginCredentials, RegisterCredentials, User } from '../types/auth.types';
-
-
+import type { AuthResponse, LoginCredentials, User } from '../types/auth.types';
 
 export const authApi = {
-    // Get CSRF cookie (required before login/register)
+    // Get CSRF cookie (required before login)
     async getCsrfCookie(): Promise<void> {
         await api.get('/sanctum/csrf-cookie');
     },
@@ -15,17 +13,6 @@ export const authApi = {
 
         const response = await api.post<AuthResponse>(
             `/api/auth/login`,
-            credentials
-        );
-        return response.data;
-    },
-
-    // Register user
-    async register(credentials: RegisterCredentials): Promise<AuthResponse> {
-        await this.getCsrfCookie();
-
-        const response = await api.post<AuthResponse>(
-            `/api/auth/register`,
             credentials
         );
         return response.data;

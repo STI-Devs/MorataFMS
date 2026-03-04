@@ -6,7 +6,7 @@ import type { DocumentableType } from '../../types';
 import type { ArchiveDocument, TransactionType } from '../../types/document.types';
 import { EXPORT_STAGES, IMPORT_STAGES } from '../../types/document.types';
 
-// ─── Props ────────────────────────────────────────────────────────────────────
+// ΓöÇΓöÇΓöÇ Props ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
 interface AddArchiveDocumentModalProps {
     isOpen: boolean;
@@ -16,7 +16,7 @@ interface AddArchiveDocumentModalProps {
     existingDocs: ArchiveDocument[];
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
+// ΓöÇΓöÇΓöÇ Component ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
 export const AddArchiveDocumentModal: React.FC<AddArchiveDocumentModalProps> = ({
     isOpen, onClose, blNo, type, existingDocs,
@@ -81,9 +81,9 @@ export const AddArchiveDocumentModal: React.FC<AddArchiveDocumentModalProps> = (
             />
 
             {/* Modal card */}
-            <div className="relative bg-surface border border-border rounded-2xl shadow-2xl w-full max-w-[440px] overflow-hidden">
+            <div className="relative bg-surface border border-border rounded-xl shadow-2xl w-full max-w-[440px] overflow-hidden">
 
-                {/* ── Header ── */}
+                {/* ΓöÇΓöÇ Header ΓöÇΓöÇ */}
                 <div className="px-5 pt-5 pb-4 flex items-start justify-between gap-3">
                     <div>
                         <h3 className="text-[15px] font-black text-text-primary tracking-tight">
@@ -102,7 +102,7 @@ export const AddArchiveDocumentModal: React.FC<AddArchiveDocumentModalProps> = (
                     </button>
                 </div>
 
-                {/* ── Body ── */}
+                {/* ΓöÇΓöÇ Body ΓöÇΓöÇ */}
                 <form onSubmit={handleSubmit} className="px-5 py-4 space-y-5">
 
                     {/* Stage selector */}
@@ -117,9 +117,9 @@ export const AddArchiveDocumentModal: React.FC<AddArchiveDocumentModalProps> = (
                                 const isSelected = selectedStage === stage.key;
 
                                 // Three visual states:
-                                // 1. Selected  → green border + green bg tint + bold text
-                                // 2. Filled    → fully dimmed, shows check, not a target
-                                // 3. Available → neutral card, invites click
+                                // 1. Selected  ΓåÆ green border + green bg tint + bold text
+                                // 2. Filled    ΓåÆ fully dimmed, shows check, not a target
+                                // 3. Available ΓåÆ neutral card, invites click
                                 let cardClass = 'relative px-3 pt-2.5 pb-2 rounded-xl border text-left transition-all ';
 
                                 if (isSelected) {

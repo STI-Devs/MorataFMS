@@ -1,10 +1,10 @@
 import type { ViewMode } from '../utils/archive.utils';
 
 export const ViewToggle = ({ mode, onChange }: { mode: ViewMode; onChange: (m: ViewMode) => void }) => (
-    <div className="flex items-center gap-0.5 bg-gray-100 rounded-lg p-0.5">
+    <div className="flex items-center gap-0.5 bg-surface-secondary border border-border rounded-lg p-0.5">
         {(['folder', 'document'] as ViewMode[]).map(m => (
             <button key={m} onClick={() => onChange(m)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${mode === m ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${mode === m ? 'bg-surface text-text-primary shadow-sm border border-border' : 'text-text-muted hover:text-text-secondary hover:bg-hover'}`}>
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     {m === 'folder'
                         ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
