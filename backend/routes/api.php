@@ -7,10 +7,12 @@ use App\Http\Controllers\CountryController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\ExportTransactionController;
 use App\Http\Controllers\ImportTransactionController;
+use App\Http\Controllers\ReportController;
+use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\UserController;
 use App\Http\Resources\UserResource;
-use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->group(function () {
@@ -18,16 +20,41 @@ Route::prefix('auth')->group(function () {
 });
 
 Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
+
+    // Current user
     Route::get('/user', function (Request $request) {
         return new UserResource($request->user());
     });
 
+    // Self-service profile update (any authenticated user)
+    Route::put('/user/profile', function (Request $request) {
+        $validated = $request->validate([
+            'name' => ['sometimes', 'string', 'max:255'],
+            'password' => ['sometimes', 'string', 'min:8', 'confirmed'],
+            'password_confirmation' => ['sometimes', 'string'],
+        ]);
+
+        $user = $request->user();
+        if (!empty($validated['name'])) {
+            $user->name = $validated['name'];
+        }
+        if (!empty($validated['password'])) {
+            $user->password = Hash::make($validated['password']);
+        }
+        $user->save();
+
+        return new UserResource($user);
+    });
+
+    // Import/Export transactions (encoder-accessible)
     Route::get('import-transactions/stats', [ImportTransactionController::class, 'stats']);
     Route::get('export-transactions/stats', [ExportTransactionController::class, 'stats']);
     Route::patch('import-transactions/{import_transaction}/cancel', [ImportTransactionController::class, 'cancel']);
     Route::patch('export-transactions/{export_transaction}/cancel', [ExportTransactionController::class, 'cancel']);
     Route::apiResource('import-transactions', ImportTransactionController::class)->only(['index', 'store', 'destroy']);
     Route::apiResource('export-transactions', ExportTransactionController::class)->only(['index', 'store', 'destroy']);
+
+    // Clients (read for all, write for supervisor+)
     Route::get('/clients', [ClientController::class, 'index']);
     Route::get('/countries', [CountryController::class, 'index']);
 
@@ -35,21 +62,41 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
     Route::apiResource('documents', DocumentController::class)->except(['update']);
     Route::get('documents/{document}/download', [DocumentController::class, 'download']);
 
-    // Legacy archive uploads — strict validation (past-date enforced at API level)
+    // Archive uploads (legacy)
     Route::prefix('archives')->group(function () {
         Route::get('/', [ArchiveController::class, 'index']);
         Route::post('import', [ArchiveController::class, 'storeImport']);
         Route::post('export', [ArchiveController::class, 'storeExport']);
     });
 
-
-    // Admin-only routes — tighter throttle (20 req/min) for heavier DB queries
+    // Admin-only routes — tighter throttle (20 req/min)
     Route::middleware('throttle:20,1')->group(function () {
+
+        // User management
         Route::apiResource('users', UserController::class);
+        Route::post('users/{user}/deactivate', [UserController::class, 'deactivate']);
+        Route::post('users/{user}/activate', [UserController::class, 'activate']);
+
+        // Client management (write operations)
         Route::apiResource('clients', ClientController::class)->except(['index']);
+        Route::post('clients/{client}/toggle-active', [ClientController::class, 'toggleActive']);
+        Route::get('clients/{client}/transactions', [ClientController::class, 'transactions']);
 
         // Audit logs (read-only, supervisor+)
-        Route::get('audit-logs', [AuditLogController::class, 'index']);
         Route::get('audit-logs/actions', [AuditLogController::class, 'actions']);
+        Route::get('audit-logs', [AuditLogController::class, 'index']);
+
+        // Reports (supervisor+)
+        Route::get('reports/monthly', [ReportController::class, 'monthly']);
+        Route::get('reports/clients', [ReportController::class, 'clients']);
+        Route::get('reports/turnaround', [ReportController::class, 'turnaround']);
+
+        // Transaction oversight (supervisor+)
+        Route::get('transactions', [TransactionController::class, 'index']);
+        Route::get('transactions/encoders', [TransactionController::class, 'encoders']);
+        Route::patch('transactions/import/{id}/reassign', [TransactionController::class, 'reassignImport']);
+        Route::patch('transactions/export/{id}/reassign', [TransactionController::class, 'reassignExport']);
+        Route::patch('transactions/import/{id}/status', [TransactionController::class, 'overrideImportStatus']);
+        Route::patch('transactions/export/{id}/status', [TransactionController::class, 'overrideExportStatus']);
     });
 });

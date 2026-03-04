@@ -46,4 +46,28 @@ class AuditLog extends Model
             ->title()
             ->value();
     }
+
+    /**
+     * Static helper to record an audit log entry.
+     * Bridges the action/description-style with the main Spatie-style schema.
+     */
+    public static function record(
+        string $action,
+        string $description,
+        ?int $userId = null,
+        ?string $subjectType = null,
+        ?int $subjectId = null,
+        ?string $ipAddress = null
+    ): self {
+        return static::create([
+            'user_id' => $userId,
+            'event' => $action,
+            'auditable_type' => $subjectType
+                ? 'App\\Models\\' . ucfirst($subjectType) . 'Transaction'
+                : null,
+            'auditable_id' => $subjectId,
+            'new_values' => ['description' => $description],
+            'ip_address' => $ipAddress,
+        ]);
+    }
 }

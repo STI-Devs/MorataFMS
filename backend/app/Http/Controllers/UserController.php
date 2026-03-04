@@ -55,7 +55,7 @@ class UserController extends Controller
     }
 
     /**
-     * Update a user (admin only, cannot update self).
+     * Update a user (admin only).
      */
     public function update(UpdateUserRequest $request, User $user)
     {
@@ -63,7 +63,6 @@ class UserController extends Controller
 
         $validated = $request->validated();
 
-        // Update fillable fields
         if (isset($validated['name'])) {
             $user->name = $validated['name'];
         }
@@ -73,10 +72,8 @@ class UserController extends Controller
         if (isset($validated['password'])) {
             $user->password = Hash::make($validated['password']);
         }
-
-        // Role is server-managed, set explicitly
         if (isset($validated['role'])) {
-            $user->role = $validated['role'];
+            $user->role = $validated['role']; // Server-managed
         }
 
         $user->save();
@@ -85,7 +82,7 @@ class UserController extends Controller
     }
 
     /**
-     * Delete a user (admin only, cannot delete self).
+     * Delete a user (admin only).
      */
     public function destroy(User $user)
     {
@@ -93,6 +90,34 @@ class UserController extends Controller
 
         $user->delete();
 
-        return response()->json(['message' => 'User deleted successfully.'], 200);
+        return response()->json(['message' => 'User deleted successfully.']);
+    }
+
+    /**
+     * POST /api/users/{user}/deactivate
+     * Soft-disable a user account (admin only).
+     */
+    public function deactivate(User $user)
+    {
+        $this->authorize('update', $user);
+
+        $user->is_active = false;
+        $user->save();
+
+        return new UserResource($user);
+    }
+
+    /**
+     * POST /api/users/{user}/activate
+     * Re-enable a deactivated user account (admin only).
+     */
+    public function activate(User $user)
+    {
+        $this->authorize('update', $user);
+
+        $user->is_active = true;
+        $user->save();
+
+        return new UserResource($user);
     }
 }

@@ -35,7 +35,9 @@ class ArchiveController extends Controller
      */
     public function index(): JsonResponse
     {
-        $this->authorize('viewAny', Document::class);
+        if (!request()->user()->isAdmin()) {
+            abort(403, 'Only administrators can access the archive.');
+        }
 
         // Query on is_archive — explicit, unambiguous, indexed.
         // Year comes from the actual historical date fields, not created_at.
@@ -122,7 +124,9 @@ class ArchiveController extends Controller
      */
     public function storeImport(StoreArchiveImportRequest $request)
     {
-        $this->authorize('create', ImportTransaction::class);
+        if (!$request->user()->isAdmin()) {
+            abort(403, 'Only administrators can upload archive records.');
+        }
 
         $validated = $request->validated();
 
@@ -154,7 +158,9 @@ class ArchiveController extends Controller
      */
     public function storeExport(StoreArchiveExportRequest $request)
     {
-        $this->authorize('create', ExportTransaction::class);
+        if (!$request->user()->isAdmin()) {
+            abort(403, 'Only administrators can upload archive records.');
+        }
 
         $validated = $request->validated();
 

@@ -123,7 +123,7 @@ export const ClientManagement = () => {
             </div>
 
             {/* Table */}
-            <div className="bg-surface rounded-lg border border-border overflow-hidden">
+            <div className="bg-surface rounded-xl border border-border overflow-hidden">
                 <div className="p-3 border-b border-border flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between bg-surface-subtle">
                     <div className="relative flex-1 max-w-sm">
                         <svg className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -139,8 +139,7 @@ export const ClientManagement = () => {
                     </div>
                     <button
                         onClick={handleCreate}
-                        className="flex items-center gap-1.5 px-3.5 h-9 rounded-md text-xs font-bold transition-all shadow-sm"
-                        style={{ backgroundColor: '#0a84ff', color: '#fff' }}
+                        className="flex items-center gap-1.5 px-3.5 h-9 rounded-lg text-xs font-bold transition-all shadow-sm bg-gradient-to-br from-blue-600 to-indigo-700 text-white"
                     >
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />

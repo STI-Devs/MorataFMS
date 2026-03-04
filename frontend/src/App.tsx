@@ -1,13 +1,13 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { NotFoundPage } from './components/layout/NotFoundPage';
+import LandingPage from './components/LandingPage';
+import NotFoundPage from './components/NotFoundPage';
 import { ThemeProvider } from './context/ThemeContext';
 import { AdminDashboard, AuditLogs, ClientManagement, ReportsAnalytics, TransactionOversight, UserManagement } from './features/admin';
 import { AuthProvider, GuestRoute, ProtectedRoute } from './features/auth';
 import { AuthPage } from './features/auth/components/AuthPage';
-import LandingPage from './features/landing/LandingPage';
-import { ArchivesPage, Documents, DocumentsDetail, ExportList, ImportList, MainLayout, Profile, TrackingDetails } from './features/tracking';
+import { AdminLiveTracking, ArchivesPage, Documents, DocumentsDetail, ExportList, Help, ImportList, MainLayout, Profile, TrackingDashboard, TrackingDetails } from './features/tracking';
 
 function App() {
   return (
@@ -29,25 +29,32 @@ function App() {
             <Route element={<MainLayout />}>
 
               {/* Routes accessible by ALL roles */}
-              <Route path="/dashboard" element={<AdminDashboard />} />
+              <Route path="/tracking" element={<TrackingDashboard />} />
               <Route path="/profile" element={<Profile />} />
+              <Route path="/help" element={<Help />} />
               <Route path="/imports" element={<ImportList />} />
               <Route path="/exports" element={<ExportList />} />
               <Route path="/export" element={<ExportList />} />
               <Route path="/documents" element={<Documents />} />
               <Route path="/documents/:ref" element={<DocumentsDetail />} />
-              <Route path="/archives" element={<ArchivesPage />} />
               <Route path="/tracking/:referenceId" element={<TrackingDetails />} />
 
-              {/* Admin-only routes — nested guard redirects non-admins to /dashboard immediately */}
+              {/* Admin-only routes */}
               <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+                <Route path="/dashboard" element={<AdminDashboard />} />
                 <Route path="/users" element={<UserManagement />} />
                 <Route path="/clients" element={<ClientManagement />} />
                 <Route path="/transactions" element={<TransactionOversight />} />
                 <Route path="/reports" element={<ReportsAnalytics />} />
                 <Route path="/audit-logs" element={<AuditLogs />} />
+                <Route path="/archives" element={<ArchivesPage />} />
               </Route>
 
+            </Route>
+
+            {/* Standalone admin: no sidebar */}
+            <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+              <Route path="/live-tracking" element={<AdminLiveTracking />} />
             </Route>
           </Route>
 

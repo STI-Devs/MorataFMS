@@ -22,9 +22,9 @@ export function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Role-based access control
+  // Role-based access control — redirect to a safe page all roles can access
   if (allowedRoles && user && !allowedRoles.includes(user.role)) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/tracking" replace />;
   }
 
   // Forward parent context (e.g. MainLayout's { user, dateTime }) to nested pages

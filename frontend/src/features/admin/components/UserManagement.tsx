@@ -37,10 +37,10 @@ function RoleBadge({ role }: { role: string }) {
     const cfg = roleConfig[role] ?? { label: role, color: '#8e8e93', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' };
     return (
         <span
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold"
             style={{ color: cfg.color, backgroundColor: `${cfg.color}18` }}
         >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d={cfg.icon} />
             </svg>
             {cfg.label}
@@ -123,7 +123,7 @@ export const UserManagement = () => {
                     { label: 'Inactive', value: users.filter(u => !u.is_active).length, icon: 'M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z', color: '#ff453a' },
                     { label: 'Admins', value: users.filter(u => u.role === 'admin').length, icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z', color: '#bf5af2' },
                 ].map(stat => (
-                    <div key={stat.label} className="bg-surface-tint rounded-lg p-4 border border-border-tint">
+                    <div key={stat.label} className="bg-surface-tint rounded-xl p-4 border border-border-tint">
                         <div className="flex items-start justify-between">
                             <div>
                                 <p className="text-3xl font-bold tabular-nums text-text-primary">{stat.value}</p>
@@ -140,7 +140,7 @@ export const UserManagement = () => {
             </div>
 
             {/* Table */}
-            <div className="bg-surface rounded-lg border border-border overflow-hidden">
+            <div className="bg-surface rounded-xl border border-border overflow-hidden">
                 <div className="p-3 border-b border-border flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between bg-surface-subtle">
                     <div className="relative flex-1 max-w-sm">
                         <svg className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -156,8 +156,7 @@ export const UserManagement = () => {
                     </div>
                     <button
                         onClick={handleCreate}
-                        className="flex items-center gap-1.5 px-3.5 h-9 rounded-md text-xs font-bold transition-all shadow-sm"
-                        style={{ backgroundColor: '#0a84ff', color: '#fff' }}
+                    className="flex items-center gap-1.5 px-3.5 h-9 rounded-lg text-xs font-bold transition-all shadow-sm bg-gradient-to-br from-blue-600 to-indigo-700 text-white"
                     >
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />

@@ -26,5 +26,6 @@ export function RoleRedirect() {
     return <Navigate to="/dashboard" replace />;
   }
 
-  return <Navigate to="/dashboard" replace />;
+  // Encoders, brokers, supervisors, managers → tracking
+  return <Navigate to="/tracking" replace />;
 }

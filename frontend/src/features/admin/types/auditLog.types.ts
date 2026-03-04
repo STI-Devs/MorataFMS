@@ -1,26 +1,17 @@
-export type AuditAction =
-    | 'login'
-    | 'logout'
-    | 'encoder_reassigned'
-    | 'status_changed'
-    | string;
-
+// Matches the actual AuditLogResource output from the backend
 export interface AuditLogEntry {
     id: number;
-    user_id: number | null;
-    action: AuditAction;
-    subject_type: 'import' | 'export' | null;
-    subject_id: number | null;
-    description: string;
-    ip_address: string | null;
-    created_at: string;
-    updated_at: string;
+    event: string;
+    auditable_type: string | null;
+    auditable_id: number | null;
     user: {
         id: number;
         name: string;
-        email: string;
-        role: string;
     } | null;
+    old_values: Record<string, unknown> | null;
+    new_values: Record<string, unknown> | null;
+    ip_address: string | null;
+    created_at: string;
 }
 
 export interface AuditLogMeta {
