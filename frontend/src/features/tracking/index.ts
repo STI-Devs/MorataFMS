@@ -1,7 +1,8 @@
 export { ArchivesPage } from './components/ArchivesPage';
 export { CalendarCard } from './components/dashboard/CalendarCard';
 export { TrackingDashboard } from './components/dashboard/TrackingDashboard';
-export { Documents } from './components/documents/Documents';
+export { Documents } from './components/Documents';
+export { DocumentsDetail } from './components/DocumentsDetail';
 export { ExportList } from './components/ExportList';
 export { ImportList } from './components/ImportList';
 export { MainLayout } from './components/MainLayout';

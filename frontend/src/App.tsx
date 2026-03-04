@@ -7,7 +7,7 @@ import { AdminDashboard, AuditLogs, ClientManagement, ReportsAnalytics, Transact
 import { AuthProvider, GuestRoute, ProtectedRoute } from './features/auth';
 import { AuthPage } from './features/auth/components/AuthPage';
 import LandingPage from './features/landing/LandingPage';
-import { ArchivesPage, Documents, ExportList, ImportList, MainLayout, Profile, TrackingDetails } from './features/tracking';
+import { ArchivesPage, Documents, DocumentsDetail, ExportList, ImportList, MainLayout, Profile, TrackingDetails } from './features/tracking';
 
 function App() {
   return (
@@ -35,6 +35,7 @@ function App() {
               <Route path="/exports" element={<ExportList />} />
               <Route path="/export" element={<ExportList />} />
               <Route path="/documents" element={<Documents />} />
+              <Route path="/documents/:ref" element={<DocumentsDetail />} />
               <Route path="/archives" element={<ArchivesPage />} />
               <Route path="/tracking/:referenceId" element={<TrackingDetails />} />
 

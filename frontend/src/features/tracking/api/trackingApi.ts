@@ -168,5 +168,12 @@ export const trackingApi = {
     deleteDocument: async (id: number): Promise<void> => {
         await api.delete(`/api/documents/${id}`);
     },
+
+    getDocumentPreviewUrl: async (id: number): Promise<string> => {
+        const response = await api.get(`/api/documents/${id}/download`, {
+            responseType: 'blob',
+        });
+        return window.URL.createObjectURL(new Blob([response.data]));
+    },
 };
 
