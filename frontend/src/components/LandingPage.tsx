@@ -1,7 +1,17 @@
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../features/auth';
 
 const LandingPage: React.FC = () => {
     const navigate = useNavigate();
+    const { isAuthenticated, user } = useAuth();
+
+    const handleHeaderAction = () => {
+        if (isAuthenticated) {
+            navigate(user?.role === 'admin' ? '/transactions' : '/tracking');
+        } else {
+            navigate('/login');
+        }
+    };
 
     return (
         <div className="relative h-screen w-full bg-black font-['Montserrat',sans-serif] overflow-hidden text-white">
@@ -31,18 +41,35 @@ const LandingPage: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="relative">
-                        <button
-                            onClick={() => navigate('/login')}
-                            className="hidden md:flex items-center gap-3 focus:outline-none group hover:opacity-80 transition-opacity"
-                        >
-                            <p className="text-base font-bold text-white leading-tight">Sign In</p>
-                            <div className="w-12 h-12 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center text-white border border-white/20 shadow-lg group-hover:bg-white/20 transition-all">
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                </svg>
-                            </div>
-                        </button>
+                    {/* Auth action — top right */}
+                    <div className="relative hidden md:block">
+                        {isAuthenticated ? (
+                            // Logged in → "Open App" + arrow icon
+                            <button
+                                onClick={handleHeaderAction}
+                                className="flex items-center gap-3 focus:outline-none group hover:opacity-80 transition-opacity"
+                            >
+                                <p className="text-base font-bold text-white leading-tight">Open App</p>
+                                <div className="w-12 h-12 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center text-white border border-white/20 shadow-lg group-hover:bg-white/20 transition-all">
+                                    <svg className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                                    </svg>
+                                </div>
+                            </button>
+                        ) : (
+                            // Not logged in → Sign In
+                            <button
+                                onClick={handleHeaderAction}
+                                className="flex items-center gap-3 focus:outline-none group hover:opacity-80 transition-opacity"
+                            >
+                                <p className="text-base font-bold text-white leading-tight">Sign In</p>
+                                <div className="w-12 h-12 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center text-white border border-white/20 shadow-lg group-hover:bg-white/20 transition-all">
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                    </svg>
+                                </div>
+                            </button>
+                        )}
                     </div>
 
                     <div className="md:hidden">

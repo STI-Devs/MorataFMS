@@ -128,7 +128,7 @@ export const MainLayout = () => {
                 {/* Logo */}
                 <div
                     className="flex items-center gap-2.5 px-2 mb-6 cursor-pointer"
-                    onClick={() => navigate('/')}
+                    onClick={() => navigate('/tracking')}
                 >
                     <div className="w-7 h-7 shrink-0">
                         <img src="/logo.jpg" alt="F.M Morata Logo" className="w-full h-full object-cover rounded-full" />
