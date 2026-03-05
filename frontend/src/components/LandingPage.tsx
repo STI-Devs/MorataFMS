@@ -4,9 +4,9 @@ const LandingPage: React.FC = () => {
     const navigate = useNavigate();
 
     return (
-        <div className="relative h-screen w-full bg-black overflow-hidden text-white" style={{ fontFamily: "'Montserrat', sans-serif" }}>
+        <div className="relative h-screen w-full bg-black font-['Montserrat',sans-serif] overflow-hidden text-white">
 
-            {/* Background Image */}
+            {/* Background Image Layer */}
             <div className="absolute inset-0 z-0 overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/50 to-black/85 z-10" />
                 <img
@@ -16,32 +16,43 @@ const LandingPage: React.FC = () => {
                 />
             </div>
 
+            {/* Content Container */}
             <div className="relative z-10 h-full flex flex-col">
 
-                {/* Header */}
+                {/* Navigation Header */}
                 <header className="container mx-auto px-6 py-8 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <div className="w-12 h-12">
                             <img src="/logo.jpg" alt="F.M. Morata Logo" className="w-full h-full object-cover rounded-full" />
                         </div>
                         <div>
-                            <h1 className="text-xl font-black leading-none text-white uppercase tracking-[0.2em]">F.M. MORATA</h1>
-                            <p className="text-[10px] uppercase tracking-widest text-white/60 whitespace-nowrap">Customs Tracking &amp; File Management</p>
+                            <h1 className="text-2xl font-black leading-none text-white uppercase tracking-[0.2em]">F.M. MORATA</h1>
+                            <p className="text-[12px] uppercase tracking-[0.2em] text-gray-300 font-bold whitespace-nowrap">CUSTOMS TRACKING &amp; FILE MANAGEMENT</p>
                         </div>
                     </div>
 
-                    <button
-                        onClick={() => navigate('/login')}
-                        className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-sm font-bold uppercase tracking-widest hover:bg-white/20 transition-all"
-                    >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    <div className="relative">
+                        <button
+                            onClick={() => navigate('/login')}
+                            className="hidden md:flex items-center gap-3 focus:outline-none group hover:opacity-80 transition-opacity"
+                        >
+                            <p className="text-base font-bold text-white leading-tight">Sign In</p>
+                            <div className="w-12 h-12 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center text-white border border-white/20 shadow-lg group-hover:bg-white/20 transition-all">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                </svg>
+                            </div>
+                        </button>
+                    </div>
+
+                    <div className="md:hidden">
+                        <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7" />
                         </svg>
-                        Sign In
-                    </button>
+                    </div>
                 </header>
 
-                {/* Hero Content */}
+                {/* Main Hero Content */}
                 <main className="flex-1 container mx-auto px-8 md:px-12 flex flex-col justify-center pb-20">
                     <div className="max-w-5xl">
                         <h1 className="text-4xl md:text-5xl lg:text-7xl font-black leading-[0.9] mb-4 tracking-[0.2em] uppercase">
@@ -53,13 +64,6 @@ const LandingPage: React.FC = () => {
                         <p className="text-lg md:text-xl font-bold text-white/80 mt-10 mb-14 max-w-2xl leading-relaxed tracking-[0.2em] uppercase">
                             Results Driven, with Integrity
                         </p>
-
-                        <button
-                            onClick={() => navigate('/login')}
-                            className="px-10 py-4 bg-white text-black font-black uppercase tracking-widest text-sm hover:bg-white/90 transition-all rounded-none"
-                        >
-                            Access System
-                        </button>
                     </div>
                 </main>
 
@@ -76,6 +80,7 @@ const LandingPage: React.FC = () => {
                         </div>
                     </div>
                 </footer>
+
             </div>
         </div>
     );

@@ -26,6 +26,26 @@ trait Auditable
     }
 
     /**
+     * When true, all audit logging is suppressed for this model class.
+     * Use withoutAuditing() to temporarily disable during seeders/imports.
+     */
+    protected static bool $auditingDisabled = false;
+
+    /**
+     * Run a callback with auditing disabled, then restore previous state.
+     * Usage: ImportTransaction::withoutAuditing(fn() => ImportTransaction::create([...]));
+     */
+    public static function withoutAuditing(callable $callback): mixed
+    {
+        static::$auditingDisabled = true;
+        try {
+            return $callback();
+        } finally {
+            static::$auditingDisabled = false;
+        }
+    }
+
+    /**
      * Boot the Auditable trait and register model event listeners.
      */
     public static function bootAuditable(): void
@@ -85,6 +105,11 @@ trait Auditable
      */
     protected function logAudit(string $event, array $oldValues, array $newValues): void
     {
+        // Skip logging when auditing is suppressed (e.g. during seeders/imports)
+        if (static::$auditingDisabled) {
+            return;
+        }
+
         AuditLog::create([
             'auditable_type' => get_class($this),
             'auditable_id' => $this->getKey(),

@@ -23,14 +23,16 @@ class ClientSeeder extends Seeder
             'ZJM TRADING CORP.',
         ];
 
-        foreach ($clients as $name) {
-            Client::updateOrCreate(
-                ['name' => $name],
-                [
-                    'type' => 'both',
-                    'is_active' => true,
-                ]
-            );
-        }
+        Client::withoutAuditing(function () use ($clients) {
+            foreach ($clients as $name) {
+                Client::updateOrCreate(
+                    ['name' => $name],
+                    [
+                        'type' => 'both',
+                        'is_active' => true,
+                    ]
+                );
+            }
+        });
     }
 }

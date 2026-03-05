@@ -35,6 +35,7 @@ export const AuditLogs = () => {
     const [error,            setError]            = useState('');
     const [search,           setSearch]           = useState('');
     const [actionFilter,     setActionFilter]     = useState('');
+    const [actorFilter,      setActorFilter]      = useState<'human' | 'system' | 'all'>('human');
     const [dateFrom,         setDateFrom]         = useState('');
     const [dateTo,           setDateTo]           = useState('');
     const [page,             setPage]             = useState(1);
@@ -67,17 +68,19 @@ export const AuditLogs = () => {
         loadLogs({
             search:    search       || undefined,
             action:    actionFilter || undefined,
+            actor:     actorFilter,
             date_from: dateFrom     || undefined,
             date_to:   dateTo       || undefined,
             page,
             per_page: 25,
         });
-    }, [loadLogs, search, actionFilter, dateFrom, dateTo, page]);
+    }, [loadLogs, search, actionFilter, actorFilter, dateFrom, dateTo, page]);
 
-    const handleSearch   = (val: string) => { setSearch(val);       setPage(1); };
-    const handleAction   = (val: string) => { setActionFilter(val); setPage(1); };
-    const handleDateFrom = (val: string) => { setDateFrom(val);     setPage(1); };
-    const handleDateTo   = (val: string) => { setDateTo(val);       setPage(1); };
+    const handleSearch   = (val: string) => { setSearch(val);                                      setPage(1); };
+    const handleAction   = (val: string) => { setActionFilter(val);                                setPage(1); };
+    const handleActor    = (val: 'human' | 'system' | 'all') => { setActorFilter(val);             setPage(1); };
+    const handleDateFrom = (val: string) => { setDateFrom(val);                                    setPage(1); };
+    const handleDateTo   = (val: string) => { setDateTo(val);                                      setPage(1); };
 
     const inputCls = 'px-3 py-2.5 rounded-lg border border-border-strong bg-input-bg text-text-primary text-sm placeholder:text-text-muted focus:outline-none focus:border-blue-500/50 transition-colors';
 
@@ -139,6 +142,17 @@ export const AuditLogs = () => {
                             onChange={e => handleSearch(e.target.value)}
                             className={`${inputCls} min-w-[150px] !h-8 !py-0 !text-xs`}
                         />
+                        {/* Actor toggle */}
+                        <select
+                            value={actorFilter}
+                            onChange={e => handleActor(e.target.value as 'human' | 'system' | 'all')}
+                            className={`${inputCls} !h-8 !py-0 !text-xs`}
+                        >
+                            <option value="human">User Actions</option>
+                            <option value="system">System Events</option>
+                            <option value="all">All Activity</option>
+                        </select>
+                        {/* Event type filter */}
                         <select
                             value={actionFilter}
                             onChange={e => handleAction(e.target.value)}
@@ -151,9 +165,9 @@ export const AuditLogs = () => {
                         </select>
                         <input type="date" value={dateFrom} onChange={e => handleDateFrom(e.target.value)} className={`${inputCls} !h-8 !py-0 !text-xs`} />
                         <input type="date" value={dateTo}   onChange={e => handleDateTo(e.target.value)}   className={`${inputCls} !h-8 !py-0 !text-xs`} />
-                        {(search || actionFilter || dateFrom || dateTo) && (
+                        {(search || actionFilter || actorFilter !== 'human' || dateFrom || dateTo) && (
                             <button
-                                onClick={() => { setSearch(''); setActionFilter(''); setDateFrom(''); setDateTo(''); setPage(1); }}
+                                onClick={() => { setSearch(''); setActionFilter(''); setActorFilter('human'); setDateFrom(''); setDateTo(''); setPage(1); }}
                                 className="px-3 h-8 rounded-md text-xs font-semibold border border-border-strong bg-input-bg text-text-secondary hover:text-text-primary transition-colors"
                             >
                                 Clear

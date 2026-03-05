@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import type { IconName } from '../../../components/Icon';
 import { Icon } from '../../../components/Icon';
-import { StatusBadge } from '../../../components/StatusBadge';
 import { trackingApi } from '../api/trackingApi';
 import type { ExportTransaction, ImportTransaction, LayoutContext } from '../types';
 import { mapExportTransaction, mapImportTransaction } from '../utils/mappers';
@@ -152,7 +151,6 @@ export const TrackingDetails = () => {
                         {user && <span className="ml-2 opacity-50">· {user.name}</span>}
                     </p>
                 </div>
-                <StatusBadge status={transaction.status} />
             </div>
 
             {/* Status Overview Card */}
@@ -174,6 +172,21 @@ export const TrackingDetails = () => {
                             </p>
                         )}
                     </div>
+                    {(() => {
+                        const getStatusStyle = (status: string) => {
+                            if (status === 'Cleared' || status === 'Shipped') return { color: '#30d158', bg: 'rgba(48,209,88,0.13)' };
+                            if (status === 'Pending' || status === 'Processing') return { color: '#ff9f0a', bg: 'rgba(255,159,10,0.13)' };
+                            if (status === 'Delayed') return { color: '#ff453a', bg: 'rgba(255,69,58,0.13)' };
+                            return { color: '#64d2ff', bg: 'rgba(100,210,255,0.13)' };
+                        };
+                        const s = getStatusStyle(transaction.status);
+                        return (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold shrink-0" style={{ color: s.color, backgroundColor: s.bg }}>
+                                <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ backgroundColor: s.color, boxShadow: `0 0 4px ${s.color}` }} />
+                                {transaction.status}
+                            </span>
+                        );
+                    })()}
                 </div>
             </div>
 

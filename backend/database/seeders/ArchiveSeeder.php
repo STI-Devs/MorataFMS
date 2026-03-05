@@ -229,7 +229,9 @@ class ArchiveSeeder extends Seeder
         $this->command->info('✅ Old archive data cleared.');
 
         // ── Ensure clients exist ──────────────────────────────────────────
-        $this->ensureClients();
+        Client::withoutAuditing(function () {
+            $this->ensureClients();
+        });
 
         // ── Resolve country IDs ───────────────────────────────────────────
         $originCountries = Country::whereIn('name', self::ORIGIN_COUNTRY_NAMES)->pluck('id', 'name');
@@ -255,17 +257,20 @@ class ArchiveSeeder extends Seeder
                 $color = self::SELECTIVE_COLORS[array_rand(self::SELECTIVE_COLORS)];
                 $originName = self::ORIGIN_COUNTRY_NAMES[array_rand(self::ORIGIN_COUNTRY_NAMES)];
 
-                $txn = new ImportTransaction();
-                $txn->customs_ref_no = 'ARCH-' . $date . '-' . strtoupper(substr(uniqid(), -6));
-                $txn->bl_no = $blNo;
-                $txn->selective_color = $color;
-                $txn->importer_id = $importerIds[array_rand($importerIds)];
-                $txn->origin_country_id = $originCountries[$originName] ?? null;
-                $txn->arrival_date = $date;
-                $txn->is_archive = true;
-                $txn->assigned_user_id = $admin->id;
-                $txn->status = 'completed';
-                $txn->save();
+                $txn = ImportTransaction::withoutAuditing(function () use ($blNo, $color, $importerIds, $originCountries, $originName, $date, $admin) {
+                    $txn = new ImportTransaction();
+                    $txn->customs_ref_no = 'ARCH-' . $date . '-' . strtoupper(substr(uniqid(), -6));
+                    $txn->bl_no = $blNo;
+                    $txn->selective_color = $color;
+                    $txn->importer_id = $importerIds[array_rand($importerIds)];
+                    $txn->origin_country_id = $originCountries[$originName] ?? null;
+                    $txn->arrival_date = $date;
+                    $txn->is_archive = true;
+                    $txn->assigned_user_id = $admin->id;
+                    $txn->status = 'completed';
+                    $txn->save();
+                    return $txn;
+                });
 
                 // Upload documents for random stages (3–6 stages completed)
                 $stagesCompleted = rand(3, 6);
@@ -288,16 +293,19 @@ class ArchiveSeeder extends Seeder
                 $destName = self::DESTINATION_COUNTRY_NAMES[array_rand(self::DESTINATION_COUNTRY_NAMES)];
                 $vessel = self::VESSELS[array_rand(self::VESSELS)];
 
-                $txn = new ExportTransaction();
-                $txn->bl_no = $blNo;
-                $txn->vessel = $vessel;
-                $txn->shipper_id = $exporterIds[array_rand($exporterIds)];
-                $txn->destination_country_id = $destCountries[$destName] ?? null;
-                $txn->export_date = $date;
-                $txn->is_archive = true;
-                $txn->assigned_user_id = $admin->id;
-                $txn->status = 'completed';
-                $txn->save();
+                $txn = ExportTransaction::withoutAuditing(function () use ($blNo, $vessel, $exporterIds, $destCountries, $destName, $date, $admin) {
+                    $txn = new ExportTransaction();
+                    $txn->bl_no = $blNo;
+                    $txn->vessel = $vessel;
+                    $txn->shipper_id = $exporterIds[array_rand($exporterIds)];
+                    $txn->destination_country_id = $destCountries[$destName] ?? null;
+                    $txn->export_date = $date;
+                    $txn->is_archive = true;
+                    $txn->assigned_user_id = $admin->id;
+                    $txn->status = 'completed';
+                    $txn->save();
+                    return $txn;
+                });
 
                 // Upload documents for random stages (2–4 stages completed)
                 $stagesCompleted = rand(2, 4);
@@ -364,16 +372,18 @@ class ArchiveSeeder extends Seeder
                 month: $month,
             );
 
-            $doc = new Document();
-            $doc->type = $stage;
-            $doc->filename = $filename;
-            $doc->path = $path;
-            $doc->size_bytes = rand(50_000, 5_000_000); // 50KB–5MB
-            $doc->version = 1;
-            $doc->documentable_type = get_class($txn);
-            $doc->documentable_id = $txn->id;
-            $doc->uploaded_by = $uploaderId;
-            $doc->save();
+            Document::withoutAuditing(function () use ($stage, $filename, $path, $txn, $uploaderId) {
+                $doc = new Document();
+                $doc->type = $stage;
+                $doc->filename = $filename;
+                $doc->path = $path;
+                $doc->size_bytes = rand(50_000, 5_000_000); // 50KB–5MB
+                $doc->version = 1;
+                $doc->documentable_type = get_class($txn);
+                $doc->documentable_id = $txn->id;
+                $doc->uploaded_by = $uploaderId;
+                $doc->save();
+            });
 
             $count++;
         }

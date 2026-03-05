@@ -1,5 +1,5 @@
 import api from '../../../lib/axios';
-import type { AuditLogListResponse, AuditLogFilters } from '../types/auditLog.types';
+import type { AuditLogFilters, AuditLogListResponse } from '../types/auditLog.types';
 
 export const auditLogApi = {
     async getLogs(filters: AuditLogFilters = {}): Promise<AuditLogListResponse> {
@@ -11,6 +11,7 @@ export const auditLogApi = {
         if (filters.date_to) params.date_to = filters.date_to;
         if (filters.page) params.page = filters.page;
         if (filters.per_page) params.per_page = filters.per_page;
+        if (filters.actor) params.actor = filters.actor;
 
         const response = await api.get('/api/audit-logs', { params });
         return response.data;

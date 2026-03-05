@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
+import { Icon } from '../../../components/Icon';
 import type { LayoutContext } from '../../tracking/types';
 import { useAllTransactions } from '../hooks/useTransactions';
 import type { OversightTransaction } from '../types/transaction.types';
@@ -84,21 +85,19 @@ export const TransactionOversight = () => {
             {/* Stats */}
             <div className="grid grid-cols-3 gap-3">
                 {[
-                    { label: 'Total Transactions', value: stats.total,   color: '#0a84ff', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2' },
-                    { label: 'Imports',            value: stats.imports, color: '#30d158', icon: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12' },
-                    { label: 'Exports',            value: stats.exports, color: '#ff9f0a', icon: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4' },
+                    { label: 'Total Active', value: stats.total,   color: '#30d158', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' },
+                    { label: 'Imports',      value: stats.imports, color: '#0a84ff', icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4' },
+                    { label: 'Exports',      value: stats.exports, color: '#ff9f0a', icon: 'M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0zM13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0' },
                 ].map((card) => (
-                    <div key={card.label} className="bg-surface-tint rounded-xl p-4 border border-border">
-                        <div className="flex items-start justify-between">
-                            <div>
-                                <p className="text-3xl font-bold tabular-nums text-text-primary">{card.value}</p>
-                                <p className="text-xs mt-1 text-text-secondary">{card.label}</p>
-                            </div>
-                            <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: `${card.color}20` }}>
-                                <svg className="w-4.5 h-4.5" fill="none" stroke={card.color} viewBox="0 0 24 24" strokeWidth={1.8}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d={card.icon} />
-                                </svg>
-                            </div>
+                    <div key={card.label} className="bg-surface rounded-lg p-4 border border-border flex items-center justify-between">
+                        <div>
+                            <p className="text-sm text-text-secondary mb-1">{card.label}</p>
+                            <p className="text-3xl font-bold tabular-nums text-text-primary">{card.value}</p>
+                        </div>
+                        <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: `${card.color}20` }}>
+                            <svg className="w-5 h-5" fill="none" stroke={card.color} viewBox="0 0 24 24" strokeWidth={1.8}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d={card.icon} />
+                            </svg>
                         </div>
                     </div>
                 ))}
@@ -124,46 +123,28 @@ export const TransactionOversight = () => {
                         />
                     </div>
 
-                    {/* Type pill toggle */}
-                    <div className="flex h-9 rounded-lg border border-border overflow-hidden shrink-0">
-                        {(['all', 'import', 'export'] as TypeFilter[]).map((t) => (
-                            <button
-                                key={t}
-                                onClick={() => setTypeFilter(t)}
-                                className={`px-3 py-1 text-xs font-bold capitalize transition-colors ${
-                                    typeFilter === t
-                                        ? 'bg-text-primary text-surface'
-                                        : 'bg-surface-secondary text-text-secondary hover:text-text-primary'
-                                }`}
-                            >
-                                {t === 'all' ? 'All' : t === 'import' ? 'Imports' : 'Exports'}
-                            </button>
-                        ))}
+                    <div className="flex gap-2 sm:w-auto overflow-x-auto">
+                        <select
+                            value={typeFilter}
+                            onChange={(e) => setTypeFilter(e.target.value as TypeFilter)}
+                            className="h-9 rounded-md border border-border bg-surface text-text-primary text-sm px-3 focus:outline-none focus:border-blue-500/50 transition-colors cursor-pointer shrink-0"
+                        >
+                            <option value="all">All Types</option>
+                            <option value="import">Imports</option>
+                            <option value="export">Exports</option>
+                        </select>
+                        <select
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+                            className="h-9 rounded-md border border-border bg-surface text-text-primary text-sm px-3 focus:outline-none focus:border-blue-500/50 transition-colors cursor-pointer shrink-0"
+                        >
+                            <option value="all">All Statuses</option>
+                            <option value="pending">Pending</option>
+                            <option value="in_progress">In Progress</option>
+                            <option value="completed">Completed</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
                     </div>
-
-                    {/* Status select */}
-                    <select
-                        value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-                        className="px-3 h-9 rounded-lg border border-border bg-surface text-text-primary text-xs focus:outline-none focus:border-blue-500/50 transition-colors shrink-0"
-                    >
-                        <option value="all">All Statuses</option>
-                        <option value="pending">Pending</option>
-                        <option value="in_progress">In Progress</option>
-                        <option value="completed">Completed</option>
-                        <option value="cancelled">Cancelled</option>
-                    </select>
-
-                    {/* Refresh */}
-                    <button
-                        onClick={() => refetch()}
-                        className="px-3 h-9 rounded-lg border border-border bg-surface text-text-secondary text-xs font-semibold hover:text-text-primary transition-colors flex items-center gap-1.5 shrink-0"
-                    >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                        Refresh
-                    </button>
                 </div>
 
                 {/* Body */}
@@ -189,7 +170,7 @@ export const TransactionOversight = () => {
                         <table className="w-full">
                             <thead>
                                 <tr className="border-b border-border">
-                                    {['Type', 'Ref / BL No', 'Client', 'Date', 'Status', 'Encoder', 'Actions'].map((h) => (
+                                    {['Type', 'Ref No / BL', 'Client', 'Status', 'Encoder', 'Created', 'Actions'].map((h) => (
                                         <th key={h} className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-muted">
                                             {h}
                                         </th>
@@ -220,10 +201,6 @@ export const TransactionOversight = () => {
                                             </td>
                                             {/* Client */}
                                             <td className="px-5 py-3.5 text-sm text-text-secondary">{t.client || '—'}</td>
-                                            {/* Date */}
-                                            <td className="px-5 py-3.5 text-sm text-text-secondary">
-                                                {t.date ? new Date(t.date).toLocaleDateString() : '—'}
-                                            </td>
                                             {/* Status */}
                                             <td className="px-5 py-3.5">
                                                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold capitalize"
@@ -236,21 +213,26 @@ export const TransactionOversight = () => {
                                             <td className="px-5 py-3.5 text-sm text-text-secondary">
                                                 {t.assigned_to || <span className="text-text-muted italic">Unassigned</span>}
                                             </td>
+                                            {/* Created */}
+                                            <td className="px-5 py-3.5 text-sm text-text-secondary">
+                                                {t.date ? new Date(t.date).toLocaleDateString() : '—'}
+                                            </td>
                                             {/* Actions */}
                                             <td className="px-5 py-3.5">
-                                                <div className="flex gap-2">
+                                                <div className="flex gap-1.5">
                                                     <button
                                                         onClick={() => setReassignTarget(t)}
-                                                        className="px-3 py-1.5 rounded-md text-xs font-semibold bg-surface border border-border text-text-secondary hover:text-text-primary hover:border-border-strong transition-colors"
+                                                        className="p-1.5 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-md transition-colors"
+                                                        title="Reassign Encoder"
                                                     >
-                                                        Reassign
+                                                        <Icon name="user" className="w-4 h-4" />
                                                     </button>
                                                     <button
                                                         onClick={() => setStatusTarget(t)}
-                                                        className="px-3 py-1.5 rounded-md text-xs font-semibold transition-colors"
-                                                        style={{ backgroundColor: 'rgba(10,132,255,0.12)', color: '#0a84ff' }}
+                                                        className="p-1.5 text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/30 rounded-md transition-colors"
+                                                        title="Override Status"
                                                     >
-                                                        Override
+                                                        <Icon name="alert-circle" className="w-4 h-4" />
                                                     </button>
                                                 </div>
                                             </td>

@@ -35,6 +35,16 @@ class AuditLogController extends Controller
             $query->where('user_id', $userId);
         }
 
+        // Actor filter: 'human' (default) = authenticated users only,
+        // 'system' = automated/null-user actions, 'all' = no filter.
+        $actor = $request->query('actor', 'human');
+        if ($actor === 'human') {
+            $query->whereNotNull('user_id');
+        } elseif ($actor === 'system') {
+            $query->whereNull('user_id');
+        }
+        // 'all' — no additional constraint
+
         // Date range filters
         if ($from = $request->query('from')) {
             $query->whereDate('created_at', '>=', $from);

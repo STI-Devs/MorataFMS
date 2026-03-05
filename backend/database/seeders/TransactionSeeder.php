@@ -47,26 +47,30 @@ class TransactionSeeder extends Seeder
         // --- Seed 50 Import Transactions ---
         $this->command->info('Seeding 50 import transactions...');
 
-        ImportTransaction::factory()
-            ->count(50)
-            ->sequence(fn($sequence) => [
-                'importer_id' => $importers->random()->id,
-                'assigned_user_id' => $admin->id,
-                'arrival_date' => fake()->dateTimeBetween('-30 days', '+60 days')->format('Y-m-d'),
-            ])
-            ->create();
+        ImportTransaction::withoutAuditing(function () use ($importers, $admin) {
+            ImportTransaction::factory()
+                ->count(50)
+                ->sequence(fn($sequence) => [
+                    'importer_id' => $importers->random()->id,
+                    'assigned_user_id' => $admin->id,
+                    'arrival_date' => fake()->dateTimeBetween('-30 days', '+60 days')->format('Y-m-d'),
+                ])
+                ->create();
+        });
 
         // --- Seed 50 Export Transactions ---
         $this->command->info('Seeding 50 export transactions...');
 
-        ExportTransaction::factory()
-            ->count(50)
-            ->sequence(fn($sequence) => [
-                'shipper_id' => $exporters->random()->id,
-                'assigned_user_id' => $admin->id,
-                'destination_country_id' => $countries->isNotEmpty() ? $countries->random()->id : null,
-            ])
-            ->create();
+        ExportTransaction::withoutAuditing(function () use ($exporters, $countries, $admin) {
+            ExportTransaction::factory()
+                ->count(50)
+                ->sequence(fn($sequence) => [
+                    'shipper_id' => $exporters->random()->id,
+                    'assigned_user_id' => $admin->id,
+                    'destination_country_id' => $countries->isNotEmpty() ? $countries->random()->id : null,
+                ])
+                ->create();
+        });
 
         $this->command->info('✅ Seeded 50 imports + 50 exports successfully!');
     }

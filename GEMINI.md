@@ -287,3 +287,57 @@ useEffect(() => {
 *   All authenticated routes use `throttle:60,1` (60 requests/minute per user).
 *   Login has its own rate limiter (5 attempts).
 *   For static endpoints (e.g., `/api/countries`), consider using Laravel's `Cache::remember()` to avoid repeated DB queries.
+
+## 13. Audit Logging Conventions (MANDATORY)
+
+> **CRITICAL:** Every create, update, and delete event in the system MUST be traceable. Follow these rules without exception.
+
+### Three-Tier Actor Model
+
+| Actor | `user_id` | When it happens | In Event Log? |
+|---|---|---|---|
+| **Human** | Non-null | User clicks a button in the UI | ✅ Always (default view) |
+| **System** | `null` | Background jobs, cron tasks, webhooks | ✅ Hidden by default, toggle to see |
+| **Seeder/Dev** | N/A | `php artisan db:seed` | ❌ Completely suppressed |
+
+### How Auditing Works
+*   The `Auditable` trait (`app/Traits/Auditable.php`) auto-logs `created`, `updated`, and `deleted` events on any model that uses it.
+*   **Models with the trait:** `ImportTransaction`, `ExportTransaction`, `Document`, `User`, `Client`.
+*   Business-critical manual actions (reassign, status override) use `AuditLog::record()` explicitly in the controller.
+
+### Rules for Seeders / Data Imports (MANDATORY)
+*   **NEVER** let seeders generate audit log entries. Seeder data is fake — it MUST NOT appear in the Event Log.
+*   Always wrap seeder `create()` calls with the model's `withoutAuditing()` helper:
+
+```php
+// ✅ CORRECT — silent, no audit log entries
+ImportTransaction::withoutAuditing(function () {
+    ImportTransaction::factory()->count(50)->create();
+});
+
+// ❌ WRONG — floods audit log with 50 "System" entries
+ImportTransaction::factory()->count(50)->create();
+```
+
+### Rules for Background Jobs (Cron / Queued)
+*   Background jobs that mutate data (e.g., auto-archiving old transactions) **should** log naturally.
+*   The `user_id` will be `null` — this is correct. It shows as "System" in the Event Log.
+*   Admins can filter to see System-only events using the **Actor** dropdown.
+
+### Frontend Event Log Filter (Actor Toggle)
+The `AuditLogs.tsx` page has three actor modes:
+*   👤 **Humans Only** — Default view. Shows only authenticated user actions.
+*   ⚙️ **System Only** — Shows only automated/null-user events.
+*   🌐 **All Actors** — Unfiltered, shows everything.
+
+The backend `AuditLogController` supports the `?actor=human|system|all` query param (default: `human`).
+
+### When to Use `AuditLog::record()` Explicitly
+Use explicit `AuditLog::record()` calls (in addition to the trait's auto-logging) for business operations that are NOT a simple CRUD but carry audit significance:
+
+| Action | Use explicit record? |
+|---|---|
+| Encoder reassignment | ✅ Yes — attach old/new encoder names |
+| Status override (manager+) | ✅ Yes — attach old/new status |
+| Document archive | ✅ Yes — note who archived it |
+| Regular field update via form | ❌ No — trait handles it automatically |

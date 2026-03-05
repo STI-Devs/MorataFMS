@@ -34,4 +34,5 @@ export interface AuditLogFilters {
     date_to?: string;
     page?: number;
     per_page?: number;
+    actor?: 'human' | 'system' | 'all';
 }
