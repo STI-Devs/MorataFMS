@@ -87,40 +87,80 @@ export const ClientManagement = () => {
     return (
         <div className="space-y-5 p-4">
             {/* Header */}
-            <div className="flex justify-between items-end">
+            <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-3xl font-bold mb-1 text-text-primary">Client Management</h1>
-                    <p className="text-sm text-text-secondary">Manage clients, toggle status, and view transaction history</p>
+                    <h1 className="text-2xl font-bold text-text-primary tracking-tight">Client Management</h1>
+                    <p className="text-xs text-text-muted mt-0.5">Manage clients, toggle status, and view transaction history</p>
                 </div>
                 <div className="text-right hidden sm:block">
-                    <p className="text-2xl font-bold tabular-nums text-text-primary">{dateTime.time}</p>
-                    <p className="text-sm text-text-secondary">{dateTime.date}</p>
+                    <p className="text-xl font-bold tabular-nums text-text-primary">{dateTime.time}</p>
+                    <p className="text-xs text-text-muted">{dateTime.date}</p>
                 </div>
             </div>
 
             {/* Stat Cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {[
-                    { label: 'Total Clients', value: clients.length, icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4', color: '#0a84ff' },
-                    { label: 'Active', value: clients.filter(c => c.is_active).length, icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', color: '#30d158' },
-                    { label: 'Importers', value: clients.filter(c => c.type === 'importer' || c.type === 'both').length, icon: 'M19 14l-7 7m0 0l-7-7m7 7V3', color: '#64d2ff' },
-                    { label: 'Exporters', value: clients.filter(c => c.type === 'exporter' || c.type === 'both').length, icon: 'M5 10l7-7m0 0l7 7m-7-7v18', color: '#ff9f0a' },
-                ].map(stat => (
-                    <div key={stat.label} className="bg-surface-tint rounded-lg p-4 border border-border-tint">
-                        <div className="flex items-start justify-between">
-                            <div>
-                                <p className="text-3xl font-bold tabular-nums text-text-primary">{stat.value}</p>
-                                <p className="text-xs mt-1 text-text-secondary">{stat.label}</p>
+            {(() => {
+                const total = clients.length;
+                const active = clients.filter(c => c.is_active).length;
+                const inactive = total - active;
+                const importers = clients.filter(c => c.type === 'importer' || c.type === 'both').length;
+                const exporters = clients.filter(c => c.type === 'exporter' || c.type === 'both').length;
+                const bothTypes = clients.filter(c => c.type === 'both').length;
+
+                const cards = [
+                    {
+                        label: 'Total Clients',
+                        value: total,
+                        sub: `${importers} importers · ${exporters} exporters`,
+                        dot: null as string | null,
+                    },
+                    {
+                        label: 'Active',
+                        value: active,
+                        sub: total > 0 ? `${Math.round((active / total) * 100)}% of total` : '—',
+                        dot: '#22c55e' as string | null,
+                    },
+                    {
+                        label: 'Inactive',
+                        value: inactive,
+                        sub: inactive === 0 ? 'All clients active' : `${inactive} deactivated`,
+                        dot: inactive > 0 ? '#ef4444' as string | null : null,
+                    },
+                    {
+                        label: 'Both Types',
+                        value: bothTypes,
+                        sub: 'import & export clients',
+                        dot: null as string | null,
+                    },
+                ];
+
+                return (
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                        {cards.map(card => (
+                            <div
+                                key={card.label}
+                                className="bg-surface border border-border rounded-lg px-4 py-3.5"
+                            >
+                                <p className="text-[11px] font-medium text-text-muted uppercase tracking-widest mb-2">
+                                    {card.label}
+                                </p>
+                                <div className="flex items-center gap-2">
+                                    {card.dot && (
+                                        <span
+                                            className="w-2 h-2 rounded-full flex-shrink-0"
+                                            style={{ backgroundColor: card.dot }}
+                                        />
+                                    )}
+                                    <p className="text-[2rem] font-semibold tabular-nums text-text-primary leading-none">
+                                        {card.value}
+                                    </p>
+                                </div>
+                                <p className="text-xs text-text-muted mt-2">{card.sub}</p>
                             </div>
-                            <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${stat.color}20` }}>
-                                <svg className="w-4.5 h-4.5" fill="none" stroke={stat.color} viewBox="0 0 24 24" strokeWidth={1.8}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d={stat.icon} />
-                                </svg>
-                            </div>
-                        </div>
+                        ))}
                     </div>
-                ))}
-            </div>
+                );
+            })()}
 
             {/* Table */}
             <div className="bg-surface rounded-xl border border-border overflow-hidden">

@@ -104,40 +104,79 @@ export const UserManagement = () => {
     return (
         <div className="space-y-5 p-4">
             {/* Header */}
-            <div className="flex justify-between items-end">
+            <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-3xl font-bold mb-1 text-text-primary">User Management</h1>
-                    <p className="text-sm text-text-secondary">Create, edit, and manage user accounts</p>
+                    <h1 className="text-2xl font-bold text-text-primary tracking-tight">User Management</h1>
+                    <p className="text-xs text-text-muted mt-0.5">Create, edit, and manage user accounts</p>
                 </div>
                 <div className="text-right hidden sm:block">
-                    <p className="text-2xl font-bold tabular-nums text-text-primary">{dateTime.time}</p>
-                    <p className="text-sm text-text-secondary">{dateTime.date}</p>
+                    <p className="text-xl font-bold tabular-nums text-text-primary">{dateTime.time}</p>
+                    <p className="text-xs text-text-muted">{dateTime.date}</p>
                 </div>
             </div>
 
             {/* Stat Cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {[
-                    { label: 'Total Users', value: users.length, icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z', color: '#0a84ff' },
-                    { label: 'Active', value: users.filter(u => u.is_active).length, icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', color: '#30d158' },
-                    { label: 'Inactive', value: users.filter(u => !u.is_active).length, icon: 'M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z', color: '#ff453a' },
-                    { label: 'Admins', value: users.filter(u => u.role === 'admin').length, icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z', color: '#bf5af2' },
-                ].map(stat => (
-                    <div key={stat.label} className="bg-surface-tint rounded-xl p-4 border border-border-tint">
-                        <div className="flex items-start justify-between">
-                            <div>
-                                <p className="text-3xl font-bold tabular-nums text-text-primary">{stat.value}</p>
-                                <p className="text-xs mt-1 text-text-secondary">{stat.label}</p>
+            {(() => {
+                const total = users.length;
+                const active = users.filter(u => u.is_active).length;
+                const inactive = total - active;
+                const admins = users.filter(u => u.role === 'admin' || u.role === 'manager').length;
+                const fieldStaff = users.filter(u => u.role === 'broker' || u.role === 'encoder').length;
+
+                const cards = [
+                    {
+                        label: 'Total Users',
+                        value: total,
+                        sub: `${admins} admin/manager · ${fieldStaff} field`,
+                        dot: null as string | null,
+                    },
+                    {
+                        label: 'Active',
+                        value: active,
+                        sub: total > 0 ? `${Math.round((active / total) * 100)}% of total` : '—',
+                        dot: '#22c55e' as string | null,
+                    },
+                    {
+                        label: 'Inactive',
+                        value: inactive,
+                        sub: inactive === 0 ? 'All users active' : `${inactive} deactivated`,
+                        dot: inactive > 0 ? '#ef4444' as string | null : null,
+                    },
+                    {
+                        label: 'Supervisors+',
+                        value: users.filter(u => ['admin', 'manager', 'supervisor'].includes(u.role)).length,
+                        sub: 'admin · manager · supervisor',
+                        dot: null as string | null,
+                    },
+                ];
+
+                return (
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                        {cards.map(card => (
+                            <div
+                                key={card.label}
+                                className="bg-surface border border-border rounded-lg px-4 py-3.5"
+                            >
+                                <p className="text-[11px] font-medium text-text-muted uppercase tracking-widest mb-2">
+                                    {card.label}
+                                </p>
+                                <div className="flex items-center gap-2">
+                                    {card.dot && (
+                                        <span
+                                            className="w-2 h-2 rounded-full flex-shrink-0"
+                                            style={{ backgroundColor: card.dot }}
+                                        />
+                                    )}
+                                    <p className="text-[2rem] font-semibold tabular-nums text-text-primary leading-none">
+                                        {card.value}
+                                    </p>
+                                </div>
+                                <p className="text-xs text-text-muted mt-2">{card.sub}</p>
                             </div>
-                            <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${stat.color}20` }}>
-                                <svg className="w-4.5 h-4.5" fill="none" stroke={stat.color} viewBox="0 0 24 24" strokeWidth={1.8}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d={stat.icon} />
-                                </svg>
-                            </div>
-                        </div>
+                        ))}
                     </div>
-                ))}
-            </div>
+                );
+            })()}
 
             {/* Table */}
             <div className="bg-surface rounded-xl border border-border overflow-hidden">
