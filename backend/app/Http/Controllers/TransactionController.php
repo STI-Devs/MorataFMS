@@ -21,7 +21,7 @@ class TransactionController extends Controller
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
-        if (!$user->isSupervisorOrAbove()) {
+        if (!$user->isAdmin()) {
             abort(403, 'Unauthorized.');
         }
 
@@ -120,7 +120,7 @@ class TransactionController extends Controller
      */
     public function encoders(Request $request): JsonResponse
     {
-        if (!$request->user()->isSupervisorOrAbove()) {
+        if (!$request->user()->isAdmin()) {
             abort(403, 'Unauthorized.');
         }
 
@@ -136,7 +136,7 @@ class TransactionController extends Controller
      */
     public function reassignImport(AssignTransactionRequest $request, string $id): JsonResponse
     {
-        if (!$request->user()->isSupervisorOrAbove()) {
+        if (!$request->user()->isAdmin()) {
             abort(403, 'Unauthorized.');
         }
 
@@ -173,7 +173,7 @@ class TransactionController extends Controller
      */
     public function reassignExport(AssignTransactionRequest $request, string $id): JsonResponse
     {
-        if (!$request->user()->isSupervisorOrAbove()) {
+        if (!$request->user()->isAdmin()) {
             abort(403, 'Unauthorized.');
         }
 
@@ -210,7 +210,7 @@ class TransactionController extends Controller
      */
     public function overrideImportStatus(OverrideStatusRequest $request, string $id): JsonResponse
     {
-        if (!$request->user()->isManagerOrAbove()) {
+        if (!$request->user()->isAdmin()) {
             abort(403, 'Unauthorized.');
         }
 
@@ -242,7 +242,7 @@ class TransactionController extends Controller
      */
     public function overrideExportStatus(OverrideStatusRequest $request, string $id): JsonResponse
     {
-        if (!$request->user()->isManagerOrAbove()) {
+        if (!$request->user()->isAdmin()) {
             abort(403, 'Unauthorized.');
         }
 

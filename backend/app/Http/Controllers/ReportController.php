@@ -16,7 +16,7 @@ class ReportController extends Controller
      */
     public function monthly(Request $request): JsonResponse
     {
-        if (!$request->user()->isSupervisorOrAbove()) {
+        if (!$request->user()->isAdmin()) {
             abort(403, 'Unauthorized.');
         }
 
@@ -66,7 +66,7 @@ class ReportController extends Controller
      */
     public function clients(Request $request): JsonResponse
     {
-        if (!$request->user()->isSupervisorOrAbove()) {
+        if (!$request->user()->isAdmin()) {
             abort(403, 'Unauthorized.');
         }
 
@@ -134,7 +134,7 @@ class ReportController extends Controller
      */
     public function turnaround(Request $request): JsonResponse
     {
-        if (!$request->user()->isSupervisorOrAbove()) {
+        if (!$request->user()->isAdmin()) {
             abort(403, 'Unauthorized.');
         }
 

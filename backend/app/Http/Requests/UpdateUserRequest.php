@@ -16,13 +16,15 @@ class UpdateUserRequest extends FormRequest
 
     public function rules(): array
     {
-        $validRoles = implode(',', array_keys(User::ROLE_HIERARCHY));
+        $validRoles = array_keys(User::ROLE_HIERARCHY);
 
         return [
             'name' => ['sometimes', 'string', 'max:255'],
             'email' => ['sometimes', 'string', 'lowercase', 'email', 'max:255', Rule::unique('users')->ignore($this->route('user'))],
             'password' => ['sometimes', 'confirmed', Rules\Password::defaults()],
-            'role' => ['sometimes', 'string', 'in:' . $validRoles],
+            'role' => ['sometimes', 'string', Rule::in($validRoles)],
+            'departments' => ['sometimes', 'array', 'min:1'],
+            'departments.*' => ['string', Rule::in(['brokerage', 'legal'])],
         ];
     }
 }

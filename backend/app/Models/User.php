@@ -52,18 +52,18 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'departments' => 'array',
         ];
     }
 
     // --- Role Helpers ---
-    // Role hierarchy: encoder < broker < supervisor < manager < admin
+    // Role hierarchy: encoder < paralegal < lawyer < admin
 
-    private const ROLE_HIERARCHY = [
+    public const ROLE_HIERARCHY = [
         'encoder' => 1,
-        'broker' => 2,
-        'supervisor' => 3,
-        'manager' => 4,
-        'admin' => 5,
+        'paralegal' => 2,
+        'lawyer' => 3,
+        'admin' => 4,
     ];
 
     public function isAdmin(): bool
@@ -71,18 +71,75 @@ class User extends Authenticatable
         return $this->role === 'admin';
     }
 
-    public function isManagerOrAbove(): bool
+    public function isLawyer(): bool
     {
-        return (self::ROLE_HIERARCHY[$this->role] ?? 0) >= self::ROLE_HIERARCHY['manager'];
+        return $this->role === 'lawyer';
     }
 
-    public function isSupervisorOrAbove(): bool
+    public function isParalegal(): bool
     {
-        return (self::ROLE_HIERARCHY[$this->role] ?? 0) >= self::ROLE_HIERARCHY['supervisor'];
+        return $this->role === 'paralegal';
+    }
+
+    /**
+     * Check if user is legal staff (paralegal or lawyer).
+     */
+    public function isLegalStaff(): bool
+    {
+        return in_array($this->role, ['paralegal', 'lawyer']);
     }
 
     public function hasRoleAtLeast(string $minimumRole): bool
     {
         return (self::ROLE_HIERARCHY[$this->role] ?? 0) >= (self::ROLE_HIERARCHY[$minimumRole] ?? 99);
+    }
+
+    // --- Department Helpers ---
+
+    /**
+     * Get the user's departments as an array.
+     */
+    public function getDepartmentsArray(): array
+    {
+        return $this->departments ?? ['brokerage'];
+    }
+
+    /**
+     * Check if user has access to a specific department.
+     * Admin always has access to all departments.
+     */
+    public function hasDepartment(string $department): bool
+    {
+        if ($this->isAdmin()) {
+            return true;
+        }
+        return in_array($department, $this->getDepartmentsArray());
+    }
+
+    /**
+     * Check if user has access to the legal (law firm) module.
+     */
+    public function hasLegalAccess(): bool
+    {
+        return $this->hasDepartment('legal');
+    }
+
+    /**
+     * Check if user has access to the brokerage module.
+     */
+    public function hasBrokerageAccess(): bool
+    {
+        return $this->hasDepartment('brokerage');
+    }
+
+    /**
+     * Check if user has access to multiple departments (shows module switcher).
+     */
+    public function isMultiDepartment(): bool
+    {
+        if ($this->isAdmin()) {
+            return true;
+        }
+        return count($this->getDepartmentsArray()) > 1;
     }
 }

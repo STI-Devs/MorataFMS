@@ -39,7 +39,7 @@ class DocumentPolicy
      */
     public function delete(User $user, Document $document): bool
     {
-        // Supervisor+ can delete any document, or the uploader can delete their own
-        return $user->isSupervisorOrAbove() || $document->uploaded_by === $user->id;
+        // Admin can delete any document, or the uploader can delete their own
+        return $user->isAdmin() || $document->uploaded_by === $user->id;
     }
 }

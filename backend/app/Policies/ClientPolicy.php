@@ -26,11 +26,11 @@ class ClientPolicy
     }
 
     /**
-     * Only supervisor+ can update clients.
+     * Only admin can update clients.
      */
     public function update(User $user, Client $client): bool
     {
-        return $user->isSupervisorOrAbove();
+        return $user->isAdmin();
     }
 
     /**

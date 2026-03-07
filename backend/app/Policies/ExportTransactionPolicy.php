@@ -24,19 +24,19 @@ class ExportTransactionPolicy
     }
 
     /**
-     * Only the creator OR supervisor+ can update.
+     * Only the creator OR admin can update.
      */
     public function update(User $user, ExportTransaction $transaction): bool
     {
         return $user->id === $transaction->assigned_user_id
-            || $user->isSupervisorOrAbove();
+            || $user->isAdmin();
     }
 
     /**
-     * Only manager+ can delete.
+     * Only admin can delete.
      */
     public function delete(User $user, ExportTransaction $transaction): bool
     {
-        return $user->isManagerOrAbove();
+        return $user->isAdmin();
     }
 }

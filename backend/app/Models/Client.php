@@ -48,11 +48,30 @@ class Client extends Model
 
     public function scopeImporters($query)
     {
-        return $query->whereIn('type', ['importer', 'both']);
+        return $query->whereIn('type', ['importer', 'both', 'all']);
     }
 
     public function scopeExporters($query)
     {
-        return $query->whereIn('type', ['exporter', 'both']);
+        return $query->whereIn('type', ['exporter', 'both', 'all']);
+    }
+
+    public function scopeNotarial($query)
+    {
+        return $query->whereIn('type', ['notarial', 'all']);
+    }
+
+    /**
+     * Scope to only brokerage-relevant client types (hides 'notarial' from brokerage UI).
+     */
+    public function scopeForBrokerage($query)
+    {
+        return $query->whereIn('type', ['importer', 'exporter', 'both', 'all']);
+    }
+
+    // Notarial entries
+    public function notarialEntries(): HasMany
+    {
+        return $this->hasMany(NotarialEntry::class);
     }
 }

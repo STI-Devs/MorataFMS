@@ -181,9 +181,9 @@ test('user can download their uploaded document', function () {
     $response->assertHeader('content-disposition');
 });
 
-test('supervisor can delete any document', function () {
+test('admin can delete any document', function () {
     $encoder = User::factory()->create(['role' => 'encoder']);
-    $supervisor = User::factory()->create(['role' => 'supervisor']);
+    $admin = User::factory()->create(['role' => 'admin']);
     $import = ImportTransaction::factory()->create();
 
     Storage::fake('s3');
@@ -201,8 +201,8 @@ test('supervisor can delete any document', function () {
     $documentId = $uploadResponse->json('data.id');
     $document = Document::find($documentId);
 
-    // Supervisor deletes it
-    $this->actingAs($supervisor);
+    // Admin deletes it
+    $this->actingAs($admin);
     $response = $this->deleteJson("/api/documents/{$documentId}");
     $response->assertStatus(204);
 

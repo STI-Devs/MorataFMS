@@ -20,20 +20,12 @@ test('encoder cannot access audit logs', function () {
         ->assertStatus(403);
 });
 
-test('broker cannot access audit logs', function () {
-    $broker = User::factory()->create(['role' => 'broker']);
+test('paralegal cannot access audit logs', function () {
+    $paralegal = User::factory()->create(['role' => 'paralegal']);
 
-    $this->actingAs($broker)
+    $this->actingAs($paralegal)
         ->getJson('/api/audit-logs')
         ->assertStatus(403);
-});
-
-test('supervisor can access audit logs', function () {
-    $supervisor = User::factory()->create(['role' => 'supervisor']);
-
-    $this->actingAs($supervisor)
-        ->getJson('/api/audit-logs')
-        ->assertStatus(200);
 });
 
 test('admin can access audit logs', function () {
@@ -43,6 +35,7 @@ test('admin can access audit logs', function () {
         ->getJson('/api/audit-logs')
         ->assertStatus(200);
 });
+
 
 // --- Automatic Logging ---
 

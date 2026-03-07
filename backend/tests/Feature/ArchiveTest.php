@@ -57,7 +57,7 @@ test('archive import is rejected when file_date is exactly tomorrow', function (
 });
 
 test('archive import is accepted when file_date is today', function () {
-    $user = User::factory()->create(['role' => 'encoder']);
+    $user = User::factory()->create(['role' => 'admin']);
     $client = Client::factory()->importer()->create();
 
     $this->actingAs($user)->postJson('/api/archives/import', [
@@ -71,7 +71,7 @@ test('archive import is accepted when file_date is today', function () {
 });
 
 test('archive import is accepted when file_date is in the past', function () {
-    $user = User::factory()->create(['role' => 'encoder']);
+    $user = User::factory()->create(['role' => 'admin']);
     $client = Client::factory()->importer()->create();
     $country = Country::factory()->importOrigin()->create();
 
@@ -155,7 +155,7 @@ test('archive export is rejected when file_date is in the future', function () {
 });
 
 test('archive export is accepted when file_date is in the past', function () {
-    $user = User::factory()->create(['role' => 'encoder']);
+    $user = User::factory()->create(['role' => 'admin']);
     $client = Client::factory()->exporter()->create();
     $country = Country::factory()->create();
 
@@ -348,7 +348,7 @@ test('regular import encoding still accepts future arrival_date (vessel ETA)', f
 // ─── is_archive Flag ──────────────────────────────────────────────────────────
 
 test('archive import sets is_archive flag to true', function () {
-    $user = User::factory()->create(['role' => 'encoder']);
+    $user = User::factory()->create(['role' => 'admin']);
     $client = Client::factory()->importer()->create();
 
     $response = $this->actingAs($user)->postJson('/api/archives/import', [
@@ -363,7 +363,7 @@ test('archive import sets is_archive flag to true', function () {
 });
 
 test('archive export sets is_archive flag to true and stores export_date', function () {
-    $user = User::factory()->create(['role' => 'encoder']);
+    $user = User::factory()->create(['role' => 'admin']);
     $client = Client::factory()->exporter()->create();
     $country = Country::factory()->create();
 
@@ -485,7 +485,7 @@ test('archive export rejects file_date before year 2000', function () {
 // ─── Archive Listing ──────────────────────────────────────────────────────────
 
 test('archive listing only returns transactions with is_archive flag', function () {
-    $user = User::factory()->create(['role' => 'encoder']);
+    $user = User::factory()->create(['role' => 'admin']);
     $client = Client::factory()->importer()->create();
 
     // Create an archive transaction with a document (should appear)

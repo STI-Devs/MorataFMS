@@ -7,6 +7,8 @@ use App\Http\Controllers\CountryController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\ExportTransactionController;
 use App\Http\Controllers\ImportTransactionController;
+use App\Http\Controllers\NotarialBookController;
+use App\Http\Controllers\NotarialEntryController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\UserController;
@@ -54,7 +56,7 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
     Route::apiResource('import-transactions', ImportTransactionController::class)->only(['index', 'store', 'destroy']);
     Route::apiResource('export-transactions', ExportTransactionController::class)->only(['index', 'store', 'destroy']);
 
-    // Clients (read for all, write for supervisor+)
+    // Clients (read for all, write for admin)
     Route::get('/clients', [ClientController::class, 'index']);
     Route::get('/countries', [CountryController::class, 'index']);
 
@@ -67,6 +69,13 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
         Route::get('/', [ArchiveController::class, 'index']);
         Route::post('import', [ArchiveController::class, 'storeImport']);
         Route::post('export', [ArchiveController::class, 'storeExport']);
+    });
+
+    // Notarial (Law Firm) module
+    Route::prefix('notarial')->group(function () {
+        Route::apiResource('books', NotarialBookController::class);
+        Route::get('books/{book}/report', [NotarialBookController::class, 'report']);
+        Route::apiResource('books.entries', NotarialEntryController::class);
     });
 
     // Admin-only routes — tighter throttle (20 req/min)
@@ -82,16 +91,16 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
         Route::post('clients/{client}/toggle-active', [ClientController::class, 'toggleActive']);
         Route::get('clients/{client}/transactions', [ClientController::class, 'transactions']);
 
-        // Audit logs (read-only, supervisor+)
+        // Audit logs (read-only, admin)
         Route::get('audit-logs/actions', [AuditLogController::class, 'actions']);
         Route::get('audit-logs', [AuditLogController::class, 'index']);
 
-        // Reports (supervisor+)
+        // Reports (admin)
         Route::get('reports/monthly', [ReportController::class, 'monthly']);
         Route::get('reports/clients', [ReportController::class, 'clients']);
         Route::get('reports/turnaround', [ReportController::class, 'turnaround']);
 
-        // Transaction oversight (supervisor+)
+        // Transaction oversight (admin)
         Route::get('transactions', [TransactionController::class, 'index']);
         Route::get('transactions/encoders', [TransactionController::class, 'encoders']);
         Route::patch('transactions/import/{id}/reassign', [TransactionController::class, 'reassignImport']);

@@ -20,7 +20,7 @@ class TransactionOversightController extends Controller
     {
         // Only supervisor+ can view the oversight dashboard
         $user = $request->user();
-        if (!$user->isSupervisorOrAbove()) {
+        if (!$user->isAdmin()) {
             abort(403, 'Unauthorized.');
         }
 
@@ -146,7 +146,7 @@ class TransactionOversightController extends Controller
      */
     public function encoders(Request $request): JsonResponse
     {
-        if (!$request->user()->isSupervisorOrAbove()) {
+        if (!$request->user()->isAdmin()) {
             abort(403, 'Unauthorized.');
         }
 
@@ -162,7 +162,7 @@ class TransactionOversightController extends Controller
      */
     public function assignImport(AssignTransactionRequest $request, ImportTransaction $import): JsonResponse
     {
-        if (!$request->user()->isSupervisorOrAbove()) {
+        if (!$request->user()->isAdmin()) {
             abort(403, 'Unauthorized.');
         }
 
@@ -183,7 +183,7 @@ class TransactionOversightController extends Controller
      */
     public function assignExport(AssignTransactionRequest $request, ExportTransaction $export): JsonResponse
     {
-        if (!$request->user()->isSupervisorOrAbove()) {
+        if (!$request->user()->isAdmin()) {
             abort(403, 'Unauthorized.');
         }
 
@@ -204,7 +204,7 @@ class TransactionOversightController extends Controller
      */
     public function overrideImportStatus(OverrideStatusRequest $request, ImportTransaction $import): JsonResponse
     {
-        if (!$request->user()->isManagerOrAbove()) {
+        if (!$request->user()->isAdmin()) {
             abort(403, 'Unauthorized.');
         }
 
@@ -222,7 +222,7 @@ class TransactionOversightController extends Controller
      */
     public function overrideExportStatus(OverrideStatusRequest $request, ExportTransaction $export): JsonResponse
     {
-        if (!$request->user()->isManagerOrAbove()) {
+        if (!$request->user()->isAdmin()) {
             abort(403, 'Unauthorized.');
         }
 

@@ -12,7 +12,7 @@ class AuditLogResource extends JsonResource
         return [
             'id' => $this->id,
             'event' => $this->event,
-            'auditable_type' => $this->auditable_type,
+            'auditable_type' => $this->humanizeType($this->auditable_type),
             'auditable_id' => $this->auditable_id,
             'old_values' => $this->old_values,
             'new_values' => $this->new_values,
@@ -27,5 +27,18 @@ class AuditLogResource extends JsonResource
             'ip_address' => $this->ip_address,
             'created_at' => $this->created_at?->toIso8601String(),
         ];
+    }
+
+    private function humanizeType(?string $type): ?string
+    {
+        if (!$type) {
+            return null;
+        }
+
+        // Strip namespace: 'App\Models\ImportTransaction' → 'ImportTransaction'
+        $basename = class_basename($type);
+
+        // PascalCase → space-separated: 'ImportTransaction' → 'Import Transaction'
+        return preg_replace('/(?<!^)([A-Z])/', ' $1', $basename);
     }
 }

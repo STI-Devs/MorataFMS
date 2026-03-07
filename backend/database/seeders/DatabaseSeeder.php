@@ -28,34 +28,31 @@ class DatabaseSeeder extends Seeder
                 'email' => 'admin@morata.com',
             ]);
             $admin->role = 'admin';
+            $admin->departments = ['brokerage', 'legal'];
             $admin->save();
 
-            $manager = User::factory()->create([
-                'name' => 'Manager User',
-                'email' => 'manager@morata.com',
+            $lawyer = User::factory()->create([
+                'name' => 'Lawyer User',
+                'email' => 'lawyer@morata.com',
             ]);
-            $manager->role = 'manager';
-            $manager->save();
+            $lawyer->role = 'lawyer';
+            $lawyer->departments = ['legal'];
+            $lawyer->save();
 
-            $supervisor = User::factory()->create([
-                'name' => 'Supervisor User',
-                'email' => 'supervisor@morata.com',
+            $paralegal = User::factory()->create([
+                'name' => 'Paralegal User',
+                'email' => 'paralegal@morata.com',
             ]);
-            $supervisor->role = 'supervisor';
-            $supervisor->save();
-
-            $broker = User::factory()->create([
-                'name' => 'Broker User',
-                'email' => 'broker@morata.com',
-            ]);
-            $broker->role = 'broker';
-            $broker->save();
+            $paralegal->role = 'paralegal';
+            $paralegal->departments = ['legal'];
+            $paralegal->save();
 
             $encoder = User::factory()->create([
                 'name' => 'Encoder User',
                 'email' => 'encoder@morata.com',
             ]);
             $encoder->role = 'encoder';
+            $encoder->departments = ['brokerage'];
             $encoder->save();
         });
     }

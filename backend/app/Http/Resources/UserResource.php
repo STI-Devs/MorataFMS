@@ -19,6 +19,8 @@ class UserResource extends JsonResource
             'name' => $this->name,
             'email' => $this->email,
             'role' => $this->role,
+            'departments' => $this->getDepartmentsArray(),
+            'multi_department' => $this->isMultiDepartment(),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

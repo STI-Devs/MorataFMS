@@ -75,6 +75,9 @@ class UserController extends Controller
         if (isset($validated['role'])) {
             $user->role = $validated['role']; // Server-managed
         }
+        if (isset($validated['departments'])) {
+            $user->departments = $validated['departments']; // Server-managed
+        }
 
         $user->save();
 
