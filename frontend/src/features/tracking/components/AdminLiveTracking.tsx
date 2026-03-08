@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { Icon } from '../../../components/Icon';
 import { StatusBadge } from '../../../components/StatusBadge';
 import { useTransactionList } from '../hooks/useTransactionList';
-import type { ExportTransaction, ImportTransaction } from '../types';
+import type { ApiExportTransaction, ApiImportTransaction, ExportTransaction, ImportTransaction } from '../types';
 import { mapExportTransaction, mapImportTransaction } from '../utils/mappers';
 
 const ColH = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
@@ -45,10 +45,10 @@ export const AdminLiveTracking = () => {
     const { data: exportsData, isLoading: exportsLoading } = useTransactionList('export');
 
     const imports = useMemo<ImportTransaction[]>(() =>
-        (importsData?.data || []).map(mapImportTransaction), [importsData]);
+        ((importsData?.data as ApiImportTransaction[]) || []).map(mapImportTransaction), [importsData]);
 
     const exports = useMemo<ExportTransaction[]>(() =>
-        (exportsData?.data || []).map(mapExportTransaction), [exportsData]);
+        ((exportsData?.data as ApiExportTransaction[]) || []).map(mapExportTransaction), [exportsData]);
 
     return (
         <div className="min-h-screen w-full flex flex-col p-6 gap-5"

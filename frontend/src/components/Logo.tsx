@@ -1,4 +1,4 @@
-interface LogoProps {
+﻿interface LogoProps {
     className?: string;
 }
 

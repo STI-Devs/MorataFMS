@@ -1,21 +1,19 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import type { IconName } from '../../../components/Icon';
 import { Icon } from '../../../components/Icon';
+import { FilePreviewModal } from '../../../components/modals/FilePreviewModal';
+import { UploadModal } from '../../../components/modals/UploadModal';
 import { trackingApi } from '../api/trackingApi';
 import type { ExportTransaction, ImportTransaction, LayoutContext } from '../types';
 import { mapExportTransaction, mapImportTransaction } from '../utils/mappers';
-import { FilePreviewModal } from './FilePreviewModal';
-import { UploadModal } from './UploadModal';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface StageUpload {
     fileName:   string;
     fileObject: File;
 }
 
-// ─── Stage definitions ────────────────────────────────────────────────────────
 
 const IMPORT_STAGES: { title: string; icon: IconName }[] = [
     { title: 'BOC Document Processing',   icon: 'file-text' },
@@ -34,7 +32,6 @@ const EXPORT_STAGES: { title: string; icon: IconName }[] = [
     { title: 'Billing of Liquidation',     icon: 'file-text' },
 ];
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function getStageStatus(index: number, status: string): 'Completed' | 'Pending' {
     if (status === 'Cleared' || status === 'Shipped') return 'Completed';
@@ -43,7 +40,6 @@ function getStageStatus(index: number, status: string): 'Completed' | 'Pending' 
     return 'Pending';
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
 
 export const TrackingDetails = () => {
     const navigate = useNavigate();
@@ -101,7 +97,6 @@ export const TrackingDetails = () => {
         }
     };
 
-    // ── Loading ──────────────────────────────────────────────────────────────
     if (loading) {
         return (
             <div className="flex items-center justify-center h-64">
@@ -110,7 +105,6 @@ export const TrackingDetails = () => {
         );
     }
 
-    // ── Not found ────────────────────────────────────────────────────────────
     if (!transaction) {
         return (
             <div className="text-center py-16">

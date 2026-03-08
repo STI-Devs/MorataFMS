@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+﻿import { useMemo, useState } from 'react';
 import { useNavigate, useOutletContext, useSearchParams } from 'react-router-dom';
 import { Icon } from '../../../components/Icon';
 import { Pagination } from '../../../components/Pagination';
@@ -7,11 +7,10 @@ import { useCancelTransaction } from '../hooks/useCancelTransaction';
 import { useCreateTransaction } from '../hooks/useCreateTransaction';
 import { useTransactionList } from '../hooks/useTransactionList';
 import { useTransactionStats } from '../hooks/useTransactionStats';
-import type { CreateExportPayload, CreateImportPayload, LayoutContext } from '../types';
+import type { ApiExportTransaction, ApiImportTransaction, CreateExportPayload, CreateImportPayload, LayoutContext } from '../types';
 import { CancelTransactionModal } from './CancelTransactionModal';
 import { EncodeModal } from './EncodeModal';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface TransactionListPageProps<T> {
     type:                 'import' | 'export';
@@ -26,10 +25,9 @@ export interface TransactionListPageProps<T> {
         navigate: ReturnType<typeof useNavigate>,
         onCancel: (id: number, ref: string) => void,
     ) => React.ReactNode;
-    mapResponseData: (data: unknown[]) => T[];
+    mapResponseData: (data: (ApiImportTransaction | ApiExportTransaction)[]) => T[];
 }
 
-// ─── Stat icon helper ─────────────────────────────────────────────────────────
 
 function StatIcon({ d, color }: { d: string; color: string }) {
     return (
@@ -39,7 +37,6 @@ function StatIcon({ d, color }: { d: string; color: string }) {
     );
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
 
 export function TransactionListPage<T>({
     type,
@@ -54,23 +51,19 @@ export function TransactionListPage<T>({
     const navigate = useNavigate();
     const { dateTime } = useOutletContext<LayoutContext>();
 
-    // ── URL-synced pagination ────────────────────────────────────────────────
     const [searchParams, setSearchParams] = useSearchParams();
     const page    = parseInt(searchParams.get('page')     || '1');
     const perPage = parseInt(searchParams.get('per_page') || '10');
 
-    // ── Filter/search state ──────────────────────────────────────────────────
     const [searchQuery, setSearchQuery] = useState('');
     const debouncedSearch               = useDebounce(searchQuery, 500);
     const [filterType,  setFilterType]  = useState('');
     const [filterValue, setFilterValue] = useState('');
     const [openDropdown, setOpenDropdown] = useState<'filter' | 'value' | null>(null);
 
-    // ── Modal state ──────────────────────────────────────────────────────────
     const [isEncodeOpen,  setIsEncodeOpen]  = useState(false);
     const [cancelTarget,  setCancelTarget]  = useState<{ id: number; ref: string } | null>(null);
 
-    // ── Data hooks ───────────────────────────────────────────────────────────
     const statsQuery    = useTransactionStats(type);
     const createMutation = useCreateTransaction(type);
     const cancelMutation = useCancelTransaction(type);
@@ -86,7 +79,6 @@ export function TransactionListPage<T>({
     const data  = useMemo(() => mapResponseData(response?.data ?? []), [response, mapResponseData]);
     const stats = statsQuery.data;
 
-    // ── Handlers ─────────────────────────────────────────────────────────────
     const setPage = (p: number) =>
         setSearchParams(prev => { prev.set('page', String(p)); return prev; });
 
@@ -95,7 +87,6 @@ export function TransactionListPage<T>({
 
     const handleResetFilter = () => { setFilterType(''); setFilterValue(''); setOpenDropdown(null); };
 
-    // ── Stats cards config ───────────────────────────────────────────────────
     const total = (stats?.completed ?? 0) + (stats?.pending ?? 0) + (stats?.in_progress ?? 0) + (stats?.cancelled ?? 0);
     const statCards = [
         { label: 'Total',                                          value: total,                 color: '#0a84ff', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' },
@@ -104,7 +95,6 @@ export function TransactionListPage<T>({
         { label: type === 'import' ? 'Pending' : 'Processing',    value: stats?.pending ?? 0,   color: '#ff9f0a', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
     ];
 
-    // ── Loading skeleton ─────────────────────────────────────────────────────
     if (isLoading) {
         return (
             <div className="flex items-center justify-center h-96">

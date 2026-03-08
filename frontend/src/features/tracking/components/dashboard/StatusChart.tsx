@@ -1,4 +1,4 @@
-interface StatusChartProps {
+﻿interface StatusChartProps {
     data: { label: string; value: number; color: string }[];
 }
 

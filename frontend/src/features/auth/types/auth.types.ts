@@ -1,4 +1,4 @@
-// Auth Types
+﻿// Auth Types
 export interface User {
     id: number;
     email: string;

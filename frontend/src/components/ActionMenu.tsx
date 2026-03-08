@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+﻿import { useEffect, useRef, useState } from 'react';
 import { Icon, type IconName } from './Icon';
 
 export interface ActionMenuItem {

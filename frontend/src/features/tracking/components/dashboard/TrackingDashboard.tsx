@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+﻿import { useMemo } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { EmptyState } from '../../../../components/EmptyState';
 import { Spinner } from '../../../../components/Spinner';
@@ -7,7 +7,6 @@ import { useTransactionList } from '../../hooks/useTransactionList';
 import type { ApiExportTransaction, ApiImportTransaction, ExportTransaction, ImportTransaction, LayoutContext } from '../../types';
 import { mapExportTransaction, mapImportTransaction } from '../../utils/mappers';
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const ColHeader = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
     <div className={`text-[10px] font-bold text-text-muted uppercase tracking-[0.08em] break-words leading-tight min-w-0 ${className}`}>
@@ -15,7 +14,6 @@ const ColHeader = ({ children, className = '' }: { children: React.ReactNode; cl
     </div>
 );
 
-// ─── Component ────────────────────────────────────────────────────────────────
 
 export const TrackingDashboard = () => {
     const navigate = useNavigate();

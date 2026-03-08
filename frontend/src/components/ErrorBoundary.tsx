@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { ErrorLayout } from './layout/ErrorLayout';
 
 interface State {

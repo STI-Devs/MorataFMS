@@ -1,6 +1,6 @@
-import { Icon } from '../../../components/Icon';
+﻿import { Icon } from '../../../components/Icon';
 import { StatusBadge } from '../../../components/StatusBadge';
-import type { ExportTransaction } from '../types';
+import type { ApiExportTransaction, ExportTransaction } from '../types';
 import { mapExportTransaction } from '../utils/mappers';
 import { TransactionListPage } from './TransactionListPage';
 
@@ -11,7 +11,7 @@ export const ExportList = () => (
         subtitle="Track and manage all export shipments"
         encodeButtonLabel="Encode Export"
         gridTemplateColumns="1.2fr 1.2fr 1.2fr 1.2fr 1fr 1.2fr 80px"
-        mapResponseData={data => data.map(mapExportTransaction)}
+        mapResponseData={data => (data as ApiExportTransaction[]).map(mapExportTransaction)}
         renderHeaders={() => (
             <>
                 <span className="text-xs text-text-secondary uppercase tracking-wider text-center">Shipper</span>

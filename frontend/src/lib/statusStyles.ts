@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Shared status → color/background mapping used across all transaction views.
  *
  * Canonical display labels:

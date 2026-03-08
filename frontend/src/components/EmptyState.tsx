@@ -1,4 +1,4 @@
-interface EmptyStateProps {
+﻿interface EmptyStateProps {
     label: string;
     message?: string;
 }

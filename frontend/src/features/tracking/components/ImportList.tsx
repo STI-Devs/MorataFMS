@@ -1,6 +1,6 @@
-import { Icon } from '../../../components/Icon';
+﻿import { Icon } from '../../../components/Icon';
 import { StatusBadge } from '../../../components/StatusBadge';
-import type { ImportTransaction } from '../types';
+import type { ApiImportTransaction, ImportTransaction } from '../types';
 import { mapImportTransaction } from '../utils/mappers';
 import { TransactionListPage } from './TransactionListPage';
 
@@ -11,7 +11,7 @@ export const ImportList = () => (
         subtitle="Track and manage all import shipments"
         encodeButtonLabel="Encode Import"
         gridTemplateColumns="50px 1.2fr 1.2fr 1fr 1.5fr 1fr 80px"
-        mapResponseData={data => data.map(mapImportTransaction)}
+        mapResponseData={data => (data as ApiImportTransaction[]).map(mapImportTransaction)}
         renderHeaders={() => (
             <>
                 <span className="text-xs text-text-secondary uppercase tracking-wider text-center">BLSC</span>

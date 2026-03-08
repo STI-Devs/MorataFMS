@@ -1,4 +1,4 @@
-export type AxiosLikeError = {
+﻿export type AxiosLikeError = {
     response?: {
         status?: number;
         data?: {
@@ -12,7 +12,6 @@ export function isAxiosError(err: unknown): err is AxiosLikeError {
     return typeof err === 'object' && err !== null && 'response' in err;
 }
 
-// ─── General ──────────────────────────────────────────────────────────────────
 
 /**
  * General-purpose error sanitizer for any authenticated in-app action.
@@ -46,7 +45,6 @@ export function getApiError(err: unknown, action = 'complete the action'): strin
     return `Failed to ${action}. An unexpected error occurred.`;
 }
 
-// ─── Auth forms ───────────────────────────────────────────────────────────────
 // These only override status codes that have a different meaning in an auth context.
 // Everything else falls through to getApiError.
 

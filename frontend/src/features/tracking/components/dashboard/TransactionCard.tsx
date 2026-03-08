@@ -1,5 +1,5 @@
-import { Icon } from '../../../../components/Icon';
-import type { DocumentTransaction } from '../../types/document.types';
+﻿import { Icon } from '../../../../components/Icon';
+import type { DocumentTransaction } from '../../../documents/types/document.types';
 
 const STATUS_CONFIG = {
     pending:     { label: 'Pending',     color: '#ff9f0a', bg: 'rgba(255,159,10,0.13)' },

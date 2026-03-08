@@ -1,7 +1,6 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { Icon } from '../../../components/Icon';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface CancelTransactionModalProps {
     isOpen:         boolean;
@@ -11,7 +10,6 @@ interface CancelTransactionModalProps {
     isLoading?:     boolean;
 }
 
-// ─── Constants ────────────────────────────────────────────────────────────────
 
 const CANCEL_REASONS = [
     'Duplicate entry',
@@ -21,7 +19,6 @@ const CANCEL_REASONS = [
     'Other',
 ];
 
-// ─── Component ────────────────────────────────────────────────────────────────
 
 export function CancelTransactionModal({
     isOpen,

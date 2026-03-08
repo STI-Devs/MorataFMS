@@ -1,4 +1,4 @@
-interface DateTimeCardProps {
+﻿interface DateTimeCardProps {
     type: 'time' | 'date';
     value: string;
     subtext?: string;

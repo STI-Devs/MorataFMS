@@ -1,14 +1,24 @@
-import { useCreateExport } from './useCreateExport';
-import { useCreateImport } from './useCreateImport';
+﻿import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { trackingApi } from '../api/trackingApi';
+import type { CreateExportPayload, CreateImportPayload } from '../types';
 
 /**
- * Unified hook that wraps useCreateImport / useCreateExport for the generic TransactionListPage.
- *
- * TODO: Replace with a single /api/transactions endpoint (POST) when available.
+ * Unified hook that wraps createImport / createExport into a single mutation
+ * typed as `CreateImportPayload | CreateExportPayload` so callers don't need
+ * to satisfy the intersection type that TypeScript infers from the conditional.
  */
 export function useCreateTransaction(type: 'import' | 'export') {
-    const createImport = useCreateImport();
-    const createExport = useCreateExport();
+    const queryClient = useQueryClient();
 
-    return type === 'import' ? createImport : createExport;
+    return useMutation({
+        mutationFn: async (data: CreateImportPayload | CreateExportPayload) => {
+            if (type === 'import') {
+                return trackingApi.createImport(data as CreateImportPayload);
+            }
+            return trackingApi.createExport(data as CreateExportPayload);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: [type === 'import' ? 'imports' : 'exports'] });
+        },
+    });
 }

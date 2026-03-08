@@ -1,4 +1,4 @@
-interface PaginationProps {
+﻿interface PaginationProps {
     currentPage: number;
     totalPages: number;
     perPage: number;

@@ -1,5 +1,4 @@
-import { useMemo, useRef } from 'react';
-import type { ApiExportTransaction, ApiImportTransaction, PaginatedResponse } from '../types';
+﻿import type { ApiExportTransaction, ApiImportTransaction, PaginatedResponse } from '../types';
 import { useExports } from './useExports';
 import { useImports } from './useImports';
 
@@ -25,17 +24,7 @@ export function useTransactionList(
     const importResult = useImports(type === 'import' ? params : undefined);
     const exportResult = useExports(type === 'export' ? params : undefined);
 
-    // Keep a stable reference so callers can memoize on `data`
     const result = type === 'import' ? importResult : exportResult;
-
-    const stableData = useMemo(
-        () => result.data as PaginatedResponse<ApiImportTransaction | ApiExportTransaction> | undefined,
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        [result.data],
-    );
-
-    const _ref = useRef(stableData);
-    _ref.current = stableData;
 
     return {
         data: result.data as PaginatedResponse<ApiImportTransaction | ApiExportTransaction> | undefined,

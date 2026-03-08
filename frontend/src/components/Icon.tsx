@@ -1,4 +1,4 @@
-import type { ReactElement, SVGProps } from 'react';
+﻿import type { ReactElement, SVGProps } from 'react';
 import React from 'react';
 
 export type IconName =

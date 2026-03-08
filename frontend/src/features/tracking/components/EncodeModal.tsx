@@ -1,10 +1,9 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { Icon } from '../../../components/Icon';
 import { useClients } from '../hooks/useClients';
 import { useCountries } from '../hooks/useCountries';
 import type { CreateExportPayload, CreateImportPayload } from '../types';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface EncodeModalProps {
     isOpen: boolean;
@@ -14,7 +13,6 @@ interface EncodeModalProps {
     onSave: (data: CreateImportPayload | CreateExportPayload) => void;
 }
 
-// ─── Style helpers ────────────────────────────────────────────────────────────
 
 const inputCls =
     'w-full px-4 py-3 bg-input-bg border border-border-strong rounded-lg text-sm font-bold text-text-primary focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 outline-none transition-all placeholder:text-text-muted';
@@ -23,7 +21,6 @@ const labelCls = 'text-[11px] font-black text-text-muted uppercase tracking-wide
 
 const selectCls = `${inputCls} appearance-none cursor-pointer`;
 
-// ─── Component ────────────────────────────────────────────────────────────────
 
 export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type, onSave }) => {
     const isImport = type === 'import';

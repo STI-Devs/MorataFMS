@@ -1,13 +1,24 @@
-import { Navigate, Route, Routes } from 'react-router-dom';
+﻿import { Navigate, Route, Routes } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import LandingPage from './components/LandingPage';
-import NotFoundPage from './components/NotFoundPage';
+import { MainLayout } from './components/layout/MainLayout';
 import { ThemeProvider } from './context/ThemeContext';
-import { AdminDashboard, AuditLogs, ClientManagement, ReportsAnalytics, TransactionOversight, UserManagement } from './features/admin';
+import { AdminDashboard } from './features/admin-dashboard';
+import { ArchivesPage } from './features/archives';
+import { AuditLogs } from './features/audit-logs';
 import { AuthProvider, GuestRoute, ProtectedRoute } from './features/auth';
 import { AuthPage } from './features/auth/components/AuthPage';
-import { AdminLiveTracking, ArchivesPage, Documents, DocumentsDetail, ExportList, Help, ImportList, MainLayout, Profile, TrackingDashboard, TrackingDetails } from './features/tracking';
+import { ClientManagement } from './features/clients';
+import { Documents, DocumentsDetail } from './features/documents';
+import { FormsPage } from './features/forms';
+import { LawFirmPage } from './features/law-firm';
+import { TransactionOversight } from './features/oversight';
+import { ReportsAnalytics } from './features/reports';
+import { Help, Profile } from './features/settings';
+import { AdminLiveTracking, ExportList, ImportList, TrackingDashboard, TrackingDetails } from './features/tracking';
+import { UserManagement } from './features/users';
+import LandingPage from './pages/LandingPage';
+import NotFoundPage from './pages/NotFoundPage';
 
 function App() {
   return (
@@ -47,8 +58,10 @@ function App() {
                 <Route path="/transactions" element={<TransactionOversight />} />
                 <Route path="/reports" element={<ReportsAnalytics />} />
                 <Route path="/audit-logs" element={<AuditLogs />} />
-                <Route path="/archives" element={<ArchivesPage />} />
-              </Route>
+                  <Route path="/archives" element={<ArchivesPage />} />
+                  <Route path="/law-firm" element={<LawFirmPage />} />
+                  <Route path="/forms" element={<FormsPage />} />
+                </Route>
 
             </Route>
 

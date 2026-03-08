@@ -29,12 +29,25 @@
     *   `app/Http/Resources`: API Resources for consistent JSON output.
     *   `database/migrations`: Defines the schema including polymorphic `documents` table.
     *   `routes/api.php`: API endpoints. Auth routes prefixed with `/auth`.
-*   **`frontend/`**: Feature-based React application.
-    *   `src/features/`: functionality grouped by domain (e.g., `auth`, `tracking`).
-        *   Each feature contains: `api/`, `components/`, `context/`, `hooks/`, `types/`.
-    *   `src/components/`: Shared/reusable components (layout, pagination, etc.).
+*   **`frontend/`**: Domain-based React application.
+    *   `src/features/`: One folder per domain feature:
+        *   `auth/` — Login, AuthContext, useAuth hook.
+        *   `tracking/` — Core transaction tracking (ImportList, ExportList, TrackingDashboard, AdminLiveTracking). Owns `trackingApi.ts` — the shared API client.
+        *   `documents/` — Documents page & DocumentsDetail. Hooks reference `../../tracking/api/trackingApi`.
+        *   `archives/` — Archive dashboard + 10 sub-components + utils. Hooks reference tracking API; types reference `../../documents/types/document.types`.
+        *   `clients/` — ClientManagement + ClientFormModal. Has own `api/clientApi.ts`.
+        *   `users/` — UserManagement + modal. Has own `api/userApi.ts`.
+        *   `oversight/` — TransactionOversight + modals. Has own `api/transactionApi.ts`.
+        *   `reports/` — ReportsAnalytics. Has own `api/reportApi.ts`.
+        *   `audit-logs/` — AuditLogs page. Has own `api/auditLogApi.ts`.
+        *   `settings/` — Profile, Help pages.
+        *   `admin-dashboard/` — AdminDashboard page.
+    *   `src/pages/` — Standalone non-feature pages: `LandingPage`, `NotFoundPage`, `FormsPage`, `LawFirmPage`.
+    *   `src/components/` — Truly shared UI components:
+        *   `layout/MainLayout.tsx` — App shell with sidebar.
+        *   `modals/UploadModal.tsx`, `modals/FilePreviewModal.tsx` — Shared modals (used by tracking, documents, archives).
+        *   `Icon.tsx`, `Pagination.tsx`, `StatusBadge.tsx`, `Spinner.tsx`, `ActionMenu.tsx`, etc.
     *   `src/lib/axios.ts`: Centralized Axios instance with CSRF handling.
-    *   `src/routes/`: Route definitions.
 
 ### Development Conventions
 *   **Authentication:** The frontend uses **cookie-based authentication**. It must first request `/sanctum/csrf-cookie` before attempting login.
@@ -79,9 +92,9 @@ pnpm dev
 *   Use `User->hasRoleAtLeast('supervisor')` for role checks in Policies.
 *   Helper methods: `isAdmin()`, `isManagerOrAbove()`, `isSupervisorOrAbove()`.
 
-## 6. Current Status (as of Feb 2026)
-*   **Completed:** Auth flow (Login/Logout), Database Schema & Migrations, Basic Dashboard UI, Seeders, API Security Hardening.
-*   **Pending:** CRUD for Transactions/Clients/Documents, Role-based access control, Search/Filter.
+## 6. Current Status (as of Mar 2026)
+*   **Completed:** Auth flow, DB Schema & Migrations, Dashboard UI, Seeders, API Security Hardening, Client/User/Oversight/Reports/AuditLog CRUD, Archive dashboard, Documents page, Frontend restructure (domain-based features).
+*   **Pending:** Full test coverage, advanced search/filter, performance optimizations.
 
 ## 7. Important Files
 *   `PROJECT_CONTEXT.md`: Detailed technical reference (DB schema, ERD, API routes, frontend structure).
@@ -188,7 +201,20 @@ When implementing a new feature in the frontend, always follow this structure:
 3.  **API** — `api/` — Axios calls using the shared `src/lib/axios.ts` instance.
 4.  **Components** — `components/` — React components for the feature.
 5.  **Hooks** — `hooks/` — Custom hooks for data fetching and state logic.
-6.  **Context** — `context/` — Only if the feature needs global state.
+6.  **Barrel export** — `index.ts` — Re-export public components/hooks for use in `App.tsx`.
+7.  **Context** — `context/` — Only if the feature needs global state.
+
+### Import Path Rules (CRITICAL — Vite enforces these at build time, not tsc)
+
+| File location | To reach `src/components/` | To reach another feature |
+|---|---|---|
+| `features/foo/components/` | `../../../components/` | `../../bar/` |
+| `features/foo/components/ui/` | `../../../../components/` | `../../../bar/` |
+| `features/foo/hooks/` | `../../../components/` | `../../bar/` |
+| `features/foo/utils/` | `../../../components/` | `../../bar/` |
+| `components/modals/` | `../` (sibling in components/) | N/A |
+
+> **IMPORTANT:** `documents/hooks/` and `archives/hooks/` have no local `api/` or `types/` — they must import from `../../tracking/api/trackingApi` and `../../documents/types/document.types` respectively. Always verify with `npx vite build` — TypeScript alone (`tsc --noEmit`) does NOT catch all missing module errors.
 
 ### API Call Pattern
 ```typescript
@@ -199,6 +225,9 @@ export const getItems = async () => {
     return data;
 };
 ```
+
+### Services Layer (Not yet extracted)
+All features currently use their own colocated `api/` files. `trackingApi.ts` is the only shared API client (used by `documents` and `archives` hooks as well). **Do not add a `src/services/` folder yet** — extract only if a second feature needs to reference `trackingApi` directly.
 
 ## 12. Data Fetching & Caching Patterns
 
