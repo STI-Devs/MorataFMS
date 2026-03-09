@@ -1,8 +1,8 @@
-﻿import { useCallback, useEffect, useState } from 'react';
+﻿import { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import type { LayoutContext } from '../../tracking/types';
-import { auditLogApi } from '../api/auditLogApi';
-import type { AuditLogEntry, AuditLogFilters, AuditLogMeta } from '../types/auditLog.types';
+import { useAuditActions, useAuditLogs } from '../hooks/useAuditLogs';
+import type { AuditLogFilters } from '../types/auditLog.types';
 
 
 const EVENT_CFG: Record<string, { label: string; color: string; bg: string }> = {
@@ -26,59 +26,36 @@ const formatDate = (iso: string) =>
 export const AuditLogs = () => {
     const { dateTime } = useOutletContext<LayoutContext>();
 
-    const [logs,             setLogs]             = useState<AuditLogEntry[]>([]);
-    const [meta,             setMeta]             = useState<AuditLogMeta>({ current_page: 1, last_page: 1, per_page: 25, total: 0 });
-    const [availableActions, setAvailableActions] = useState<string[]>([]);
-    const [isLoading,        setIsLoading]        = useState(true);
-    const [error,            setError]            = useState('');
-    const [search,           setSearch]           = useState('');
-    const [actionFilter,     setActionFilter]     = useState('');
-    const [actorFilter,      setActorFilter]      = useState<'human' | 'system' | 'all'>('human');
-    const [dateFrom,         setDateFrom]         = useState('');
-    const [dateTo,           setDateTo]           = useState('');
-    const [page,             setPage]             = useState(1);
+    // Filter state (local — controls query key, not data fetching)
+    const [search,       setSearch]       = useState('');
+    const [actionFilter, setActionFilter] = useState('');
+    const [actorFilter,  setActorFilter]  = useState<'human' | 'system' | 'all'>('human');
+    const [dateFrom,     setDateFrom]     = useState('');
+    const [dateTo,       setDateTo]       = useState('');
+    const [page,         setPage]         = useState(1);
 
-    const loadLogs = useCallback(async (filters: AuditLogFilters) => {
-        try {
-            setIsLoading(true);
-            setError('');
-            const res = await auditLogApi.getLogs(filters);
-            setLogs(res.data);
-            setMeta(res.meta);
-        } catch (err: unknown) {
-            const msg = err instanceof Error ? err.message : 'Failed to load audit logs.';
-            setError(msg);
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
+    // Build filters object for query key — TanStack Query re-fetches only when this changes
+    const filters: AuditLogFilters = {
+        search:    search       || undefined,
+        action:    actionFilter || undefined,
+        actor:     actorFilter,
+        date_from: dateFrom     || undefined,
+        date_to:   dateTo       || undefined,
+        page,
+        per_page:  25,
+    };
 
-    const loadActions = useCallback(async () => {
-        try {
-            const res = await auditLogApi.getActions();
-            setAvailableActions(res.data);
-        } catch { /* non-critical */ }
-    }, []);
+    const { data, isLoading, isError } = useAuditLogs(filters);
+    const availableActions = useAuditActions().data ?? [];
 
-    useEffect(() => { loadActions(); }, [loadActions]);
+    const logs = data?.data ?? [];
+    const meta = data?.meta ?? { current_page: 1, last_page: 1, per_page: 25, total: 0 };
 
-    useEffect(() => {
-        loadLogs({
-            search:    search       || undefined,
-            action:    actionFilter || undefined,
-            actor:     actorFilter,
-            date_from: dateFrom     || undefined,
-            date_to:   dateTo       || undefined,
-            page,
-            per_page: 25,
-        });
-    }, [loadLogs, search, actionFilter, actorFilter, dateFrom, dateTo, page]);
-
-    const handleSearch   = (val: string) => { setSearch(val);                                      setPage(1); };
-    const handleAction   = (val: string) => { setActionFilter(val);                                setPage(1); };
-    const handleActor    = (val: 'human' | 'system' | 'all') => { setActorFilter(val);             setPage(1); };
-    const handleDateFrom = (val: string) => { setDateFrom(val);                                    setPage(1); };
-    const handleDateTo   = (val: string) => { setDateTo(val);                                      setPage(1); };
+    const handleSearch   = (val: string) => { setSearch(val);        setPage(1); };
+    const handleAction   = (val: string) => { setActionFilter(val);  setPage(1); };
+    const handleActor    = (val: 'human' | 'system' | 'all') => { setActorFilter(val); setPage(1); };
+    const handleDateFrom = (val: string) => { setDateFrom(val);      setPage(1); };
+    const handleDateTo   = (val: string) => { setDateTo(val);        setPage(1); };
 
     const inputCls = 'px-3 py-2.5 rounded-lg border border-border-strong bg-input-bg text-text-primary text-sm placeholder:text-text-muted focus:outline-none focus:border-blue-500/50 transition-colors';
 
@@ -178,11 +155,11 @@ export const AuditLogs = () => {
                     <div className="p-16 flex items-center justify-center">
                         <div className="w-8 h-8 rounded-full border-[3px] border-border animate-spin" style={{ borderTopColor: '#0a84ff' }} />
                     </div>
-                ) : error ? (
+                ) : isError ? (
                     <div className="p-16 text-center">
-                        <p className="text-sm text-red-500 font-medium mb-2">{error}</p>
+                        <p className="text-sm text-red-500 font-medium mb-2">Failed to load audit logs.</p>
                         <button
-                            onClick={() => loadLogs({ search, action: actionFilter, date_from: dateFrom, date_to: dateTo, page })}
+                            onClick={() => window.location.reload()}
                             className="text-xs font-semibold text-text-secondary underline hover:text-text-primary"
                         >
                             Try again
@@ -212,7 +189,6 @@ export const AuditLogs = () => {
                             <tbody>
                                 {logs.map((log, idx) => {
                                     const cfg = getEventCfg(log.event);
-                                    const hasChanges = log.new_values && Object.keys(log.new_values).length > 0;
                                     return (
                                         <tr key={log.id} className={`border-b border-border/50 transition-colors hover:bg-hover ${idx % 2 !== 0 ? 'bg-surface-secondary/40' : ''}`}>
                                             <td className="px-5 py-3 whitespace-nowrap">
@@ -236,18 +212,44 @@ export const AuditLogs = () => {
                                             </td>
                                             <td className="px-5 py-3 whitespace-nowrap">
                                                 {log.auditable_type ? (
-                                                    <span className="text-xs font-medium px-2 py-0.5 rounded bg-surface-tint border border-border-tint text-text-secondary capitalize">
-                                                        {log.auditable_type} #{log.auditable_id}
-                                                    </span>
+                                                    <div className="flex flex-col gap-0.5">
+                                                        <span className="text-xs font-medium px-2 py-0.5 rounded bg-surface-tint border border-border-tint text-text-secondary capitalize inline-block w-fit">
+                                                            {log.auditable_type}
+                                                        </span>
+                                                        {log.auditable_label ? (
+                                                            <span className="text-xs text-text-primary font-semibold">
+                                                                {log.auditable_label}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-xs text-text-muted">#{log.auditable_id}</span>
+                                                        )}
+                                                    </div>
                                                 ) : (
                                                     <span className="text-text-muted">—</span>
                                                 )}
                                             </td>
-                                            <td className="px-5 py-3 max-w-xs text-text-secondary">
-                                                {hasChanges ? (
-                                                    <span className="text-xs text-text-muted">
-                                                        {Object.keys(log.new_values!).join(', ')}
-                                                    </span>
+                                            <td className="px-5 py-3 max-w-xs">
+                                                {log.new_values && Object.keys(log.new_values).length > 0 ? (
+                                                    <div className="flex flex-col gap-1">
+                                                        {Object.entries(log.new_values).map(([key, newVal]) => {
+                                                            const oldVal = log.old_values?.[key];
+                                                            const hasOld = oldVal !== undefined && oldVal !== null;
+                                                            return (
+                                                                <div key={key} className="flex items-center gap-1 flex-wrap">
+                                                                    <span className="text-[10px] font-mono font-semibold text-text-muted">{key}:</span>
+                                                                    {hasOld && (
+                                                                        <span className="text-[10px] font-mono line-through text-text-muted opacity-60">
+                                                                            {String(oldVal)}
+                                                                        </span>
+                                                                    )}
+                                                                    {hasOld && <span className="text-[10px] text-text-muted">→</span>}
+                                                                    <span className="text-[10px] font-mono font-semibold" style={{ color: '#30d158' }}>
+                                                                        {String(newVal)}
+                                                                    </span>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
                                                 ) : (
                                                     <span className="text-text-muted">—</span>
                                                 )}

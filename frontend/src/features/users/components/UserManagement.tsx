@@ -1,5 +1,6 @@
 ﻿import { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
+import { useAuth } from '../../auth/hooks/useAuth';
 import type { LayoutContext } from '../../tracking/types';
 import { useActivateUser, useCreateUser, useDeactivateUser, useUpdateUser, useUsers } from '../hooks/useUsers';
 import type { CreateUserData, UpdateUserData, User } from '../types/user.types';
@@ -11,20 +12,15 @@ const roleConfig: Record<string, { label: string; color: string; icon: string }>
         color: '#bf5af2',
         icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z',
     },
-    manager: {
-        label: 'Manager',
+    lawyer: {
+        label: 'Lawyer',
         color: '#0a84ff',
-        icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4',
+        icon: 'M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3',
     },
-    supervisor: {
-        label: 'Supervisor',
-        color: '#30d158',
-        icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4',
-    },
-    broker: {
-        label: 'Broker',
+    paralegal: {
+        label: 'Paralegal',
         color: '#ff9f0a',
-        icon: 'M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z',
+        icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01',
     },
     encoder: {
         label: 'Encoder',
@@ -50,6 +46,7 @@ function RoleBadge({ role }: { role: string }) {
 
 export const UserManagement = () => {
     const { dateTime } = useOutletContext<LayoutContext>();
+    const { user: currentUser } = useAuth();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -120,14 +117,14 @@ export const UserManagement = () => {
                 const total = users.length;
                 const active = users.filter(u => u.is_active).length;
                 const inactive = total - active;
-                const admins = users.filter(u => u.role === 'admin' || u.role === 'manager').length;
-                const fieldStaff = users.filter(u => u.role === 'broker' || u.role === 'encoder').length;
+                const admins = users.filter(u => u.role === 'admin').length;
+                const fieldStaff = users.filter(u => u.role === 'encoder' || u.role === 'paralegal').length;
 
                 const cards = [
                     {
                         label: 'Total Users',
                         value: total,
-                        sub: `${admins} admin/manager · ${fieldStaff} field`,
+                        sub: `${admins} admin · ${fieldStaff} staff`,
                         dot: null as string | null,
                     },
                     {
@@ -143,9 +140,9 @@ export const UserManagement = () => {
                         dot: inactive > 0 ? '#ef4444' as string | null : null,
                     },
                     {
-                        label: 'Supervisors+',
-                        value: users.filter(u => ['admin', 'manager', 'supervisor'].includes(u.role)).length,
-                        sub: 'admin · manager · supervisor',
+                        label: 'Admins',
+                        value: admins,
+                        sub: 'full system access',
                         dot: null as string | null,
                     },
                 ];
@@ -246,7 +243,14 @@ export const UserManagement = () => {
                                                     style={{ backgroundColor: roleConfig[user.role]?.color ?? '#8e8e93' }}>
                                                     {user.name.charAt(0).toUpperCase()}
                                                 </div>
-                                                <span className="text-sm font-semibold text-text-primary">{user.name}</span>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-sm font-semibold text-text-primary">{user.name}</span>
+                                                    {currentUser?.id === user.id && (
+                                                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded" style={{ backgroundColor: 'rgba(255,255,255,0.07)', color: '#636366' }}>
+                                                            you
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
                                         </td>
                                         <td className="px-5 py-3.5 text-sm text-text-secondary text-center">{user.email}</td>
@@ -265,32 +269,38 @@ export const UserManagement = () => {
                                         </td>
                                         <td className="px-5 py-3.5 text-center">
                                             <div className="flex items-center justify-center gap-1.5">
-                                                <button
-                                                    onClick={() => handleEdit(user)}
-                                                    className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors hover:bg-white/10"
-                                                    style={{ backgroundColor: 'rgba(255,255,255,0.05)', color: '#e5e5ea' }}
-                                                >
-                                                    Edit
-                                                </button>
-
-                                                {user.is_active ? (
-                                                    <button
-                                                        onClick={() => handleDeactivate(user.id)}
-                                                        disabled={deactivateUser.isPending}
-                                                        className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50 hover:opacity-80"
-                                                        style={{ backgroundColor: 'rgba(255,69,58,0.12)', color: '#ff453a' }}
-                                                    >
-                                                        Deactivate
-                                                    </button>
+                                                {currentUser?.id === user.id ? (
+                                                    <span className="text-sm text-text-muted">—</span>
                                                 ) : (
-                                                    <button
-                                                        onClick={() => handleActivate(user.id)}
-                                                        disabled={activateUser.isPending}
-                                                        className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50 hover:opacity-80"
-                                                        style={{ backgroundColor: 'rgba(48,209,88,0.12)', color: '#30d158' }}
-                                                    >
-                                                        Activate
-                                                    </button>
+                                                    <>
+                                                        <button
+                                                            onClick={() => handleEdit(user)}
+                                                            className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors hover:bg-white/10"
+                                                            style={{ backgroundColor: 'rgba(255,255,255,0.05)', color: '#e5e5ea' }}
+                                                        >
+                                                            Edit
+                                                        </button>
+
+                                                        {user.is_active ? (
+                                                            <button
+                                                                onClick={() => handleDeactivate(user.id)}
+                                                                disabled={deactivateUser.isPending}
+                                                                className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50 hover:opacity-80"
+                                                                style={{ backgroundColor: 'rgba(255,69,58,0.12)', color: '#ff453a' }}
+                                                            >
+                                                                Deactivate
+                                                            </button>
+                                                        ) : (
+                                                            <button
+                                                                onClick={() => handleActivate(user.id)}
+                                                                disabled={activateUser.isPending}
+                                                                className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50 hover:opacity-80"
+                                                                style={{ backgroundColor: 'rgba(48,209,88,0.12)', color: '#30d158' }}
+                                                            >
+                                                                Activate
+                                                            </button>
+                                                        )}
+                                                    </>
                                                 )}
                                             </div>
                                         </td>

@@ -14,6 +14,7 @@ class AuditLogResource extends JsonResource
             'event' => $this->event,
             'auditable_type' => $this->humanizeType($this->auditable_type),
             'auditable_id' => $this->auditable_id,
+            'auditable_label' => $this->resolveAuditableLabel(),
             'old_values' => $this->old_values,
             'new_values' => $this->new_values,
             'user' => $this->whenLoaded('user', function () {
@@ -29,11 +30,28 @@ class AuditLogResource extends JsonResource
         ];
     }
 
+    /**
+     * Resolve a human-readable display name for the audited record.
+     * Checks common name fields across all auditable model types.
+     */
+    private function resolveAuditableLabel(): ?string
+    {
+        $model = $this->whenLoaded('auditable', fn() => $this->auditable);
+        if (!$model)
+            return null;
+
+        // Priority: name (User, Client) → bl_number (Export) → entry_number (Import) → original_filename (Document)
+        return $model->name
+            ?? $model->bl_number
+            ?? $model->entry_number
+            ?? $model->original_filename
+            ?? null;
+    }
+
     private function humanizeType(?string $type): ?string
     {
-        if (!$type) {
+        if (!$type)
             return null;
-        }
 
         // Strip namespace: 'App\Models\ImportTransaction' → 'ImportTransaction'
         $basename = class_basename($type);
@@ -42,3 +60,4 @@ class AuditLogResource extends JsonResource
         return preg_replace('/(?<!^)([A-Z])/', ' $1', $basename);
     }
 }
+

@@ -5,6 +5,15 @@ interface ProtectedRouteProps {
   allowedRoles?: string[];
 }
 
+/** Returns the most appropriate home path for the user's role/department. */
+function getHomePath(role: string, departments: string[]): string {
+  if (role === 'admin') return '/transactions';
+  if (role === 'encoder') return '/tracking';
+  // Legal-only roles
+  if (departments.includes('legal')) return '/law-firm';
+  return '/tracking';
+}
+
 export function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
   const { isAuthenticated, isLoading, user } = useAuth();
   const location = useLocation();
@@ -22,9 +31,10 @@ export function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Role-based access control — redirect to a safe page all roles can access
+  // Role-based access control — redirect to the user's own home page
   if (allowedRoles && user && !allowedRoles.includes(user.role)) {
-    return <Navigate to="/tracking" replace />;
+    const home = getHomePath(user.role, user.departments ?? []);
+    return <Navigate to={home} replace />;
   }
 
   // Forward parent context (e.g. MainLayout's { user, dateTime }) to nested pages

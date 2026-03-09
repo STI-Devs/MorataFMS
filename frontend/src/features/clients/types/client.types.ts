@@ -44,33 +44,31 @@ export interface UpdateClientData {
 export interface ImportTransaction {
     id: number;
     type: 'import';
-    reference_no: string;
-    bl_no: string;
-    date: string;
+    customs_ref_no: string | null;
+    bl_no: string | null;
+    arrival_date: string | null;
     status: string;
     selective_color?: string;
-    assigned_to?: string;
+    assigned_user: { id: number; name: string } | null;
     created_at: string;
 }
 
 export interface ExportTransaction {
     id: number;
     type: 'export';
-    bl_no: string;
-    vessel: string;
-    destination?: string;
+    bl_no: string | null;
+    vessel?: string | null;
+    destination?: string | null;
     status: string;
-    assigned_to?: string;
+    assigned_user: { id: number; name: string } | null;
     created_at: string;
 }
 
 export type ClientTransaction = ImportTransaction | ExportTransaction;
 
 export interface ClientTransactionHistory {
-    client: Client;
     transactions: {
         imports: ImportTransaction[];
         exports: ExportTransaction[];
-        total: number;
     };
 }

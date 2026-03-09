@@ -78,8 +78,8 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
         Route::apiResource('books.entries', NotarialEntryController::class);
     });
 
-    // Admin-only routes — tighter throttle (20 req/min)
-    Route::middleware('throttle:20,1')->group(function () {
+    // Admin-only routes — moderate throttle (120 req/min)
+    Route::middleware('throttle:120,1')->group(function () {
 
         // User management
         Route::apiResource('users', UserController::class);

@@ -1,6 +1,6 @@
 ﻿import { useState } from 'react';
 import { useTheme } from '../../../context/ThemeContext';
-import type { ImportTransaction, ExportTransaction } from '../types/client.types';
+import type { ExportTransaction, ImportTransaction } from '../../clients/types/client.types';
 
 interface TransactionHistoryModalProps {
     isOpen: boolean;
@@ -102,10 +102,12 @@ export const TransactionHistoryModal = ({ isOpen, onClose, clientName, imports, 
                                     {imports.map((transaction) => (
                                         <tr key={transaction.id} className={`transition-colors ${theme === 'dark' ? 'hover:bg-gray-700/30' : 'hover:bg-gray-50'}`}>
                                             <td className={`px-4 py-3 text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-                                                {transaction.date ? new Date(transaction.date).toLocaleDateString() : 'N/A'}
+                                                {transaction.arrival_date
+                                                    ? new Date(transaction.arrival_date).toLocaleDateString()
+                                                    : 'N/A'}
                                             </td>
                                             <td className={`px-4 py-3 text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                                                {transaction.reference_no || 'N/A'}
+                                                {transaction.customs_ref_no || 'N/A'}
                                             </td>
                                             <td className={`px-4 py-3 text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
                                                 {transaction.bl_no || 'N/A'}
@@ -123,7 +125,7 @@ export const TransactionHistoryModal = ({ isOpen, onClose, clientName, imports, 
                                                 </span>
                                             </td>
                                             <td className={`px-4 py-3 text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-                                                {transaction.assigned_to || 'Unassigned'}
+                                                {transaction.assigned_user?.name ?? 'Unassigned'}
                                             </td>
                                         </tr>
                                     ))}
@@ -185,7 +187,7 @@ export const TransactionHistoryModal = ({ isOpen, onClose, clientName, imports, 
                                                 </span>
                                             </td>
                                             <td className={`px-4 py-3 text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-                                                {transaction.assigned_to || 'Unassigned'}
+                                                {transaction.assigned_user?.name ?? 'Unassigned'}
                                             </td>
                                         </tr>
                                     ))}

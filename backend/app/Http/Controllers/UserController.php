@@ -99,10 +99,24 @@ class UserController extends Controller
     /**
      * POST /api/users/{user}/deactivate
      * Soft-disable a user account (admin only).
+     * Guard: cannot deactivate the last active admin in the system.
      */
     public function deactivate(User $user)
     {
         $this->authorize('update', $user);
+
+        // Prevent locking out the entire system by deactivating the last active admin.
+        if ($user->role === 'admin') {
+            $activeAdminCount = User::where('role', 'admin')
+                ->where('is_active', true)
+                ->count();
+
+            if ($activeAdminCount <= 1) {
+                return response()->json([
+                    'message' => 'Cannot deactivate the last active admin account. Assign another admin first.',
+                ], 422);
+            }
+        }
 
         $user->is_active = false;
         $user->save();

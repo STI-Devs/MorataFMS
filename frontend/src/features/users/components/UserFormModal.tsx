@@ -10,7 +10,12 @@ interface UserFormModalProps {
     mode: 'create' | 'edit';
 }
 
-const ROLES: UserRole[] = ['encoder', 'broker', 'supervisor', 'manager', 'admin'];
+const ROLES: { value: UserRole; label: string }[] = [
+    { value: 'encoder', label: 'Encoder' },
+    { value: 'paralegal', label: 'Paralegal' },
+    { value: 'lawyer', label: 'Lawyer' },
+    { value: 'admin', label: 'Admin' },
+];
 
 const inputCls = 'w-full px-4 py-3 rounded-xl border border-border bg-input-bg text-text-primary placeholder:text-text-muted focus:outline-none focus:border-blue-500/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed';
 const labelCls = 'block text-sm font-medium mb-2 text-text-secondary';
@@ -119,8 +124,8 @@ export const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode }: UserFor
                             required
                             className={`${inputCls} capitalize`}
                         >
-                            {ROLES.map((role) => (
-                                <option key={role} value={role} className="capitalize">{role}</option>
+                            {ROLES.map((r) => (
+                                <option key={r.value} value={r.value}>{r.label}</option>
                             ))}
                         </select>
                     </div>

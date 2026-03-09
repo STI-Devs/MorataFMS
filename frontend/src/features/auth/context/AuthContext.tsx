@@ -5,7 +5,7 @@ import { authApi } from '../api/authApi';
 import type { AuthState, LoginCredentials, User } from '../types/auth.types';
 
 interface AuthContextType extends AuthState {
-  login: (credentials: LoginCredentials) => Promise<void>;
+  login: (credentials: LoginCredentials) => Promise<User>;
   logout: () => Promise<void>;
   setUser: (user: User | null) => void;
 }
@@ -78,11 +78,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const login = async (credentials: LoginCredentials) => {
+  const login = async (credentials: LoginCredentials): Promise<User> => {
     try {
       const response = await authApi.login(credentials);
 
-      // Store user only - authentication is via session cookie
       localStorage.setItem('user', JSON.stringify(response.user));
 
       setAuthState({
@@ -90,6 +89,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: true,
         isLoading: false,
       });
+
+      return response.user;
     } catch (error) {
       console.error('Login failed:', error);
       throw error;

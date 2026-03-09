@@ -11,11 +11,12 @@ export const authApi = {
     async login(credentials: LoginCredentials): Promise<AuthResponse> {
         await this.getCsrfCookie();
 
-        const response = await api.post<AuthResponse>(
+        const response = await api.post<{ user: { data: User } }>(
             `/api/auth/login`,
             credentials
         );
-        return response.data;
+        // UserResource wraps in { data: ... } — unwrap so AuthContext gets a plain User
+        return { user: response.data.user.data ?? response.data.user as unknown as User };
     },
 
     // Logout user

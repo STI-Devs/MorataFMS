@@ -3,7 +3,9 @@ export interface User {
     id: number;
     email: string;
     name: string;
-    role: string;
+    role: 'admin' | 'encoder' | 'lawyer' | 'paralegal';
+    departments: ('brokerage' | 'legal')[];
+    multi_department: boolean;
 }
 
 export interface LoginCredentials {

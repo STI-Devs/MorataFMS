@@ -16,7 +16,7 @@ class AuditLogController extends Controller
     {
         $this->authorize('viewAny', AuditLog::class);
 
-        $query = AuditLog::with('user');
+        $query = AuditLog::with(['user', 'auditable']);
 
         if ($type = $request->query('auditable_type')) {
             $fullType = 'App\\Models\\' . $type;

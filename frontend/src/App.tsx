@@ -35,22 +35,26 @@ function App() {
             <Route path="/login" element={<AuthPage />} />
           </Route>
 
-          {/* All authenticated users — outer guard prevents MainLayout from rendering for guests */}
-          <Route element={<ProtectedRoute allowedRoles={['encoder', 'broker', 'supervisor', 'manager', 'admin']} />}>
+          {/* All authenticated users */}
+          <Route element={<ProtectedRoute allowedRoles={['encoder', 'admin', 'lawyer', 'paralegal']} />}>
             <Route element={<MainLayout />}>
 
-              {/* Routes accessible by ALL roles */}
-              <Route path="/tracking" element={<TrackingDashboard />} />
+              {/* Shared routes — all authenticated roles */}
               <Route path="/profile" element={<Profile />} />
               <Route path="/help" element={<Help />} />
-              <Route path="/imports" element={<ImportList />} />
-              <Route path="/exports" element={<ExportList />} />
-              <Route path="/export" element={<ExportList />} />
-              <Route path="/documents" element={<Documents />} />
-              <Route path="/documents/:ref" element={<DocumentsDetail />} />
-              <Route path="/tracking/:referenceId" element={<TrackingDetails />} />
 
-              {/* Admin-only routes */}
+              {/* Brokerage module — encoder + admin only */}
+              <Route element={<ProtectedRoute allowedRoles={['encoder', 'admin']} />}>
+                <Route path="/tracking" element={<TrackingDashboard />} />
+                <Route path="/tracking/:referenceId" element={<TrackingDetails />} />
+                <Route path="/imports" element={<ImportList />} />
+                <Route path="/exports" element={<ExportList />} />
+                <Route path="/export" element={<ExportList />} />
+                <Route path="/documents" element={<Documents />} />
+                <Route path="/documents/:ref" element={<DocumentsDetail />} />
+              </Route>
+
+              {/* Admin-only brokerage routes */}
               <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
                 <Route path="/dashboard" element={<AdminDashboard />} />
                 <Route path="/users" element={<UserManagement />} />
@@ -58,10 +62,14 @@ function App() {
                 <Route path="/transactions" element={<TransactionOversight />} />
                 <Route path="/reports" element={<ReportsAnalytics />} />
                 <Route path="/audit-logs" element={<AuditLogs />} />
-                  <Route path="/archives" element={<ArchivesPage />} />
-                  <Route path="/law-firm" element={<LawFirmPage />} />
-                  <Route path="/forms" element={<FormsPage />} />
-                </Route>
+                <Route path="/archives" element={<ArchivesPage />} />
+              </Route>
+
+              {/* Legal module — admin + lawyer + paralegal */}
+              <Route element={<ProtectedRoute allowedRoles={['admin', 'lawyer', 'paralegal']} />}>
+                <Route path="/law-firm" element={<LawFirmPage />} />
+                <Route path="/forms" element={<FormsPage />} />
+              </Route>
 
             </Route>
 

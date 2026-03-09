@@ -4,6 +4,7 @@ export interface AuditLogEntry {
     event: string;
     auditable_type: string | null;
     auditable_id: number | null;
+    auditable_label: string | null;
     user: {
         id: number;
         name: string;
