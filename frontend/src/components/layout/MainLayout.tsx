@@ -171,7 +171,7 @@ export const MainLayout = () => {
 
     // ── Legal / Law Firm nav items ────────────────────────────────────────────
     const legalItems = [
-        { label: 'Law Firm', path: '/law-firm', icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1z"/><line x1="7" y1="21" x2="17" y2="21" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="3" x2="12" y2="21" stroke-width="2" stroke-linecap="round"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7h2c2 0 2-2 4-2s2 2 4 2h2"/>' },
+        { label: 'Law Firm', path: '/law-firm', icon: 'M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3' },
         { label: 'Forms', path: '/forms', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
     ];
 
