@@ -190,9 +190,10 @@ interface YearRowProps {
     openMenuKey: string | null;
     setOpenMenuKey: (key: string | null) => void;
     onViewHistory: (folderName: string, docs: ArchiveDocument[], type: TransactionType) => void;
+    showAuditButton: boolean;
 }
 
-const YearRow = ({ yr, isOpen, toggleYear, filterType, filterStatus, nav, openMenuKey, setOpenMenuKey, onViewHistory }: YearRowProps) => {
+const YearRow = ({ yr, isOpen, toggleYear, filterType, filterStatus, nav, openMenuKey, setOpenMenuKey, onViewHistory, showAuditButton }: YearRowProps) => {
     const grouped = new Map<string, ArchiveDocument[]>();
     for (const doc of yr.documents) {
         const k = `${doc.month}|${doc.type}`;
@@ -257,13 +258,15 @@ const YearRow = ({ yr, isOpen, toggleYear, filterType, filterStatus, nav, openMe
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                             </svg>
                         </button>
-                        <button title="Mark as Audited"
-                            onClick={e => { e.stopPropagation(); alert(`Mark FY ${yr.year} as Audited - (coming soon)`); }}
-                            className="w-7 h-7 flex items-center justify-center rounded-md border border-emerald-500/30 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 hover:border-emerald-500/50 transition-all shadow-sm">
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                        </button>
+                        {showAuditButton && (
+                            <button title="Mark as Audited"
+                                onClick={e => { e.stopPropagation(); alert(`Mark FY ${yr.year} as Audited - (coming soon)`); }}
+                                className="w-7 h-7 flex items-center justify-center rounded-md border border-emerald-500/30 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 hover:border-emerald-500/50 transition-all shadow-sm">
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>
@@ -307,11 +310,13 @@ interface ArchivesFolderViewProps {
     openMenuKey: string | null;
     setOpenMenuKey: (key: string | null) => void;
     onOpenUpload: () => void;
+    showAuditButton?: boolean;
 }
 
 export const ArchivesFolderView = ({
     archiveData, filterYear, filterType, filterStatus,
     expandedYears, toggleYear, nav, openMenuKey, setOpenMenuKey, onOpenUpload,
+    showAuditButton = true,
 }: ArchivesFolderViewProps) => {
     const [historyTarget, setHistoryTarget] = useState<HistoryTarget | null>(null);
     const filteredYears = filterYear === 'all' ? archiveData : archiveData.filter(y => String(y.year) === filterYear);
@@ -345,6 +350,7 @@ export const ArchivesFolderView = ({
                         nav={nav}
                         openMenuKey={openMenuKey}
                         setOpenMenuKey={setOpenMenuKey}
+                        showAuditButton={showAuditButton}
                         onViewHistory={(folderName, docs, type) => setHistoryTarget({ folderName, docs, type })}
                     />
                 ))}

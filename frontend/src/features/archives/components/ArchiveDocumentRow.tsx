@@ -58,10 +58,11 @@ const getInitials = (name: string) =>
 
 interface Props {
     doc: ArchiveDocument;
-    onDelete: (id: number) => void;
+    onDelete?: (id: number) => void;
+    canDelete?: boolean;
 }
 
-export const ArchiveDocumentRow = ({ doc, onDelete }: Props) => {
+export const ArchiveDocumentRow = ({ doc, onDelete, canDelete = true }: Props) => {
     const ext = extFromFilename(doc.filename);
     const c = extStyle(ext);
     const stageKey = doc.stage in STAGE_COLORS ? doc.stage : '_';
@@ -125,14 +126,16 @@ export const ArchiveDocumentRow = ({ doc, onDelete }: Props) => {
                             d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                     </svg>
                 </button>
-                <button
-                    title="Delete"
-                    className="p-1.5 rounded-md text-text-muted hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                    onClick={e => { e.stopPropagation(); onDelete(doc.id); }}>
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
+                {canDelete && onDelete && (
+                    <button
+                        title="Delete"
+                        className="p-1.5 rounded-md text-text-muted hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                        onClick={e => { e.stopPropagation(); onDelete(doc.id); }}>
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                )}
             </div>
         </div>
     );

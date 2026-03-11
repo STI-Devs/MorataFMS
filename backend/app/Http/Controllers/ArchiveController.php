@@ -35,15 +35,25 @@ class ArchiveController extends Controller
      */
     public function index(): JsonResponse
     {
-        if (!request()->user()->isAdmin()) {
-            abort(403, 'Only administrators can access the archive.');
+        $mine = request()->boolean('mine');
+
+        // Admin-only unless ?mine=1 (encoder can see own uploads)
+        if (!$mine && !request()->user()->isAdmin()) {
+            abort(403, 'Only administrators can access the full archive.');
         }
+
+        $userId = $mine ? request()->user()->id : null;
 
         // Query on is_archive — explicit, unambiguous, indexed.
         // Year comes from the actual historical date fields, not created_at.
         $imports = ImportTransaction::where('is_archive', true)
-            ->with(['documents.uploadedBy', 'importer'])
+            ->with([
+                'documents' => fn($q) => $userId ? $q->where('uploaded_by', $userId) : $q,
+                'documents.uploadedBy',
+                'importer',
+            ])
             ->get()
+            ->when($userId, fn($col) => $col->filter(fn($t) => $t->documents->isNotEmpty()))
             ->map(fn($t) => [
                 'transaction_type' => 'import',
                 'year' => $t->arrival_date?->year ?? $t->created_at->year,
@@ -72,8 +82,14 @@ class ArchiveController extends Controller
             ]);
 
         $exports = ExportTransaction::where('is_archive', true)
-            ->with(['documents.uploadedBy', 'shipper', 'destinationCountry'])
+            ->with([
+                'documents' => fn($q) => $userId ? $q->where('uploaded_by', $userId) : $q,
+                'documents.uploadedBy',
+                'shipper',
+                'destinationCountry',
+            ])
             ->get()
+            ->when($userId, fn($col) => $col->filter(fn($t) => $t->documents->isNotEmpty()))
             ->map(fn($t) => [
                 'transaction_type' => 'export',
                 // export_date holds the historical shipment date (set from file_date).
@@ -124,8 +140,8 @@ class ArchiveController extends Controller
      */
     public function storeImport(StoreArchiveImportRequest $request)
     {
-        if (!$request->user()->isAdmin()) {
-            abort(403, 'Only administrators can upload archive records.');
+        if (!in_array($request->user()->role, ['admin', 'encoder'])) {
+            abort(403, 'Only administrators or encoders can upload archive records.');
         }
 
         $validated = $request->validated();
@@ -158,8 +174,8 @@ class ArchiveController extends Controller
      */
     public function storeExport(StoreArchiveExportRequest $request)
     {
-        if (!$request->user()->isAdmin()) {
-            abort(403, 'Only administrators can upload archive records.');
+        if (!in_array($request->user()->role, ['admin', 'encoder'])) {
+            abort(403, 'Only administrators or encoders can upload archive records.');
         }
 
         $validated = $request->validated();

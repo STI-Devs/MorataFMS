@@ -1,10 +1,10 @@
-﻿import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { MainLayout } from './components/layout/MainLayout';
 import { ThemeProvider } from './context/ThemeContext';
 import { AdminDashboard } from './features/admin-dashboard';
-import { ArchivesPage } from './features/archives';
+import { ArchivesPage, EncoderArchivePage } from './features/archives';
 import { AuditLogs } from './features/audit-logs';
 import { AuthProvider, GuestRoute, ProtectedRoute } from './features/auth';
 import { AuthPage } from './features/auth/components/AuthPage';
@@ -52,6 +52,7 @@ function App() {
                 <Route path="/export" element={<ExportList />} />
                 <Route path="/documents" element={<Documents />} />
                 <Route path="/documents/:ref" element={<DocumentsDetail />} />
+                <Route path="/my-archive" element={<EncoderArchivePage />} />
               </Route>
 
               {/* Admin-only brokerage routes */}

@@ -201,6 +201,28 @@ class ArchiveSeeder extends Seeder
         ];
     }
 
+    /**
+     * Smaller encoder-scoped distribution: ~20 BLs across 2023–2025
+     * (recent years only, modest volume — realistic for a single encoder).
+     */
+    private function getEncoderDistribution(): array
+    {
+        return [
+            [2023, 3,  2, 1],
+            [2023, 6,  2, 1],
+            [2023, 9,  2, 1],
+            [2023, 12, 2, 1],
+            [2024, 2,  2, 1],
+            [2024, 5,  2, 1],
+            [2024, 8,  2, 1],
+            [2024, 11, 2, 1],
+            [2025, 1,  2, 1],
+            [2025, 3,  2, 1],
+            [2025, 6,  2, 1],
+            [2025, 9,  2, 1],
+        ];
+    }
+
     public function run(): void
     {
         $admin = User::where('email', 'admin@morata.com')->first();
@@ -329,6 +351,88 @@ class ArchiveSeeder extends Seeder
 
         $total = $importCount + $exportCount;
         $this->command->info("✅ Archive seeded: {$importCount} imports + {$exportCount} exports = {$total} BLs, {$docCount} documents.");
+
+        // ── Encoder-scoped archive data ───────────────────────────────────
+        // Adds ~20 BLs attributed to encoder@morata.com so the My Archive
+        // page has realistic data to display right after seeding.
+        $encoder = User::where('email', 'encoder@morata.com')->first();
+        if (!$encoder) {
+            $this->command->warn('⚠  encoder@morata.com not found — skipping encoder archive seed. Run TestUserSeeder first.');
+            return;
+        }
+
+        $encImportCount = 0;
+        $encExportCount = 0;
+        $encDocCount    = 0;
+
+        foreach ($this->getEncoderDistribution() as [$year, $month, $impQty, $expQty]) {
+
+            // --- Encoder Imports ---
+            for ($i = 0; $i < $impQty; $i++) {
+                $day  = rand(1, 28);
+                $date = sprintf('%04d-%02d-%02d', $year, $month, $day);
+
+                $blPrefix = self::IMPORT_BL_PREFIXES[array_rand(self::IMPORT_BL_PREFIXES)];
+                $blNo     = $blPrefix . rand(100000000, 999999999);
+                $color    = self::SELECTIVE_COLORS[array_rand(self::SELECTIVE_COLORS)];
+                $originName = self::ORIGIN_COUNTRY_NAMES[array_rand(self::ORIGIN_COUNTRY_NAMES)];
+
+                $txn = ImportTransaction::withoutAuditing(function () use ($blNo, $color, $importerIds, $originCountries, $originName, $date, $encoder) {
+                    $txn = new ImportTransaction();
+                    $txn->customs_ref_no  = 'ARCH-' . $date . '-' . strtoupper(substr(uniqid(), -6));
+                    $txn->bl_no           = $blNo;
+                    $txn->selective_color = $color;
+                    $txn->importer_id     = $importerIds[array_rand($importerIds)];
+                    $txn->origin_country_id = $originCountries[$originName] ?? null;
+                    $txn->arrival_date    = $date;
+                    $txn->is_archive      = true;
+                    $txn->assigned_user_id = $encoder->id;
+                    $txn->status          = 'completed';
+                    $txn->save();
+                    return $txn;
+                });
+
+                $stagesCompleted = rand(3, 6);
+                $stages = array_slice(self::IMPORT_STAGES, 0, $stagesCompleted);
+                $encDocCount += $this->seedDocuments($txn, 'import', $stages, self::IMPORT_DOC_NAMES, $blNo, $year, $month, $encoder->id);
+                $this->completeImportStages($txn, $stages, $encoder->id, $date);
+                $encImportCount++;
+            }
+
+            // --- Encoder Exports ---
+            for ($i = 0; $i < $expQty; $i++) {
+                $day  = rand(1, 28);
+                $date = sprintf('%04d-%02d-%02d', $year, $month, $day);
+
+                $blPrefix = self::EXPORT_BL_PREFIXES[array_rand(self::EXPORT_BL_PREFIXES)];
+                $blNo     = $blPrefix . rand(100000000, 999999999);
+                $destName = self::DESTINATION_COUNTRY_NAMES[array_rand(self::DESTINATION_COUNTRY_NAMES)];
+                $vessel   = self::VESSELS[array_rand(self::VESSELS)];
+
+                $txn = ExportTransaction::withoutAuditing(function () use ($blNo, $vessel, $exporterIds, $destCountries, $destName, $date, $encoder) {
+                    $txn = new ExportTransaction();
+                    $txn->bl_no                  = $blNo;
+                    $txn->vessel                 = $vessel;
+                    $txn->shipper_id             = $exporterIds[array_rand($exporterIds)];
+                    $txn->destination_country_id = $destCountries[$destName] ?? null;
+                    $txn->export_date            = $date;
+                    $txn->is_archive             = true;
+                    $txn->assigned_user_id       = $encoder->id;
+                    $txn->status                 = 'completed';
+                    $txn->save();
+                    return $txn;
+                });
+
+                $stagesCompleted = rand(2, 4);
+                $stages = array_slice(self::EXPORT_STAGES, 0, $stagesCompleted);
+                $encDocCount += $this->seedDocuments($txn, 'export', $stages, self::EXPORT_DOC_NAMES, $blNo, $year, $month, $encoder->id);
+                $this->completeExportStages($txn, $stages, $encoder->id, $date);
+                $encExportCount++;
+            }
+        }
+
+        $encTotal = $encImportCount + $encExportCount;
+        $this->command->info("✅ Encoder archive seeded: {$encImportCount} imports + {$encExportCount} exports = {$encTotal} BLs, {$encDocCount} documents (encoder@morata.com).");
     }
 
     /**

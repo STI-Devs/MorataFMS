@@ -1,34 +1,28 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { ConfirmationModal } from '../../../components/ConfirmationModal';
 import { Icon } from '../../../components/Icon';
 import type { ArchiveDocument, ArchiveYear, TransactionType } from '../../documents/types/document.types';
-import { EXPORT_STAGES, IMPORT_STAGES } from '../../documents/types/document.types';
-import { trackingApi } from '../../tracking/api/trackingApi';
+
+
 import type { LayoutContext } from '../../tracking/types';
-import { useArchives } from '../hooks/useArchives';
-import type { DocStatusFilter, DrillState, SortKey, ViewMode } from '../utils/archive.utils';
-import {
-    computeGlobalCompleteness, countIncompleteBLs,
-    FOLDER_LABEL, MONTH_NAMES,
-} from '../utils/archive.utils';
-import { exportArchiveCSV } from '../utils/export.utils';
+import { useMyArchives } from '../hooks/useMyArchives';
+import type { DrillState, SortKey, ViewMode } from '../utils/archive.utils';
+import { FOLDER_LABEL, MONTH_NAMES } from '../utils/archive.utils';
 import { AddArchiveDocumentModal } from './AddArchiveDocumentModal';
 import { ArchiveDocumentRow } from './ArchiveDocumentRow';
 import { ArchiveLegacyUploadPage } from './ArchiveLegacyUploadPage';
 import { ArchivesFolderView } from './ArchivesFolderView';
 import { ArchivesBLView, ArchivesDocumentView, GlobalSearchResults } from './ArchivesViews';
 import { Breadcrumb } from './ui/Breadcrumb';
-import { CircularProgress } from './ui/CircularProgress';
 
 import { EmptyState } from './ui/EmptyState';
 import { ViewToggle } from './ui/ViewToggle';
 
-export const ArchivesPage = () => {
+export const EncoderArchivePage = () => {
     const { dateTime } = useOutletContext<LayoutContext>();
     const queryClient = useQueryClient();
-    const { data: archiveData = [], isLoading, isError } = useArchives();
+    const { data: archiveData = [], isLoading, isError } = useMyArchives();
 
     const [drill, setDrill] = useState<DrillState>({ level: 'years' });
     const [showLegacyUpload, setShowLegacyUpload] = useState(false);
@@ -39,8 +33,6 @@ export const ArchivesPage = () => {
     const [viewMode, setViewMode] = useState<ViewMode>('folder');
     const [filterYear, setFilterYear] = useState<string>('all');
     const [filterType, setFilterType] = useState<string>('all');
-    const [filterStatus, setFilterStatus] = useState<DocStatusFilter>('all');
-    const [incompleteFilterActive, setIncompleteFilterActive] = useState(false);
     const [expandedYears, setExpandedYears] = useState<Set<number>>(new Set());
     const [openMenuKey, setOpenMenuKey] = useState<string | null>(null);
 
@@ -48,32 +40,15 @@ export const ArchivesPage = () => {
         isOpen: boolean; blNo: string; type: TransactionType; docs: ArchiveDocument[];
     }>({ isOpen: false, blNo: '', type: 'import', docs: [] });
 
-    const [confirmModal, setConfirmModal] = useState<{
-        isOpen: boolean; title: string; message: string;
-        confirmText?: string; confirmButtonClass?: string; onConfirm: () => void;
-    }>({ isOpen: false, title: '', message: '', onConfirm: () => { } });
-
     const toggleYear = (year: number) =>
         setExpandedYears(prev => {
             const next = new Set(prev);
-            if (next.has(year)) {
-                next.delete(year);
-            } else {
-                next.add(year);
-            }
+            if (next.has(year)) next.delete(year);
+            else next.add(year);
             return next;
         });
 
-    const openConfirm = (title: string, message: string, onConfirm: () => void) =>
-        setConfirmModal({ isOpen: true, title, message, confirmText: 'Delete', confirmButtonClass: 'bg-red-600 hover:bg-red-700', onConfirm });
-
-    const handleDeleteArchiveDoc = (docId: number) =>
-        openConfirm('Delete Archive Document', 'This will permanently remove this legacy document. Continue?', async () => {
-            await trackingApi.deleteDocument(docId);
-            queryClient.invalidateQueries({ queryKey: ['archives'] });
-        });
-
-    const nav = (next: DrillState) => { setDrill(next); setSearch(''); setGlobalSearch(''); setIncompleteFilterActive(false); };
+    const nav = (next: DrillState) => { setDrill(next); setSearch(''); setGlobalSearch(''); };
 
     const globalResults = useMemo(() => {
         const q = globalSearch.trim().toLowerCase();
@@ -105,14 +80,9 @@ export const ArchivesPage = () => {
             if (q && !r.blNo.toLowerCase().includes(q) && !r.client.toLowerCase().includes(q)) return false;
             if (filterYear !== 'all' && String(r.year) !== filterYear) return false;
             if (filterType !== 'all' && r.type !== filterType) return false;
-            const required = r.type === 'import' ? IMPORT_STAGES : EXPORT_STAGES;
-            const isComplete = required.every(s => r.stages.has(s.key));
-            if (filterStatus === 'complete' && !isComplete) return false;
-            if (filterStatus === 'incomplete' && isComplete) return false;
-            if (incompleteFilterActive && isComplete) return false;
             return true;
         });
-    }, [archiveData, globalSearch, filterYear, filterType, filterStatus, incompleteFilterActive]);
+    }, [archiveData, globalSearch, filterYear, filterType]);
 
     if (showLegacyUpload) {
         const currentYear = drill.level !== 'years' ? drill.year.year : new Date().getFullYear() - 1;
@@ -122,7 +92,7 @@ export const ArchivesPage = () => {
                     <ArchiveLegacyUploadPage
                         defaultYear={currentYear}
                         onBack={() => setShowLegacyUpload(false)}
-                        onSubmit={() => { setShowLegacyUpload(false); queryClient.invalidateQueries({ queryKey: ['archives'] }); }}
+                        onSubmit={() => { setShowLegacyUpload(false); queryClient.invalidateQueries({ queryKey: ['my-archives'] }); }}
                     />
                 </div>
             </div>
@@ -132,21 +102,27 @@ export const ArchivesPage = () => {
     if (isLoading) return (
         <div className="flex flex-col items-center justify-center py-32 gap-4">
             <div className="w-8 h-8 border-2 border-blue-400/25 border-t-blue-500 rounded-full animate-spin" />
-            <p className="text-sm text-text-muted font-medium">Loading archives…</p>
+            <p className="text-sm text-text-muted font-medium">Loading your archive…</p>
         </div>
     );
 
     if (isError) return (
-        <EmptyState icon="alert-circle" title="Failed to load archives" subtitle="Check your connection and try again." />
+        <EmptyState icon="alert-circle" title="Failed to load your archive" subtitle="Check your connection and try again." />
     );
 
-    const globalPct = computeGlobalCompleteness(archiveData);
-    const incompleteBLs = countIncompleteBLs(archiveData);
-    const totalBLs = new Set(archiveData.flatMap(y => y.documents.map(d => `${d.bl_no}|${d.type}|${y.year}`))).size;
-    const completedBLs = totalBLs - incompleteBLs;
-    const totalImports = archiveData.reduce((s, y) => s + y.imports, 0);
-    const totalExports = archiveData.reduce((s, y) => s + y.exports, 0);
-    const totalDocs = archiveData.reduce((s, y) => s + y.documents.length, 0);
+    // ── Encoder-specific stats ───────────────────────────────────────────────────
+    const totalMyUploads = archiveData.reduce((s, y) => s + y.documents.length, 0);
+    const uniqueBLs = new Set(archiveData.flatMap(y => y.documents.map(d => `${d.bl_no}|${d.type}|${y.year}`))).size;
+
+    const now = new Date();
+    const thisMonthUploads = archiveData.reduce((s, y) =>
+        s + y.documents.filter(d => {
+            try {
+                const dt = new Date(d.uploaded_at);
+                return dt.getMonth() === now.getMonth() && dt.getFullYear() === now.getFullYear();
+            } catch { return false; }
+        }).length, 0);
+
     const totalStorageBytes = archiveData.reduce(
         (s, y) => s + y.documents.reduce((ds, d) => ds + (d.size_bytes ?? 0), 0), 0
     );
@@ -158,14 +134,12 @@ export const ArchivesPage = () => {
     };
     const availableYears = archiveData.map(y => y.year);
 
-    // navToYear: go back to the year accordion AND auto-expand that year so
-    // the sub-folders are immediately visible (avoids the empty 'types'/'months' states).
     const navToYear = (yr: ArchiveYear) => {
         nav({ level: 'years' });
         setExpandedYears(prev => new Set([...prev, yr.year]));
     };
 
-    const baseCrumb = { label: 'Archives', onClick: drill.level !== 'years' ? () => nav({ level: 'years' }) : undefined };
+    const baseCrumb = { label: 'My Archive', onClick: drill.level !== 'years' ? () => nav({ level: 'years' }) : undefined };
     const breadcrumbParts = (() => {
         if (drill.level === 'years') return [baseCrumb];
         if (drill.level === 'types') return [baseCrumb, { label: String(drill.year.year) }];
@@ -180,8 +154,8 @@ export const ArchivesPage = () => {
             {/* Page header */}
             <div className="flex items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-4xl font-bold tracking-tight text-text-primary">Archive Dashboard</h1>
-                    <p className="text-base text-text-muted mt-1">Historical import &amp; export document storage</p>
+                    <h1 className="text-4xl font-bold tracking-tight text-text-primary">My Archive</h1>
+                    <p className="text-base text-text-muted mt-1">Your uploaded document history</p>
                 </div>
                 <div className="text-right shrink-0">
                     <p className="text-2xl font-bold tabular-nums text-text-primary">{dateTime.time}</p>
@@ -189,42 +163,39 @@ export const ArchivesPage = () => {
                 </div>
             </div>
 
-            {/* Stats cards row */}
+            {/* Stats cards row — encoder-specific */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
-                {/* Archive Completeness */}
-                <div className="bg-surface rounded-xl border border-border shadow-sm p-6 flex items-center gap-6">
-                    <CircularProgress pct={globalPct} />
-                    <div className="min-w-0">
-                        <p className="text-xs font-bold text-text-muted uppercase tracking-wider">Completeness</p>
-                        <p className="text-sm text-text-muted mt-1">{totalBLs.toLocaleString()} total BLs</p>
-                    </div>
-                </div>
-                {/* Fully Documented */}
+                {/* My Uploads */}
                 <div className="bg-surface rounded-xl border border-border shadow-sm p-6">
-                    <p className="text-xs font-bold text-text-muted uppercase tracking-wider">Fully Documented</p>
-                    <p className="text-4xl font-black text-emerald-500 tabular-nums mt-2">{completedBLs.toLocaleString()}</p>
-                    <p className="text-sm text-emerald-500 mt-1">Compliant records</p>
+                    <p className="text-xs font-bold text-text-muted uppercase tracking-wider">My Uploads</p>
+                    <p className="text-4xl font-black text-teal-500 tabular-nums mt-2">{totalMyUploads.toLocaleString()}</p>
+                    <p className="text-sm text-teal-400 mt-1">Total files uploaded</p>
                 </div>
-                {/* Missing Documents */}
+                {/* BL Records */}
                 <div className="bg-surface rounded-xl border border-border shadow-sm p-6">
-                    <p className="text-xs font-bold text-text-muted uppercase tracking-wider">Missing Documents</p>
-                    <p className="text-4xl font-black text-red-500 tabular-nums mt-2">{incompleteBLs.toLocaleString()}</p>
-                    <p className="text-sm text-red-400 mt-1">Incomplete records</p>
+                    <p className="text-xs font-bold text-text-muted uppercase tracking-wider">BL Records</p>
+                    <p className="text-4xl font-black text-blue-500 tabular-nums mt-2">{uniqueBLs.toLocaleString()}</p>
+                    <p className="text-sm text-blue-400 mt-1">Across all transactions</p>
                 </div>
-                {/* Storage + I/E Split */}
+                {/* This Month */}
+                <div className="bg-surface rounded-xl border border-border shadow-sm p-6">
+                    <p className="text-xs font-bold text-text-muted uppercase tracking-wider">This Month</p>
+                    <p className="text-4xl font-black text-orange-500 tabular-nums mt-2">{thisMonthUploads.toLocaleString()}</p>
+                    <p className="text-sm text-orange-400 mt-1">Files uploaded this month</p>
+                </div>
+                {/* Storage Used */}
                 <div className="bg-surface rounded-xl border border-border shadow-sm p-6">
                     <p className="text-xs font-bold text-text-muted uppercase tracking-wider">Storage Used</p>
                     <p className="text-4xl font-black text-text-primary tabular-nums mt-2">{formatBytes(totalStorageBytes)}</p>
                     <div className="flex items-center gap-3 mt-2">
-                        <span className="text-sm font-bold text-blue-500 tabular-nums">{totalImports} <span className="text-blue-400 font-normal">imp</span></span>
+                        <span className="text-sm font-bold text-blue-500 tabular-nums">{archiveData.reduce((s, y) => s + y.imports, 0)} <span className="text-blue-400 font-normal">imp</span></span>
                         <span className="text-text-muted text-sm">/</span>
-                        <span className="text-sm font-bold text-indigo-500 tabular-nums">{totalExports} <span className="text-indigo-400 font-normal">exp</span></span>
-                        <span className="text-sm text-text-muted ml-auto">{totalDocs} files</span>
+                        <span className="text-sm font-bold text-indigo-500 tabular-nums">{archiveData.reduce((s, y) => s + y.exports, 0)} <span className="text-indigo-400 font-normal">exp</span></span>
                     </div>
                 </div>
             </div>
 
-            {/* Filter row + action buttons (compact) */}
+            {/* Filter row — simplified for encoder (no document status/incomplete filter) */}
             <div className="bg-surface rounded-xl border border-border shadow-sm p-4 text-xs">
                 <div className="flex flex-wrap gap-x-6 gap-y-4 items-center">
                     {/* Year */}
@@ -262,33 +233,8 @@ export const ArchivesPage = () => {
                         </div>
                     </div>
 
-                    {/* Document Status */}
-                    <div>
-                        <p className="text-xs font-bold text-text-muted uppercase tracking-widest mb-2">Document Status</p>
-                        <div className="flex items-center gap-2">
-                            {([{ value: 'all', label: 'All' }, { value: 'complete', label: 'Complete' }, { value: 'incomplete', label: 'Incomplete' }] as const).map(({ value, label }) => (
-                                <button key={value}
-                                    onClick={() => { setFilterStatus(value); setIncompleteFilterActive(false); }}
-                                    className={`px-4 py-2 rounded-lg text-sm font-semibold border transition-all ${filterStatus === value
-                                        ? 'bg-orange-500/10 border-orange-500/40 text-orange-500'
-                                        : 'bg-surface-secondary border-border text-text-secondary hover:bg-hover'
-                                        }`}>
-                                    {label}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Action buttons — pushed to the right */}
+                    {/* Upload button only — no CSV export for encoders */}
                     <div className="flex items-center gap-2 ml-auto">
-                        <button onClick={() => exportArchiveCSV(archiveData)}
-                            title="Export all BL records as CSV"
-                            className="flex items-center gap-1.5 px-3.5 h-9 rounded-md text-xs font-bold text-white shrink-0 shadow-sm hover:opacity-90 bg-gradient-to-r from-blue-600 to-indigo-600">
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            Export CSV
-                        </button>
                         <button onClick={() => setShowLegacyUpload(true)}
                             className="flex items-center gap-1.5 px-3.5 h-9 rounded-md text-xs font-bold text-white shrink-0 shadow-sm hover:opacity-90 bg-gradient-to-r from-blue-600 to-indigo-600">
                             <Icon name="plus" className="w-3.5 h-3.5" />
@@ -300,12 +246,10 @@ export const ArchivesPage = () => {
 
             {/* Browser card */}
             <div className="mt-8">
-
                 <div className="rounded-xl border border-border overflow-hidden bg-surface shadow-sm">
 
                     {/* Toolbar: breadcrumb + search + sort + view toggle */}
                     <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-surface-subtle">
-                        {/* Breadcrumb — only shown when drilled or in document view */}
                         {(viewMode === 'document' || drill.level !== 'years') && (
                             <div className="flex items-center gap-2 shrink-0 pr-1 border-r border-border mr-1">
                                 {viewMode === 'document' ? (
@@ -313,7 +257,7 @@ export const ArchivesPage = () => {
                                         <svg className="w-4 h-4 text-text-muted shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                         </svg>
-                                        <span className="text-xs font-semibold text-text-primary whitespace-nowrap">All BL Records</span>
+                                        <span className="text-xs font-semibold text-text-primary whitespace-nowrap">My BL Records</span>
                                         <span className="text-xs text-text-muted">· {flatDocumentList.length}</span>
                                     </>
                                 ) : (
@@ -335,7 +279,7 @@ export const ArchivesPage = () => {
                             <input type="text" value={globalSearch}
                                 onChange={e => setGlobalSearch(e.target.value)}
                                 onKeyDown={e => e.key === 'Escape' && setGlobalSearch('')}
-                                placeholder="Search BL No., Importer, Exporter, Year…"
+                                placeholder="Search BL No., Client…"
                                 className="w-full pl-9 pr-9 h-9 rounded-md border border-border-strong bg-input-bg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/60 transition-all" />
                             {globalSearch && (
                                 <button onClick={() => setGlobalSearch('')}
@@ -360,100 +304,91 @@ export const ArchivesPage = () => {
                                 <option value="files:asc">Fewest Files</option>
                             </select>
                         )}
-                        {/* View toggle */}
-                        <ViewToggle mode={viewMode} onChange={m => { setViewMode(m); if (m === 'folder') { setFilterStatus('all'); setIncompleteFilterActive(false); } }} />
+                        <ViewToggle mode={viewMode} onChange={m => { setViewMode(m); }} />
                     </div>
 
-                {/* Flat document view */}
-                {viewMode === 'document' && (
-                    <ArchivesDocumentView
-                        flatDocumentList={flatDocumentList}
-                        nav={nav}
-                        setViewMode={setViewMode}
-                    />
-                )}
+                    {/* Flat document view */}
+                    {viewMode === 'document' && (
+                        <ArchivesDocumentView
+                            flatDocumentList={flatDocumentList}
+                            nav={nav}
+                            setViewMode={setViewMode}
+                        />
+                    )}
 
-                {/* Global search results */}
-                {viewMode === 'folder' && globalSearch.trim() && (
-                    <GlobalSearchResults
-                        globalSearch={globalSearch}
-                        globalResults={globalResults}
-                        nav={nav}
-                        setGlobalSearch={setGlobalSearch}
-                    />
-                )}
+                    {/* Global search results */}
+                    {viewMode === 'folder' && globalSearch.trim() && (
+                        <GlobalSearchResults
+                            globalSearch={globalSearch}
+                            globalResults={globalResults}
+                            nav={nav}
+                            setGlobalSearch={setGlobalSearch}
+                        />
+                    )}
 
-                {/* Year accordion (folder view) */}
-                {viewMode === 'folder' && !globalSearch.trim() && drill.level === 'years' && (
-                    <ArchivesFolderView
-                        archiveData={archiveData}
-                        filterYear={filterYear}
-                        filterType={filterType}
-                        filterStatus={filterStatus}
-                        expandedYears={expandedYears}
-                        toggleYear={toggleYear}
-                        nav={nav}
-                        openMenuKey={openMenuKey}
-                        setOpenMenuKey={setOpenMenuKey}
-                        onOpenUpload={() => setShowLegacyUpload(true)}
-                    />
-                )}
+                    {/* Year accordion (folder view) */}
+                    {viewMode === 'folder' && !globalSearch.trim() && drill.level === 'years' && (
+                        <ArchivesFolderView
+                            archiveData={archiveData}
+                            filterYear={filterYear}
+                            filterType={filterType}
+                            filterStatus="all"
+                            expandedYears={expandedYears}
+                            toggleYear={toggleYear}
+                            nav={nav}
+                            openMenuKey={openMenuKey}
+                            setOpenMenuKey={setOpenMenuKey}
+                            onOpenUpload={() => setShowLegacyUpload(true)}
+                            showAuditButton={false}
+                        />
+                    )}
 
-                {/* BL folder view (drill level: bls) */}
-                {viewMode === 'folder' && !globalSearch.trim() && drill.level === 'bls' && (
-                    <ArchivesBLView
-                        drill={drill as Extract<DrillState, { level: 'bls' }>}
-                        search={search}
-                        sortKey={sortKey}
-                        sortDir={sortDir}
-                        nav={nav}
-                    />
-                )}
+                    {/* BL folder view (drill level: bls) */}
+                    {viewMode === 'folder' && !globalSearch.trim() && drill.level === 'bls' && (
+                        <ArchivesBLView
+                            drill={drill as Extract<DrillState, { level: 'bls' }>}
+                            search={search}
+                            sortKey={sortKey}
+                            sortDir={sortDir}
+                            nav={nav}
+                        />
+                    )}
 
-                {/* File view (drill level: files) */}
-                {drill.level === 'files' && (() => {
-                    const d = drill as Extract<DrillState, { level: 'files' }>;
-                    const fileDocs = d.year.documents
-                        .filter((doc: ArchiveDocument) => doc.type === d.type && doc.month === d.month && (doc.bl_no || '(no BL)') === d.bl);
-                    if (fileDocs.length === 0) return <EmptyState icon="file-text" title="No files in this folder" />;
-                    return (
-                        <div>
-                            <div className="grid items-center gap-4 px-4 py-2.5 border-b border-border bg-surface sticky top-0 z-10"
-                                style={{ gridTemplateColumns: '32px 1fr 1.4fr 80px 32px 56px' }}>
-                                <span />
-                                <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest">File</span>
-                                <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest text-center">Stage</span>
-                                <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest text-center">Uploaded</span>
-                                <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest text-center">By</span>
-                                <span />
+                    {/* File view (drill level: files) — no delete for encoder */}
+                    {drill.level === 'files' && (() => {
+                        const d = drill as Extract<DrillState, { level: 'files' }>;
+                        const fileDocs = d.year.documents
+                            .filter((doc: ArchiveDocument) => doc.type === d.type && doc.month === d.month && (doc.bl_no || '(no BL)') === d.bl);
+                        if (fileDocs.length === 0) return <EmptyState icon="file-text" title="No files in this folder" />;
+                        return (
+                            <div>
+                                <div className="grid items-center gap-4 px-4 py-2.5 border-b border-border bg-surface sticky top-0 z-10"
+                                    style={{ gridTemplateColumns: '32px 1fr 1.4fr 80px 32px 56px' }}>
+                                    <span />
+                                    <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest">File</span>
+                                    <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest text-center">Stage</span>
+                                    <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest text-center">Uploaded</span>
+                                    <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest text-center">By</span>
+                                    <span />
+                                </div>
+                                {fileDocs.map((doc: ArchiveDocument) => (
+                                    <ArchiveDocumentRow key={doc.id} doc={doc} canDelete={false} />
+                                ))}
+                                <button
+                                    onClick={() => setAddDocModal({ isOpen: true, blNo: d.bl, type: d.type, docs: fileDocs })}
+                                    className="w-full flex items-center justify-center gap-2.5 px-4 py-4 border-t-2 border-dashed border-border text-sm font-bold text-text-muted hover:text-blue-500 hover:border-blue-400/50 hover:bg-blue-500/5 transition-all group">
+                                    <svg className="w-4 h-4 group-hover:text-blue-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    Add document to this BL
+                                </button>
                             </div>
-                            {fileDocs.map((doc: ArchiveDocument) => (
-                                <ArchiveDocumentRow key={doc.id} doc={doc} onDelete={handleDeleteArchiveDoc} />
-                            ))}
-                            <button
-                                onClick={() => setAddDocModal({ isOpen: true, blNo: d.bl, type: d.type, docs: fileDocs })}
-                                className="w-full flex items-center justify-center gap-2.5 px-4 py-4 border-t-2 border-dashed border-border text-sm font-bold text-text-muted hover:text-blue-500 hover:border-blue-400/50 hover:bg-blue-500/5 transition-all group">
-                                <svg className="w-4 h-4 group-hover:text-blue-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-                                </svg>
-                                Add document to this BL
-                            </button>
-                        </div>
-                    );
-                })()}
-                </div>{/* end browser card (rounded-xl) */}
-            </div>{/* end relative wrapper (mt-8) */}
+                        );
+                    })()}
+                </div>{/* end browser card */}
+            </div>{/* end wrapper */}
 
             {/* Modals */}
-            <ConfirmationModal
-                isOpen={confirmModal.isOpen}
-                onClose={() => setConfirmModal(m => ({ ...m, isOpen: false }))}
-                onConfirm={confirmModal.onConfirm}
-                title={confirmModal.title}
-                message={confirmModal.message}
-                confirmText={confirmModal.confirmText}
-                confirmButtonClass={confirmModal.confirmButtonClass}
-            />
             <AddArchiveDocumentModal
                 isOpen={addDocModal.isOpen}
                 onClose={() => setAddDocModal(m => ({ ...m, isOpen: false }))}

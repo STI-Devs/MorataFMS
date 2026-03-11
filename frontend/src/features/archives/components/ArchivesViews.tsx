@@ -112,7 +112,6 @@ interface BLFolderRowProps {
     blDocs: import('../../documents/types/document.types').ArchiveDocument[];
     drill: Extract<DrillState, { level: 'bls' }>;
     nav: (next: DrillState) => void;
-    onAddDoc: (blNo: string, type: TransactionType, docs: import('../../documents/types/document.types').ArchiveDocument[]) => void;
     COL: string;
     color: string;
 }
@@ -126,7 +125,7 @@ const formatPeriod = (dateStr: string) => {
     return (day === 1 || day === lastDayOfMonth) ? `${month} ${year}` : `${month} ${day}, ${year}`;
 };
 
-export const BLFolderRow = ({ blNo, blDocs, drill, nav, onAddDoc, COL, color }: BLFolderRowProps) => {
+export const BLFolderRow = ({ blNo, blDocs, drill, nav, COL, color }: BLFolderRowProps) => {
     const firstDoc = blDocs[0];
     const uploadedKeys = new Set(blDocs.map(d => d.stage));
     const isImport = drill.type === 'import';
@@ -165,14 +164,6 @@ export const BLFolderRow = ({ blNo, blDocs, drill, nav, onAddDoc, COL, color }: 
                 {done}/{stageList.length}
             </span>
             <button
-                onClick={e => { e.stopPropagation(); onAddDoc(blNo, drill.type, blDocs); }}
-                title="Add document"
-                className="w-7 h-7 rounded-lg flex items-center justify-center border border-border text-text-muted hover:bg-hover hover:text-text-primary hover:border-border-strong transition-all">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-            </button>
-            <button
                 onClick={() => nav({ level: 'files', year: drill.year, type: drill.type, month: drill.month, bl: blNo })}
                 title="Open folder"
                 className="opacity-0 group-hover:opacity-100 transition-opacity">
@@ -190,10 +181,9 @@ interface ArchivesBLViewProps {
     sortKey: SortKey;
     sortDir: 'asc' | 'desc';
     nav: (next: DrillState) => void;
-    onAddDoc: (blNo: string, type: TransactionType, docs: import('../../documents/types/document.types').ArchiveDocument[]) => void;
 }
 
-export const ArchivesBLView = ({ drill, search, sortKey, sortDir, nav, onAddDoc }: ArchivesBLViewProps) => {
+export const ArchivesBLView = ({ drill, search, sortKey, sortDir, nav }: ArchivesBLViewProps) => {
     const typeDocs = drill.year.documents.filter((d: ArchiveDocument) => d.type === drill.type && d.month === drill.month);
     const blGroups = typeDocs.reduce<Record<string, ArchiveDocument[]>>((acc: Record<string, ArchiveDocument[]>, d: ArchiveDocument) => {
         const key = d.bl_no || '(no BL)';
@@ -219,7 +209,7 @@ export const ArchivesBLView = ({ drill, search, sortKey, sortDir, nav, onAddDoc 
 
     const color = drill.type === 'import' ? '#16a34a' : '#2563eb';
     const isImport = drill.type === 'import';
-    const COL = isImport ? '20px 1fr 1fr 80px 80px 100px 32px 20px' : '20px 1fr 1fr 1fr 100px 100px 32px 20px';
+    const COL = isImport ? '20px 1fr 1fr 80px 80px 100px 20px' : '20px 1fr 1fr 1fr 100px 100px 20px';
 
     return (
         <div>
@@ -238,7 +228,7 @@ export const ArchivesBLView = ({ drill, search, sortKey, sortDir, nav, onAddDoc 
                 </div>
             ) : filteredBlEntries.map(([blNo, blDocs]) => (
                 <BLFolderRow key={blNo} blNo={blNo} blDocs={blDocs}
-                    drill={drill} nav={nav} onAddDoc={onAddDoc} COL={COL} color={color} />
+                    drill={drill} nav={nav} COL={COL} color={color} />
             ))}
         </div>
     );

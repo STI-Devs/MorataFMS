@@ -1,4 +1,4 @@
-﻿import api from '../../../lib/axios';
+import api from '../../../lib/axios';
 import type {
     ApiClient,
     ApiCountry,
@@ -111,6 +111,11 @@ export const trackingApi = {
     // --- Dedicated Archive Endpoints (strict: file_date must be past or today) ---
     getArchives: async (): Promise<import('../../documents/types/document.types').ArchiveYear[]> => {
         const response = await api.get('/api/archives');
+        return response.data.data;
+    },
+
+    getMyArchives: async (): Promise<import('../../documents/types/document.types').ArchiveYear[]> => {
+        const response = await api.get('/api/archives', { params: { mine: 1 } });
         return response.data.data;
     },
 
