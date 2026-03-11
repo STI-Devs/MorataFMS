@@ -1,4 +1,20 @@
-﻿export interface OversightTransaction {
+﻿export interface ImportStages {
+    boc: string;
+    ppa: string;
+    do: string;
+    port_charges: string;
+    releasing: string;
+    billing: string;
+}
+
+export interface ExportStages {
+    docs_prep: string;
+    co: string;
+    cil: string;
+    bl: string;
+}
+
+export interface OversightTransaction {
     id: number;
     type: 'import' | 'export';
     reference_no: string | null;
@@ -12,7 +28,9 @@
     selective_color?: string | null;
     assigned_to: string | null;
     assigned_user_id: number | null;
+    open_remarks_count: number;
     created_at: string;
+    stages: ImportStages | ExportStages | null;
 }
 
 export interface OversightListResponse {

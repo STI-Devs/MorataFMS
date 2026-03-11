@@ -96,6 +96,8 @@ class Document extends Model
             'bl_generation' => 'Bill of Lading Generation',
             'co' => 'CO Application and Releasing',
             'dccci' => 'DCCCI Printing',
+            // Shared — catch-all for additional documents
+            'others' => 'Other Documents',
         ];
     }
 }

@@ -1,4 +1,4 @@
-﻿import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { Icon } from '../../../components/Icon';
@@ -6,7 +6,9 @@ import type { LayoutContext } from '../../tracking/types';
 import { useAllTransactions } from '../hooks/useTransactions';
 import type { OversightTransaction } from '../types/transaction.types';
 import { ReassignModal } from './ReassignModal';
+import { RemarkModal } from './RemarkModal';
 import { StatusOverrideModal } from './StatusOverrideModal';
+import { TransactionDetailDrawer } from './TransactionDetailDrawer';
 
 
 type TypeFilter = 'all' | 'import' | 'export';
@@ -35,6 +37,8 @@ export const TransactionOversight = () => {
     const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
     const [reassignTarget, setReassignTarget] = useState<OversightTransaction | null>(null);
     const [statusTarget, setStatusTarget] = useState<OversightTransaction | null>(null);
+    const [remarkTarget, setRemarkTarget] = useState<OversightTransaction | null>(null);
+    const [detailTarget, setDetailTarget] = useState<OversightTransaction | null>(null);
 
     const { data, isLoading, isError, refetch } = useAllTransactions();
 
@@ -171,7 +175,7 @@ export const TransactionOversight = () => {
                         <table className="w-full">
                             <thead>
                                 <tr className="border-b border-border">
-                                    {['Type', 'Ref No / BL', 'Client', 'Status', 'Encoder', 'Created', 'Actions'].map((h) => (
+                                    {['Type', 'Ref No / BL', 'Client', 'Status', 'Encoder', 'Created', 'Remarks', 'Actions'].map((h) => (
                                         <th key={h} className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-muted">
                                             {h}
                                         </th>
@@ -182,10 +186,13 @@ export const TransactionOversight = () => {
                                 {filteredTransactions.map((t, idx) => {
                                     const sc = STATUS_CFG[t.status] ?? STATUS_CFG.pending;
                                     const tc = TYPE_CFG[t.type] ?? TYPE_CFG.import;
+                                    const rowKey = `${t.type}-${t.id}`;
                                     return (
+                                        <>
                                         <tr
-                                            key={`${t.type}-${t.id}`}
-                                            className={`border-b border-border transition-colors hover:bg-hover ${idx % 2 !== 0 ? 'bg-surface-secondary/40' : ''}`}
+                                            key={rowKey}
+                                            onClick={() => setDetailTarget(t)}
+                                            className={`border-b border-border transition-colors hover:bg-hover cursor-pointer ${idx % 2 !== 0 ? 'bg-surface-secondary/40' : ''}`}
                                         >
                                             {/* Type */}
                                             <td className="px-5 py-3.5">
@@ -219,26 +226,51 @@ export const TransactionOversight = () => {
                                             <td className="px-5 py-3.5 text-sm text-text-secondary">
                                                 {t.date ? new Date(t.date).toLocaleDateString() : '—'}
                                             </td>
+                                            {/* Remarks badge */}
+                                            <td className="px-5 py-3.5">
+                                                {t.open_remarks_count > 0 ? (
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); setRemarkTarget(t); }}
+                                                        className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-bold transition-colors"
+                                                        style={{ color: '#ff453a', backgroundColor: 'rgba(255,69,58,0.12)' }}
+                                                    >
+                                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                                        </svg>
+                                                        {t.open_remarks_count}
+                                                    </button>
+                                                ) : (
+                                                    <span className="text-text-muted text-xs">—</span>
+                                                )}
+                                            </td>
                                             {/* Actions */}
                                             <td className="px-5 py-3.5">
                                                 <div className="flex gap-1.5">
                                                     <button
-                                                        onClick={() => setReassignTarget(t)}
+                                                        onClick={(e) => { e.stopPropagation(); setReassignTarget(t); }}
                                                         className="p-1.5 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-md transition-colors"
                                                         title="Reassign Encoder"
                                                     >
                                                         <Icon name="user" className="w-4 h-4" />
                                                     </button>
                                                     <button
-                                                        onClick={() => setStatusTarget(t)}
+                                                        onClick={(e) => { e.stopPropagation(); setStatusTarget(t); }}
                                                         className="p-1.5 text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/30 rounded-md transition-colors"
                                                         title="Override Status"
                                                     >
                                                         <Icon name="alert-circle" className="w-4 h-4" />
                                                     </button>
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); setRemarkTarget(t); }}
+                                                        className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md transition-colors"
+                                                        title="Flag / Remarks"
+                                                    >
+                                                        <Icon name="flag" className="w-4 h-4" />
+                                                    </button>
                                                 </div>
                                             </td>
                                         </tr>
+                                        </>
                                     );
                                 })}
                             </tbody>
@@ -262,6 +294,20 @@ export const TransactionOversight = () => {
                 onClose={() => setStatusTarget(null)}
                 transaction={statusTarget}
                 onSuccess={handleStatusSuccess}
+            />
+
+            <RemarkModal
+                isOpen={!!remarkTarget}
+                onClose={() => setRemarkTarget(null)}
+                transactionType={remarkTarget?.type ?? 'import'}
+                transactionId={remarkTarget?.id ?? null}
+                transactionLabel={`${remarkTarget?.type === 'import' ? 'Import' : 'Export'} — ${remarkTarget?.bl_no || remarkTarget?.reference_no || `#${remarkTarget?.id}`}`}
+            />
+
+            {/* Transaction Detail Drawer */}
+            <TransactionDetailDrawer
+                transaction={detailTarget}
+                onClose={() => setDetailTarget(null)}
             />
         </div>
     );

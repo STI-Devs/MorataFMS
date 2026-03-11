@@ -7,6 +7,7 @@ use App\Http\Requests\OverrideStatusRequest;
 use App\Models\AuditLog;
 use App\Models\ExportTransaction;
 use App\Models\ImportTransaction;
+use App\Models\TransactionRemark;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -30,7 +31,8 @@ class TransactionController extends Controller
         $type = $request->query('type');
 
         // Imports
-        $importQuery = ImportTransaction::with(['importer:id,name', 'assignedUser:id,name'])
+        $importQuery = ImportTransaction::with(['importer:id,name', 'assignedUser:id,name', 'stages'])
+            ->withCount(['remarks as open_remarks_count' => fn($q) => $q->where('is_resolved', false)])
             ->where('is_archive', false);
 
         if ($search) {
@@ -46,7 +48,8 @@ class TransactionController extends Controller
         }
 
         // Exports
-        $exportQuery = ExportTransaction::with(['shipper:id,name', 'assignedUser:id,name', 'destinationCountry:id,name'])
+        $exportQuery = ExportTransaction::with(['shipper:id,name', 'assignedUser:id,name', 'destinationCountry:id,name', 'stages'])
+            ->withCount(['remarks as open_remarks_count' => fn($q) => $q->where('is_resolved', false)])
             ->where('is_archive', false);
 
         if ($search) {
@@ -82,7 +85,16 @@ class TransactionController extends Controller
                 'selective_color' => $t->selective_color,
                 'assigned_to' => $t->assignedUser?->name,
                 'assigned_user_id' => $t->assigned_user_id,
+                'open_remarks_count' => $t->open_remarks_count ?? 0,
                 'created_at' => $t->created_at?->toISOString(),
+                'stages' => $t->stages ? [
+                    'boc' => $t->stages->boc_status,
+                    'ppa' => $t->stages->ppa_status,
+                    'do' => $t->stages->do_status,
+                    'port_charges' => $t->stages->port_charges_status,
+                    'releasing' => $t->stages->releasing_status,
+                    'billing' => $t->stages->billing_status,
+                ] : null,
             ]);
         }
 
@@ -101,7 +113,14 @@ class TransactionController extends Controller
                 'selective_color' => null,
                 'assigned_to' => $t->assignedUser?->name,
                 'assigned_user_id' => $t->assigned_user_id,
+                'open_remarks_count' => $t->open_remarks_count ?? 0,
                 'created_at' => $t->created_at?->toISOString(),
+                'stages' => $t->stages ? [
+                    'docs_prep' => $t->stages->docs_prep_status,
+                    'co' => $t->stages->co_status,
+                    'cil' => $t->stages->cil_status,
+                    'bl' => $t->stages->bl_status,
+                ] : null,
             ]);
         }
 

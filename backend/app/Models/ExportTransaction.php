@@ -55,6 +55,11 @@ class ExportTransaction extends Model
         return $this->morphMany(Document::class, 'documentable');
     }
 
+    public function remarks(): MorphMany
+    {
+        return $this->morphMany(TransactionRemark::class, 'remarkble');
+    }
+
     // Boot method to auto-create stages
     protected static function booted(): void
     {

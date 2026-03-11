@@ -11,6 +11,7 @@ use App\Http\Controllers\NotarialBookController;
 use App\Http\Controllers\NotarialEntryController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\TransactionController;
+use App\Http\Controllers\TransactionRemarkController;
 use App\Http\Controllers\UserController;
 use App\Http\Resources\UserResource;
 use Illuminate\Http\Request;
@@ -53,8 +54,8 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
     Route::get('export-transactions/stats', [ExportTransactionController::class, 'stats']);
     Route::patch('import-transactions/{import_transaction}/cancel', [ImportTransactionController::class, 'cancel']);
     Route::patch('export-transactions/{export_transaction}/cancel', [ExportTransactionController::class, 'cancel']);
-    Route::apiResource('import-transactions', ImportTransactionController::class)->only(['index', 'store', 'destroy']);
-    Route::apiResource('export-transactions', ExportTransactionController::class)->only(['index', 'store', 'destroy']);
+    Route::apiResource('import-transactions', ImportTransactionController::class)->only(['index', 'store', 'update', 'destroy']);
+    Route::apiResource('export-transactions', ExportTransactionController::class)->only(['index', 'store', 'update', 'destroy']);
 
     // Clients (read for all, write for admin)
     Route::get('/clients', [ClientController::class, 'index']);
@@ -107,5 +108,10 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
         Route::patch('transactions/export/{id}/reassign', [TransactionController::class, 'reassignExport']);
         Route::patch('transactions/import/{id}/status', [TransactionController::class, 'overrideImportStatus']);
         Route::patch('transactions/export/{id}/status', [TransactionController::class, 'overrideExportStatus']);
+
+        // Transaction remarks (admin creates; listing/resolving also works for encoders)
+        Route::get('transactions/{type}/{id}/remarks', [TransactionRemarkController::class, 'index']);
+        Route::post('transactions/{type}/{id}/remarks', [TransactionRemarkController::class, 'store']);
+        Route::patch('remarks/{remark}/resolve', [TransactionRemarkController::class, 'resolve']);
     });
 });

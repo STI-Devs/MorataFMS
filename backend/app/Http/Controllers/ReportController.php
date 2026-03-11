@@ -75,7 +75,7 @@ class ReportController extends Controller
 
         // Import counts per client
         $importQuery = ImportTransaction::where('is_archive', false)
-            ->whereYear('created_at', $year)
+            ->whereYear('import_transactions.created_at', $year)
             ->join('clients', 'import_transactions.importer_id', '=', 'clients.id')
             ->selectRaw('clients.id as client_id, clients.name as client_name, clients.type as client_type, COUNT(*) as imports');
 
@@ -89,7 +89,7 @@ class ReportController extends Controller
 
         // Export counts per client
         $exportQuery = ExportTransaction::where('is_archive', false)
-            ->whereYear('created_at', $year)
+            ->whereYear('export_transactions.created_at', $year)
             ->join('clients', 'export_transactions.shipper_id', '=', 'clients.id')
             ->selectRaw('clients.id as client_id, clients.name as client_name, clients.type as client_type, COUNT(*) as exports');
 

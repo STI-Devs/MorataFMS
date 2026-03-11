@@ -35,6 +35,7 @@ class ExportTransactionResource extends JsonResource
                 'bl' => $this->stages->bl_status,
             ]),
             'created_at' => $this->created_at?->toISOString(),
+            'open_remarks_count' => $this->open_remarks_count ?? 0,
         ];
     }
 }

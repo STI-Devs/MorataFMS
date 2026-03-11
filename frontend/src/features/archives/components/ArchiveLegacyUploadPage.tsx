@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Icon } from '../../../components/Icon';
 import { StageUploadRow } from '../../documents/components/StageUploadRow';
 import type {
@@ -92,7 +92,7 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
         setDateMode(mode);
     };
 
-    // Handle exact date change ΓÇö also keep monthYear in sync
+    // Handle exact date change — also keep monthYear in sync
     const handleExactDateChange = (val: string) => {
         set('fileDate', val);
         if (val) {
@@ -169,7 +169,7 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
         setError(null);
 
         try {
-            // 1. Resolve client ID ΓÇö create new client if using custom name
+            // 1. Resolve client ID — create new client if using custom name
             let clientId: number;
             if (useCustomClient) {
                 const clientType = isImport ? 'importer' : 'exporter';
@@ -183,7 +183,7 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
             }
 
             // 2. Create the transaction via the dedicated archive endpoint
-            // (backend enforces file_date must be past-or-today ΓÇö cannot be bypassed)
+            // (backend enforces file_date must be past-or-today — cannot be bypassed)
             let transactionId: number;
             let documentableType: DocumentableType;
 
@@ -194,7 +194,7 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
                 // User provided an exact date
                 fileDate = form.fileDate;
             } else {
-                // Month mode ΓÇö last day of month, clamped to today
+                // Month mode — last day of month, clamped to today
                 const lastDay = new Date(y, m, 0).getDate();
                 const today = new Date();
                 const isCurrentMonth = y === today.getFullYear() && m === today.getMonth() + 1;
@@ -279,7 +279,7 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
                 </div>
                 <div>
                     <h2 className="text-xl font-bold text-text-primary">Upload Legacy Document</h2>
-                    <p className="text-xs text-text-muted font-medium">Add files from the 2022ΓÇô2025 physical archive</p>
+                    <p className="text-xs text-text-muted font-medium">Add files from the 2022–2025 physical archive</p>
                 </div>
             </div>
 
@@ -388,7 +388,7 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
                             </div>
                         )}
 
-                        {/* Client ΓÇö Dropdown with checkbox fallback */}
+                        {/* Client — Dropdown with checkbox fallback */}
                         <div className="space-y-2">
                             <label className={labelClass}>{isImport ? 'Importer' : 'Shipper'} <span className="text-red-400">*</span></label>
                             {!useCustomClient && (
@@ -421,7 +421,7 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
                                     }}
                                     className="w-3.5 h-3.5 rounded accent-amber-500 cursor-pointer"
                                 />
-                                <span className="text-xs text-text-muted font-semibold">Not in list ΓÇö enter name manually</span>
+                                <span className="text-xs text-text-muted font-semibold">Not in list — enter name manually</span>
                             </label>
                             {useCustomClient && (
                                 <input

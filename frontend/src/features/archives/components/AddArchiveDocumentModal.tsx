@@ -1,4 +1,4 @@
-﻿import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import React, { useRef, useState } from 'react';
 import { Icon } from '../../../components/Icon';
 import type { ArchiveDocument, TransactionType } from '../../documents/types/document.types';
@@ -34,6 +34,11 @@ export const AddArchiveDocumentModal: React.FC<AddArchiveDocumentModalProps> = (
     const documentableType = firstDoc?.documentable_type as DocumentableType;
 
     const allStages = type === 'import' ? IMPORT_STAGES : EXPORT_STAGES;
+    // Count docs per stage — 'others' can have multiple, all others are 0 or 1
+    const stageDocCount = existingDocs.reduce<Record<string, number>>((acc, d) => {
+        acc[d.stage] = (acc[d.stage] ?? 0) + 1;
+        return acc;
+    }, {});
     const uploadedStageKeys = new Set(existingDocs.map(d => d.stage));
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -109,13 +114,17 @@ export const AddArchiveDocumentModal: React.FC<AddArchiveDocumentModalProps> = (
 
                         <div className="grid grid-cols-2 gap-2">
                             {allStages.map(stage => {
-                                const isFilled   = uploadedStageKeys.has(stage.key);
+                                const isOthers  = stage.key === 'others';
+                                const count     = stageDocCount[stage.key] ?? 0;
+                                // 'others' is never "filled" in the locked-out sense — it's always open
+                                const isFilled   = !isOthers && uploadedStageKeys.has(stage.key);
                                 const isSelected = selectedStage === stage.key;
 
-                                // Three visual states:
-                                // 1. Selected  ΓåÆ green border + green bg tint + bold text
-                                // 2. Filled    ΓåÆ fully dimmed, shows check, not a target
-                                // 3. Available ΓåÆ neutral card, invites click
+                                // Card visual states:
+                                // Selected  → green border + tint
+                                // Filled    → dimmed (regular stages only)
+                                // Others    → always full-opacity, always inviting
+                                // Available → neutral hover card
                                 let cardClass = 'relative px-3 pt-2.5 pb-2 rounded-xl border text-left transition-all ';
 
                                 if (isSelected) {
@@ -135,7 +144,25 @@ export const AddArchiveDocumentModal: React.FC<AddArchiveDocumentModalProps> = (
                                     >
                                         {/* Status badge */}
                                         <div className="flex items-center gap-1.5 mb-0.5">
-                                            {isFilled ? (
+                                            {isOthers ? (
+                                                // "Others" shows a count badge — always uploadable
+                                                <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
+                                                    count > 0
+                                                        ? 'bg-blue-500/15 text-blue-500'
+                                                        : 'bg-amber-400/10 text-amber-500'
+                                                }`}>
+                                                    {count > 0 ? (
+                                                        <>
+                                                            <svg className="w-2 h-2 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                            </svg>
+                                                            {count} file{count !== 1 ? 's' : ''}
+                                                        </>
+                                                    ) : (
+                                                        <><span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />Empty</>
+                                                    )}
+                                                </span>
+                                            ) : isFilled ? (
                                                 <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-green-500/15 text-[9px] font-black text-green-500 uppercase tracking-wider">
                                                     <svg className="w-2 h-2 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
@@ -148,7 +175,7 @@ export const AddArchiveDocumentModal: React.FC<AddArchiveDocumentModalProps> = (
                                                     Empty
                                                 </span>
                                             )}
-                                            {isSelected && !isFilled && (
+                                            {isSelected && (isOthers || !isFilled) && (
                                                 <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-green-500 text-[9px] font-black text-white uppercase tracking-wider">
                                                     Selected
                                                 </span>
@@ -156,7 +183,11 @@ export const AddArchiveDocumentModal: React.FC<AddArchiveDocumentModalProps> = (
                                         </div>
 
                                         {/* Stage name */}
-                                        <p className={`text-[12px] font-bold leading-snug ${isSelected ? 'text-text-primary' : isFilled ? 'text-text-muted' : 'text-text-primary'}`}>
+                                        <p className={`text-[12px] font-bold leading-snug ${
+                                            isSelected ? 'text-text-primary'
+                                            : isFilled  ? 'text-text-muted'
+                                            : 'text-text-primary'
+                                        }`}>
                                             {stage.label}
                                         </p>
                                     </button>
@@ -173,6 +204,10 @@ export const AddArchiveDocumentModal: React.FC<AddArchiveDocumentModalProps> = (
                             <span className="flex items-center gap-1 text-[10px] text-text-muted">
                                 <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
                                 Already has a document
+                            </span>
+                            <span className="flex items-center gap-1 text-[10px] text-text-muted">
+                                <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                                Others — unlimited uploads
                             </span>
                         </div>
                     </div>

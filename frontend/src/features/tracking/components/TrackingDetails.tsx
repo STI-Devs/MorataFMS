@@ -5,8 +5,9 @@ import { Icon } from '../../../components/Icon';
 import { FilePreviewModal } from '../../../components/modals/FilePreviewModal';
 import { UploadModal } from '../../../components/modals/UploadModal';
 import { trackingApi } from '../api/trackingApi';
-import type { ExportTransaction, ImportTransaction, LayoutContext } from '../types';
+import type { ApiExportTransaction, ApiImportTransaction, ExportTransaction, ImportTransaction, LayoutContext } from '../types';
 import { mapExportTransaction, mapImportTransaction } from '../utils/mappers';
+import EditTransactionModal from './EditTransactionModal';
 
 
 interface StageUpload {
@@ -47,9 +48,11 @@ export const TrackingDetails = () => {
     const { user } = useOutletContext<LayoutContext>();
 
     const [transaction, setTransaction] = useState<ImportTransaction | ExportTransaction | undefined>();
+    const [rawTransaction, setRawTransaction] = useState<ApiImportTransaction | ApiExportTransaction | undefined>();
     const [loading, setLoading] = useState(true);
 
-    // Upload state
+    // Upload & Edit state
+    const [isEditModalOpen,    setIsEditModalOpen]    = useState(false);
     const [isUploadOpen,       setIsUploadOpen]       = useState(false);
     const [selectedStageIndex, setSelectedStageIndex] = useState<number | null>(null);
     const [stageUploads,       setStageUploads]       = useState<Record<number, StageUpload>>({});
@@ -65,10 +68,12 @@ export const TrackingDetails = () => {
                 // Try imports first
                 const importsRes = await trackingApi.getImports({ search: referenceId });
                 if (importsRes.data.length > 0 && !cancelled) {
+                    setRawTransaction(importsRes.data[0]);
                     setTransaction(mapImportTransaction(importsRes.data[0]));
                 } else {
                     const exportsRes = await trackingApi.getExports({ search: referenceId });
                     if (exportsRes.data.length > 0 && !cancelled) {
+                        setRawTransaction(exportsRes.data[0]);
                         setTransaction(mapExportTransaction(exportsRes.data[0]));
                     }
                 }
@@ -151,7 +156,16 @@ export const TrackingDetails = () => {
             <div className="bg-surface rounded-2xl p-6 border border-border shadow-sm">
                 <div className="flex justify-between items-start gap-4">
                     <div className="space-y-1">
-                        <h2 className="text-lg font-bold text-text-primary">{transaction.ref}</h2>
+                        <div className="flex items-center gap-3">
+                            <h2 className="text-lg font-bold text-text-primary">{transaction.ref}</h2>
+                            <button
+                                onClick={() => setIsEditModalOpen(true)}
+                                className="p-1.5 text-text-muted hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/40 rounded-lg transition-colors group"
+                                title="Edit Transaction Details"
+                            >
+                                <Icon name="edit" className="w-4 h-4 group-active:scale-95 transition-transform" />
+                            </button>
+                        </div>
                         <p className="text-sm text-text-secondary">
                             Bill of Lading: <span className="font-bold text-text-primary">{transaction.bl || '—'}</span>
                         </p>
@@ -264,6 +278,16 @@ export const TrackingDetails = () => {
                 onClose={() => setPreviewFile(null)}
                 file={previewFile?.file ?? null}
                 fileName={previewFile?.name ?? ''}
+            />
+
+            <EditTransactionModal
+                isOpen={isEditModalOpen}
+                onClose={() => {
+                    setIsEditModalOpen(false);
+                    navigate(`/tracking/${transaction.ref}`, { replace: true });
+                }}
+                type={isImport ? 'import' : 'export'}
+                transaction={rawTransaction ?? null}
             />
         </div>
     );

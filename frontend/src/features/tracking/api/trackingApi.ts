@@ -31,6 +31,11 @@ export const trackingApi = {
         return response.data.data;
     },
 
+    updateImport: async ({ id, data }: { id: number; data: CreateImportPayload }): Promise<ApiImportTransaction> => {
+        const response = await api.put(`/api/import-transactions/${id}`, data);
+        return response.data.data;
+    },
+
     // --- Export Transactions ---
     getExports: async (params?: {
         search?: string;
@@ -44,6 +49,11 @@ export const trackingApi = {
 
     createExport: async (data: CreateExportPayload): Promise<ApiExportTransaction> => {
         const response = await api.post('/api/export-transactions', data);
+        return response.data.data;
+    },
+
+    updateExport: async ({ id, data }: { id: number; data: CreateExportPayload }): Promise<ApiExportTransaction> => {
+        const response = await api.put(`/api/export-transactions/${id}`, data);
         return response.data.data;
     },
 

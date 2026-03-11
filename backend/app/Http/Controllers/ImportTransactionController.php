@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\CancelTransactionRequest;
 use App\Http\Requests\StoreImportTransactionRequest;
+use App\Http\Requests\UpdateImportTransactionRequest;
 use App\Http\Resources\ImportTransactionResource;
 use App\Models\ImportTransaction;
 use Illuminate\Http\Request;
@@ -18,7 +19,8 @@ class ImportTransactionController extends Controller
     {
         $this->authorize('viewAny', ImportTransaction::class);
 
-        $query = ImportTransaction::with(['importer', 'originCountry', 'stages', 'assignedUser']);
+        $query = ImportTransaction::with(['importer', 'originCountry', 'stages', 'assignedUser'])
+            ->withCount(['remarks as open_remarks_count' => fn($q) => $q->where('is_resolved', false)]);
 
         // Search by customs ref or BL number
         if ($search = $request->query('search')) {
@@ -68,6 +70,29 @@ class ImportTransactionController extends Controller
         return (new ImportTransactionResource($transaction))
             ->response()
             ->setStatusCode(201);
+    }
+
+    /**
+     * PUT/PATCH /api/import-transactions/{import_transaction}
+     * Update an existing import transaction.
+     */
+    public function update(UpdateImportTransactionRequest $request, ImportTransaction $import_transaction)
+    {
+        $this->authorize('update', $import_transaction);
+
+        $data = $request->validated();
+
+        // Encoders cannot change the selectivity color — it is a BOC classification
+        // that must be updated by an admin, lawyer, or paralegal.
+        if ($request->user()->role === 'encoder') {
+            unset($data['selective_color']);
+        }
+
+        $import_transaction->update($data);
+
+        $import_transaction->load(['importer', 'originCountry', 'stages', 'assignedUser']);
+
+        return new ImportTransactionResource($import_transaction);
     }
 
     /**

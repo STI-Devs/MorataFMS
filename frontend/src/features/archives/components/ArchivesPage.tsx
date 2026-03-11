@@ -1,4 +1,4 @@
-﻿import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { ConfirmationModal } from '../../../components/ConfirmationModal';
@@ -419,7 +419,7 @@ export const ArchivesPage = () => {
                     if (fileDocs.length === 0) return <EmptyState icon="file-text" title="No files in this folder" />;
                     return (
                         <div>
-                            <ColHeader cols={['', 'File', 'Stage', 'Uploaded', 'By', '']} template="28px 1fr 1.4fr 80px 28px 48px" />
+                            <ColHeader cols={['', 'File', 'Stage', 'Uploaded', 'By', '']} template="32px 1fr 1.4fr 80px 32px 56px" alignCenter={new Set([2, 3, 4])} />
                             {fileDocs.map((doc: ArchiveDocument) => (
                                 <ArchiveDocumentRow key={doc.id} doc={doc} onDelete={handleDeleteArchiveDoc} />
                             ))}

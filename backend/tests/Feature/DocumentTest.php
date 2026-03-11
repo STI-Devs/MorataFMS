@@ -266,6 +266,27 @@ test('user can delete their own uploaded document', function () {
     Storage::disk('s3')->assertMissing($document->path);
 });
 
+test('encoder can upload a document with type others', function () {
+    $user = User::factory()->create(['role' => 'encoder']);
+    $import = ImportTransaction::factory()->create();
+    $file = UploadedFile::fake()->create('extra.pdf', 512, 'application/pdf');
+
+    $this->actingAs($user);
+
+    $response = $this->postJson('/api/documents', [
+        'file' => $file,
+        'type' => 'others',
+        'documentable_type' => 'App\Models\ImportTransaction',
+        'documentable_id' => $import->id,
+    ]);
+
+    $response->assertStatus(201);
+    $this->assertDatabaseHas('documents', [
+        'type' => 'others',
+        'documentable_id' => $import->id,
+    ]);
+});
+
 test('document generates correct S3 path', function () {
     $year = now()->year;
     $monthPad = str_pad(now()->month, 2, '0', STR_PAD_LEFT);

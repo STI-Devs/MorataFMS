@@ -1,7 +1,7 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import type { LayoutContext } from '../../tracking/types';
-import { useAuditActions, useAuditLogs } from '../hooks/useAuditLogs';
+import { useAuditLogs } from '../hooks/useAuditLogs';
 import type { AuditLogFilters } from '../types/auditLog.types';
 
 
@@ -22,19 +22,36 @@ const getEventCfg = (event: string) =>
 const formatDate = (iso: string) =>
     new Date(iso).toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' });
 
+const formatKey = (key: string) => {
+    if (key === 'remarkble_id'    || key === 'remarkble')     return 'Transaction';
+    if (key === 'documentable_id')                            return 'Transaction';
+    return key
+        .replace(/_id$/, '')
+        .replace(/_/g, ' ')
+        .replace(/\b\w/g, l => l.toUpperCase());
+};
+
+const formatValue = (val: any) => {
+    if (val === null || val === undefined) return '(none)';
+    if (typeof val === 'boolean') return val ? 'Yes' : 'No';
+    if (val === '') return '(empty)';
+    if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(val)) {
+        return formatDate(val);
+    }
+    return String(val);
+};
 
 export const AuditLogs = () => {
     const { dateTime } = useOutletContext<LayoutContext>();
 
-    // Filter state (local — controls query key, not data fetching)
     const [search,       setSearch]       = useState('');
     const [actionFilter, setActionFilter] = useState('');
     const [actorFilter,  setActorFilter]  = useState<'human' | 'system' | 'all'>('human');
     const [dateFrom,     setDateFrom]     = useState('');
     const [dateTo,       setDateTo]       = useState('');
     const [page,         setPage]         = useState(1);
+    const [expandedId,   setExpandedId]   = useState<number | null>(null);
 
-    // Build filters object for query key — TanStack Query re-fetches only when this changes
     const filters: AuditLogFilters = {
         search:    search       || undefined,
         action:    actionFilter || undefined,
@@ -46,16 +63,15 @@ export const AuditLogs = () => {
     };
 
     const { data, isLoading, isError } = useAuditLogs(filters);
-    const availableActions = useAuditActions().data ?? [];
 
     const logs = data?.data ?? [];
     const meta = data?.meta ?? { current_page: 1, last_page: 1, per_page: 25, total: 0 };
 
-    const handleSearch   = (val: string) => { setSearch(val);        setPage(1); };
-    const handleAction   = (val: string) => { setActionFilter(val);  setPage(1); };
-    const handleActor    = (val: 'human' | 'system' | 'all') => { setActorFilter(val); setPage(1); };
-    const handleDateFrom = (val: string) => { setDateFrom(val);      setPage(1); };
-    const handleDateTo   = (val: string) => { setDateTo(val);        setPage(1); };
+    const handleSearch   = (val: string) => { setSearch(val);        setPage(1); setExpandedId(null); };
+    const handleAction   = (val: string) => { setActionFilter(val);  setPage(1); setExpandedId(null); };
+    const handleActor    = (val: 'human' | 'system' | 'all') => { setActorFilter(val); setPage(1); setExpandedId(null); };
+    const handleDateFrom = (val: string) => { setDateFrom(val);      setPage(1); setExpandedId(null); };
+    const handleDateTo   = (val: string) => { setDateTo(val);        setPage(1); setExpandedId(null); };
 
     const inputCls = 'px-3 py-2.5 rounded-lg border border-border-strong bg-input-bg text-text-primary text-sm placeholder:text-text-muted focus:outline-none focus:border-blue-500/50 transition-colors';
 
@@ -117,7 +133,6 @@ export const AuditLogs = () => {
                             onChange={e => handleSearch(e.target.value)}
                             className={`${inputCls} min-w-[150px] !h-8 !py-0 !text-xs`}
                         />
-                        {/* Actor toggle */}
                         <select
                             value={actorFilter}
                             onChange={e => handleActor(e.target.value as 'human' | 'system' | 'all')}
@@ -127,27 +142,18 @@ export const AuditLogs = () => {
                             <option value="system">System Events</option>
                             <option value="all">All Activity</option>
                         </select>
-                        {/* Event type filter */}
                         <select
                             value={actionFilter}
                             onChange={e => handleAction(e.target.value)}
                             className={`${inputCls} !h-8 !py-0 !text-xs`}
                         >
                             <option value="">All Events</option>
-                            {availableActions.map(a => (
-                                <option key={a} value={a}>{getEventCfg(a).label}</option>
+                            {Object.entries(EVENT_CFG).map(([key, cfg]) => (
+                                <option key={key} value={key}>{cfg.label}</option>
                             ))}
                         </select>
                         <input type="date" value={dateFrom} onChange={e => handleDateFrom(e.target.value)} className={`${inputCls} !h-8 !py-0 !text-xs`} />
                         <input type="date" value={dateTo}   onChange={e => handleDateTo(e.target.value)}   className={`${inputCls} !h-8 !py-0 !text-xs`} />
-                        {(search || actionFilter || actorFilter !== 'human' || dateFrom || dateTo) && (
-                            <button
-                                onClick={() => { setSearch(''); setActionFilter(''); setActorFilter('human'); setDateFrom(''); setDateTo(''); setPage(1); }}
-                                className="px-3 h-8 rounded-md text-xs font-semibold border border-border-strong bg-input-bg text-text-secondary hover:text-text-primary transition-colors"
-                            >
-                                Clear
-                            </button>
-                        )}
                     </div>
                 </div>
 
@@ -179,8 +185,8 @@ export const AuditLogs = () => {
                         <table className="w-full text-sm">
                             <thead>
                                 <tr className="border-b border-border">
-                                    {['Timestamp', 'User', 'Event', 'Record', 'Changes', 'IP'].map(h => (
-                                        <th key={h} className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-muted">
+                                    {['Timestamp', 'User', 'Event', 'Record', 'Changes', 'IP', ''].map(h => (
+                                        <th key={h} className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-muted last:w-8">
                                             {h}
                                         </th>
                                     ))}
@@ -188,76 +194,177 @@ export const AuditLogs = () => {
                             </thead>
                             <tbody>
                                 {logs.map((log, idx) => {
-                                    const cfg = getEventCfg(log.event);
+                                    const cfg      = getEventCfg(log.event);
+                                    const isOpen   = expandedId === log.id;
+                                    const isDelete = log.event === 'deleted';
+
+                                    // Determine what data to show in the detail panel
+                                    const hasNew      = log.new_values  && Object.keys(log.new_values).length  > 0;
+                                    const hasOldOnly  = isDelete && log.old_values && Object.keys(log.old_values).length > 0;
+                                    const changesData = hasNew ? log.new_values : hasOldOnly ? log.old_values : null;
+                                    // Exclude internal _type companion keys from the count (they're resolved into the _id field)
+                                    const changeCount = changesData
+                                        ? Object.keys(changesData).filter(k => !k.endsWith('_type')).length
+                                        : 0;
+
+                                    const zebraRow = idx % 2 !== 0 ? 'bg-surface-secondary/30' : '';
+
                                     return (
-                                        <tr key={log.id} className={`border-b border-border/50 transition-colors hover:bg-hover ${idx % 2 !== 0 ? 'bg-surface-secondary/40' : ''}`}>
-                                            <td className="px-5 py-3 whitespace-nowrap">
-                                                <p className="text-xs tabular-nums text-text-secondary">{formatDate(log.created_at)}</p>
-                                            </td>
-                                            <td className="px-5 py-3">
-                                                {log.user ? (
-                                                    <p className="font-medium text-text-primary">{log.user.name}</p>
-                                                ) : (
-                                                    <span className="text-text-muted italic text-xs">System</span>
-                                                )}
-                                            </td>
-                                            <td className="px-5 py-3 whitespace-nowrap">
-                                                <span
-                                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold capitalize"
-                                                    style={{ color: cfg.color, backgroundColor: cfg.bg }}
-                                                >
-                                                    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: cfg.color }} />
-                                                    {cfg.label}
-                                                </span>
-                                            </td>
-                                            <td className="px-5 py-3 whitespace-nowrap">
-                                                {log.auditable_type ? (
-                                                    <div className="flex flex-col gap-0.5">
-                                                        <span className="text-xs font-medium px-2 py-0.5 rounded bg-surface-tint border border-border-tint text-text-secondary capitalize inline-block w-fit">
+                                        <>
+                                            {/* ── Compact summary row ── */}
+                                            <tr
+                                                key={log.id}
+                                                onClick={() => setExpandedId(isOpen ? null : log.id)}
+                                                className={`border-b border-border/50 transition-colors ${zebraRow} ${changeCount > 0 ? 'cursor-pointer hover:bg-hover' : ''} ${isOpen ? '!bg-hover' : ''}`}
+                                            >
+                                                {/* Timestamp */}
+                                                <td className="px-5 py-3.5 whitespace-nowrap">
+                                                    <p className="text-xs tabular-nums text-text-secondary">{formatDate(log.created_at)}</p>
+                                                </td>
+
+                                                {/* User */}
+                                                <td className="px-5 py-3.5 whitespace-nowrap">
+                                                    {log.user ? (
+                                                        <p className="font-medium text-text-primary text-sm">{log.user.name}</p>
+                                                    ) : (
+                                                        <span className="text-text-muted italic text-xs">System</span>
+                                                    )}
+                                                </td>
+
+                                                {/* Event badge */}
+                                                <td className="px-5 py-3.5 whitespace-nowrap">
+                                                    <span
+                                                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold capitalize"
+                                                        style={{ color: cfg.color, backgroundColor: cfg.bg }}
+                                                    >
+                                                        <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: cfg.color }} />
+                                                        {cfg.label}
+                                                    </span>
+                                                </td>
+
+                                                {/* Record — type badge only; label visible in expanded panel */}
+                                                <td className="px-5 py-3.5 whitespace-nowrap">
+                                                    {log.auditable_type ? (
+                                                        <span className="text-xs font-medium px-2.5 py-1 rounded-md bg-surface-tint border border-border-tint text-text-secondary capitalize">
                                                             {log.auditable_type}
                                                         </span>
-                                                        {log.auditable_label ? (
-                                                            <span className="text-xs text-text-primary font-semibold">
-                                                                {log.auditable_label}
-                                                            </span>
-                                                        ) : (
-                                                            <span className="text-xs text-text-muted">#{log.auditable_id}</span>
-                                                        )}
-                                                    </div>
-                                                ) : (
-                                                    <span className="text-text-muted">—</span>
-                                                )}
-                                            </td>
-                                            <td className="px-5 py-3 max-w-xs">
-                                                {log.new_values && Object.keys(log.new_values).length > 0 ? (
-                                                    <div className="flex flex-col gap-1">
-                                                        {Object.entries(log.new_values).map(([key, newVal]) => {
-                                                            const oldVal = log.old_values?.[key];
-                                                            const hasOld = oldVal !== undefined && oldVal !== null;
-                                                            return (
-                                                                <div key={key} className="flex items-center gap-1 flex-wrap">
-                                                                    <span className="text-[10px] font-mono font-semibold text-text-muted">{key}:</span>
-                                                                    {hasOld && (
-                                                                        <span className="text-[10px] font-mono line-through text-text-muted opacity-60">
-                                                                            {String(oldVal)}
-                                                                        </span>
-                                                                    )}
-                                                                    {hasOld && <span className="text-[10px] text-text-muted">→</span>}
-                                                                    <span className="text-[10px] font-mono font-semibold" style={{ color: '#30d158' }}>
-                                                                        {String(newVal)}
-                                                                    </span>
-                                                                </div>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                ) : (
-                                                    <span className="text-text-muted">—</span>
-                                                )}
-                                            </td>
-                                            <td className="px-5 py-3 whitespace-nowrap text-xs tabular-nums text-text-muted">
-                                                {log.ip_address ?? '—'}
-                                            </td>
-                                        </tr>
+                                                    ) : (
+                                                        <span className="text-text-muted">—</span>
+                                                    )}
+                                                </td>
+
+                                                {/* Changes summary pill */}
+                                                <td className="px-5 py-3.5 whitespace-nowrap">
+                                                    {isDelete && changeCount > 0 ? (
+                                                        <span
+                                                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border"
+                                                            style={{
+                                                                color:           '#ff453a',
+                                                                backgroundColor: 'rgba(255,69,58,0.10)',
+                                                                borderColor:     'rgba(255,69,58,0.25)',
+                                                            }}
+                                                        >
+                                                            Snapshot
+                                                        </span>
+                                                    ) : !isDelete && changeCount > 0 ? (
+                                                        <span
+                                                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border"
+                                                            style={{
+                                                                color:           '#0a84ff',
+                                                                backgroundColor: 'rgba(10,132,255,0.10)',
+                                                                borderColor:     'rgba(10,132,255,0.25)',
+                                                            }}
+                                                        >
+                                                            {changeCount} field{changeCount !== 1 ? 's' : ''}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-text-muted text-xs">—</span>
+                                                    )}
+                                                </td>
+
+                                                {/* IP */}
+                                                <td className="px-5 py-3.5 whitespace-nowrap text-xs tabular-nums text-text-muted">
+                                                    {log.ip_address ?? '—'}
+                                                </td>
+
+                                                {/* Expand chevron */}
+                                                <td className="pr-4 py-3.5 whitespace-nowrap text-right">
+                                                    {changeCount > 0 && (
+                                                        <svg
+                                                            className="w-4 h-4 text-text-muted transition-transform duration-200 inline"
+                                                            style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}
+                                                            fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}
+                                                        >
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                                                        </svg>
+                                                    )}
+                                                </td>
+                                            </tr>
+
+                                            {/* ── Expanded detail panel ── */}
+                                            {isOpen && changesData && (
+                                                <tr key={`${log.id}-detail`} className={zebraRow}>
+                                                    <td colSpan={7} className="px-5 pb-4 pt-1">
+                                                        <div className="rounded-xl border border-border-tint bg-surface-tint overflow-hidden">
+                                                            {/* Panel header */}
+                                                            <div
+                                                                className="px-4 py-2.5 border-b border-border-tint flex items-center gap-2"
+                                                                style={{ backgroundColor: `${cfg.color}0d` }}
+                                                            >
+                                                                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: cfg.color }} />
+                                                                <p className="text-xs font-semibold" style={{ color: cfg.color }}>
+                                                                    {isDelete
+                                                                        ? `Record Snapshot${log.auditable_label ? ` · ${log.auditable_label}` : ''}`
+                                                                        : `${cfg.label} — ${changeCount} field${changeCount !== 1 ? 's' : ''}${log.auditable_label ? ` · ${log.auditable_label}` : ''}`
+                                                                    }
+                                                                </p>
+                                                            </div>
+
+                                                            {/* Field grid */}
+                                                            <div className="p-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-8 gap-y-4">
+                                                                {/* Internal polymorphic companion keys — skip, they're already resolved into the _id field */}
+                                                                {hasNew
+                                                                    ? Object.entries(log.new_values!).filter(([k]) => !k.endsWith('_type')).map(([key, newVal]) => {
+                                                                        const oldVal    = log.old_values?.[key];
+                                                                        const hasOldVal = oldVal !== undefined && oldVal !== null;
+                                                                        return (
+                                                                            <div key={key}>
+                                                                                <p className="text-[10px] uppercase tracking-wider font-bold text-text-muted mb-1">{formatKey(key)}</p>
+                                                                                <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                                                                                    {hasOldVal && (
+                                                                                        <>
+                                                                                            <span className="text-[11px] font-mono line-through text-text-muted opacity-60 truncate max-w-[120px]" title={formatValue(oldVal)}>
+                                                                                                {formatValue(oldVal)}
+                                                                                            </span>
+                                                                                            <span className="text-[10px] text-text-muted shrink-0">→</span>
+                                                                                        </>
+                                                                                    )}
+                                                                                    <span className="text-[11px] font-mono font-semibold truncate max-w-[120px]" style={{ color: '#30d158' }} title={formatValue(newVal)}>
+                                                                                        {formatValue(newVal)}
+                                                                                    </span>
+                                                                                </div>
+                                                                            </div>
+                                                                        );
+                                                                    })
+                                                                    : /* Deleted snapshot — clean read-only view, no strikethrough */
+                                                                    Object.entries(log.old_values!).filter(([k]) => !k.endsWith('_type')).map(([key, oldVal]) => (
+                                                                        <div key={key}>
+                                                                            <p className="text-[10px] uppercase tracking-wider font-bold text-text-muted mb-1">{formatKey(key)}</p>
+                                                                            <span
+                                                                                className="text-[11px] font-mono truncate max-w-[150px] block text-text-secondary"
+                                                                                title={formatValue(oldVal)}
+                                                                            >
+                                                                                {formatValue(oldVal)}
+                                                                            </span>
+                                                                        </div>
+                                                                    ))
+                                                                }
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </>
                                     );
                                 })}
                             </tbody>

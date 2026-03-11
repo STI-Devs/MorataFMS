@@ -243,3 +243,111 @@ test('mass assignment of assigned_user_id is ignored on create', function () {
     $transaction = ImportTransaction::where('customs_ref_no', 'REF-HACK-002')->first();
     expect($transaction->assigned_user_id)->toBe($user->id); // Server uses authenticated user
 });
+
+// --- Update ---
+
+test('assigned user can update their import transaction', function () {
+    $user = User::factory()->create(['role' => 'encoder']);
+    $client = Client::factory()->importer()->create();
+    $country = Country::factory()->importOrigin()->create();
+    $transaction = ImportTransaction::factory()->create(['assigned_user_id' => $user->id]);
+
+    $payload = [
+        'customs_ref_no' => 'REF-UPDATED-001',
+        'bl_no' => 'BL-UPDATED-001',
+        'selective_color' => 'red',
+        'importer_id' => $client->id,
+        'origin_country_id' => $country->id,
+        'arrival_date' => '2025-06-20',
+    ];
+
+    $response = $this->actingAs($user)
+        ->putJson("/api/import-transactions/{$transaction->id}", $payload);
+
+    $response->assertOk()
+        ->assertJsonPath('data.customs_ref_no', 'REF-UPDATED-001')
+        ->assertJsonPath('data.selective_color', 'red');
+
+    $this->assertDatabaseHas('import_transactions', [
+        'id' => $transaction->id,
+        'customs_ref_no' => 'REF-UPDATED-001',
+        'selective_color' => 'red',
+    ]);
+});
+
+test('other users cannot update an import transaction', function () {
+    $owner = User::factory()->create(['role' => 'encoder']);
+    $otherUser = User::factory()->create(['role' => 'encoder']);
+    $transaction = ImportTransaction::factory()->create(['assigned_user_id' => $owner->id]);
+    $client = Client::factory()->importer()->create();
+
+    $response = $this->actingAs($otherUser)
+        ->putJson("/api/import-transactions/{$transaction->id}", [
+            'customs_ref_no' => 'REF-UPDATED',
+            'bl_no' => 'BL-UPDATED',
+            'selective_color' => 'red',
+            'importer_id' => $client->id,
+            'arrival_date' => '2025-06-20',
+        ]);
+
+    $response->assertForbidden();
+});
+
+test('admins can update any import transaction', function () {
+    $owner = User::factory()->create(['role' => 'encoder']);
+    $admin = User::factory()->create(['role' => 'admin']);
+    $transaction = ImportTransaction::factory()->create(['assigned_user_id' => $owner->id]);
+    $client = Client::factory()->importer()->create();
+
+    $response = $this->actingAs($admin)
+        ->putJson("/api/import-transactions/{$transaction->id}", [
+            'customs_ref_no' => 'REF-ADMIN-UPDATE',
+            'bl_no' => 'BL-UPDATED',
+            'selective_color' => 'red',
+            'importer_id' => $client->id,
+            'arrival_date' => '2025-06-20',
+        ]);
+
+    $response->assertOk();
+});
+
+test('updating an import transaction ignores mass assignment of status', function () {
+    $user = User::factory()->create(['role' => 'encoder']);
+    $transaction = ImportTransaction::factory()->create(['assigned_user_id' => $user->id, 'status' => 'pending']);
+    $client = Client::factory()->importer()->create();
+
+    $response = $this->actingAs($user)
+        ->putJson("/api/import-transactions/{$transaction->id}", [
+            'customs_ref_no' => 'REF-UPDATED',
+            'bl_no' => 'BL-UPDATED',
+            'selective_color' => 'red',
+            'importer_id' => $client->id,
+            'arrival_date' => '2025-06-20',
+            'status' => 'completed', // Attacker trying to skip workflow
+        ]);
+
+    $response->assertOk();
+
+    // Status should remain unchanged by the update endpoint
+    $this->assertDatabaseHas('import_transactions', [
+        'id' => $transaction->id,
+        'status' => 'pending'
+    ]);
+});
+
+test('can update using same bl_no (unique validation ignores self)', function () {
+    $user = User::factory()->create(['role' => 'encoder']);
+    $transaction = ImportTransaction::factory()->create(['assigned_user_id' => $user->id, 'bl_no' => 'BL-ORIGINAL']);
+    $client = Client::factory()->importer()->create();
+
+    $response = $this->actingAs($user)
+        ->putJson("/api/import-transactions/{$transaction->id}", [
+            'customs_ref_no' => 'REF-UPDATED',
+            'bl_no' => 'BL-ORIGINAL', // keeping it the same
+            'selective_color' => 'red',
+            'importer_id' => $client->id,
+            'arrival_date' => '2025-06-20',
+        ]);
+
+    $response->assertOk();
+});

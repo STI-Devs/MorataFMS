@@ -12,10 +12,22 @@ class TestUserSeeder extends Seeder
     public function run(): void
     {
         User::firstOrCreate(
-            ['email' => 'admin@moratafms.com'],
+            ['email' => 'admin@morata.com'],
             [
                 'name' => 'Admin User',
-                'password' => Hash::make('password123'),
+                'role' => 'admin',
+                'password' => Hash::make('password'),
+                'email_verified_at' => now(),
+                'remember_token' => Str::random(10),
+            ]
+        );
+
+        User::firstOrCreate(
+            ['email' => 'encoder@morata.com'],
+            [
+                'name' => 'Encoder User',
+                'role' => 'encoder',
+                'password' => Hash::make('password'),
                 'email_verified_at' => now(),
                 'remember_token' => Str::random(10),
             ]

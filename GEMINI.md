@@ -88,9 +88,9 @@ pnpm dev
 *   **Polymorphic:** The `documents` table relates to both `import_transactions` and `export_transactions`.
 
 ### Roles
-*   **Hierarchy:** `encoder` < `broker` < `supervisor` < `manager` < `admin`.
-*   Use `User->hasRoleAtLeast('supervisor')` for role checks in Policies.
-*   Helper methods: `isAdmin()`, `isManagerOrAbove()`, `isSupervisorOrAbove()`.
+*   **Roles:** `encoder` | `paralegal` | `lawyer` | `admin`.
+*   Use `$user->role === 'admin'` or check role directly — there is no `hasRoleAtLeast()` helper.
+*   Helper methods: `isAdmin()`.
 
 ## 6. Current Status (as of Mar 2026)
 *   **Completed:** Auth flow, DB Schema & Migrations, Dashboard UI, Seeders, API Security Hardening, Client/User/Oversight/Reports/AuditLog CRUD, Archive dashboard, Documents page, Frontend restructure (domain-based features).
@@ -114,8 +114,8 @@ pnpm dev
 ### Authorization (Policies)
 *   **Every model with CRUD routes MUST have a Policy** in `app/Policies/`.
 *   Controllers MUST call `$this->authorize()` before any data-modifying operation.
-*   Role hierarchy: `encoder < broker < supervisor < manager < admin`.
-*   Use `User::hasRoleAtLeast('supervisor')` for role checks.
+*   Roles: `encoder`, `paralegal`, `lawyer`, `admin`.
+*   Use direct role comparison: `$user->role === 'admin'` or `in_array($user->role, ['admin', 'lawyer'])` for role checks.
 
 ### Input Validation (Form Requests)
 *   **Every store/update endpoint MUST use a Form Request** — never `$request->all()`.
@@ -367,6 +367,6 @@ Use explicit `AuditLog::record()` calls (in addition to the trait's auto-logging
 | Action | Use explicit record? |
 |---|---|
 | Encoder reassignment | ✅ Yes — attach old/new encoder names |
-| Status override (manager+) | ✅ Yes — attach old/new status |
+| Status override (admin+) | ✅ Yes — attach old/new status |
 | Document archive | ✅ Yes — note who archived it |
 | Regular field update via form | ❌ No — trait handles it automatically |

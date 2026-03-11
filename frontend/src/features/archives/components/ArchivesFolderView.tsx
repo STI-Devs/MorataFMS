@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { useAuth } from '../../auth/hooks/useAuth';
 import type { ArchiveDocument, ArchiveYear, TransactionType } from '../../documents/types/document.types';
 import { EXPORT_STAGES, IMPORT_STAGES } from '../../documents/types/document.types';
@@ -66,7 +66,7 @@ export const FolderRowMenu = ({ folderName, menuKey, openMenuKey, setOpenMenuKey
                         </div>
                     </button>
 
-                    {/* Delete ΓÇö supervisor+ only */}
+                    {/* Delete — supervisor+ only */}
                     {canDelete && (
                         <>
                             <div className="my-1 border-t border-border" />
@@ -102,7 +102,7 @@ interface SubFolderRowProps {
 
 export const SubFolderRow = ({ groupKey, docs, yr, filterStatus, nav, openMenuKey, setOpenMenuKey, onViewHistory }: SubFolderRowProps) => {
     const { user } = useAuth();
-    const canDelete = hasRoleAtLeast(user?.role, 'supervisor');
+    const canDelete = hasRoleAtLeast(user?.role, 'admin');
     const [monthStr, txType] = groupKey.split('|') as [string, TransactionType];
     const month = Number(monthStr);
 

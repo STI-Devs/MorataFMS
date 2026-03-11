@@ -1,4 +1,4 @@
-﻿export type FileExt = 'pdf' | 'docx' | 'jpg' | string;
+export type FileExt = 'pdf' | 'docx' | 'jpg' | string;
 export type TransactionType = 'import' | 'export';
 
 export interface TransactionDocument {
@@ -75,6 +75,7 @@ export const IMPORT_STAGES = [
     { key: 'port_charges', label: 'Port Charges' },
     { key: 'releasing', label: 'Releasing' },
     { key: 'billing', label: 'Billing' },
+    { key: 'others', label: 'Others' },
 ] as const;
 
 export const EXPORT_STAGES = [
@@ -83,6 +84,7 @@ export const EXPORT_STAGES = [
     { key: 'co', label: 'CO Processing' },
     { key: 'dccci', label: 'DCCCI Printing' },
     { key: 'billing', label: 'Billing' },
+    { key: 'others', label: 'Others' },
 ] as const;
 
 // Dynamic: 2015 → current year, newest first. Auto-expands each year without code changes.

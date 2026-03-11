@@ -11,6 +11,7 @@ export interface ImportTransaction {
     color: string;
     importer: string;
     date: string;
+    open_remarks_count: number;
 }
 
 export interface ExportTransaction {
@@ -23,6 +24,7 @@ export interface ExportTransaction {
     vessel: string;
     departureDate: string;
     portOfDestination: string;
+    open_remarks_count: number;
 }
 
 export interface TransactionStats {
@@ -62,6 +64,7 @@ export interface ApiImportTransaction {
     selective_color: string;
     importer: { id: number; name: string } | null;
     arrival_date: string;
+    origin_country?: { id: number; name: string; code: string };
     assigned_user?: { id: number; name: string };
     status: string;
     notes: string | null;
@@ -74,6 +77,7 @@ export interface ApiImportTransaction {
         billing: string;
     };
     created_at: string;
+    open_remarks_count: number;
 }
 
 export interface ApiExportTransaction {
@@ -92,6 +96,7 @@ export interface ApiExportTransaction {
         bl: string;
     };
     created_at: string;
+    open_remarks_count: number;
 }
 
 export interface ApiClient {
@@ -127,6 +132,7 @@ export interface CreateImportPayload {
     bl_no: string;
     selective_color: 'green' | 'yellow' | 'red';
     importer_id: number;
+    origin_country_id?: number;
     arrival_date: string;
     notes?: string;
 }

@@ -17,6 +17,9 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\MaxRequestSize::class,
         ]);
 
+        // Global: attach security headers to every response
+        $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
+
         $middleware->alias([
             'verified' => \App\Http\Middleware\EnsureEmailIsVerified::class,
         ]);

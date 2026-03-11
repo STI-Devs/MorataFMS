@@ -8,8 +8,9 @@ use App\Http\Controllers\Auth\VerifyEmailController;
 use Illuminate\Support\Facades\Route;
 
 // Login has a named rate limiter (5 attempts) registered in AppServiceProvider.
+// No 'guest' middleware — SPA users with stale session cookies must be
+// able to re-authenticate without being blocked.
 Route::post('/login', [AuthenticatedSessionController::class, 'store'])
-    ->middleware('guest')
     ->name('login');
 
 // Rate-limited to 5 requests/min to prevent email bombing.

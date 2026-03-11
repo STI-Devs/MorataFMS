@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\CancelTransactionRequest;
 use App\Http\Requests\StoreExportTransactionRequest;
+use App\Http\Requests\UpdateExportTransactionRequest;
 use App\Http\Resources\ExportTransactionResource;
 use App\Models\ExportTransaction;
 use Illuminate\Http\Request;
@@ -18,7 +19,8 @@ class ExportTransactionController extends Controller
     {
         $this->authorize('viewAny', ExportTransaction::class);
 
-        $query = ExportTransaction::with(['shipper', 'stages', 'assignedUser', 'destinationCountry']);
+        $query = ExportTransaction::with(['shipper', 'stages', 'assignedUser', 'destinationCountry'])
+            ->withCount(['remarks as open_remarks_count' => fn($q) => $q->where('is_resolved', false)]);
 
         if ($search = $request->query('search')) {
             $query->where(function ($q) use ($search) {
@@ -68,6 +70,21 @@ class ExportTransactionController extends Controller
         return (new ExportTransactionResource($transaction))
             ->response()
             ->setStatusCode(201);
+    }
+
+    /**
+     * PUT/PATCH /api/export-transactions/{export_transaction}
+     * Update an existing export transaction.
+     */
+    public function update(UpdateExportTransactionRequest $request, ExportTransaction $export_transaction)
+    {
+        $this->authorize('update', $export_transaction);
+
+        $export_transaction->update($request->validated());
+
+        $export_transaction->load(['shipper', 'stages', 'assignedUser', 'destinationCountry']);
+
+        return new ExportTransactionResource($export_transaction);
     }
 
     /**

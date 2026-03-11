@@ -32,6 +32,7 @@ export function mapImportTransaction(t: ApiImportTransaction): ImportTransaction
         color: colorMap[t.selective_color] ?? 'bg-red-500',
         importer: t.importer?.name ?? 'Unknown',
         date: t.arrival_date ?? '',
+        open_remarks_count: t.open_remarks_count ?? 0,
     };
 }
 
@@ -64,5 +65,6 @@ export function mapExportTransaction(t: ApiExportTransaction): ExportTransaction
             })
             : '',
         portOfDestination: t.destination_country?.name ?? '—',
+        open_remarks_count: t.open_remarks_count ?? 0,
     };
 }

@@ -119,19 +119,21 @@ class ArchiveSeeder extends Seeder
 
     // Realistic document filenames per stage
     private const IMPORT_DOC_NAMES = [
-        'boc' => ['BOC_Entry_Form.pdf', 'Commercial_Invoice.pdf', 'Packing_List.pdf'],
-        'ppa' => ['PPA_Charges_Receipt.pdf', 'PPA_Assessment.pdf'],
-        'do' => ['Delivery_Order.pdf', 'DO_Request_Form.pdf'],
+        'boc'          => ['BOC_Entry_Form.pdf', 'Commercial_Invoice.pdf', 'Packing_List.pdf'],
+        'ppa'          => ['PPA_Charges_Receipt.pdf', 'PPA_Assessment.pdf'],
+        'do'           => ['Delivery_Order.pdf', 'DO_Request_Form.pdf'],
         'port_charges' => ['Port_Charges_Statement.pdf', 'Arrastre_Wharfage.pdf'],
-        'releasing' => ['Gate_Pass.pdf', 'Release_Certificate.pdf'],
-        'billing' => ['Billing_Statement.pdf', 'Liquidation_Report.pdf'],
+        'releasing'    => ['Gate_Pass.pdf', 'Release_Certificate.pdf'],
+        'billing'      => ['Billing_Statement.pdf', 'Liquidation_Report.pdf'],
+        'others'       => ['Miscellaneous_Docs.pdf', 'Additional_Notes.pdf', 'Correspondence_Letter.pdf', 'Supporting_Docs.pdf'],
     ];
 
     private const EXPORT_DOC_NAMES = [
         'docs_prep' => ['Export_Declaration.pdf', 'Commercial_Invoice.pdf', 'Packing_List.pdf'],
-        'co' => ['Certificate_of_Origin.pdf', 'CO_Application.pdf'],
-        'cil' => ['DCCCI_Certificate.pdf', 'CIL_Inspection_Report.pdf'],
-        'bl' => ['Bill_of_Lading_Final.pdf', 'BL_Draft.pdf'],
+        'co'        => ['Certificate_of_Origin.pdf', 'CO_Application.pdf'],
+        'cil'       => ['DCCCI_Certificate.pdf', 'CIL_Inspection_Report.pdf'],
+        'bl'        => ['Bill_of_Lading_Final.pdf', 'BL_Draft.pdf'],
+        'others'    => ['Miscellaneous_Docs.pdf', 'Additional_Notes.pdf', 'Correspondence_Letter.pdf', 'Supporting_Docs.pdf'],
     ];
 
     /**
@@ -229,9 +231,7 @@ class ArchiveSeeder extends Seeder
         $this->command->info('✅ Old archive data cleared.');
 
         // ── Ensure clients exist ──────────────────────────────────────────
-        Client::withoutAuditing(function () {
-            $this->ensureClients();
-        });
+        $this->ensureClients();
 
         // ── Resolve country IDs ───────────────────────────────────────────
         $originCountries = Country::whereIn('name', self::ORIGIN_COUNTRY_NAMES)->pluck('id', 'name');
@@ -275,10 +275,14 @@ class ArchiveSeeder extends Seeder
                 // Upload documents for random stages (3–6 stages completed)
                 $stagesCompleted = rand(3, 6);
                 $stages = array_slice(self::IMPORT_STAGES, 0, $stagesCompleted);
+                // ~30% chance of also seeding 1–2 "others" documents
+                if (rand(1, 10) <= 3) {
+                    $stages = array_merge($stages, array_fill(0, rand(1, 2), 'others'));
+                }
                 $docCount += $this->seedDocuments($txn, 'import', $stages, self::IMPORT_DOC_NAMES, $blNo, $year, $month, $admin->id);
 
-                // Mark completed stages on the stage record
-                $this->completeImportStages($txn, $stages, $admin->id, $date);
+                // Mark completed stages on the stage record ('others' is doc-only, no DB stage columns)
+                $this->completeImportStages($txn, array_filter($stages, fn($s) => $s !== 'others'), $admin->id, $date);
 
                 $importCount++;
             }
@@ -310,10 +314,14 @@ class ArchiveSeeder extends Seeder
                 // Upload documents for random stages (2–4 stages completed)
                 $stagesCompleted = rand(2, 4);
                 $stages = array_slice(self::EXPORT_STAGES, 0, $stagesCompleted);
+                // ~30% chance of also seeding 1–2 "others" documents
+                if (rand(1, 10) <= 3) {
+                    $stages = array_merge($stages, array_fill(0, rand(1, 2), 'others'));
+                }
                 $docCount += $this->seedDocuments($txn, 'export', $stages, self::EXPORT_DOC_NAMES, $blNo, $year, $month, $admin->id);
 
-                // Mark completed stages
-                $this->completeExportStages($txn, $stages, $admin->id, $date);
+                // Mark completed stages ('others' is doc-only, no DB stage columns)
+                $this->completeExportStages($txn, array_filter($stages, fn($s) => $s !== 'others'), $admin->id, $date);
 
                 $exportCount++;
             }

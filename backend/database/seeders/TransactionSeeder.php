@@ -17,10 +17,16 @@ class TransactionSeeder extends Seeder
      */
     public function run(): void
     {
-        // Get the admin user to assign transactions to
+        // Get seeded users
         $admin = User::where('email', 'admin@morata.com')->first();
         if (!$admin) {
             $this->command->error('Admin user not found. Run DatabaseSeeder first.');
+            return;
+        }
+
+        $encoder = User::where('email', 'encoder@morata.com')->first();
+        if (!$encoder) {
+            $this->command->error('Encoder user not found. Run DatabaseSeeder first.');
             return;
         }
 
@@ -44,15 +50,18 @@ class TransactionSeeder extends Seeder
         // Get countries for export destinations
         $countries = Country::all();
 
+        // Alternate assignments: odd index → encoder, even index → admin
+        $assignees = [$admin->id, $encoder->id];
+
         // --- Seed 50 Import Transactions ---
         $this->command->info('Seeding 50 import transactions...');
 
-        ImportTransaction::withoutAuditing(function () use ($importers, $admin) {
+        ImportTransaction::withoutAuditing(function () use ($importers, $assignees) {
             ImportTransaction::factory()
                 ->count(50)
                 ->sequence(fn($sequence) => [
                     'importer_id' => $importers->random()->id,
-                    'assigned_user_id' => $admin->id,
+                    'assigned_user_id' => $assignees[$sequence->index % 2],
                     'arrival_date' => fake()->dateTimeBetween('-30 days', '+60 days')->format('Y-m-d'),
                 ])
                 ->create();
@@ -61,12 +70,12 @@ class TransactionSeeder extends Seeder
         // --- Seed 50 Export Transactions ---
         $this->command->info('Seeding 50 export transactions...');
 
-        ExportTransaction::withoutAuditing(function () use ($exporters, $countries, $admin) {
+        ExportTransaction::withoutAuditing(function () use ($exporters, $countries, $assignees) {
             ExportTransaction::factory()
                 ->count(50)
                 ->sequence(fn($sequence) => [
                     'shipper_id' => $exporters->random()->id,
-                    'assigned_user_id' => $admin->id,
+                    'assigned_user_id' => $assignees[$sequence->index % 2],
                     'destination_country_id' => $countries->isNotEmpty() ? $countries->random()->id : null,
                 ])
                 ->create();

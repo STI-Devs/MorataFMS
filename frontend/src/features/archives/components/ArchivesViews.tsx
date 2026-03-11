@@ -1,4 +1,4 @@
-﻿import type { ArchiveDocument, ArchiveYear, TransactionType } from '../../documents/types/document.types';
+import type { ArchiveDocument, ArchiveYear, TransactionType } from '../../documents/types/document.types';
 import { EXPORT_STAGES, IMPORT_STAGES } from '../../documents/types/document.types';
 import type { DrillState, SortKey, ViewMode } from '../utils/archive.utils';
 import { MONTH_NAMES, toTitleCase } from '../utils/archive.utils';
@@ -147,7 +147,7 @@ export const BLFolderRow = ({ blNo, blDocs, drill, nav, onAddDoc, COL, color }: 
                 className="text-sm font-bold text-text-primary truncate text-left font-mono group-hover:underline underline-offset-2 decoration-border-strong">
                 {blNo}/
             </button>
-            <span className="text-xs text-text-secondary truncate">{toTitleCase(firstDoc?.client ?? 'ΓÇö')}</span>
+            <span className="text-xs text-text-secondary truncate">{toTitleCase(firstDoc?.client ?? '—')}</span>
             {isImport ? (
                 <span className="inline-flex items-center gap-1.5 text-xs font-semibold truncate">
                     <span className={`w-2 h-2 rounded-full shrink-0 ${firstDoc?.selective_color === 'red' ? 'bg-red-500' : firstDoc?.selective_color === 'yellow' ? 'bg-yellow-400' : 'bg-green-500'}`} />

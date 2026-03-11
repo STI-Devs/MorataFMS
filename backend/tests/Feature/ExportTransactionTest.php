@@ -183,3 +183,109 @@ test('mass assignment of assigned_user_id is ignored on create', function () {
     $transaction = ExportTransaction::where('bl_no', 'BL-HACK-EXP-002')->first();
     expect($transaction->assigned_user_id)->toBe($user->id); // Server uses authenticated user
 });
+
+// --- Update ---
+
+test('assigned user can update their export transaction', function () {
+    $user = User::factory()->create(['role' => 'encoder']);
+    $client = Client::factory()->exporter()->create();
+    $country = Country::factory()->create();
+    $transaction = ExportTransaction::factory()->create(['assigned_user_id' => $user->id]);
+
+    $payload = [
+        'shipper_id' => $client->id,
+        'bl_no' => 'BL-UPDATED-001',
+        'vessel' => 'MV Updated Ship',
+        'destination_country_id' => $country->id,
+    ];
+
+    $response = $this->actingAs($user)
+        ->putJson("/api/export-transactions/{$transaction->id}", $payload);
+
+    $response->assertOk()
+        ->assertJsonPath('data.bl_no', 'BL-UPDATED-001')
+        ->assertJsonPath('data.vessel', 'MV Updated Ship');
+
+    $this->assertDatabaseHas('export_transactions', [
+        'id' => $transaction->id,
+        'bl_no' => 'BL-UPDATED-001',
+        'vessel' => 'MV Updated Ship',
+    ]);
+});
+
+test('other users cannot update an export transaction', function () {
+    $owner = User::factory()->create(['role' => 'encoder']);
+    $otherUser = User::factory()->create(['role' => 'encoder']);
+    $transaction = ExportTransaction::factory()->create(['assigned_user_id' => $owner->id]);
+    $client = Client::factory()->exporter()->create();
+    $country = Country::factory()->create();
+
+    $response = $this->actingAs($otherUser)
+        ->putJson("/api/export-transactions/{$transaction->id}", [
+            'shipper_id' => $client->id,
+            'bl_no' => 'BL-UPDATED',
+            'vessel' => 'MV Updated',
+            'destination_country_id' => $country->id,
+        ]);
+
+    $response->assertForbidden();
+});
+
+test('admins can update any export transaction', function () {
+    $owner = User::factory()->create(['role' => 'encoder']);
+    $admin = User::factory()->create(['role' => 'admin']);
+    $transaction = ExportTransaction::factory()->create(['assigned_user_id' => $owner->id]);
+    $client = Client::factory()->exporter()->create();
+    $country = Country::factory()->create();
+
+    $response = $this->actingAs($admin)
+        ->putJson("/api/export-transactions/{$transaction->id}", [
+            'shipper_id' => $client->id,
+            'bl_no' => 'BL-ADMIN-UPDATE',
+            'vessel' => 'MV Admin',
+            'destination_country_id' => $country->id,
+        ]);
+
+    $response->assertOk();
+});
+
+test('updating an export transaction ignores mass assignment of status', function () {
+    $user = User::factory()->create(['role' => 'encoder']);
+    $transaction = ExportTransaction::factory()->create(['assigned_user_id' => $user->id, 'status' => 'pending']);
+    $client = Client::factory()->exporter()->create();
+    $country = Country::factory()->create();
+
+    $response = $this->actingAs($user)
+        ->putJson("/api/export-transactions/{$transaction->id}", [
+            'shipper_id' => $client->id,
+            'bl_no' => 'BL-UPDATED',
+            'vessel' => 'MV Updated',
+            'destination_country_id' => $country->id,
+            'status' => 'completed', // Attacker trying to skip workflow
+        ]);
+
+    $response->assertOk();
+
+    // Status should remain unchanged by the update endpoint
+    $this->assertDatabaseHas('export_transactions', [
+        'id' => $transaction->id,
+        'status' => 'pending'
+    ]);
+});
+
+test('can update using same bl_no (unique validation ignores self)', function () {
+    $user = User::factory()->create(['role' => 'encoder']);
+    $transaction = ExportTransaction::factory()->create(['assigned_user_id' => $user->id, 'bl_no' => 'BL-ORIGINAL']);
+    $client = Client::factory()->exporter()->create();
+    $country = Country::factory()->create();
+
+    $response = $this->actingAs($user)
+        ->putJson("/api/export-transactions/{$transaction->id}", [
+            'shipper_id' => $client->id,
+            'bl_no' => 'BL-ORIGINAL', // keeping it the same
+            'vessel' => 'MV Updated',
+            'destination_country_id' => $country->id,
+        ]);
+
+    $response->assertOk();
+});
