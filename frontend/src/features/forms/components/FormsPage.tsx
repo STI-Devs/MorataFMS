@@ -1,6 +1,7 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import type { LayoutContext } from '../../tracking/types';
+import html2pdf from 'html2pdf.js';
 import { TEMPLATES } from '../constants/templates';
 import type { Field, FormTemplate } from '../types/forms.types';
 import { DocumentPreview } from './DocumentPreview';
@@ -16,11 +17,32 @@ export const FormsPage = () => {
     const getFields = (t: FormTemplate): Field[] =>
         t.fields.map(f => ({ ...f, value: fieldValues[t.id]?.[f.id] ?? f.value }));
 
+    const [isSaving, setIsSaving] = useState(false);
+
     const handleChange = (id: string, val: string) =>
         setFieldValues(prev => ({
             ...prev,
             [activeId]: { ...(prev[activeId] ?? {}), [id]: val },
         }));
+
+    const handleSavePDF = async () => {
+        setIsSaving(true);
+        // Yield to the event loop so React can render the "Saving..." state
+        await new Promise(resolve => setTimeout(resolve, 50));
+        try {
+            const element = document.getElementById('document-preview-container');
+            if (!element) return;
+            await html2pdf().set({
+                margin: 10,
+                filename: `${activeTemplate.title.replace(/\s+/g, '_').toLowerCase()}.pdf`,
+                image: { type: 'jpeg', quality: 0.95 },
+                html2canvas: { scale: 2, useCORS: true, width: element.scrollWidth },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const },
+            }).from(element).save();
+        } finally {
+            setIsSaving(false);
+        }
+    };
 
     return (
         <div className="w-full p-8 pb-12 space-y-7">
@@ -61,21 +83,37 @@ export const FormsPage = () => {
                             Print
                         </button>
                         <button
-                            onClick={() => window.print()}
-                            className="flex items-center gap-1.5 px-4 h-9 rounded-lg text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 transition-all shadow-sm">
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                            </svg>
-                            Save
+                            onClick={handleSavePDF}
+                            disabled={isSaving}
+                            className="flex items-center gap-1.5 px-4 h-9 rounded-lg text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 transition-all shadow-sm disabled:opacity-60"
+                        >
+                            {isSaving ? (
+                                <>
+                                    <svg className="animate-spin -ml-1 mr-1 h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                    </svg>
+                                    Saving...
+                                </>
+                            ) : (
+                                <>
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                    </svg>
+                                    Save PDF
+                                </>
+                            )}
                         </button>
                     </div>
                 </div>
 
                 <div className="overflow-x-auto rounded-lg">
-                    <DocumentPreview
-                        template={activeTemplate}
-                        fields={getFields(activeTemplate)}
-                        onFieldChange={handleChange} />
+                    <div id="document-preview-container">
+                        <DocumentPreview
+                            template={activeTemplate}
+                            fields={getFields(activeTemplate)}
+                            onFieldChange={handleChange} />
+                    </div>
                 </div>
             </div>
         </div>

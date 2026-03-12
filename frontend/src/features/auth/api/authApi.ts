@@ -1,4 +1,4 @@
-﻿import api from '../../../lib/axios';
+import api from '../../../lib/axios';
 import type { AuthResponse, LoginCredentials, User } from '../types/auth.types';
 
 export const authApi = {
@@ -28,5 +28,12 @@ export const authApi = {
     async getCurrentUser(): Promise<User> {
         const response = await api.get<User>(`/api/user`);
         return response.data;
+    },
+
+    // Update profile (name and/or password)
+    async updateProfile(payload: { name?: string; password?: string; password_confirmation?: string }): Promise<User> {
+        // Typically returns UserResource — unwrap { data: User } if present
+        const response = await api.put<{ data: User } | User>(`/api/user/profile`, payload);
+        return (response.data as { data: User }).data ?? (response.data as User);
     },
 };

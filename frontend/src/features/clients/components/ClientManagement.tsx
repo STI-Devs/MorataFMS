@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { TransactionHistoryModal } from '../../oversight/components/TransactionHistoryModal';
 import type { LayoutContext } from '../../tracking/types';
@@ -211,7 +211,7 @@ export const ClientManagement = () => {
                             <thead>
                                 <tr className="border-b border-border">
                                     {['Name', 'Type', 'Country', 'Contact', 'Status', 'Actions'].map((h, i) => (
-                                        <th key={h} className={`px-5 py-3 text-xs font-semibold uppercase tracking-wider ${i === 5 ? 'text-right' : 'text-left'} text-text-muted`}>
+                                        <th key={h} className={`px-5 py-3 text-xs font-semibold uppercase tracking-wider ${i === 0 ? 'text-left' : i === 5 ? 'text-right' : 'text-center'} text-text-muted`}>
                                             {h}
                                         </th>
                                     ))}
@@ -232,18 +232,18 @@ export const ClientManagement = () => {
                                                 <span className="text-sm font-semibold text-text-primary">{client.name}</span>
                                             </div>
                                         </td>
-                                        <td className="px-5 py-3.5"><TypeBadge type={client.type} /></td>
-                                        <td className="px-5 py-3.5 text-sm text-text-secondary">
+                                        <td className="px-5 py-3.5 text-center"><TypeBadge type={client.type} /></td>
+                                        <td className="px-5 py-3.5 text-sm text-text-secondary text-center">
                                             {client.country?.name || <span className="text-text-muted">—</span>}
                                         </td>
-                                        <td className="px-5 py-3.5">
+                                        <td className="px-5 py-3.5 text-center">
                                             <div className="text-sm text-text-primary">
                                                 {client.contact_person && <div className="font-medium">{client.contact_person}</div>}
                                                 {client.contact_email && <div className="text-xs text-text-muted">{client.contact_email}</div>}
                                                 {!client.contact_person && !client.contact_email && <span className="text-text-muted">—</span>}
                                             </div>
                                         </td>
-                                        <td className="px-5 py-3.5">
+                                        <td className="px-5 py-3.5 text-center">
                                             <span
                                                 className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold"
                                                 style={client.is_active
@@ -255,8 +255,8 @@ export const ClientManagement = () => {
                                                 {client.is_active ? 'Active' : 'Inactive'}
                                             </span>
                                         </td>
-                                        <td className="px-5 py-3.5 text-right">
-                                            <div className="flex items-center justify-end gap-1.5">
+                                        <td className="px-5 py-3.5 text-center">
+                                            <div className="flex items-center justify-center gap-1.5">
                                                 <button
                                                     onClick={() => handleEdit(client)}
                                                     className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-surface-elevated border border-border text-text-secondary hover:text-text-primary hover:border-border-strong transition-colors"

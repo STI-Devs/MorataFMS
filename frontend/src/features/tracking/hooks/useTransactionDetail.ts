@@ -1,4 +1,4 @@
-﻿import { useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { trackingApi } from '../api/trackingApi';
 import type { ApiExportTransaction, ApiImportTransaction, ExportTransaction, ImportTransaction } from '../types';
 
@@ -15,6 +15,7 @@ const mapImport = (t: ApiImportTransaction): ImportTransaction => ({
             t.selective_color === 'yellow' ? 'bg-yellow-500' : 'bg-red-500',
     importer: t.importer?.name || 'Unknown',
     date: t.arrival_date || '',
+    open_remarks_count: 0,
 });
 
 const mapExport = (t: ApiExportTransaction): ExportTransaction => ({
@@ -32,6 +33,7 @@ const mapExport = (t: ApiExportTransaction): ExportTransaction => ({
         ? new Date(t.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
         : '',
     portOfDestination: t.destination_country?.name || '',
+    open_remarks_count: 0,
 });
 
 export const useTransactionDetail = (referenceId: string | undefined) =>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../features/auth';
@@ -107,6 +107,8 @@ export const MainLayout = () => {
     const [activeModule, setActiveModule] = useState<Module>(() =>
         getInitialModule(departments)
     );
+    const [isAccountOpen, setIsAccountOpen] = useState(false);
+    const accountRef = useRef<HTMLDivElement>(null);
 
     const switchModule = (mod: Module) => {
         setActiveModule(mod);
@@ -114,6 +116,18 @@ export const MainLayout = () => {
         // Navigate to the module's home on switch
         navigate(mod === 'legal' ? '/law-firm' : (isAdmin ? '/transactions' : '/tracking'));
     };
+
+    // Close account popover on outside click
+    useEffect(() => {
+        if (!isAccountOpen) return;
+        const handler = (e: MouseEvent) => {
+            if (accountRef.current && !accountRef.current.contains(e.target as Node)) {
+                setIsAccountOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, [isAccountOpen]);
 
     useEffect(() => {
         const updateTime = () => {
@@ -174,6 +188,7 @@ export const MainLayout = () => {
     const legalItems = [
         { label: 'Law Firm', path: '/law-firm', icon: 'M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3' },
         { label: 'Forms', path: '/forms', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
+        { label: 'Documents', path: '/legal-documents', icon: 'M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z' },
     ];
 
     const isAdmin = user?.role === 'admin';
@@ -260,6 +275,9 @@ export const MainLayout = () => {
                     />
                 )}
 
+                {/* Scrollable nav area — prevents settings from overlapping user info */}
+                <div className="flex-1 min-h-0 overflow-y-auto">
+
                 {/* Main Menu */}
                 <div className="mb-4">
                     <p className={`text-[10px] uppercase tracking-widest px-3 mb-2 font-bold ${isSidebarDark ? 'text-gray-600' : 'text-gray-400'}`}>
@@ -281,60 +299,114 @@ export const MainLayout = () => {
                     </nav>
                 </div>
 
-                {/* Divider */}
-                <div className={`mx-3 my-2 h-px ${isSidebarDark ? 'bg-white/8' : 'bg-black/8'}`} />
+                </div>{/* end scrollable nav area */}
 
-                {/* Settings */}
-                <div className="mb-2">
-                    <p className={`text-[10px] uppercase tracking-widest px-3 mb-2 font-bold ${isSidebarDark ? 'text-gray-600' : 'text-gray-400'}`}>
-                        Settings
-                    </p>
-                    <nav className="space-y-0.5">
-                        {settingsItems.map((item) => {
-                            const isActive = location.pathname === item.path;
-                            return (
-                                <NavItem
-                                    key={item.label}
-                                    item={item}
-                                    isActive={isActive}
-                                    isSidebarDark={isSidebarDark}
-                                    onNavigate={handleNavigation}
-                                />
-                            );
-                        })}
-                    </nav>
-                </div>
+                {/* Account card — click to open popover */}
+                <div ref={accountRef} className="relative">
 
-                {/* Spacer */}
-                <div className="flex-1" />
+                    {/* Popover — floats above the card */}
+                    {isAccountOpen && (
+                        <div className={`absolute bottom-full left-0 right-0 mb-2 mx-2 rounded-xl border shadow-xl overflow-hidden z-50 ${
+                            isSidebarDark
+                                ? 'bg-[#1c1c1e] border-white/10'
+                                : 'bg-white border-black/8'
+                        }`}>
+                            {/* User header inside popover */}
+                            <div className={`px-4 py-3 border-b ${
+                                isSidebarDark ? 'border-white/8' : 'border-black/6'
+                            }`}>
+                                <p className={`text-sm font-semibold truncate ${isSidebarDark ? 'text-white' : 'text-gray-900'}`}>
+                                    {user?.name || 'User'}
+                                </p>
+                                <p className={`text-xs capitalize truncate ${isSidebarDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                                    {user?.role || 'Role'} &middot; {user?.email || ''}
+                                </p>
+                            </div>
 
-                {/* Bottom actions */}
-                <div className="space-y-0.5">
-                    {/* Theme Toggle */}
+                            {/* Nav items */}
+                            <div className="py-1">
+                                {settingsItems.map(item => (
+                                    <button
+                                        key={item.label}
+                                        onClick={() => { handleNavigation(item.path); setIsAccountOpen(false); }}
+                                        className={`w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors ${
+                                            location.pathname === item.path
+                                                ? isSidebarDark ? 'text-white bg-white/8' : 'text-black bg-black/6'
+                                                : isSidebarDark ? 'text-gray-300 hover:bg-white/6 hover:text-white' : 'text-gray-700 hover:bg-black/4 hover:text-black'
+                                        }`}
+                                    >
+                                        <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={item.icon} />
+                                        </svg>
+                                        {item.label}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Divider */}
+                            <div className={`mx-3 h-px ${isSidebarDark ? 'bg-white/8' : 'bg-black/6'}`} />
+
+                            {/* Theme + Sign Out */}
+                            <div className="py-1">
+                                <button
+                                    onClick={() => { toggleTheme(); setIsAccountOpen(false); }}
+                                    className={`w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors ${
+                                        isSidebarDark ? 'text-gray-300 hover:bg-white/6 hover:text-white' : 'text-gray-700 hover:bg-black/4 hover:text-black'
+                                    }`}
+                                >
+                                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={themeIcon} />
+                                    </svg>
+                                    {themeLabel}
+                                </button>
+                                <button
+                                    onClick={handleLogout}
+                                    className={`w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors ${
+                                        isSidebarDark ? 'text-red-400 hover:bg-white/6' : 'text-red-500 hover:bg-red-50'
+                                    }`}
+                                >
+                                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                                    </svg>
+                                    Sign Out
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* The clickable card */}
                     <button
-                        onClick={toggleTheme}
-                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all ${isSidebarDark
-                            ? 'text-gray-400 hover:bg-white/5 hover:text-white'
-                            : 'text-gray-500 hover:bg-black/5 hover:text-black'
-                            }`}
+                        onClick={() => setIsAccountOpen(!isAccountOpen)}
+                        className={`w-full flex items-center gap-3 px-4 py-3 border-t transition-colors group ${
+                            isSidebarDark
+                                ? 'border-white/10 hover:bg-white/5'
+                                : 'border-black/8 hover:bg-black/4'
+                        }`}
                     >
-                        <svg className={`w-4 h-4 shrink-0 ${isSidebarDark ? 'text-gray-400' : 'text-gray-500'}`}
-                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={themeIcon} />
-                        </svg>
-                        {themeLabel}
-                    </button>
-
-                    {/* Sign Out */}
-                    <button
-                        onClick={handleLogout}
-                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all ${isSidebarDark ? 'text-red-400 hover:bg-white/5' : 'text-red-500 hover:bg-red-50'
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${
+                            isSidebarDark ? 'bg-white/10 text-white' : 'bg-black/5 text-black'
+                        }`}>
+                            {user?.name?.charAt(0).toUpperCase() || 'U'}
+                        </div>
+                        <div className="flex flex-col overflow-hidden flex-1 text-left">
+                            <span className={`text-sm font-semibold truncate ${isSidebarDark ? 'text-white' : 'text-black'}`}>
+                                {user?.name || 'User'}
+                            </span>
+                            <span className={`text-xs capitalize truncate ${isSidebarDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                                {user?.role || 'Role'} User
+                            </span>
+                        </div>
+                        {/* Chevron indicator */}
+                        <svg
+                            className={`w-4 h-4 shrink-0 transition-all duration-200 ${
+                                isAccountOpen
+                                    ? isSidebarDark ? 'text-white rotate-180' : 'text-black rotate-180'
+                                    : isSidebarDark ? 'text-gray-600 group-hover:text-gray-400' : 'text-gray-300 group-hover:text-gray-500'
                             }`}
-                    >
-                        <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                            fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                        >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7" />
                         </svg>
-                        Sign Out
                     </button>
                 </div>
             </aside>

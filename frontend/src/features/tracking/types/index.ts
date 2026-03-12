@@ -1,3 +1,4 @@
-﻿export * from './document.types';
+export * from '../../documents/types/document.types';
 export * from './tracking.types';
+
 

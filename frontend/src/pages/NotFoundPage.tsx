@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const NotFoundPage: React.FC = () => {
@@ -11,7 +11,7 @@ const NotFoundPage: React.FC = () => {
         }, 1000);
 
         const redirect = setTimeout(() => {
-            navigate('/');
+            navigate('/transactions');
         }, 10000);
 
         return () => {
@@ -58,7 +58,7 @@ const NotFoundPage: React.FC = () => {
 
                         <div className="pt-6">
                             <button
-                                onClick={() => navigate('/')}
+                                onClick={() => navigate('/transactions')}
                                 className="px-12 py-3 border border-white rounded-full text-lg font-medium hover:bg-white hover:text-black transition-all duration-300 transform active:scale-95 bg-black/30 backdrop-blur-sm shadow-lg"
                             >
                                 Back to home
