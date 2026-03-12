@@ -1,8 +1,9 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import { Icon } from '../../../components/Icon';
 import { FilePreviewModal } from '../../../components/modals/FilePreviewModal';
 import { UploadModal } from '../../../components/modals/UploadModal';
+import { getStatusStyle } from '../../../lib/statusStyles';
 import { trackingApi } from '../../tracking/api/trackingApi';
 import { useExports } from '../../tracking/hooks/useExports';
 import { useImports } from '../../tracking/hooks/useImports';
@@ -29,20 +30,23 @@ const TYPE_CONFIG = {
     legacy:  { label: 'Legacy',  color: '#ff9f0a', bg: 'rgba(255,159,10,0.12)' },
 };
 
-const STATUS_CONFIG: Record<string, { color: string; bg: string }> = {
-    Cleared:      { color: '#30d158', bg: 'rgba(48,209,88,0.13)'    },
-    Shipped:      { color: '#30d158', bg: 'rgba(48,209,88,0.13)'    },
-    'In Transit': { color: '#64d2ff', bg: 'rgba(100,210,255,0.13)'  },
-    Pending:      { color: '#ff9f0a', bg: 'rgba(255,159,10,0.13)'   },
-    Processing:   { color: '#ff9f0a', bg: 'rgba(255,159,10,0.13)'   },
-    Cancelled:    { color: '#ff453a', bg: 'rgba(255,69,58,0.13)'    },
-};
-
 const AVATAR_COLORS = [
     'bg-blue-500', 'bg-indigo-500', 'bg-emerald-500',
     'bg-violet-500', 'bg-amber-500', 'bg-rose-500',
     'bg-cyan-500', 'bg-teal-500',
 ];
+
+function toTitleCase(str: string): string {
+    if (!str || str === '\u2014') return str;
+    return str.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function formatDate(dateStr: string): string {
+    if (!dateStr || dateStr === '\u2014') return dateStr;
+    const d = new Date(dateStr + 'T00:00:00');
+    if (isNaN(d.getTime())) return dateStr;
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
 
 
 function getFileType(filename: string): DocFileType {
@@ -228,7 +232,7 @@ export const DocumentsDetail = () => {
     }
 
     const tc = TYPE_CONFIG[displayType];
-    const sc = STATUS_CONFIG[displayStatus] ?? { color: '#8e8e93', bg: 'rgba(142,142,147,0.13)' };
+    const sc = getStatusStyle(displayStatus);
 
     return (
         <div className="space-y-5 p-4">
@@ -249,7 +253,7 @@ export const DocumentsDetail = () => {
                             {displayStatus}
                         </span>
                     </div>
-                    <p className="text-sm text-text-secondary">{displayClient} · {displayDate}</p>
+                    <p className="text-sm text-text-secondary">{toTitleCase(displayClient)} · {formatDate(displayDate)}</p>
                 </div>
                 <div className="text-right hidden sm:block shrink-0">
                     <p className="text-2xl font-bold tabular-nums text-text-primary">{dateTime.time}</p>
@@ -317,7 +321,7 @@ export const DocumentsDetail = () => {
                             >
                                 <FileTypeIcon type={doc.fileType} />
                                 <p className="text-sm font-semibold text-text-primary truncate">{doc.name}</p>
-                                <p className="text-sm font-semibold text-text-secondary">{doc.date}</p>
+                                <p className="text-sm font-semibold text-text-secondary">{formatDate(doc.date)}</p>
                                 <div className="flex items-center gap-2">
                                     <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold text-white shrink-0 ${doc.uploader.avatarColor}`}>
                                         {doc.uploader.initials}

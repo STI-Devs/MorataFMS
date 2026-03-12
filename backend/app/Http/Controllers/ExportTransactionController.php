@@ -20,7 +20,8 @@ class ExportTransactionController extends Controller
         $this->authorize('viewAny', ExportTransaction::class);
 
         $query = ExportTransaction::with(['shipper', 'stages', 'assignedUser', 'destinationCountry'])
-            ->withCount(['remarks as open_remarks_count' => fn($q) => $q->where('is_resolved', false)]);
+            ->withCount(['remarks as open_remarks_count' => fn($q) => $q->where('is_resolved', false)])
+            ->withCount('documents');
 
         if ($search = $request->query('search')) {
             $query->where(function ($q) use ($search) {
@@ -43,9 +44,14 @@ class ExportTransactionController extends Controller
             $query->where('status', $status);
         }
 
+        // Exclude statuses (comma-separated) — used by tracking to hide completed/cancelled
+        if ($exclude = $request->query('exclude_statuses')) {
+            $query->whereNotIn('status', explode(',', $exclude));
+        }
+
         $perPage = $request->input('per_page', 15);
-        if ($perPage > 100)
-            $perPage = 100; // Cap at 100
+        if ($perPage > 500)
+            $perPage = 500;
 
         $transactions = $query->orderBy('created_at', 'desc')->paginate($perPage);
 

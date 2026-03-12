@@ -19,6 +19,7 @@ export const trackingApi = {
         search?: string;
         status?: string;
         selective_color?: string;
+        exclude_statuses?: string;
         page?: number;
         per_page?: number;
     }): Promise<PaginatedResponse<ApiImportTransaction>> => {
@@ -40,6 +41,7 @@ export const trackingApi = {
     getExports: async (params?: {
         search?: string;
         status?: string;
+        exclude_statuses?: string;
         page?: number;
         per_page?: number;
     }): Promise<PaginatedResponse<ApiExportTransaction>> => {

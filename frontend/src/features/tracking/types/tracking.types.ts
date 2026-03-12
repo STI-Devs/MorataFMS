@@ -1,4 +1,4 @@
-﻿export interface LayoutContext {
+export interface LayoutContext {
     user?: { name: string; role: string };
     dateTime: { time: string; date: string };
 }
@@ -78,6 +78,7 @@ export interface ApiImportTransaction {
     };
     created_at: string;
     open_remarks_count: number;
+    documents_count: number;
 }
 
 export interface ApiExportTransaction {
@@ -97,6 +98,7 @@ export interface ApiExportTransaction {
     };
     created_at: string;
     open_remarks_count: number;
+    documents_count: number;
 }
 
 export interface ApiClient {

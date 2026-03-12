@@ -36,6 +36,7 @@ class ExportTransactionResource extends JsonResource
             ]),
             'created_at' => $this->created_at?->toISOString(),
             'open_remarks_count' => $this->open_remarks_count ?? 0,
+            'documents_count' => $this->documents_count ?? 0,
         ];
     }
 }

@@ -1,4 +1,4 @@
-﻿import { useMemo } from 'react';
+import { useMemo } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { EmptyState } from '../../../../components/EmptyState';
 import { Spinner } from '../../../../components/Spinner';
@@ -19,8 +19,10 @@ export const TrackingDashboard = () => {
     const navigate = useNavigate();
     const { dateTime } = useOutletContext<LayoutContext>();
 
-    const { data: importsData, isLoading: importsLoading } = useTransactionList('import');
-    const { data: exportsData, isLoading: exportsLoading } = useTransactionList('export');
+    const LIVE_PARAMS = { exclude_statuses: 'completed,cancelled', per_page: 500 };
+
+    const { data: importsData, isLoading: importsLoading } = useTransactionList('import', LIVE_PARAMS);
+    const { data: exportsData, isLoading: exportsLoading } = useTransactionList('export', LIVE_PARAMS);
 
     const imports = useMemo<ImportTransaction[]>(
         () => (importsData?.data as ApiImportTransaction[] | undefined)?.map(mapImportTransaction) ?? [],

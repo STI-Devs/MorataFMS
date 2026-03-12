@@ -1,4 +1,4 @@
-﻿import type { ApiExportTransaction, ApiImportTransaction, PaginatedResponse } from '../types';
+import type { ApiExportTransaction, ApiImportTransaction, PaginatedResponse } from '../types';
 import { useExports } from './useExports';
 import { useImports } from './useImports';
 
@@ -6,6 +6,7 @@ interface UseTransactionListParams {
     search?: string;
     status?: string;
     selective_color?: string;
+    exclude_statuses?: string;
     page?: number;
     per_page?: number;
 }

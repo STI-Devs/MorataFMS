@@ -1,4 +1,4 @@
-﻿import { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate, useOutletContext, useSearchParams } from 'react-router-dom';
 import { Icon } from '../../../components/Icon';
 import { Pagination } from '../../../components/Pagination';
@@ -70,7 +70,9 @@ export function TransactionListPage<T>({
 
     const { data: response, isLoading, isFetching } = useTransactionList(type, {
         search:           debouncedSearch || undefined,
+        // When user picks a status explicitly, honour it; otherwise hide finalized (in Documents)
         status:           filterType === 'Status' ? filterValue : undefined,
+        exclude_statuses: filterType === 'Status' ? undefined : 'completed,cancelled',
         selective_color:  filterType === 'SC'     ? filterValue : undefined,
         page,
         per_page:         perPage,
@@ -87,12 +89,11 @@ export function TransactionListPage<T>({
 
     const handleResetFilter = () => { setFilterType(''); setFilterValue(''); setOpenDropdown(null); };
 
-    const total = (stats?.completed ?? 0) + (stats?.pending ?? 0) + (stats?.in_progress ?? 0) + (stats?.cancelled ?? 0);
+    const total = (stats?.pending ?? 0) + (stats?.in_progress ?? 0);
     const statCards = [
-        { label: 'Total',                                          value: total,                 color: '#0a84ff', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' },
-        { label: type === 'import' ? 'Cleared' : 'Shipped',       value: stats?.completed ?? 0, color: '#30d158', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' },
-        { label: 'In Transit',                                     value: stats?.in_progress ?? 0, color: '#64d2ff', icon: 'M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0' },
-        { label: type === 'import' ? 'Pending' : 'Processing',    value: stats?.pending ?? 0,   color: '#ff9f0a', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
+        { label: 'Active Shipments', value: total,                   color: '#0a84ff', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' },
+        { label: 'Pending Action',   value: stats?.pending ?? 0,     color: '#ff9f0a', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
+        { label: 'In Progress',      value: stats?.in_progress ?? 0, color: '#64d2ff', icon: 'M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0' },
     ];
 
     if (isLoading) {
@@ -119,7 +120,7 @@ export function TransactionListPage<T>({
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-3 gap-3">
                 {statCards.map(stat => (
                     <div key={stat.label} className="bg-surface rounded-xl p-4 border border-border shadow-sm">
                         <div className="flex items-start justify-between">
@@ -200,7 +201,7 @@ export function TransactionListPage<T>({
                                             ))
                                         )}
                                         {((type === 'import' && filterType === 'Status') || type === 'export') && (
-                                            ['pending', 'in_progress', 'completed', 'cancelled'].map(opt => (
+                                            ['pending', 'in_progress'].map(opt => (
                                                 <button key={opt} className="w-full text-left px-4 py-2 text-sm text-text-primary hover:bg-hover transition-colors capitalize" onClick={() => { setFilterValue(opt); setOpenDropdown(null); }}>
                                                     {opt.replace('_', ' ')}
                                                 </button>

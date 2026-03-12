@@ -20,7 +20,8 @@ class ImportTransactionController extends Controller
         $this->authorize('viewAny', ImportTransaction::class);
 
         $query = ImportTransaction::with(['importer', 'originCountry', 'stages', 'assignedUser'])
-            ->withCount(['remarks as open_remarks_count' => fn($q) => $q->where('is_resolved', false)]);
+            ->withCount(['remarks as open_remarks_count' => fn($q) => $q->where('is_resolved', false)])
+            ->withCount('documents');
 
         // Search by customs ref or BL number
         if ($search = $request->query('search')) {
@@ -38,14 +39,19 @@ class ImportTransactionController extends Controller
             $query->where('status', $status);
         }
 
+        // Exclude statuses (comma-separated) — used by tracking to hide completed/cancelled
+        if ($exclude = $request->query('exclude_statuses')) {
+            $query->whereNotIn('status', explode(',', $exclude));
+        }
+
         // Filter by selective color
         if ($color = $request->query('selective_color')) {
             $query->where('selective_color', $color);
         }
 
         $perPage = $request->input('per_page', 15);
-        if ($perPage > 100)
-            $perPage = 100; // Cap at 100
+        if ($perPage > 500)
+            $perPage = 500;
 
         $transactions = $query->orderBy('created_at', 'desc')->paginate($perPage);
 

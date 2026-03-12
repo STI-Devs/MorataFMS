@@ -250,17 +250,12 @@ export const MainLayout = () => {
                     className="flex items-center gap-2.5 px-2 mb-5 cursor-pointer"
                     onClick={() => navigate(isAdmin ? '/transactions' : '/tracking')}
                 >
-                    <div className="w-7 h-7 shrink-0">
-                        <img src="/logo.jpg" alt="F.M Morata Logo" className="w-full h-full object-cover rounded-full" />
-                    </div>
+                    <img src="/logo.jpg" alt="F.M Morata Logo" className="w-7 h-7 rounded-full object-cover shrink-0" />
                     <div>
-                        <span className={`font-bold text-sm block leading-tight ${isSidebarDark ? 'text-white' : 'text-black'}`}>
-                            F.M Morata
-                        </span>
-                        {/* Active module label under logo */}
-                        <span className={`text-[10px] font-medium tracking-wide ${isSidebarDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                        <p className={`font-bold text-sm leading-tight ${isSidebarDark ? 'text-white' : 'text-black'}`}>F.M Morata</p>
+                        <p className={`text-[10px] font-medium leading-tight ${isSidebarDark ? 'text-gray-500' : 'text-gray-400'}`}>
                             {activeModule === 'legal' ? 'Law Firm' : 'Customs Brokerage'}
-                        </span>
+                        </p>
                     </div>
                 </div>
 
