@@ -1,7 +1,3 @@
-# Agent & Gemini
-.Agent
-.gemini
-
 # Environment files (CRITICAL - contains secrets!)
 .env
 .env.*
