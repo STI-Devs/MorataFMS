@@ -19,18 +19,16 @@ type NavItemProps = {
 const NavItem = ({ item, isActive, isSidebarDark, onNavigate }: NavItemProps) => (
     <button
         onClick={() => onNavigate(item.path, item.newTab)}
-        className={`w-full text-left flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
-            isActive
-                ? isSidebarDark ? 'bg-white/10 text-white' : 'bg-black/8 text-black'
-                : isSidebarDark ? 'text-gray-400 hover:bg-white/5 hover:text-white' : 'text-gray-500 hover:bg-black/5 hover:text-black'
-        }`}
+        className={`w-full text-left flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${isActive
+            ? isSidebarDark ? 'bg-white/10 text-white' : 'bg-black/8 text-black'
+            : isSidebarDark ? 'text-gray-400 hover:bg-white/5 hover:text-white' : 'text-gray-500 hover:bg-black/5 hover:text-black'
+            }`}
     >
         <svg
-            className={`w-4 h-4 shrink-0 ${
-                isActive
-                    ? isSidebarDark ? 'text-white' : 'text-black'
-                    : isSidebarDark ? 'text-gray-400' : 'text-gray-500'
-            }`}
+            className={`w-4 h-4 shrink-0 ${isActive
+                ? isSidebarDark ? 'text-white' : 'text-black'
+                : isSidebarDark ? 'text-gray-400' : 'text-gray-500'
+                }`}
             fill="none" stroke="currentColor" viewBox="0 0 24 24"
             dangerouslySetInnerHTML={{ __html: item.icon.startsWith('<') ? item.icon : `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${item.icon}" />` }}
         />
@@ -51,11 +49,10 @@ const ModuleSwitcher = ({ activeModule, hasBrokerage, hasLegal, isSidebarDark, o
         {hasBrokerage && (
             <button
                 onClick={() => onSwitch('brokerage')}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-md text-xs font-semibold transition-all ${
-                    activeModule === 'brokerage'
-                        ? isSidebarDark ? 'bg-white text-black shadow-sm' : 'bg-black text-white shadow-sm'
-                        : isSidebarDark ? 'text-gray-500 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'
-                }`}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-md text-xs font-semibold transition-all ${activeModule === 'brokerage'
+                    ? isSidebarDark ? 'bg-white text-black shadow-sm' : 'bg-black text-white shadow-sm'
+                    : isSidebarDark ? 'text-gray-500 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'
+                    }`}
             >
                 <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 17H3a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2H6a2 2 0 01-2-2" />
@@ -67,11 +64,10 @@ const ModuleSwitcher = ({ activeModule, hasBrokerage, hasLegal, isSidebarDark, o
         {hasLegal && (
             <button
                 onClick={() => onSwitch('legal')}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-md text-xs font-semibold transition-all ${
-                    activeModule === 'legal'
-                        ? isSidebarDark ? 'bg-white text-black shadow-sm' : 'bg-black text-white shadow-sm'
-                        : isSidebarDark ? 'text-gray-500 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'
-                }`}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-md text-xs font-semibold transition-all ${activeModule === 'legal'
+                    ? isSidebarDark ? 'bg-white text-black shadow-sm' : 'bg-black text-white shadow-sm'
+                    : isSidebarDark ? 'text-gray-500 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'
+                    }`}
             >
                 <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 6l9-3 9 3M12 3v18M5 21h14M7 10l-2 4h4L7 10zM17 10l-2 4h4l-2-4z" />
@@ -174,6 +170,7 @@ export const MainLayout = () => {
         { label: 'Reports & Analytics', path: '/reports', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
         { label: 'Archives', path: '/archives', icon: 'M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4' },
         { label: 'Audit Logs', path: '/audit-logs', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' },
+        { label: 'Notifications', path: '/notifications', icon: 'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9' },
     ];
 
     const encoderBrokerageItems = [
@@ -182,6 +179,7 @@ export const MainLayout = () => {
         { label: 'Export List', path: '/exports', icon: 'M12 19l9 2-9-18-9 18 9-2zm0 0v-8' },
         { label: 'Documents', path: '/documents', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
         { label: 'My Archive', path: '/my-archive', icon: 'M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4' },
+        { label: 'Notifications', path: '/notifications', icon: 'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9' },
     ];
 
     // ── Legal / Law Firm nav items ────────────────────────────────────────────
@@ -189,6 +187,7 @@ export const MainLayout = () => {
         { label: 'Law Firm', path: '/law-firm', icon: 'M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3' },
         { label: 'Forms', path: '/forms', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
         { label: 'Documents', path: '/legal-documents', icon: 'M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z' },
+        { label: 'Notifications', path: '/notifications', icon: 'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9' },
     ];
 
     const isAdmin = user?.role === 'admin';
@@ -215,7 +214,6 @@ export const MainLayout = () => {
     const settingsItems = [
         { label: 'Profile', path: '/profile', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' },
         { label: 'Help', path: '/help', icon: 'M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
-        { label: 'Notifications', path: '/notifications', icon: 'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9' },
     ];
 
     const isSidebarDark = theme === 'dark' || theme === 'mix';
@@ -273,26 +271,26 @@ export const MainLayout = () => {
                 {/* Scrollable nav area — prevents settings from overlapping user info */}
                 <div className="flex-1 min-h-0 overflow-y-auto">
 
-                {/* Main Menu */}
-                <div className="mb-4">
-                    <p className={`text-[10px] uppercase tracking-widest px-3 mb-2 font-bold ${isSidebarDark ? 'text-gray-600' : 'text-gray-400'}`}>
-                        Main Menu
-                    </p>
-                    <nav className="space-y-0.5">
-                        {navItems.map((item) => {
-                            const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
-                            return (
-                                <NavItem
-                                    key={item.label}
-                                    item={item}
-                                    isActive={isActive}
-                                    isSidebarDark={isSidebarDark}
-                                    onNavigate={handleNavigation}
-                                />
-                            );
-                        })}
-                    </nav>
-                </div>
+                    {/* Main Menu */}
+                    <div className="mb-4">
+                        <p className={`text-[10px] uppercase tracking-widest px-3 mb-2 font-bold ${isSidebarDark ? 'text-gray-600' : 'text-gray-400'}`}>
+                            Main Menu
+                        </p>
+                        <nav className="space-y-0.5">
+                            {navItems.map((item) => {
+                                const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
+                                return (
+                                    <NavItem
+                                        key={item.label}
+                                        item={item}
+                                        isActive={isActive}
+                                        isSidebarDark={isSidebarDark}
+                                        onNavigate={handleNavigation}
+                                    />
+                                );
+                            })}
+                        </nav>
+                    </div>
 
                 </div>{/* end scrollable nav area */}
 
@@ -301,15 +299,13 @@ export const MainLayout = () => {
 
                     {/* Popover — floats above the card */}
                     {isAccountOpen && (
-                        <div className={`absolute bottom-full left-0 right-0 mb-2 mx-2 rounded-xl border shadow-xl overflow-hidden z-50 ${
-                            isSidebarDark
-                                ? 'bg-[#1c1c1e] border-white/10'
-                                : 'bg-white border-black/8'
-                        }`}>
-                            {/* User header inside popover */}
-                            <div className={`px-4 py-3 border-b ${
-                                isSidebarDark ? 'border-white/8' : 'border-black/6'
+                        <div className={`absolute bottom-full left-0 right-0 mb-2 mx-2 rounded-xl border shadow-xl overflow-hidden z-50 animate-dropdown-up-in ${isSidebarDark
+                            ? 'bg-[#1c1c1e] border-white/10'
+                            : 'bg-white border-black/8'
                             }`}>
+                            {/* User header inside popover */}
+                            <div className={`px-4 py-3 border-b ${isSidebarDark ? 'border-white/8' : 'border-black/6'
+                                }`}>
                                 <p className={`text-sm font-semibold truncate ${isSidebarDark ? 'text-white' : 'text-gray-900'}`}>
                                     {user?.name || 'User'}
                                 </p>
@@ -324,11 +320,10 @@ export const MainLayout = () => {
                                     <button
                                         key={item.label}
                                         onClick={() => { handleNavigation(item.path); setIsAccountOpen(false); }}
-                                        className={`w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors ${
-                                            location.pathname === item.path
-                                                ? isSidebarDark ? 'text-white bg-white/8' : 'text-black bg-black/6'
-                                                : isSidebarDark ? 'text-gray-300 hover:bg-white/6 hover:text-white' : 'text-gray-700 hover:bg-black/4 hover:text-black'
-                                        }`}
+                                        className={`w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors ${location.pathname === item.path
+                                            ? isSidebarDark ? 'text-white bg-white/8' : 'text-black bg-black/6'
+                                            : isSidebarDark ? 'text-gray-300 hover:bg-white/6 hover:text-white' : 'text-gray-700 hover:bg-black/4 hover:text-black'
+                                            }`}
                                     >
                                         <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={item.icon} />
@@ -345,9 +340,8 @@ export const MainLayout = () => {
                             <div className="py-1">
                                 <button
                                     onClick={() => { toggleTheme(); setIsAccountOpen(false); }}
-                                    className={`w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors ${
-                                        isSidebarDark ? 'text-gray-300 hover:bg-white/6 hover:text-white' : 'text-gray-700 hover:bg-black/4 hover:text-black'
-                                    }`}
+                                    className={`w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors ${isSidebarDark ? 'text-gray-300 hover:bg-white/6 hover:text-white' : 'text-gray-700 hover:bg-black/4 hover:text-black'
+                                        }`}
                                 >
                                     <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={themeIcon} />
@@ -356,9 +350,8 @@ export const MainLayout = () => {
                                 </button>
                                 <button
                                     onClick={handleLogout}
-                                    className={`w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors ${
-                                        isSidebarDark ? 'text-red-400 hover:bg-white/6' : 'text-red-500 hover:bg-red-50'
-                                    }`}
+                                    className={`w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors ${isSidebarDark ? 'text-red-400 hover:bg-white/6' : 'text-red-500 hover:bg-red-50'
+                                        }`}
                                 >
                                     <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -372,15 +365,13 @@ export const MainLayout = () => {
                     {/* The clickable card */}
                     <button
                         onClick={() => setIsAccountOpen(!isAccountOpen)}
-                        className={`w-full flex items-center gap-3 px-4 py-3 border-t transition-colors group ${
-                            isSidebarDark
-                                ? 'border-white/10 hover:bg-white/5'
-                                : 'border-black/8 hover:bg-black/4'
-                        }`}
+                        className={`w-full flex items-center gap-3 px-4 py-3 border-t transition-colors group ${isSidebarDark
+                            ? 'border-white/10 hover:bg-white/5'
+                            : 'border-black/8 hover:bg-black/4'
+                            }`}
                     >
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${
-                            isSidebarDark ? 'bg-white/10 text-white' : 'bg-black/5 text-black'
-                        }`}>
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${isSidebarDark ? 'bg-white/10 text-white' : 'bg-black/5 text-black'
+                            }`}>
                             {user?.name?.charAt(0).toUpperCase() || 'U'}
                         </div>
                         <div className="flex flex-col overflow-hidden flex-1 text-left">
@@ -393,11 +384,10 @@ export const MainLayout = () => {
                         </div>
                         {/* Chevron indicator */}
                         <svg
-                            className={`w-4 h-4 shrink-0 transition-all duration-200 ${
-                                isAccountOpen
-                                    ? isSidebarDark ? 'text-white rotate-180' : 'text-black rotate-180'
-                                    : isSidebarDark ? 'text-gray-600 group-hover:text-gray-400' : 'text-gray-300 group-hover:text-gray-500'
-                            }`}
+                            className={`w-4 h-4 shrink-0 transition-all duration-200 ${isAccountOpen
+                                ? isSidebarDark ? 'text-white rotate-180' : 'text-black rotate-180'
+                                : isSidebarDark ? 'text-gray-600 group-hover:text-gray-400' : 'text-gray-300 group-hover:text-gray-500'
+                                }`}
                             fill="none" stroke="currentColor" viewBox="0 0 24 24"
                         >
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7" />

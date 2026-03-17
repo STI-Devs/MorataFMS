@@ -21,7 +21,7 @@ export default function EditTransactionModal({ isOpen, onClose, type, transactio
     const { data: importerClients } = useClients('importer');
     const { data: exporterClients } = useClients('exporter');
     const { data: countries } = useCountries('export_destination', isOpen);
-    
+
     const updateMutation = useUpdateTransaction(type);
 
     // Form state
@@ -59,7 +59,7 @@ export default function EditTransactionModal({ isOpen, onClose, type, transactio
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         try {
             if (type === 'import') {
                 const payload: CreateImportPayload = {
@@ -89,9 +89,9 @@ export default function EditTransactionModal({ isOpen, onClose, type, transactio
     const isPending = updateMutation.isPending;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-backdrop-in">
             <div className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity" onClick={!isPending ? onClose : undefined} />
-            <div className="relative bg-surface rounded-2xl shadow-xl w-full max-w-lg overflow-hidden border border-border flex flex-col max-h-[90vh]">
+            <div className="relative bg-surface rounded-2xl shadow-xl w-full max-w-lg overflow-hidden border border-border flex flex-col max-h-[90vh] animate-modal-in">
                 <div className="p-4 sm:p-5 flex items-center justify-between border-b border-border bg-surface shrink-0">
                     <h2 className="text-xl font-bold text-text-primary">
                         Edit {type === 'import' ? 'Import' : 'Export'} Transaction

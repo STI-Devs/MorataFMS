@@ -274,30 +274,39 @@ export const UserManagement = () => {
                                                 ) : (
                                                     <>
                                                         <button
+                                                            title="Edit User"
                                                             onClick={() => handleEdit(user)}
-                                                            className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors hover:bg-white/10"
+                                                            className="p-1.5 rounded-lg transition-colors hover:bg-white/10"
                                                             style={{ backgroundColor: 'rgba(255,255,255,0.05)', color: '#e5e5ea' }}
                                                         >
-                                                            Edit
+                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                                            </svg>
                                                         </button>
 
                                                         {user.is_active ? (
                                                             <button
+                                                                title="Deactivate User"
                                                                 onClick={() => handleDeactivate(user.id)}
                                                                 disabled={deactivateUser.isPending}
-                                                                className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50 hover:opacity-80"
+                                                                className="p-1.5 rounded-lg transition-colors disabled:opacity-50 hover:opacity-80"
                                                                 style={{ backgroundColor: 'rgba(255,69,58,0.12)', color: '#ff453a' }}
                                                             >
-                                                                Deactivate
+                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                                                                </svg>
                                                             </button>
                                                         ) : (
                                                             <button
+                                                                title="Activate User"
                                                                 onClick={() => handleActivate(user.id)}
                                                                 disabled={activateUser.isPending}
-                                                                className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50 hover:opacity-80"
+                                                                className="p-1.5 rounded-lg transition-colors disabled:opacity-50 hover:opacity-80"
                                                                 style={{ backgroundColor: 'rgba(48,209,88,0.12)', color: '#30d158' }}
                                                             >
-                                                                Activate
+                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                                </svg>
                                                             </button>
                                                         )}
                                                     </>

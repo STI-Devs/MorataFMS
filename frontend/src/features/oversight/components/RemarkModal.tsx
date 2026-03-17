@@ -4,8 +4,8 @@ import { useCreateRemark, useDocuments, useRemarks, useResolveRemark } from '../
 import type { CreateRemarkData } from '../types/remark.types';
 
 const SEVERITY_CFG = {
-    info:     { label: 'Info',     color: '#0a84ff', bg: 'rgba(10,132,255,0.12)' },
-    warning:  { label: 'Warning',  color: '#ff9f0a', bg: 'rgba(255,159,10,0.12)' },
+    info: { label: 'Info', color: '#0a84ff', bg: 'rgba(10,132,255,0.12)' },
+    warning: { label: 'Warning', color: '#ff9f0a', bg: 'rgba(255,159,10,0.12)' },
     critical: { label: 'Critical', color: '#ff453a', bg: 'rgba(255,69,58,0.12)' },
 } as const;
 
@@ -63,9 +63,9 @@ export const RemarkModal = ({ isOpen, onClose, transactionType, transactionId, t
 
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={onClose}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-backdrop-in" onClick={onClose}>
             <div
-                className={`w-full max-w-2xl rounded-2xl max-h-[85vh] flex flex-col ${isDark ? 'bg-[#1c1c1e]' : 'bg-white'}`}
+                className={`w-full max-w-2xl rounded-2xl max-h-[85vh] flex flex-col animate-modal-in ${isDark ? 'bg-[#1c1c1e]' : 'bg-white'}`}
                 onClick={e => e.stopPropagation()}
             >
                 {/* Header */}
@@ -115,11 +115,10 @@ export const RemarkModal = ({ isOpen, onClose, transactionType, transactionId, t
                             <select
                                 value={documentId ?? ''}
                                 onChange={e => setDocumentId(e.target.value ? Number(e.target.value) : null)}
-                                className={`w-full px-3 py-2 rounded-lg text-sm border transition-colors focus:outline-none ${
-                                    isDark
+                                className={`w-full px-3 py-2 rounded-lg text-sm border transition-colors focus:outline-none ${isDark
                                         ? 'bg-white/5 border-white/10 text-white focus:border-blue-500/50'
                                         : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-blue-500/50'
-                                }`}
+                                    }`}
                             >
                                 <option value="">Do not pin to a document</option>
                                 {documentsData.data.map(doc => (
@@ -138,11 +137,10 @@ export const RemarkModal = ({ isOpen, onClose, transactionType, transactionId, t
                         placeholder="Describe the issue (e.g., 'BL No. is incorrect, please revise PPA docs')..."
                         rows={3}
                         maxLength={1000}
-                        className={`w-full px-3 py-2 rounded-lg text-sm resize-none border transition-colors focus:outline-none ${
-                            isDark
+                        className={`w-full px-3 py-2 rounded-lg text-sm resize-none border transition-colors focus:outline-none ${isDark
                                 ? 'bg-white/5 border-white/10 text-white placeholder:text-gray-600 focus:border-blue-500/50'
                                 : 'bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-400 focus:border-blue-500/50'
-                        }`}
+                            }`}
                     />
                     <div className="flex items-center justify-between mt-2">
                         <span className={`text-xs ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>

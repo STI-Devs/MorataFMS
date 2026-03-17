@@ -193,12 +193,10 @@
 
 /* Professional skeleton shimmer — use instead of animate-pulse */
 .skeleton-shimmer {
-  background: linear-gradient(
-    90deg,
-    var(--color-skeleton) 0%,
-    var(--color-skeleton-shine) 40%,
-    var(--color-skeleton) 80%
-  );
+  background: linear-gradient(90deg,
+      var(--color-skeleton) 0%,
+      var(--color-skeleton-shine) 40%,
+      var(--color-skeleton) 80%);
   background-size: 800px 100%;
   animation: shimmer 1.4s ease-in-out infinite;
 }
@@ -233,6 +231,74 @@
   to {
     opacity: 0;
   }
+}
+
+/* ── Modal open animation (matches audit-log panel expand feel) ── */
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: scale(0.93) translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes backdrop-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+/* Apply with: className="animate-modal-in" on the inner panel <div> */
+.animate-modal-in {
+  animation: modal-in 280ms cubic-bezier(0.34, 1.06, 0.64, 1) both;
+}
+
+/* Apply with: className="animate-backdrop-in" on the overlay <div> */
+.animate-backdrop-in {
+  animation: backdrop-in 200ms ease both;
+}
+
+/* ── Dropdown open animation ── */
+@keyframes dropdown-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Apply with: className="animate-dropdown-in" on the dropdown panel */
+.animate-dropdown-in {
+  animation: dropdown-in 200ms cubic-bezier(0.34, 1.06, 0.64, 1) both;
+}
+
+/* Variant that pops UP (for bottom-anchored menus like the account popover) */
+@keyframes dropdown-up-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-dropdown-up-in {
+  animation: dropdown-up-in 200ms cubic-bezier(0.34, 1.06, 0.64, 1) both;
 }
 
 

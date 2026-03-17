@@ -25,17 +25,17 @@ const selectCls = `${inputCls} appearance-none cursor-pointer`;
 export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type, onSave }) => {
     const isImport = type === 'import';
 
-    const [ref,                  setRef]                  = useState('');
-    const [bl,                   setBl]                   = useState('');
-    const [blsc,                 setBlsc]                 = useState('');
-    const [clientId,             setClientId]             = useState<number | ''>('');
-    const [arrivalDate,          setArrivalDate]          = useState('');
-    const [vessel,               setVessel]               = useState('');
+    const [ref, setRef] = useState('');
+    const [bl, setBl] = useState('');
+    const [blsc, setBlsc] = useState('');
+    const [clientId, setClientId] = useState<number | ''>('');
+    const [arrivalDate, setArrivalDate] = useState('');
+    const [vessel, setVessel] = useState('');
     const [destinationCountryId, setDestinationCountryId] = useState<number | ''>('');
-    const [submitting,           setSubmitting]           = useState(false);
-    const [error,                setError]                = useState<string | null>(null);
+    const [submitting, setSubmitting] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
-    const { data: clients  = [], isLoading: loadingClients }  = useClients(isImport ? 'importer' : 'exporter');
+    const { data: clients = [], isLoading: loadingClients } = useClients(isImport ? 'importer' : 'exporter');
     const { data: countries = [], isLoading: loadingCountries } = useCountries('export_destination', !isImport);
 
     // Scroll-lock main content + form reset when modal opens
@@ -68,16 +68,16 @@ export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type,
         try {
             if (isImport) {
                 await onSave({
-                    customs_ref_no:  ref,
-                    bl_no:           bl,
+                    customs_ref_no: ref,
+                    bl_no: bl,
                     selective_color: blsc as 'green' | 'yellow' | 'red',
-                    importer_id:     clientId as number,
-                    arrival_date:    arrivalDate,
+                    importer_id: clientId as number,
+                    arrival_date: arrivalDate,
                 } satisfies CreateImportPayload);
             } else {
                 await onSave({
                     shipper_id: clientId as number,
-                    bl_no:      bl,
+                    bl_no: bl,
                     vessel,
                     ...(destinationCountryId !== '' && { destination_country_id: destinationCountryId }),
                 } satisfies CreateExportPayload);
@@ -92,11 +92,11 @@ export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type,
 
     return (
         <div
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[150] p-4 overflow-hidden"
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[150] p-4 overflow-hidden animate-backdrop-in"
             onClick={onClose}
         >
             <div
-                className="bg-surface rounded-xl shadow-2xl w-full max-w-lg overflow-hidden border border-border transition-all"
+                className="bg-surface rounded-xl shadow-2xl w-full max-w-lg overflow-hidden border border-border transition-all animate-modal-in"
                 onClick={e => e.stopPropagation()}
             >
                 {/* Header */}

@@ -11,16 +11,16 @@ interface StatusOverrideModalProps {
 }
 
 const STATUS_OPTIONS = [
-    { value: 'pending',     label: 'Pending',     dot: '#ff9f0a' },
-    { value: 'in_progress', label: 'In Progress',  dot: '#64d2ff' },
-    { value: 'completed',   label: 'Completed',    dot: '#30d158' },
-    { value: 'cancelled',   label: 'Cancelled',    dot: '#ff453a' },
+    { value: 'pending', label: 'Pending', dot: '#ff9f0a' },
+    { value: 'in_progress', label: 'In Progress', dot: '#64d2ff' },
+    { value: 'completed', label: 'Completed', dot: '#30d158' },
+    { value: 'cancelled', label: 'Cancelled', dot: '#ff453a' },
 ];
 
 export const StatusOverrideModal = ({ isOpen, onClose, transaction, onSuccess }: StatusOverrideModalProps) => {
     const [selectedStatus, setSelectedStatus] = useState('');
-    const [isLoading,      setIsLoading]      = useState(false);
-    const [error,          setError]          = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState('');
 
     useEffect(() => {
         if (isOpen && transaction) {
@@ -53,9 +53,9 @@ export const StatusOverrideModal = ({ isOpen, onClose, transaction, onSuccess }:
     if (!isOpen || !transaction) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={onClose}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-backdrop-in" onClick={onClose}>
             <div
-                className="w-full max-w-md rounded-xl p-6 shadow-xl bg-surface border border-border"
+                className="w-full max-w-md rounded-xl p-6 shadow-xl bg-surface border border-border animate-modal-in"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
@@ -96,11 +96,10 @@ export const StatusOverrideModal = ({ isOpen, onClose, transaction, onSuccess }:
                             <button
                                 key={opt.value}
                                 onClick={() => setSelectedStatus(opt.value)}
-                                className={`px-3 py-2.5 rounded-lg text-sm font-semibold border-2 transition-all flex items-center gap-2 ${
-                                    selectedStatus === opt.value
+                                className={`px-3 py-2.5 rounded-lg text-sm font-semibold border-2 transition-all flex items-center gap-2 ${selectedStatus === opt.value
                                         ? 'border-text-primary bg-surface-elevated'
                                         : 'border-border hover:border-border-strong bg-surface-tint'
-                                } text-text-primary`}
+                                    } text-text-primary`}
                             >
                                 <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: opt.dot }} />
                                 {opt.label}

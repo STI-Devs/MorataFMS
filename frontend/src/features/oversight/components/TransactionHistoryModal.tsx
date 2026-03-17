@@ -19,10 +19,9 @@ export const TransactionHistoryModal = ({ isOpen, onClose, clientName, imports, 
     const totalTransactions = imports.length + exports.length;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={onClose}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-backdrop-in" onClick={onClose}>
             <div
-                className={`w-full max-w-4xl rounded-[2rem] p-8 max-h-[90vh] overflow-y-auto ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'
-                    }`}
+                className={`w-full max-w-4xl rounded-[2rem] p-8 max-h-[90vh] overflow-y-auto animate-modal-in ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className="flex justify-between items-start mb-6">
@@ -51,8 +50,8 @@ export const TransactionHistoryModal = ({ isOpen, onClose, clientName, imports, 
                     <button
                         onClick={() => setActiveTab('imports')}
                         className={`px-4 py-2 font-medium transition-colors border-b-2 ${activeTab === 'imports'
-                                ? 'border-black dark:border-white text-black dark:text-white'
-                                : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                            ? 'border-black dark:border-white text-black dark:text-white'
+                            : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
                             }`}
                     >
                         Imports ({imports.length})
@@ -60,8 +59,8 @@ export const TransactionHistoryModal = ({ isOpen, onClose, clientName, imports, 
                     <button
                         onClick={() => setActiveTab('exports')}
                         className={`px-4 py-2 font-medium transition-colors border-b-2 ${activeTab === 'exports'
-                                ? 'border-black dark:border-white text-black dark:text-white'
-                                : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                            ? 'border-black dark:border-white text-black dark:text-white'
+                            : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
                             }`}
                     >
                         Exports ({exports.length})
@@ -114,12 +113,12 @@ export const TransactionHistoryModal = ({ isOpen, onClose, clientName, imports, 
                                             </td>
                                             <td className="px-4 py-3">
                                                 <span className={`inline-flex px-2 py-1 rounded-full text-xs font-bold capitalize ${transaction.status === 'completed'
-                                                        ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                                                        : transaction.status === 'in_progress'
-                                                            ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
-                                                            : transaction.status === 'cancelled'
-                                                                ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
-                                                                : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                                                    ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                                                    : transaction.status === 'in_progress'
+                                                        ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                                                        : transaction.status === 'cancelled'
+                                                            ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                                                            : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
                                                     }`}>
                                                     {transaction.status}
                                                 </span>
@@ -176,12 +175,12 @@ export const TransactionHistoryModal = ({ isOpen, onClose, clientName, imports, 
                                             </td>
                                             <td className="px-4 py-3">
                                                 <span className={`inline-flex px-2 py-1 rounded-full text-xs font-bold capitalize ${transaction.status === 'completed'
-                                                        ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                                                        : transaction.status === 'in_progress'
-                                                            ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
-                                                            : transaction.status === 'cancelled'
-                                                                ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
-                                                                : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                                                    ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                                                    : transaction.status === 'in_progress'
+                                                        ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                                                        : transaction.status === 'cancelled'
+                                                            ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                                                            : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
                                                     }`}>
                                                     {transaction.status}
                                                 </span>
@@ -201,8 +200,8 @@ export const TransactionHistoryModal = ({ isOpen, onClose, clientName, imports, 
                     <button
                         onClick={onClose}
                         className={`px-6 py-3 rounded-xl font-bold border transition-colors ${theme === 'dark'
-                                ? 'border-gray-600 text-white hover:bg-gray-700'
-                                : 'border-gray-200 text-gray-900 hover:bg-gray-50'
+                            ? 'border-gray-600 text-white hover:bg-gray-700'
+                            : 'border-gray-200 text-gray-900 hover:bg-gray-50'
                             }`}
                     >
                         Close

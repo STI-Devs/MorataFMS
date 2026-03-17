@@ -22,8 +22,8 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[200]">
-            <div className="bg-surface rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden mx-4 animate-in fade-in zoom-in duration-200 border border-border transition-all">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[200] animate-backdrop-in">
+            <div className="bg-surface rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden mx-4 border border-border transition-all animate-modal-in">
                 <div className="p-6 text-center">
                     <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4 transition-colors">
                         <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">

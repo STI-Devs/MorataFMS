@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import { Icon } from '../../../components/Icon';
 import type { LayoutContext } from '../../tracking/types';
 import { useAllTransactions } from '../hooks/useTransactions';
@@ -16,10 +16,10 @@ type StatusFilter = 'all' | 'pending' | 'in_progress' | 'completed' | 'cancelled
 
 
 const STATUS_CFG: Record<string, { color: string; bg: string }> = {
-    completed:   { color: '#30d158', bg: 'rgba(48,209,88,0.13)'   },
-    in_progress: { color: '#64d2ff', bg: 'rgba(100,210,255,0.13)' },
-    cancelled:   { color: '#ff453a', bg: 'rgba(255,69,58,0.13)'   },
-    pending:     { color: '#ff9f0a', bg: 'rgba(255,159,10,0.13)'  },
+    completed: { color: '#30d158', bg: 'rgba(48,209,88,0.13)' },
+    in_progress: { color: '#0a84ff', bg: 'rgba(10,132,255,0.13)' },
+    cancelled: { color: '#ff453a', bg: 'rgba(255,69,58,0.13)' },
+    pending: { color: '#ff9f0a', bg: 'rgba(255,159,10,0.13)' },
 };
 
 const TYPE_CFG: Record<string, { color: string; bg: string }> = {
@@ -29,6 +29,7 @@ const TYPE_CFG: Record<string, { color: string; bg: string }> = {
 
 
 export const TransactionOversight = () => {
+    const navigate = useNavigate();
     const { dateTime } = useOutletContext<LayoutContext>();
     const qc = useQueryClient();
 
@@ -77,9 +78,20 @@ export const TransactionOversight = () => {
                     <h1 className="text-3xl font-bold mb-1 text-text-primary">Transaction Oversight</h1>
                     <p className="text-sm text-text-secondary">All imports &amp; exports — reassign encoders, override statuses</p>
                 </div>
-                <div className="text-right hidden sm:block shrink-0">
-                    <p className="text-2xl font-bold tabular-nums text-text-primary">{dateTime.time}</p>
-                    <p className="text-sm text-text-secondary">{dateTime.date}</p>
+                <div className="flex items-center gap-6 hidden sm:flex shrink-0">
+                    <div className="text-right">
+                        <p className="text-2xl font-bold tabular-nums text-text-primary leading-none">{dateTime.time}</p>
+                        <p className="text-xs font-semibold text-text-muted mt-1 uppercase tracking-widest leading-none">{dateTime.date}</p>
+                    </div>
+                    <button
+                        title="Notifications"
+                        onClick={() => navigate('/notifications')}
+                        className="w-10 h-10 rounded-lg bg-surface border border-border flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-hover transition-colors relative"
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                        </svg>
+                    </button>
                 </div>
             </div>
 
@@ -189,87 +201,87 @@ export const TransactionOversight = () => {
                                     const rowKey = `${t.type}-${t.id}`;
                                     return (
                                         <>
-                                        <tr
-                                            key={rowKey}
-                                            onClick={() => setDetailTarget(t)}
-                                            className={`border-b border-border transition-colors hover:bg-hover cursor-pointer ${idx % 2 !== 0 ? 'bg-surface-secondary/40' : ''}`}
-                                        >
-                                            {/* Type */}
-                                            <td className="px-5 py-3.5">
-                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold capitalize"
-                                                    style={{ color: tc.color, backgroundColor: tc.bg }}>
-                                                    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: tc.color }} />
-                                                    {t.type}
-                                                </span>
-                                            </td>
-                                            {/* Ref / BL */}
-                                            <td className="px-5 py-3.5">
-                                            {t.reference_no && <p className="text-sm font-semibold text-text-primary">{t.reference_no}</p>}
-                                            {t.bl_no && <p className={`text-xs mt-0.5 ${t.reference_no ? 'text-text-muted' : 'text-sm font-semibold text-text-primary'}`}>{t.bl_no}</p>}
-                                            {!t.reference_no && !t.bl_no && <p className="text-sm font-semibold text-text-primary">—</p>}
-                                            </td>
-                                            {/* Client */}
-                                            <td className="px-5 py-3.5 text-sm text-text-secondary">{t.client || '—'}</td>
-                                            {/* Status */}
-                                            <td className="px-5 py-3.5">
-                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold capitalize"
-                                                    style={{ color: sc.color, backgroundColor: sc.bg }}>
-                                                    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: sc.color }} />
-                                                    {t.status.replace('_', ' ')}
-                                                </span>
-                                            </td>
-                                            {/* Encoder */}
-                                            <td className="px-5 py-3.5 text-sm text-text-secondary">
-                                                {t.assigned_to || <span className="text-text-muted italic">Unassigned</span>}
-                                            </td>
-                                            {/* Created */}
-                                            <td className="px-5 py-3.5 text-sm text-text-secondary">
-                                                {t.date ? new Date(t.date).toLocaleDateString() : '—'}
-                                            </td>
-                                            {/* Remarks badge */}
-                                            <td className="px-5 py-3.5">
-                                                {t.open_remarks_count > 0 ? (
-                                                    <button
-                                                        onClick={(e) => { e.stopPropagation(); setRemarkTarget(t); }}
-                                                        className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-bold transition-colors"
-                                                        style={{ color: '#ff453a', backgroundColor: 'rgba(255,69,58,0.12)' }}
-                                                    >
-                                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                                        </svg>
-                                                        {t.open_remarks_count}
-                                                    </button>
-                                                ) : (
-                                                    <span className="text-text-muted text-xs">—</span>
-                                                )}
-                                            </td>
-                                            {/* Actions */}
-                                            <td className="px-5 py-3.5">
-                                                <div className="flex gap-1.5">
-                                                    <button
-                                                        onClick={(e) => { e.stopPropagation(); setReassignTarget(t); }}
-                                                        className="p-1.5 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-md transition-colors"
-                                                        title="Reassign Encoder"
-                                                    >
-                                                        <Icon name="user" className="w-4 h-4" />
-                                                    </button>
-                                                    <button
-                                                        onClick={(e) => { e.stopPropagation(); setStatusTarget(t); }}
-                                                        className="p-1.5 text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/30 rounded-md transition-colors"
-                                                        title="Override Status"
-                                                    >
-                                                        <Icon name="alert-circle" className="w-4 h-4" />
-                                                    </button>
-                                                    <button
-                                                        onClick={(e) => { e.stopPropagation(); setRemarkTarget(t); }}
-                                                        className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md transition-colors"
-                                                        title="Flag / Remarks"
-                                                    >
-                                                        <Icon name="flag" className="w-4 h-4" />
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
+                                            <tr
+                                                key={rowKey}
+                                                onClick={() => setDetailTarget(t)}
+                                                className={`border-b border-border transition-colors hover:bg-hover cursor-pointer ${idx % 2 !== 0 ? 'bg-surface-secondary/40' : ''}`}
+                                            >
+                                                {/* Type */}
+                                                <td className="px-5 py-3.5">
+                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold capitalize"
+                                                        style={{ color: tc.color, backgroundColor: tc.bg }}>
+                                                        <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: tc.color }} />
+                                                        {t.type}
+                                                    </span>
+                                                </td>
+                                                {/* Ref / BL */}
+                                                <td className="px-5 py-3.5">
+                                                    {t.reference_no && <p className="text-sm font-semibold text-text-primary">{t.reference_no}</p>}
+                                                    {t.bl_no && <p className={`text-xs mt-0.5 ${t.reference_no ? 'text-text-muted' : 'text-sm font-semibold text-text-primary'}`}>{t.bl_no}</p>}
+                                                    {!t.reference_no && !t.bl_no && <p className="text-sm font-semibold text-text-primary">—</p>}
+                                                </td>
+                                                {/* Client */}
+                                                <td className="px-5 py-3.5 text-sm text-text-secondary">{t.client || '—'}</td>
+                                                {/* Status */}
+                                                <td className="px-5 py-3.5">
+                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold capitalize whitespace-nowrap"
+                                                        style={{ color: sc.color, backgroundColor: sc.bg }}>
+                                                        <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: sc.color }} />
+                                                        {t.status.replace('_', ' ')}
+                                                    </span>
+                                                </td>
+                                                {/* Encoder */}
+                                                <td className="px-5 py-3.5 text-sm text-text-secondary">
+                                                    {t.assigned_to || <span className="text-text-muted italic">Unassigned</span>}
+                                                </td>
+                                                {/* Created */}
+                                                <td className="px-5 py-3.5 text-sm text-text-secondary">
+                                                    {t.date ? new Date(t.date).toLocaleDateString() : '—'}
+                                                </td>
+                                                {/* Remarks badge */}
+                                                <td className="px-5 py-3.5">
+                                                    {t.open_remarks_count > 0 ? (
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); setRemarkTarget(t); }}
+                                                            className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-bold transition-colors"
+                                                            style={{ color: '#ff453a', backgroundColor: 'rgba(255,69,58,0.12)' }}
+                                                        >
+                                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                                            </svg>
+                                                            {t.open_remarks_count}
+                                                        </button>
+                                                    ) : (
+                                                        <span className="text-text-muted text-xs">—</span>
+                                                    )}
+                                                </td>
+                                                {/* Actions */}
+                                                <td className="px-5 py-3.5">
+                                                    <div className="flex gap-1.5">
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); setReassignTarget(t); }}
+                                                            className="p-1.5 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-md transition-colors"
+                                                            title="Reassign Encoder"
+                                                        >
+                                                            <Icon name="user" className="w-4 h-4" />
+                                                        </button>
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); setStatusTarget(t); }}
+                                                            className="p-1.5 text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/30 rounded-md transition-colors"
+                                                            title="Override Status"
+                                                        >
+                                                            <Icon name="alert-circle" className="w-4 h-4" />
+                                                        </button>
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); setRemarkTarget(t); }}
+                                                            className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md transition-colors"
+                                                            title="Flag / Remarks"
+                                                        >
+                                                            <Icon name="flag" className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
                                         </>
                                     );
                                 })}

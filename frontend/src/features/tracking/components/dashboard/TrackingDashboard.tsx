@@ -102,9 +102,9 @@ export const TrackingDashboard = () => {
                                         className={`grid gap-2 px-4 py-3.5 items-center cursor-pointer hover:bg-hover/60 transition-colors border-b border-border/30 ${i % 2 !== 0 ? 'bg-surface-secondary/30' : ''}`}
                                         style={{ gridTemplateColumns: '32px 140px 130px 100px 284px 95px', width: 'max-content', minWidth: '100%' }}
                                     >
-                                        <span 
-                                            className="w-2.5 h-2.5 rounded-full shrink-0 self-center mx-auto" 
-                                            style={{ backgroundColor: row.color, boxShadow: `0 0 4px ${row.color}40` }} 
+                                        <span
+                                            className="w-2.5 h-2.5 rounded-full shrink-0 self-center mx-auto"
+                                            style={{ backgroundColor: row.color, boxShadow: `0 0 4px ${row.color}40` }}
                                         />
                                         <p className="text-xs font-bold text-text-primary truncate">{row.ref}</p>
                                         <p className="text-xs text-text-secondary truncate text-center">{row.bl || '—'}</p>

@@ -3,11 +3,11 @@ import { Icon } from '../../../components/Icon';
 
 
 interface CancelTransactionModalProps {
-    isOpen:         boolean;
-    onClose:        () => void;
-    onConfirm:      (reason: string) => void;
+    isOpen: boolean;
+    onClose: () => void;
+    onConfirm: (reason: string) => void;
     transactionRef: string;
-    isLoading?:     boolean;
+    isLoading?: boolean;
 }
 
 
@@ -28,12 +28,12 @@ export function CancelTransactionModal({
     isLoading = false,
 }: CancelTransactionModalProps) {
     const [selectedReason, setSelectedReason] = useState('');
-    const [customReason,   setCustomReason]   = useState('');
+    const [customReason, setCustomReason] = useState('');
 
     if (!isOpen) return null;
 
     const finalReason = selectedReason === 'Other' ? customReason : selectedReason;
-    const canSubmit   = finalReason.trim().length > 0 && !isLoading;
+    const canSubmit = finalReason.trim().length > 0 && !isLoading;
 
     const handleSubmit = () => {
         if (canSubmit) {
@@ -50,8 +50,8 @@ export function CancelTransactionModal({
     };
 
     return (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="bg-surface rounded-xl shadow-2xl w-full max-w-md overflow-hidden border border-border">
+        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-backdrop-in">
+            <div className="bg-surface rounded-xl shadow-2xl w-full max-w-md overflow-hidden border border-border animate-modal-in">
 
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-border">
@@ -86,11 +86,10 @@ export function CancelTransactionModal({
                             {CANCEL_REASONS.map(reason => (
                                 <label
                                     key={reason}
-                                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
-                                        selectedReason === reason
+                                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${selectedReason === reason
                                             ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20'
                                             : 'border-border hover:border-border-strong'
-                                    }`}
+                                        }`}
                                 >
                                     <input
                                         type="radio"
@@ -137,11 +136,10 @@ export function CancelTransactionModal({
                     <button
                         onClick={handleSubmit}
                         disabled={!canSubmit}
-                        className={`px-4 py-2 text-sm font-bold text-white rounded-lg transition-colors flex items-center gap-2 ${
-                            canSubmit
+                        className={`px-4 py-2 text-sm font-bold text-white rounded-lg transition-colors flex items-center gap-2 ${canSubmit
                                 ? 'bg-orange-600 hover:bg-orange-700'
                                 : 'bg-surface-secondary text-text-muted cursor-not-allowed border border-border'
-                        }`}
+                            }`}
                     >
                         {isLoading && (
                             <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />

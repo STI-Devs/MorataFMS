@@ -14,15 +14,15 @@ import { useQueryClient } from '@tanstack/react-query';
 
 
 export interface TransactionListPageProps<T> {
-    type:                 'import' | 'export';
-    title:                string;
-    subtitle:             string;
-    encodeButtonLabel:    string;
-    gridTemplateColumns:  string;
-    renderHeaders:        () => React.ReactNode;
+    type: 'import' | 'export';
+    title: string;
+    subtitle: string;
+    encodeButtonLabel: string;
+    gridTemplateColumns: string;
+    renderHeaders: () => React.ReactNode;
     renderRow: (
-        row:      T,
-        index:    number,
+        row: T,
+        index: number,
         navigate: ReturnType<typeof useNavigate>,
         onCancel: (id: number, ref: string) => void,
     ) => React.ReactNode;
@@ -48,33 +48,33 @@ export function TransactionListPage<T>({
     const queryClient = useQueryClient();
 
     const [searchParams, setSearchParams] = useSearchParams();
-    const page    = parseInt(searchParams.get('page')     || '1');
+    const page = parseInt(searchParams.get('page') || '1');
     const perPage = parseInt(searchParams.get('per_page') || '10');
 
     const [searchQuery, setSearchQuery] = useState('');
-    const debouncedSearch               = useDebounce(searchQuery, 500);
-    const [filterType,  setFilterType]  = useState('');
+    const debouncedSearch = useDebounce(searchQuery, 500);
+    const [filterType, setFilterType] = useState('');
     const [filterValue, setFilterValue] = useState('');
     const [openDropdown, setOpenDropdown] = useState<'filter' | 'value' | null>(null);
 
-    const [isEncodeOpen,  setIsEncodeOpen]  = useState(false);
-    const [cancelTarget,  setCancelTarget]  = useState<{ id: number; ref: string } | null>(null);
+    const [isEncodeOpen, setIsEncodeOpen] = useState(false);
+    const [cancelTarget, setCancelTarget] = useState<{ id: number; ref: string } | null>(null);
 
-    const statsQuery    = useTransactionStats(type);
+    const statsQuery = useTransactionStats(type);
     const createMutation = useCreateTransaction(type);
     const cancelMutation = useCancelTransaction(type);
 
     const { data: response, isLoading, isFetching } = useTransactionList(type, {
-        search:           debouncedSearch || undefined,
+        search: debouncedSearch || undefined,
         // When user picks a status explicitly, honour it; otherwise hide finalized (in Documents)
-        status:           filterType === 'Status' ? filterValue : undefined,
+        status: filterType === 'Status' ? filterValue : undefined,
         exclude_statuses: filterType === 'Status' ? undefined : 'completed,cancelled',
-        selective_color:  filterType === 'SC'     ? filterValue : undefined,
+        selective_color: filterType === 'SC' ? filterValue : undefined,
         page,
-        per_page:         perPage,
+        per_page: perPage,
     });
 
-    const data  = useMemo(() => mapResponseData(response?.data ?? []), [response, mapResponseData]);
+    const data = useMemo(() => mapResponseData(response?.data ?? []), [response, mapResponseData]);
     const stats = statsQuery.data;
 
     const setPage = (p: number) =>
@@ -90,8 +90,8 @@ export function TransactionListPage<T>({
 
     const statCards = [
         { label: 'Active Shipments', value: total, dot: '#0a84ff', sub: 'Total active' },
-        { label: 'Pending Action',   value: stats?.pending ?? 0, dot: '#ff9f0a', sub: 'Needs attention' },
-        { label: 'In Progress',      value: stats?.in_progress ?? 0, dot: '#64d2ff', sub: 'Currently moving' },
+        { label: 'Pending Action', value: stats?.pending ?? 0, dot: '#ff9f0a', sub: 'Needs attention' },
+        { label: 'In Progress', value: stats?.in_progress ?? 0, dot: '#64d2ff', sub: 'Currently moving' },
         ...(type === 'import' ? [{ label: 'Overdue Shipments', value: stats?.overdue ?? 0, dot: '#ef4444', sub: 'Past target dates' }] : []),
     ];
 
@@ -170,7 +170,7 @@ export function TransactionListPage<T>({
                                     <Icon name="chevron-down" className="w-3.5 h-3.5 text-text-muted" />
                                 </button>
                                 {openDropdown === 'filter' && (
-                                    <div className="absolute top-full left-0 mt-1 w-32 bg-surface border border-border-strong rounded-xl shadow-lg z-50 overflow-hidden">
+                                    <div className="absolute top-full left-0 mt-1 w-32 bg-surface border border-border-strong rounded-xl shadow-lg z-50 overflow-hidden animate-dropdown-in">
                                         {['SC', 'Status'].map(opt => (
                                             <button
                                                 key={opt}
@@ -196,7 +196,7 @@ export function TransactionListPage<T>({
                                     <Icon name="chevron-down" className="w-3.5 h-3.5 text-text-muted" />
                                 </button>
                                 {openDropdown === 'value' && (
-                                    <div className="absolute top-full left-0 mt-1 w-36 bg-surface border border-border-strong rounded-xl shadow-lg z-[100] overflow-hidden">
+                                    <div className="absolute top-full left-0 mt-1 w-36 bg-surface border border-border-strong rounded-xl shadow-lg z-[100] overflow-hidden animate-dropdown-in">
                                         {type === 'import' && filterType === 'SC' && (
                                             ['Green', 'Yellow', 'Orange', 'Red'].map(opt => (
                                                 <button key={opt} className="w-full text-left px-4 py-2 text-sm text-text-primary hover:bg-hover transition-colors" onClick={() => { setFilterValue(opt); setOpenDropdown(null); }}>
