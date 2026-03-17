@@ -6,14 +6,14 @@ import type { AuditLogFilters } from '../types/auditLog.types';
 
 
 const EVENT_CFG: Record<string, { label: string; color: string; bg: string }> = {
-    created:            { label: 'Created',            color: '#30d158', bg: 'rgba(48,209,88,0.13)'   },
-    updated:            { label: 'Updated',            color: '#0a84ff', bg: 'rgba(10,132,255,0.13)'  },
-    deleted:            { label: 'Deleted',            color: '#ff453a', bg: 'rgba(255,69,58,0.13)'   },
-    restored:           { label: 'Restored',           color: '#ff9f0a', bg: 'rgba(255,159,10,0.13)'  },
-    status_changed:     { label: 'Status Changed',     color: '#ff9f0a', bg: 'rgba(255,159,10,0.13)'  },
-    encoder_reassigned: { label: 'Encoder Reassigned', color: '#bf5af2', bg: 'rgba(191,90,242,0.13)'  },
-    login:              { label: 'Login',              color: '#64d2ff', bg: 'rgba(100,210,255,0.13)' },
-    logout:             { label: 'Logout',             color: '#8e8e93', bg: 'rgba(142,142,147,0.13)' },
+    created: { label: 'Created', color: '#30d158', bg: 'rgba(48,209,88,0.13)' },
+    updated: { label: 'Updated', color: '#0a84ff', bg: 'rgba(10,132,255,0.13)' },
+    deleted: { label: 'Deleted', color: '#ff453a', bg: 'rgba(255,69,58,0.13)' },
+    restored: { label: 'Restored', color: '#ff9f0a', bg: 'rgba(255,159,10,0.13)' },
+    status_changed: { label: 'Status Changed', color: '#ff9f0a', bg: 'rgba(255,159,10,0.13)' },
+    encoder_reassigned: { label: 'Encoder Reassigned', color: '#bf5af2', bg: 'rgba(191,90,242,0.13)' },
+    login: { label: 'Login', color: '#64d2ff', bg: 'rgba(100,210,255,0.13)' },
+    logout: { label: 'Logout', color: '#8e8e93', bg: 'rgba(142,142,147,0.13)' },
 };
 
 const getEventCfg = (event: string) =>
@@ -23,8 +23,8 @@ const formatDate = (iso: string) =>
     new Date(iso).toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' });
 
 const formatKey = (key: string) => {
-    if (key === 'remarkble_id'    || key === 'remarkble')     return 'Transaction';
-    if (key === 'documentable_id')                            return 'Transaction';
+    if (key === 'remarkble_id' || key === 'remarkble') return 'Transaction';
+    if (key === 'documentable_id') return 'Transaction';
     return key
         .replace(/_id$/, '')
         .replace(/_/g, ' ')
@@ -44,22 +44,22 @@ const formatValue = (val: any) => {
 export const AuditLogs = () => {
     const { dateTime } = useOutletContext<LayoutContext>();
 
-    const [search,       setSearch]       = useState('');
+    const [search, setSearch] = useState('');
     const [actionFilter, setActionFilter] = useState('');
-    const [actorFilter,  setActorFilter]  = useState<'human' | 'system' | 'all'>('human');
-    const [dateFrom,     setDateFrom]     = useState('');
-    const [dateTo,       setDateTo]       = useState('');
-    const [page,         setPage]         = useState(1);
-    const [expandedId,   setExpandedId]   = useState<number | null>(null);
+    const [actorFilter, setActorFilter] = useState<'human' | 'system' | 'all'>('human');
+    const [dateFrom, setDateFrom] = useState('');
+    const [dateTo, setDateTo] = useState('');
+    const [page, setPage] = useState(1);
+    const [expandedId, setExpandedId] = useState<number | null>(null);
 
     const filters: AuditLogFilters = {
-        search:    search       || undefined,
-        action:    actionFilter || undefined,
-        actor:     actorFilter,
-        date_from: dateFrom     || undefined,
-        date_to:   dateTo       || undefined,
+        search: search || undefined,
+        action: actionFilter || undefined,
+        actor: actorFilter,
+        date_from: dateFrom || undefined,
+        date_to: dateTo || undefined,
         page,
-        per_page:  25,
+        per_page: 25,
     };
 
     const { data, isLoading, isError } = useAuditLogs(filters);
@@ -67,11 +67,11 @@ export const AuditLogs = () => {
     const logs = data?.data ?? [];
     const meta = data?.meta ?? { current_page: 1, last_page: 1, per_page: 25, total: 0 };
 
-    const handleSearch   = (val: string) => { setSearch(val);        setPage(1); setExpandedId(null); };
-    const handleAction   = (val: string) => { setActionFilter(val);  setPage(1); setExpandedId(null); };
-    const handleActor    = (val: 'human' | 'system' | 'all') => { setActorFilter(val); setPage(1); setExpandedId(null); };
-    const handleDateFrom = (val: string) => { setDateFrom(val);      setPage(1); setExpandedId(null); };
-    const handleDateTo   = (val: string) => { setDateTo(val);        setPage(1); setExpandedId(null); };
+    const handleSearch = (val: string) => { setSearch(val); setPage(1); setExpandedId(null); };
+    const handleAction = (val: string) => { setActionFilter(val); setPage(1); setExpandedId(null); };
+    const handleActor = (val: 'human' | 'system' | 'all') => { setActorFilter(val); setPage(1); setExpandedId(null); };
+    const handleDateFrom = (val: string) => { setDateFrom(val); setPage(1); setExpandedId(null); };
+    const handleDateTo = (val: string) => { setDateTo(val); setPage(1); setExpandedId(null); };
 
     const inputCls = 'px-3 py-2.5 rounded-lg border border-border-strong bg-input-bg text-text-primary text-sm placeholder:text-text-muted focus:outline-none focus:border-blue-500/50 transition-colors';
 
@@ -93,12 +93,12 @@ export const AuditLogs = () => {
             {/* Stats */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {[
-                    { label: 'Total Events',  value: meta.total, color: '#0a84ff', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' },
-                    { label: 'Created',        value: String(logs.filter(l => l.event === 'created').length)       + (page > 1 ? '+' : ''), color: '#30d158', icon: 'M12 4v16m8-8H4' },
-                    { label: 'Updated',        value: String(logs.filter(l => l.event === 'updated').length)       + (page > 1 ? '+' : ''), color: '#ff9f0a', icon: 'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z' },
-                    { label: 'Deleted',        value: String(logs.filter(l => l.event === 'deleted').length)       + (page > 1 ? '+' : ''), color: '#ff453a', icon: 'M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16' },
+                    { label: 'Total Events', value: meta.total, color: '#0a84ff', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' },
+                    { label: 'Created', value: String(logs.filter(l => l.event === 'created').length) + (page > 1 ? '+' : ''), color: '#30d158', icon: 'M12 4v16m8-8H4' },
+                    { label: 'Updated', value: String(logs.filter(l => l.event === 'updated').length) + (page > 1 ? '+' : ''), color: '#ff9f0a', icon: 'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z' },
+                    { label: 'Deleted', value: String(logs.filter(l => l.event === 'deleted').length) + (page > 1 ? '+' : ''), color: '#ff453a', icon: 'M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16' },
                 ].map(({ label, value, color, icon }) => (
-                    <div key={label} className="bg-surface-tint rounded-xl p-4 border border-border-tint">
+                    <div key={label} className="bg-surface rounded-xl p-4 border border-border">
                         <div className="flex items-start justify-between">
                             <div>
                                 <p className="text-3xl font-bold tabular-nums text-text-primary">{value}</p>
@@ -120,7 +120,7 @@ export const AuditLogs = () => {
                 <div className="px-5 py-4 border-b border-border flex flex-col sm:flex-row justify-between items-center gap-4">
                     <div className="flex items-center gap-3">
                         <h2 className="text-sm font-bold text-text-primary">Event Log</h2>
-                        <span className="text-xs font-semibold px-2 py-1 rounded-md bg-surface-tint border border-border-tint text-text-secondary">
+                        <span className="text-xs font-semibold px-2 py-1 rounded-md bg-surface border border-border text-text-secondary">
                             {meta.total} total · Page {meta.current_page} of {meta.last_page}
                         </span>
                     </div>
@@ -153,7 +153,7 @@ export const AuditLogs = () => {
                             ))}
                         </select>
                         <input type="date" value={dateFrom} onChange={e => handleDateFrom(e.target.value)} className={`${inputCls} !h-8 !py-0 !text-xs`} />
-                        <input type="date" value={dateTo}   onChange={e => handleDateTo(e.target.value)}   className={`${inputCls} !h-8 !py-0 !text-xs`} />
+                        <input type="date" value={dateTo} onChange={e => handleDateTo(e.target.value)} className={`${inputCls} !h-8 !py-0 !text-xs`} />
                     </div>
                 </div>
 
@@ -194,13 +194,13 @@ export const AuditLogs = () => {
                             </thead>
                             <tbody>
                                 {logs.map((log, idx) => {
-                                    const cfg      = getEventCfg(log.event);
-                                    const isOpen   = expandedId === log.id;
+                                    const cfg = getEventCfg(log.event);
+                                    const isOpen = expandedId === log.id;
                                     const isDelete = log.event === 'deleted';
 
                                     // Determine what data to show in the detail panel
-                                    const hasNew      = log.new_values  && Object.keys(log.new_values).length  > 0;
-                                    const hasOldOnly  = isDelete && log.old_values && Object.keys(log.old_values).length > 0;
+                                    const hasNew = log.new_values && Object.keys(log.new_values).length > 0;
+                                    const hasOldOnly = isDelete && log.old_values && Object.keys(log.old_values).length > 0;
                                     const changesData = hasNew ? log.new_values : hasOldOnly ? log.old_values : null;
                                     // Exclude internal _type companion keys from the count (they're resolved into the _id field)
                                     const changeCount = changesData
@@ -259,9 +259,9 @@ export const AuditLogs = () => {
                                                         <span
                                                             className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border"
                                                             style={{
-                                                                color:           '#ff453a',
+                                                                color: '#ff453a',
                                                                 backgroundColor: 'rgba(255,69,58,0.10)',
-                                                                borderColor:     'rgba(255,69,58,0.25)',
+                                                                borderColor: 'rgba(255,69,58,0.25)',
                                                             }}
                                                         >
                                                             Snapshot
@@ -270,9 +270,9 @@ export const AuditLogs = () => {
                                                         <span
                                                             className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border"
                                                             style={{
-                                                                color:           '#0a84ff',
+                                                                color: '#0a84ff',
                                                                 backgroundColor: 'rgba(10,132,255,0.10)',
-                                                                borderColor:     'rgba(10,132,255,0.25)',
+                                                                borderColor: 'rgba(10,132,255,0.25)',
                                                             }}
                                                         >
                                                             {changeCount} field{changeCount !== 1 ? 's' : ''}
@@ -325,7 +325,7 @@ export const AuditLogs = () => {
                                                                 {/* Internal polymorphic companion keys — skip, they're already resolved into the _id field */}
                                                                 {hasNew
                                                                     ? Object.entries(log.new_values!).filter(([k]) => !k.endsWith('_type')).map(([key, newVal]) => {
-                                                                        const oldVal    = log.old_values?.[key];
+                                                                        const oldVal = log.old_values?.[key];
                                                                         const hasOldVal = oldVal !== undefined && oldVal !== null;
                                                                         return (
                                                                             <div key={key}>
