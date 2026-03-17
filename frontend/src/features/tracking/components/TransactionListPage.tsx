@@ -10,6 +10,7 @@ import { useTransactionStats } from '../hooks/useTransactionStats';
 import type { ApiExportTransaction, ApiImportTransaction, CreateExportPayload, CreateImportPayload, LayoutContext } from '../types';
 import { CancelTransactionModal } from './CancelTransactionModal';
 import { EncodeModal } from './EncodeModal';
+import { useQueryClient } from '@tanstack/react-query';
 
 
 export interface TransactionListPageProps<T> {
@@ -44,6 +45,7 @@ export function TransactionListPage<T>({
 }: TransactionListPageProps<T>) {
     const navigate = useNavigate();
     const { dateTime } = useOutletContext<LayoutContext>();
+    const queryClient = useQueryClient();
 
     const [searchParams, setSearchParams] = useSearchParams();
     const page    = parseInt(searchParams.get('page')     || '1');
@@ -282,6 +284,16 @@ export function TransactionListPage<T>({
                                     className={`grid gap-4 py-3 items-center cursor-pointer transition-all px-4 hover:bg-hover border-b border-border/50 ${i % 2 !== 0 ? 'bg-surface-secondary/40' : ''}`}
                                     style={{ gridTemplateColumns }}
                                     onClick={() => navigate(`/tracking/${(row as { ref?: string }).ref ?? ''}`)}
+                                    onMouseEnter={() => {
+                                        const ref = (row as { ref?: string }).ref;
+                                        if (ref) {
+                                            queryClient.prefetchQuery({
+                                                queryKey: ['transaction-detail', ref],
+                                                queryFn: () => import('../api/trackingApi').then(m => m.trackingApi.getTransactionByRef(ref)),
+                                                staleTime: 5 * 60 * 1000,
+                                            });
+                                        }
+                                    }}
                                 >
                                     {renderRow(row, i, navigate, (id, ref) => setCancelTarget({ id, ref }))}
                                 </div>

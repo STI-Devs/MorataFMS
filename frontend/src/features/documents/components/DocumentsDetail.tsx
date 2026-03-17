@@ -231,6 +231,38 @@ export const DocumentsDetail = () => {
         );
     }
 
+    const resolvedStatus = matchedImport?.status ?? matchedExport?.status ?? '';
+    if (resolvedStatus === 'in_progress') {
+        return (
+            <div className="space-y-5 p-4">
+                {backButton}
+                <div className="flex flex-col items-center justify-center h-64 gap-4 text-center px-6">
+                    <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                        <svg className="w-6 h-6 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <p className="text-sm font-bold text-text-primary">Transaction Still In Progress</p>
+                        <p className="text-xs text-text-secondary mt-1 max-w-xs">
+                            <span className="font-mono font-bold">{ref}</span> has not been cleared yet.
+                            Documents for active transactions are managed from the Tracking view.
+                        </p>
+                    </div>
+                    <button
+                        onClick={() => navigate(`/tracking/${ref}`)}
+                        className="flex items-center gap-2 px-4 h-9 rounded-lg text-xs font-bold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-90 transition-opacity"
+                    >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                        </svg>
+                        Go to Tracking
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
     const tc = TYPE_CONFIG[displayType];
     const sc = getStatusStyle(displayStatus);
 

@@ -8,12 +8,20 @@ import type {
     CreateExportPayload,
     CreateImportPayload,
     DocumentableType,
+    ExportTransaction,
+    ImportTransaction,
     PaginatedResponse,
     TransactionStats,
     UploadDocumentPayload,
 } from '../types';
 
 export const trackingApi = {
+    // --- Single Transaction ---
+    getTransactionByRef: async (ref: string): Promise<{ data: ImportTransaction | ExportTransaction, isImport: boolean }> => {
+        const response = await api.get(`/api/transactions/${ref}`);
+        return response.data;
+    },
+
     // --- Import Transactions ---
     getImports: async (params?: {
         search?: string;

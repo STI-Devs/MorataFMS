@@ -1,55 +1,44 @@
 import { useQuery } from '@tanstack/react-query';
 import { trackingApi } from '../api/trackingApi';
-import type { ApiExportTransaction, ApiImportTransaction, ExportTransaction, ImportTransaction } from '../types';
+import type {
+    ApiExportTransaction,
+    ApiImportTransaction,
+    ExportTransaction,
+    ImportTransaction,
+} from '../types';
+import { mapExportTransaction, mapImportTransaction } from '../utils/mappers';
 
-const mapImport = (t: ApiImportTransaction): ImportTransaction => ({
-    id: t.id,
-    ref: t.customs_ref_no,
-    bl: t.bl_no,
-    status:
-        t.status === 'pending' ? 'Pending' :
-            t.status === 'in_progress' ? 'In Transit' :
-                t.status === 'completed' ? 'Cleared' : 'Delayed',
-    color:
-        t.selective_color === 'green' ? 'bg-green-500' :
-            t.selective_color === 'yellow' ? 'bg-yellow-500' : 'bg-red-500',
-    importer: t.importer?.name || 'Unknown',
-    date: t.arrival_date || '',
-    open_remarks_count: 0,
-});
+export interface TransactionDetailResult {
+    raw:     ApiImportTransaction | ApiExportTransaction;
+    mapped:  ImportTransaction | ExportTransaction;
+    isImport: boolean;
+}
 
-const mapExport = (t: ApiExportTransaction): ExportTransaction => ({
-    id: t.id,
-    ref: `EXP-${String(t.id).padStart(4, '0')}`,
-    bl: t.bl_no,
-    status:
-        t.status === 'pending' ? 'Processing' :
-            t.status === 'in_progress' ? 'In Transit' :
-                t.status === 'completed' ? 'Shipped' : 'Delayed',
-    color: '',
-    shipper: t.shipper?.name || 'Unknown',
-    vessel: t.vessel || '',
-    departureDate: t.created_at
-        ? new Date(t.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-        : '',
-    portOfDestination: t.destination_country?.name || '',
-    open_remarks_count: 0,
-});
+async function fetchTransactionByRef(referenceId: string): Promise<TransactionDetailResult | null> {
+    const importsRes = await trackingApi.getImports({ search: referenceId });
+    if (importsRes.data.length > 0) {
+        const raw = importsRes.data[0];
+        return { raw, mapped: mapImportTransaction(raw), isImport: true };
+    }
 
+    const exportsRes = await trackingApi.getExports({ search: referenceId });
+    if (exportsRes.data.length > 0) {
+        const raw = exportsRes.data[0];
+        return { raw, mapped: mapExportTransaction(raw), isImport: false };
+    }
+
+    return null;
+}
+
+/**
+ * Fetches a single transaction (import or export) by its reference ID.
+ * Returns both the raw API shape (needed for documentable_type) and the
+ * mapped UI view-model. Result is cached for 2 minutes.
+ */
 export const useTransactionDetail = (referenceId: string | undefined) =>
-    useQuery<ImportTransaction | ExportTransaction | undefined>({
+    useQuery<TransactionDetailResult | null>({
         queryKey: ['transaction-detail', referenceId],
-        queryFn: async () => {
-            if (!referenceId) return undefined;
-            // Try imports first
-            const importsRes = await trackingApi.getImports({ search: referenceId });
-            if (importsRes.data.length > 0) return mapImport(importsRes.data[0]);
-            // Fall back to exports
-            const exportsRes = await trackingApi.getExports({ search: referenceId });
-            if (exportsRes.data.length > 0) return mapExport(exportsRes.data[0]);
-            return undefined;
-        },
-        enabled: !!referenceId,
-        staleTime: 1000 * 60 * 2, // 2 min — details change less often
+        queryFn:  () => fetchTransactionByRef(referenceId!),
+        enabled:  !!referenceId,
+        staleTime: 1000 * 60 * 2,
     });
-

@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { EmptyState } from '../../../../components/EmptyState';
-import { Spinner } from '../../../../components/Spinner';
 import { StatusBadge } from '../../../../components/StatusBadge';
 import { useTransactionList } from '../../hooks/useTransactionList';
 import type { ApiExportTransaction, ApiImportTransaction, ExportTransaction, ImportTransaction, LayoutContext } from '../../types';
@@ -77,7 +76,22 @@ export const TrackingDashboard = () => {
                         </div>
                         <div className="flex flex-col">
                             {importsLoading ? (
-                                <Spinner color="#30d158" />
+                                <div className="divide-y divide-border/30">
+                                    {Array.from({ length: 5 }).map((_, i) => (
+                                        <div
+                                            key={i}
+                                            className={`grid gap-2 px-4 py-3.5 items-center ${i % 2 !== 0 ? 'bg-surface-secondary/30' : ''}`}
+                                            style={{ gridTemplateColumns: '32px 140px 130px 100px 284px 95px', width: 'max-content', minWidth: '100%' }}
+                                        >
+                                            <div className="w-2.5 h-2.5 rounded-full skeleton-shimmer self-center mx-auto" />
+                                            <div className="h-4 skeleton-shimmer rounded-md" style={{ width: '80px' }} />
+                                            <div className="h-4 skeleton-shimmer rounded-md mx-auto" style={{ width: '60px' }} />
+                                            <div className="h-5 skeleton-shimmer rounded-full mx-auto" style={{ width: '70px' }} />
+                                            <div className="h-4 skeleton-shimmer rounded-md" style={{ width: '120px' }} />
+                                            <div className="h-4 skeleton-shimmer rounded-md mx-auto" style={{ width: '50px' }} />
+                                        </div>
+                                    ))}
+                                </div>
                             ) : imports.length === 0 ? (
                                 <EmptyState label="imports" />
                             ) : (
@@ -129,7 +143,22 @@ export const TrackingDashboard = () => {
                         </div>
                         <div className="flex flex-col">
                             {exportsLoading ? (
-                                <Spinner color="#0a84ff" />
+                                <div className="divide-y divide-border/30">
+                                    {Array.from({ length: 5 }).map((_, i) => (
+                                        <div
+                                            key={i}
+                                            className={`grid gap-2 px-4 py-3.5 items-center ${i % 2 !== 0 ? 'bg-surface-secondary/30' : ''}`}
+                                            style={{ gridTemplateColumns: '300px 130px 185px 95px 100px 150px', width: 'max-content', minWidth: '100%' }}
+                                        >
+                                            <div className="h-4 skeleton-shimmer rounded-md" style={{ width: '150px' }} />
+                                            <div className="h-4 skeleton-shimmer rounded-md mx-auto" style={{ width: '60px' }} />
+                                            <div className="h-4 skeleton-shimmer rounded-md" style={{ width: '60px' }} />
+                                            <div className="h-4 skeleton-shimmer rounded-md mx-auto" style={{ width: '50px' }} />
+                                            <div className="h-5 skeleton-shimmer rounded-full mx-auto" style={{ width: '70px' }} />
+                                            <div className="h-4 skeleton-shimmer rounded-md mx-auto" style={{ width: '60px' }} />
+                                        </div>
+                                    ))}
+                                </div>
                             ) : exports.length === 0 ? (
                                 <EmptyState label="exports" />
                             ) : (
