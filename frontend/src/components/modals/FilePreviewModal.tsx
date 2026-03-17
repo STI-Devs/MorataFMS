@@ -11,20 +11,20 @@ interface FilePreviewModalProps {
 export const FilePreviewModal: React.FC<FilePreviewModalProps> = ({ isOpen, onClose, file, fileName }) => {
     if (!isOpen) return null;
 
-    const isFileObject  = file instanceof File;
-    const fileUrl       = isFileObject ? URL.createObjectURL(file) : (typeof file === 'string' ? file : null);
-    const displayName   = fileName || (isFileObject ? file.name : (typeof file === 'string' ? file : 'Unknown File'));
+    const isFileObject = file instanceof File;
+    const fileUrl = isFileObject ? URL.createObjectURL(file) : (typeof file === 'string' ? file : null);
+    const displayName = fileName || (isFileObject ? file.name : (typeof file === 'string' ? file : 'Unknown File'));
 
     const isImage = displayName.match(/\.(jpeg|jpg|gif|png|webp)$/i) != null;
-    const isPdf   = displayName.match(/\.pdf$/i) != null;
+    const isPdf = displayName.match(/\.pdf$/i) != null;
 
     return (
         <div
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[200] p-4"
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[200] p-4 animate-backdrop-in"
             onClick={onClose}
         >
             <div
-                className="relative w-full max-w-4xl max-h-[90vh] flex flex-col rounded-2xl shadow-2xl overflow-hidden bg-surface border border-border"
+                className="relative w-full max-w-4xl max-h-[90vh] flex flex-col rounded-2xl shadow-2xl overflow-hidden bg-surface border border-border animate-modal-in"
                 onClick={e => e.stopPropagation()}
             >
                 {/* Header */}

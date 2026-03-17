@@ -72,7 +72,7 @@ export function ActionMenu({ items }: ActionMenuProps) {
                         bg-white dark:bg-gray-800 
                         border border-gray-200 dark:border-gray-700 
                         rounded-lg shadow-lg overflow-hidden
-                        animate-in fade-in duration-150"
+                        animate-dropdown-in"
                 >
                     {/* Normal items */}
                     {normalItems.map((item) => (

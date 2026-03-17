@@ -76,7 +76,7 @@ export const AddArchiveDocumentModal: React.FC<AddArchiveDocumentModalProps> = (
     const canSubmit = !!file && !!selectedStage && !isUploading;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-backdrop-in">
             {/* Backdrop */}
             <div
                 className="absolute inset-0 bg-black/60 backdrop-blur-sm"
@@ -84,7 +84,7 @@ export const AddArchiveDocumentModal: React.FC<AddArchiveDocumentModalProps> = (
             />
 
             {/* Modal card */}
-            <div className="relative bg-surface border border-border rounded-xl shadow-2xl w-full max-w-[440px] overflow-hidden">
+            <div className="relative bg-surface border border-border rounded-xl shadow-2xl w-full max-w-[440px] overflow-hidden animate-modal-in">
 
                 <div className="px-5 pt-5 pb-4 flex items-start justify-between gap-3">
                     <div>
@@ -114,10 +114,10 @@ export const AddArchiveDocumentModal: React.FC<AddArchiveDocumentModalProps> = (
 
                         <div className="grid grid-cols-2 gap-2">
                             {allStages.map(stage => {
-                                const isOthers  = stage.key === 'others';
-                                const count     = stageDocCount[stage.key] ?? 0;
+                                const isOthers = stage.key === 'others';
+                                const count = stageDocCount[stage.key] ?? 0;
                                 // 'others' is never "filled" in the locked-out sense — it's always open
-                                const isFilled   = !isOthers && uploadedStageKeys.has(stage.key);
+                                const isFilled = !isOthers && uploadedStageKeys.has(stage.key);
                                 const isSelected = selectedStage === stage.key;
 
                                 // Card visual states:
@@ -146,11 +146,10 @@ export const AddArchiveDocumentModal: React.FC<AddArchiveDocumentModalProps> = (
                                         <div className="flex items-center gap-1.5 mb-0.5">
                                             {isOthers ? (
                                                 // "Others" shows a count badge — always uploadable
-                                                <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
-                                                    count > 0
+                                                <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${count > 0
                                                         ? 'bg-blue-500/15 text-blue-500'
                                                         : 'bg-amber-400/10 text-amber-500'
-                                                }`}>
+                                                    }`}>
                                                     {count > 0 ? (
                                                         <>
                                                             <svg className="w-2 h-2 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -183,11 +182,10 @@ export const AddArchiveDocumentModal: React.FC<AddArchiveDocumentModalProps> = (
                                         </div>
 
                                         {/* Stage name */}
-                                        <p className={`text-[12px] font-bold leading-snug ${
-                                            isSelected ? 'text-text-primary'
-                                            : isFilled  ? 'text-text-muted'
-                                            : 'text-text-primary'
-                                        }`}>
+                                        <p className={`text-[12px] font-bold leading-snug ${isSelected ? 'text-text-primary'
+                                                : isFilled ? 'text-text-muted'
+                                                    : 'text-text-primary'
+                                            }`}>
                                             {stage.label}
                                         </p>
                                     </button>

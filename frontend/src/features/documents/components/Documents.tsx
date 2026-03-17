@@ -28,11 +28,11 @@ interface DocumentRow {
 
 const TYPE_CONFIG: Record<TransactionType, { label: string; color: string; bg: string }> = {
     import: { label: 'Import', color: '#0a84ff', bg: 'rgba(10,132,255,0.12)' },
-    export: { label: 'Export', color: '#30d158', bg: 'rgba(48,209,88,0.12)'  },
+    export: { label: 'Export', color: '#30d158', bg: 'rgba(48,209,88,0.12)' },
 };
 
 const FILTER_LABELS: Record<TypeFilter, string> = {
-    all:    'All Types',
+    all: 'All Types',
     import: 'Import',
     export: 'Export',
 };
@@ -93,15 +93,15 @@ export const Documents = () => {
     const navigate = useNavigate();
 
     const [searchParams, setSearchParams] = useSearchParams();
-    const page    = parseInt(searchParams.get('page')     || '1');
+    const page = parseInt(searchParams.get('page') || '1');
     const perPage = parseInt(searchParams.get('per_page') || '10');
 
-    const [searchQuery, setSearchQuery]   = useState('');
-    const [typeFilter, setTypeFilter]     = useState<TypeFilter>('all');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [isUploadOpen, setIsUploadOpen] = useState(false);
 
-    const setPage    = (p: number)  => setSearchParams(prev => { prev.set('page', String(p)); return prev; });
+    const setPage = (p: number) => setSearchParams(prev => { prev.set('page', String(p)); return prev; });
     const setPerPage = (pp: number) => setSearchParams(prev => { prev.set('per_page', String(pp)); prev.set('page', '1'); return prev; });
 
     // Fetch all finalized transactions (completed + cancelled) — filter client-side
@@ -118,81 +118,81 @@ export const Documents = () => {
     } = useExports({ per_page: 500 });
 
     const isLoading = importsLoading || exportsLoading;
-    const isError   = importsError   || exportsError;
+    const isError = importsError || exportsError;
 
     const importRows: DocumentRow[] = (importsData?.data ?? []).map(t => ({
-        id:        t.id,
-        ref:       t.customs_ref_no,
-        blNo:      t.bl_no || '—',
-        client:    t.importer?.name ?? '—',
-        type:      'import',
-        date:      t.arrival_date,
+        id: t.id,
+        ref: t.customs_ref_no,
+        blNo: t.bl_no || '—',
+        client: t.importer?.name ?? '—',
+        type: 'import',
+        date: t.arrival_date,
         dateLabel: 'Arrival',
-        port:      '—',
-        vessel:    '—',
-        status:    t.status,
-        docCount:  t.documents_count,
+        port: '—',
+        vessel: '—',
+        status: t.status,
+        docCount: t.documents_count,
     }));
 
     const exportRows: DocumentRow[] = (exportsData?.data ?? []).map(t => ({
-        id:        t.id,
-        ref:       buildExportRef(t.id),
-        blNo:      t.bl_no || '—',
-        client:    t.shipper?.name ?? '—',
-        type:      'export',
-        date:      t.created_at.slice(0, 10),
+        id: t.id,
+        ref: buildExportRef(t.id),
+        blNo: t.bl_no || '—',
+        client: t.shipper?.name ?? '—',
+        type: 'export',
+        date: t.created_at.slice(0, 10),
         dateLabel: 'Export',
-        port:      t.destination_country?.name ?? '—',
-        vessel:    t.vessel || '—',
-        status:    t.status,
-        docCount:  t.documents_count,
+        port: t.destination_country?.name ?? '—',
+        vessel: t.vessel || '—',
+        status: t.status,
+        docCount: t.documents_count,
     }));
 
     // Only finalized transactions: completed or cancelled
     const rows: DocumentRow[] = [...importRows, ...exportRows]
         .filter(r => r.status === 'completed' || r.status === 'cancelled');
 
-    const importCount   = rows.filter(r => r.type === 'import').length;
-    const exportCount   = rows.filter(r => r.type === 'export').length;
+    const importCount = rows.filter(r => r.type === 'import').length;
+    const exportCount = rows.filter(r => r.type === 'export').length;
     const cancelledCount = rows.filter(r => r.status === 'cancelled').length;
-    const totalDocs     = rows.reduce((s, r) => s + r.docCount, 0);
-    const missingDocs   = rows.filter(r => r.docCount === 0).length;
+    const totalDocs = rows.reduce((s, r) => s + r.docCount, 0);
+    const missingDocs = rows.filter(r => r.docCount === 0).length;
 
     const stats = [
         {
             label: 'Completed Transactions',
             value: rows.length - cancelledCount,
-            sub:   `${rows.length - cancelledCount} shipments cleared`,
+            sub: `${rows.length - cancelledCount} shipments cleared`,
             color: '#0a84ff',
-            icon:  'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2',
+            icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2',
         },
         {
             label: 'Import Cleared',
             value: importCount,
-            sub:   'Inbound shipments',
+            sub: 'Inbound shipments',
             color: '#0a84ff',
-            icon:  'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12',
+            icon: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12',
         },
         {
             label: 'Export Shipped',
             value: exportCount,
-            sub:   'Outbound shipments',
+            sub: 'Outbound shipments',
             color: '#30d158',
-            icon:  'M12 19l9 2-9-18-9 18 9-2zm0 0v-8',
+            icon: 'M12 19l9 2-9-18-9 18 9-2zm0 0v-8',
         },
         {
             label: 'Total Files',
             value: totalDocs,
-            sub:   missingDocs > 0 ? `⚠ ${missingDocs} shipments missing docs` : 'All shipments have files',
+            sub: missingDocs > 0 ? `⚠ ${missingDocs} shipments missing docs` : 'All shipments have files',
             color: missingDocs > 0 ? '#ff9f0a' : '#30d158',
-            icon:  'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
+            icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
         },
     ];
 
     // Client-side search + type filter on completed rows
     const filtered = rows.filter(r => {
-        const matchType   = typeFilter === 'all' || r.type === typeFilter;
-        const q           = searchQuery.toLowerCase();
+        const matchType = typeFilter === 'all' || r.type === typeFilter;
+        const q = searchQuery.toLowerCase();
         const matchSearch = !q
             || r.blNo.toLowerCase().includes(q)
             || r.ref.toLowerCase().includes(q)
@@ -202,9 +202,9 @@ export const Documents = () => {
 
     // Client-side pagination over the filtered results
     const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
-    const safePage   = Math.min(page, totalPages);
-    const pageStart  = (safePage - 1) * perPage;
-    const paginated  = filtered.slice(pageStart, pageStart + perPage);
+    const safePage = Math.min(page, totalPages);
+    const pageStart = (safePage - 1) * perPage;
+    const paginated = filtered.slice(pageStart, pageStart + perPage);
 
     const handleTypeFilter = (cat: TypeFilter) => {
         setTypeFilter(cat);
@@ -301,7 +301,7 @@ export const Documents = () => {
                                 <Icon name="chevron-down" className="w-3.5 h-3.5 ml-2 text-text-muted" />
                             </button>
                             {isFilterOpen && (
-                                <div className="absolute top-full right-0 mt-1 w-36 bg-surface border border-border-strong rounded-xl shadow-lg z-50 overflow-hidden">
+                                <div className="absolute top-full right-0 mt-1 w-36 bg-surface border border-border-strong rounded-xl shadow-lg z-50 overflow-hidden animate-dropdown-in">
                                     {(['all', 'import', 'export'] as const).map(cat => (
                                         <button
                                             key={cat}

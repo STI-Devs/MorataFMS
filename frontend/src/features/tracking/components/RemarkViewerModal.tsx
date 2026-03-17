@@ -4,8 +4,8 @@ import { remarkApi } from '../../oversight/api/remarkApi';
 import type { Remark } from '../../oversight/types/remark.types';
 
 const SEVERITY_CFG = {
-    info:     { label: 'Info',     color: '#0a84ff', bg: 'rgba(10,132,255,0.12)' },
-    warning:  { label: 'Warning',  color: '#ff9f0a', bg: 'rgba(255,159,10,0.12)' },
+    info: { label: 'Info', color: '#0a84ff', bg: 'rgba(10,132,255,0.12)' },
+    warning: { label: 'Warning', color: '#ff9f0a', bg: 'rgba(255,159,10,0.12)' },
     critical: { label: 'Critical', color: '#ff453a', bg: 'rgba(255,69,58,0.12)' },
 } as const;
 
@@ -55,9 +55,9 @@ export const RemarkViewerModal = ({ isOpen, onClose, transactionType, transactio
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={onClose}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-backdrop-in" onClick={onClose}>
             <div
-                className={`w-full max-w-lg rounded-2xl max-h-[80vh] flex flex-col ${isDark ? 'bg-[#1c1c1e]' : 'bg-white'}`}
+                className={`w-full max-w-lg rounded-2xl max-h-[80vh] flex flex-col animate-modal-in ${isDark ? 'bg-[#1c1c1e]' : 'bg-white'}`}
                 onClick={e => e.stopPropagation()}
             >
                 {/* Header */}

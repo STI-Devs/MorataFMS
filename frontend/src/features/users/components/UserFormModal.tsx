@@ -62,9 +62,9 @@ export const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode }: UserFor
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={onClose}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-backdrop-in" onClick={onClose}>
             <div
-                className="w-full max-w-md rounded-2xl p-8 bg-surface border border-border shadow-xl"
+                className="w-full max-w-md rounded-2xl p-8 bg-surface border border-border shadow-xl animate-modal-in"
                 onClick={(e) => e.stopPropagation()}
             >
                 <h2 className="text-2xl font-bold mb-6 text-text-primary">

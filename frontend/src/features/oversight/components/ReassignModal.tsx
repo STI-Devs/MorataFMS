@@ -11,11 +11,11 @@ interface ReassignModalProps {
 }
 
 export const ReassignModal = ({ isOpen, onClose, transaction, onSuccess }: ReassignModalProps) => {
-    const [encoders,        setEncoders]        = useState<EncoderUser[]>([]);
-    const [selectedUserId,  setSelectedUserId]  = useState<number | ''>('');
-    const [isLoading,       setIsLoading]       = useState(false);
-    const [isFetching,      setIsFetching]      = useState(false);
-    const [error,           setError]           = useState('');
+    const [encoders, setEncoders] = useState<EncoderUser[]>([]);
+    const [selectedUserId, setSelectedUserId] = useState<number | ''>('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [isFetching, setIsFetching] = useState(false);
+    const [error, setError] = useState('');
 
     useEffect(() => {
         if (isOpen) {
@@ -61,9 +61,9 @@ export const ReassignModal = ({ isOpen, onClose, transaction, onSuccess }: Reass
     if (!isOpen || !transaction) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={onClose}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-backdrop-in" onClick={onClose}>
             <div
-                className="w-full max-w-md rounded-xl p-6 shadow-xl bg-surface border border-border"
+                className="w-full max-w-md rounded-xl p-6 shadow-xl bg-surface border border-border animate-modal-in"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}

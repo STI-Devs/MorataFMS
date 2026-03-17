@@ -17,7 +17,8 @@ const STATUS_MAP: Record<string, StatusStyle> = {
     Cleared: { color: '#30d158', bg: 'rgba(48,209,88,0.13)' },
     Pending: { color: '#ff9f0a', bg: 'rgba(255,159,10,0.13)' },
     Delayed: { color: '#ff453a', bg: 'rgba(255,69,58,0.13)' },
-    'In Transit': { color: '#64d2ff', bg: 'rgba(100,210,255,0.13)' },
+    'In Transit': { color: '#0a84ff', bg: 'rgba(10,132,255,0.13)' },
+    'In Progress': { color: '#0a84ff', bg: 'rgba(10,132,255,0.13)' },
 
     // Export display labels
     Shipped: { color: '#30d158', bg: 'rgba(48,209,88,0.13)' },
@@ -28,12 +29,12 @@ const STATUS_MAP: Record<string, StatusStyle> = {
 
     // Raw backend values (admin / TransactionOversight)
     completed: { color: '#30d158', bg: 'rgba(48,209,88,0.13)' },
-    in_progress: { color: '#64d2ff', bg: 'rgba(100,210,255,0.13)' },
+    in_progress: { color: '#0a84ff', bg: 'rgba(10,132,255,0.13)' },
     cancelled: { color: '#ff453a', bg: 'rgba(255,69,58,0.13)' },
     pending: { color: '#ff9f0a', bg: 'rgba(255,159,10,0.13)' },
 };
 
-const FALLBACK: StatusStyle = { color: '#64d2ff', bg: 'rgba(100,210,255,0.13)' };
+const FALLBACK: StatusStyle = { color: '#0a84ff', bg: 'rgba(10,132,255,0.13)' };
 
 export function getStatusStyle(status: string): StatusStyle {
     return STATUS_MAP[status] ?? FALLBACK;

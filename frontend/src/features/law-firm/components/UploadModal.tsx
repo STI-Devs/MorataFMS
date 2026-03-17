@@ -19,9 +19,9 @@ export const UploadModal = ({ bookName, onClose }: Props) => {
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-backdrop-in"
             onClick={onClose}>
-            <div className="relative w-full max-w-md mx-4 bg-surface rounded-2xl border border-border shadow-2xl p-6 space-y-5"
+            <div className="relative w-full max-w-md mx-4 bg-surface rounded-2xl border border-border shadow-2xl p-6 space-y-5 animate-modal-in"
                 onClick={e => e.stopPropagation()}>
 
                 {/* Header */}

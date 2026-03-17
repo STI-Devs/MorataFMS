@@ -15,7 +15,7 @@ interface UploadModalProps {
 
 
 function formatBytes(bytes: number): string {
-    if (bytes < 1024)        return `${bytes} B`;
+    if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
@@ -25,7 +25,7 @@ export const UploadModal: React.FC<UploadModalProps> = ({
     isOpen, onClose, onUpload, title, isLoading = false, errorMessage,
 }) => {
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
-    const [isDragging,   setIsDragging]   = useState(false);
+    const [isDragging, setIsDragging] = useState(false);
 
     if (!isOpen) return null;
 
@@ -47,8 +47,8 @@ export const UploadModal: React.FC<UploadModalProps> = ({
     };
 
     return (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[150] p-4">
-            <div className="bg-surface rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-border">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[150] p-4 animate-backdrop-in">
+            <div className="bg-surface rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-border animate-modal-in">
 
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b border-border">
@@ -84,11 +84,10 @@ export const UploadModal: React.FC<UploadModalProps> = ({
                         onDragLeave={() => setIsDragging(false)}
                         onDrop={handleDrop}
                         onClick={() => document.getElementById('doc-file-upload')?.click()}
-                        className={`border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center text-center transition-all cursor-pointer ${
-                            isDragging
+                        className={`border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center text-center transition-all cursor-pointer ${isDragging
                                 ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
                                 : 'border-border-strong bg-surface-secondary hover:bg-hover hover:border-blue-400'
-                        }`}
+                            }`}
                     >
                         <input
                             type="file"
@@ -128,11 +127,10 @@ export const UploadModal: React.FC<UploadModalProps> = ({
                     <button
                         onClick={handleUploadClick}
                         disabled={!selectedFile || isLoading}
-                        className={`w-full py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${
-                            !selectedFile || isLoading
+                        className={`w-full py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${!selectedFile || isLoading
                                 ? 'bg-surface-secondary text-text-muted cursor-not-allowed border border-border'
                                 : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:opacity-90 shadow-lg active:scale-[0.98]'
-                        }`}
+                            }`}
                     >
                         {isLoading ? (
                             <>

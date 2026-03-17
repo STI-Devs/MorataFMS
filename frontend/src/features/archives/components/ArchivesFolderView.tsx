@@ -37,7 +37,7 @@ export const FolderRowMenu = ({ folderName, menuKey, openMenuKey, setOpenMenuKey
         {openMenuKey === menuKey && (
             <>
                 <div className="fixed inset-0 z-20" onClick={() => setOpenMenuKey(null)} />
-                <div className="absolute right-0 top-8 z-30 w-56 bg-surface rounded-xl border border-border shadow-lg py-1 overflow-hidden">
+                <div className="absolute right-0 top-8 z-30 w-56 bg-surface rounded-xl border border-border shadow-lg py-1 overflow-hidden animate-dropdown-in">
                     {/* Download */}
                     <button
                         onClick={() => { setOpenMenuKey(null); alert(`Downloading ${folderName}... (backend pending)`); }}

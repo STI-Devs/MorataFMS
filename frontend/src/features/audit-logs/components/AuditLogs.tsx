@@ -301,64 +301,195 @@ export const AuditLogs = () => {
                                                 </td>
                                             </tr>
 
-                                            {/* ── Expanded detail panel ── */}
-                                            {isOpen && changesData && (
-                                                <tr key={`${log.id}-detail`} className={zebraRow}>
-                                                    <td colSpan={7} className="px-5 pb-4 pt-1">
-                                                        <div className="rounded-xl border border-border-tint bg-surface-tint overflow-hidden">
-                                                            {/* Panel header */}
-                                                            <div
-                                                                className="px-4 py-2.5 border-b border-border-tint flex items-center gap-2"
-                                                                style={{ backgroundColor: `${cfg.color}0d` }}
-                                                            >
-                                                                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: cfg.color }} />
-                                                                <p className="text-xs font-semibold" style={{ color: cfg.color }}>
-                                                                    {isDelete
-                                                                        ? `Record Snapshot${log.auditable_label ? ` · ${log.auditable_label}` : ''}`
-                                                                        : `${cfg.label} — ${changeCount} field${changeCount !== 1 ? 's' : ''}${log.auditable_label ? ` · ${log.auditable_label}` : ''}`
-                                                                    }
-                                                                </p>
-                                                            </div>
+                                            {/* ── Expanded detail panel (always rendered, animated via grid-rows) ── */}
+                                            {changesData && (
+                                                <tr key={`${log.id}-detail`}>
+                                                    <td
+                                                        colSpan={7}
+                                                        className="p-0 border-0"
+                                                        style={{ padding: 0 }}
+                                                    >
+                                                        {/* Grid-rows trick: 0fr → 1fr gives smooth height animation without knowing height */}
+                                                        <div
+                                                            style={{
+                                                                display: 'grid',
+                                                                gridTemplateRows: isOpen ? '1fr' : '0fr',
+                                                                transition: 'grid-template-rows 380ms cubic-bezier(0.4, 0, 0.2, 1)',
+                                                            }}
+                                                        >
+                                                            <div style={{ overflow: 'hidden' }}>
+                                                                <div
+                                                                    className="bg-surface/50 overflow-hidden"
+                                                                    style={{
+                                                                        borderTop: '1px solid var(--color-border-strong, rgba(255,255,255,0.06))',
+                                                                        borderBottom: '1px solid var(--color-border-strong, rgba(255,255,255,0.06))',
+                                                                        opacity: isOpen ? 1 : 0,
+                                                                        transform: isOpen ? 'translateY(0)' : 'translateY(-6px)',
+                                                                        transition: 'opacity 300ms ease, transform 300ms ease',
+                                                                        transitionDelay: isOpen ? '60ms' : '0ms',
+                                                                    }}
+                                                                >
 
-                                                            {/* Field grid */}
-                                                            <div className="p-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-8 gap-y-4">
-                                                                {/* Internal polymorphic companion keys — skip, they're already resolved into the _id field */}
-                                                                {hasNew
-                                                                    ? Object.entries(log.new_values!).filter(([k]) => !k.endsWith('_type')).map(([key, newVal]) => {
-                                                                        const oldVal = log.old_values?.[key];
-                                                                        const hasOldVal = oldVal !== undefined && oldVal !== null;
-                                                                        return (
-                                                                            <div key={key}>
-                                                                                <p className="text-[10px] uppercase tracking-wider font-bold text-text-muted mb-1">{formatKey(key)}</p>
-                                                                                <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-                                                                                    {hasOldVal && (
-                                                                                        <>
-                                                                                            <span className="text-[11px] font-mono line-through text-text-muted opacity-60 truncate max-w-[120px]" title={formatValue(oldVal)}>
+                                                                    {/* Panel header */}
+                                                                    <div
+                                                                        style={{
+                                                                            padding: '16px 24px 12px',
+                                                                            borderBottom: '1px solid var(--color-border-strong, rgba(255,255,255,0.06))',
+                                                                            display: 'flex',
+                                                                            alignItems: 'center',
+                                                                            gap: '8px',
+                                                                        }}
+                                                                    >
+                                                                        <span
+                                                                            style={{
+                                                                                width: '6px',
+                                                                                height: '6px',
+                                                                                borderRadius: '50%',
+                                                                                backgroundColor: cfg.color,
+                                                                                boxShadow: `0 0 6px ${cfg.color}`,
+                                                                                flexShrink: 0,
+                                                                            }}
+                                                                        />
+                                                                        <p style={{ fontSize: '11px', fontWeight: 700, color: cfg.color, letterSpacing: '0.02em' }}>
+                                                                            {isDelete
+                                                                                ? `Record Snapshot${log.auditable_label ? ` · ${log.auditable_label}` : ''}`
+                                                                                : `${cfg.label} — ${changeCount} field${changeCount !== 1 ? 's' : ''}${log.auditable_label ? ` · ${log.auditable_label}` : ''}`
+                                                                            }
+                                                                        </p>
+                                                                    </div>
+
+                                                                    {/* Field list */}
+                                                                    <div
+                                                                        style={{
+                                                                            padding: '20px 24px 24px',
+                                                                            display: 'grid',
+                                                                            gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+                                                                            gap: '24px 16px',
+                                                                        }}
+                                                                    >
+                                                                        {hasNew
+                                                                            ? Object.entries(log.new_values!).filter(([k]) => !k.endsWith('_type')).map(([key, newVal], fi) => {
+                                                                                const oldVal = log.old_values?.[key];
+                                                                                const hasOldVal = oldVal !== undefined && oldVal !== null;
+                                                                                const SC_COLORS: Record<string, string> = { green: '#30d158', yellow: '#ffd60a', orange: '#ff9f0a', red: '#ff453a' };
+                                                                                const isColorField = key === 'selective_color';
+                                                                                const scColor = isColorField ? SC_COLORS[String(newVal).toLowerCase()] : undefined;
+                                                                                return (
+                                                                                    <div
+                                                                                        key={key}
+                                                                                        style={{
+                                                                                            padding: '4px 8px',
+                                                                                            minWidth: 0,
+                                                                                            textAlign: 'left',
+                                                                                            opacity: isOpen ? 1 : 0,
+                                                                                            transform: isOpen ? 'translateY(0)' : 'translateY(4px)',
+                                                                                            transition: `opacity 280ms ease ${80 + fi * 30}ms, transform 280ms ease ${80 + fi * 30}ms`,
+                                                                                        }}
+                                                                                    >
+                                                                                        <p style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--color-text-muted, #6b7280)', marginBottom: '5px' }}>
+                                                                                            {formatKey(key)}
+                                                                                        </p>
+                                                                                        {hasOldVal && (
+                                                                                            <p
+                                                                                                style={{
+                                                                                                    fontSize: '10px',
+                                                                                                    fontFamily: 'monospace',
+                                                                                                    textDecoration: 'line-through',
+                                                                                                    color: 'var(--color-text-muted, #6b7280)',
+                                                                                                    opacity: 0.55,
+                                                                                                    marginBottom: '2px',
+                                                                                                    overflow: 'hidden',
+                                                                                                    textOverflow: 'ellipsis',
+                                                                                                    whiteSpace: 'nowrap',
+                                                                                                }}
+                                                                                                title={formatValue(oldVal)}
+                                                                                            >
+                                                                                                {formatValue(oldVal)}
+                                                                                            </p>
+                                                                                        )}
+                                                                                        {isColorField && scColor ? (
+                                                                                            <span style={{
+                                                                                                display: 'inline-flex', alignItems: 'center', gap: '5px',
+                                                                                                padding: '2px 8px', borderRadius: '999px',
+                                                                                                background: `${scColor}22`,
+                                                                                                border: `1px solid ${scColor}55`,
+                                                                                                fontSize: '11px', fontWeight: 700, fontFamily: 'monospace',
+                                                                                                color: scColor,
+                                                                                            }}>
+                                                                                                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: scColor, flexShrink: 0 }} />
+                                                                                                {formatValue(newVal)}
+                                                                                            </span>
+                                                                                        ) : (
+                                                                                            <p
+                                                                                                style={{
+                                                                                                    fontSize: '11px',
+                                                                                                    fontFamily: 'monospace',
+                                                                                                    fontWeight: 600,
+                                                                                                    color: hasOldVal ? cfg.color : 'var(--color-text-primary, #f0f0f0)',
+                                                                                                    overflow: 'hidden',
+                                                                                                    textOverflow: 'ellipsis',
+                                                                                                    whiteSpace: 'nowrap',
+                                                                                                }}
+                                                                                                title={formatValue(newVal)}
+                                                                                            >
+                                                                                                {formatValue(newVal)}
+                                                                                            </p>
+                                                                                        )}
+                                                                                    </div>
+                                                                                );
+                                                                            })
+                                                                            : Object.entries(log.old_values!).filter(([k]) => !k.endsWith('_type')).map(([key, oldVal], fi) => {
+                                                                                const SC_COLORS: Record<string, string> = { green: '#30d158', yellow: '#ffd60a', orange: '#ff9f0a', red: '#ff453a' };
+                                                                                const isColorField = key === 'selective_color';
+                                                                                const scColor = isColorField ? SC_COLORS[String(oldVal).toLowerCase()] : undefined;
+                                                                                return (
+                                                                                    <div
+                                                                                        key={key}
+                                                                                        style={{
+                                                                                            padding: '4px 8px',
+                                                                                            minWidth: 0,
+                                                                                            textAlign: 'left',
+                                                                                            opacity: isOpen ? 1 : 0,
+                                                                                            transform: isOpen ? 'translateY(0)' : 'translateY(4px)',
+                                                                                            transition: `opacity 280ms ease ${80 + fi * 30}ms, transform 280ms ease ${80 + fi * 30}ms`,
+                                                                                        }}
+                                                                                    >
+                                                                                        <p style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--color-text-muted, #6b7280)', marginBottom: '5px' }}>
+                                                                                            {formatKey(key)}
+                                                                                        </p>
+                                                                                        {isColorField && scColor ? (
+                                                                                            <span style={{
+                                                                                                display: 'inline-flex', alignItems: 'center', gap: '5px',
+                                                                                                padding: '2px 8px', borderRadius: '999px',
+                                                                                                background: `${scColor}22`,
+                                                                                                border: `1px solid ${scColor}55`,
+                                                                                                fontSize: '11px', fontWeight: 700, fontFamily: 'monospace',
+                                                                                                color: scColor,
+                                                                                            }}>
+                                                                                                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: scColor, flexShrink: 0 }} />
                                                                                                 {formatValue(oldVal)}
                                                                                             </span>
-                                                                                            <span className="text-[10px] text-text-muted shrink-0">→</span>
-                                                                                        </>
-                                                                                    )}
-                                                                                    <span className="text-[11px] font-mono font-semibold truncate max-w-[120px]" style={{ color: '#30d158' }} title={formatValue(newVal)}>
-                                                                                        {formatValue(newVal)}
-                                                                                    </span>
-                                                                                </div>
-                                                                            </div>
-                                                                        );
-                                                                    })
-                                                                    : /* Deleted snapshot — clean read-only view, no strikethrough */
-                                                                    Object.entries(log.old_values!).filter(([k]) => !k.endsWith('_type')).map(([key, oldVal]) => (
-                                                                        <div key={key}>
-                                                                            <p className="text-[10px] uppercase tracking-wider font-bold text-text-muted mb-1">{formatKey(key)}</p>
-                                                                            <span
-                                                                                className="text-[11px] font-mono truncate max-w-[150px] block text-text-secondary"
-                                                                                title={formatValue(oldVal)}
-                                                                            >
-                                                                                {formatValue(oldVal)}
-                                                                            </span>
-                                                                        </div>
-                                                                    ))
-                                                                }
+                                                                                        ) : (
+                                                                                            <p
+                                                                                                style={{
+                                                                                                    fontSize: '11px',
+                                                                                                    fontFamily: 'monospace',
+                                                                                                    color: 'var(--color-text-secondary, #9ca3af)',
+                                                                                                    overflow: 'hidden',
+                                                                                                    textOverflow: 'ellipsis',
+                                                                                                    whiteSpace: 'nowrap',
+                                                                                                }}
+                                                                                                title={formatValue(oldVal)}
+                                                                                            >
+                                                                                                {formatValue(oldVal)}
+                                                                                            </p>
+                                                                                        )}
+                                                                                    </div>
+                                                                                );
+                                                                            })
+                                                                        }
+                                                                    </div>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </td>

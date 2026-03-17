@@ -211,7 +211,7 @@ export const ClientManagement = () => {
                             <thead>
                                 <tr className="border-b border-border">
                                     {['Name', 'Type', 'Country', 'Contact', 'Status', 'Actions'].map((h, i) => (
-                                        <th key={h} className={`px-5 py-3 text-xs font-semibold uppercase tracking-wider ${i === 0 ? 'text-left' : i === 5 ? 'text-right' : 'text-center'} text-text-muted`}>
+                                        <th key={h} className={`px-5 py-3 text-xs font-semibold uppercase tracking-wider ${i === 0 ? 'text-left' : 'text-center'} text-text-muted`}>
                                             {h}
                                         </th>
                                     ))}
@@ -258,28 +258,43 @@ export const ClientManagement = () => {
                                         <td className="px-5 py-3.5 text-center">
                                             <div className="flex items-center justify-center gap-1.5">
                                                 <button
+                                                    title="Edit Client"
                                                     onClick={() => handleEdit(client)}
-                                                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-surface-elevated border border-border text-text-secondary hover:text-text-primary hover:border-border-strong transition-colors"
+                                                    className="p-1.5 rounded-lg transition-colors bg-surface-elevated border border-border text-text-secondary hover:text-text-primary hover:border-border-strong"
                                                 >
-                                                    Edit
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                                    </svg>
                                                 </button>
                                                 <button
+                                                    title="View History"
                                                     onClick={() => handleViewTransactions(client)}
-                                                    className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+                                                    className="p-1.5 rounded-lg transition-colors"
                                                     style={{ backgroundColor: 'rgba(10,132,255,0.12)', color: '#0a84ff' }}
                                                 >
-                                                    History
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
                                                 </button>
                                                 <button
+                                                    title={client.is_active ? 'Deactivate Client' : 'Activate Client'}
                                                     onClick={() => handleToggleActive(client.id)}
                                                     disabled={toggleClient.isPending}
-                                                    className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
+                                                    className="p-1.5 rounded-lg transition-colors disabled:opacity-50"
                                                     style={client.is_active
                                                         ? { backgroundColor: 'rgba(255,69,58,0.12)', color: '#ff453a' }
                                                         : { backgroundColor: 'rgba(48,209,88,0.12)', color: '#30d158' }
                                                     }
                                                 >
-                                                    {client.is_active ? 'Deactivate' : 'Activate'}
+                                                    {client.is_active ? (
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                                                        </svg>
+                                                    ) : (
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                        </svg>
+                                                    )}
                                                 </button>
                                             </div>
                                         </td>

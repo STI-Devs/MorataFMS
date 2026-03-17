@@ -18,17 +18,17 @@ const labelCls = 'block text-sm font-medium mb-2 text-text-secondary';
 
 export const ClientFormModal = ({ isOpen, onClose, onSubmit, client, mode }: ClientFormModalProps) => {
     const [formData, setFormData] = useState({
-        name:           '',
-        type:           'both' as ClientType,
-        country_id:     null as number | null,
+        name: '',
+        type: 'both' as ClientType,
+        country_id: null as number | null,
         contact_person: '',
-        contact_email:  '',
-        contact_phone:  '',
-        address:        '',
+        contact_email: '',
+        contact_phone: '',
+        address: '',
     });
-    const [countries,    setCountries]    = useState<Country[]>([]);
+    const [countries, setCountries] = useState<Country[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [error,        setError]        = useState('');
+    const [error, setError] = useState('');
 
     useEffect(() => {
         const loadCountries = async () => {
@@ -46,13 +46,13 @@ export const ClientFormModal = ({ isOpen, onClose, onSubmit, client, mode }: Cli
     useEffect(() => {
         if (mode === 'edit' && client) {
             setFormData({
-                name:           client.name,
-                type:           client.type,
-                country_id:     client.country_id,
+                name: client.name,
+                type: client.type,
+                country_id: client.country_id,
                 contact_person: client.contact_person || '',
-                contact_email:  client.contact_email  || '',
-                contact_phone:  client.contact_phone  || '',
-                address:        client.address        || '',
+                contact_email: client.contact_email || '',
+                contact_phone: client.contact_phone || '',
+                address: client.address || '',
             });
         } else {
             setFormData({ name: '', type: 'both', country_id: null, contact_person: '', contact_email: '', contact_phone: '', address: '' });
@@ -78,9 +78,9 @@ export const ClientFormModal = ({ isOpen, onClose, onSubmit, client, mode }: Cli
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={onClose}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-backdrop-in" onClick={onClose}>
             <div
-                className="w-full max-w-2xl rounded-2xl p-8 max-h-[90vh] overflow-y-auto bg-surface border border-border shadow-xl"
+                className="w-full max-w-2xl rounded-2xl p-8 max-h-[90vh] overflow-y-auto bg-surface border border-border shadow-xl animate-modal-in"
                 onClick={(e) => e.stopPropagation()}
             >
                 <h2 className="text-2xl font-bold mb-6 text-text-primary">

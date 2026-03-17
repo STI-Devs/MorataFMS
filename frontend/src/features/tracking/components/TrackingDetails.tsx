@@ -12,31 +12,31 @@ import { RemarkViewerModal } from './RemarkViewerModal';
 
 
 interface StageUpload {
-    fileName:   string;
+    fileName: string;
     fileObject: File;
 }
 
 interface StageDefinition {
-    title:       string;
-    icon:        IconName;
+    title: string;
+    icon: IconName;
     description: string;
 }
 
 const IMPORT_STAGES: StageDefinition[] = [
-    { title: 'BOC Document Processing',  icon: 'file-text',    description: 'Submit and process customs declaration at the Bureau of Customs.' },
-    { title: 'Payment for PPA Charges',  icon: 'truck',        description: 'Settle port and pier authority charges.' },
-    { title: 'Delivery Order Request',   icon: 'file-text',    description: 'Request delivery order from the shipping line or agent.' },
-    { title: 'Payment for Port Charges', icon: 'file-text',    description: 'Pay remaining port storage and handling fees.' },
-    { title: 'Releasing of Documents',   icon: 'check-circle', description: 'Collect released documents from customs and shipping line.' },
-    { title: 'Liquidation and Billing',  icon: 'file-text',    description: 'Finalize billing and liquidate all charges with the client.' },
+    { title: 'BOC Document Processing', icon: 'file-text', description: 'Submit and process customs declaration at the Bureau of Customs.' },
+    { title: 'Payment for PPA Charges', icon: 'truck', description: 'Settle port and pier authority charges.' },
+    { title: 'Delivery Order Request', icon: 'file-text', description: 'Request delivery order from the shipping line or agent.' },
+    { title: 'Payment for Port Charges', icon: 'file-text', description: 'Pay remaining port storage and handling fees.' },
+    { title: 'Releasing of Documents', icon: 'check-circle', description: 'Collect released documents from customs and shipping line.' },
+    { title: 'Liquidation and Billing', icon: 'file-text', description: 'Finalize billing and liquidate all charges with the client.' },
 ];
 
 const EXPORT_STAGES: StageDefinition[] = [
-    { title: 'BOC Document Processing',    icon: 'file-text',    description: 'Submit export declaration at the Bureau of Customs.' },
-    { title: 'Bill of Lading Generation',  icon: 'file-text',    description: 'Coordinate with shipping line to issue the Bill of Lading.' },
+    { title: 'BOC Document Processing', icon: 'file-text', description: 'Submit export declaration at the Bureau of Customs.' },
+    { title: 'Bill of Lading Generation', icon: 'file-text', description: 'Coordinate with shipping line to issue the Bill of Lading.' },
     { title: 'CO Application & Releasing', icon: 'check-circle', description: 'Apply for and receive Certificate of Origin.' },
-    { title: 'DCCCI Printing',             icon: 'file-text',    description: 'Print documents from DCCCI for export compliance.' },
-    { title: 'Billing of Liquidation',     icon: 'file-text',    description: 'Finalize billing and close out the export transaction.' },
+    { title: 'DCCCI Printing', icon: 'file-text', description: 'Print documents from DCCCI for export compliance.' },
+    { title: 'Billing of Liquidation', icon: 'file-text', description: 'Finalize billing and close out the export transaction.' },
 ];
 
 
@@ -66,16 +66,16 @@ export const TrackingDetails = () => {
     const { referenceId } = useParams();
     const { user } = useOutletContext<LayoutContext>();
 
-    const [transaction,    setTransaction]    = useState<ImportTransaction | ExportTransaction | undefined>();
+    const [transaction, setTransaction] = useState<ImportTransaction | ExportTransaction | undefined>();
     const [rawTransaction, setRawTransaction] = useState<ApiImportTransaction | ApiExportTransaction | undefined>();
-    const [loading,        setLoading]        = useState(true);
+    const [loading, setLoading] = useState(true);
 
-    const [isEditModalOpen,    setIsEditModalOpen]    = useState(false);
-    const [isRemarkModalOpen,  setIsRemarkModalOpen]  = useState(false);
-    const [isUploadOpen,       setIsUploadOpen]       = useState(false);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [isRemarkModalOpen, setIsRemarkModalOpen] = useState(false);
+    const [isUploadOpen, setIsUploadOpen] = useState(false);
     const [selectedStageIndex, setSelectedStageIndex] = useState<number | null>(null);
-    const [stageUploads,       setStageUploads]       = useState<Record<number, StageUpload>>({});
-    const [previewFile,        setPreviewFile]        = useState<{ file: File | string | null; name: string } | null>(null);
+    const [stageUploads, setStageUploads] = useState<Record<number, StageUpload>>({});
+    const [previewFile, setPreviewFile] = useState<{ file: File | string | null; name: string } | null>(null);
 
     useEffect(() => {
         if (!referenceId) return;
@@ -143,17 +143,17 @@ export const TrackingDetails = () => {
         );
     }
 
-    const isImport  = transaction.ref.startsWith('IMP') || !transaction.ref.startsWith('EXP');
-    const stages    = isImport ? IMPORT_STAGES : EXPORT_STAGES;
-    const s         = getStatusStyle(transaction.status);
+    const isImport = transaction.ref.startsWith('IMP') || !transaction.ref.startsWith('EXP');
+    const stages = isImport ? IMPORT_STAGES : EXPORT_STAGES;
+    const s = getStatusStyle(transaction.status);
 
     const stageStatuses = stages.map((_, i) => getStageStatus(i, transaction.status));
     const completedCount = stageStatuses.filter(s => s === 'completed').length;
-    const activeIndex    = stageStatuses.findIndex(s => s === 'active');
-    const progressPct    = Math.round((completedCount / stages.length) * 100);
+    const activeIndex = stageStatuses.findIndex(s => s === 'active');
+    const progressPct = Math.round((completedCount / stages.length) * 100);
 
-    const importTx  = isImport  ? (transaction as ImportTransaction)  : null;
-    const exportTx  = !isImport ? (transaction as ExportTransaction)  : null;
+    const importTx = isImport ? (transaction as ImportTransaction) : null;
+    const exportTx = !isImport ? (transaction as ExportTransaction) : null;
 
     return (
         <div className="flex flex-col space-y-5 pb-6">
@@ -180,11 +180,11 @@ export const TrackingDetails = () => {
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                         <button
+                            title="Remarks"
                             onClick={() => setIsRemarkModalOpen(true)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-text-secondary border border-border-strong rounded-lg hover:bg-hover hover:text-text-primary transition-colors relative"
+                            className="flex items-center justify-center w-8 h-8 text-text-secondary border border-border-strong rounded-lg hover:bg-hover hover:text-text-primary transition-colors relative"
                         >
-                            <Icon name="flag" className="w-3.5 h-3.5" />
-                            Remarks
+                            <Icon name="flag" className="w-4 h-4" />
                             {transaction.open_remarks_count > 0 && (
                                 <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center px-1 border-2 border-surface shrink-0">
                                     {transaction.open_remarks_count}
@@ -192,11 +192,11 @@ export const TrackingDetails = () => {
                             )}
                         </button>
                         <button
+                            title="Edit Transaction"
                             onClick={() => setIsEditModalOpen(true)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-text-secondary border border-border-strong rounded-lg hover:bg-hover hover:text-text-primary transition-colors"
+                            className="flex items-center justify-center w-8 h-8 text-text-secondary border border-border-strong rounded-lg hover:bg-hover hover:text-text-primary transition-colors"
                         >
-                            <Icon name="edit" className="w-3.5 h-3.5" />
-                            Edit
+                            <Icon name="edit" className="w-4 h-4" />
                         </button>
                         <span
                             className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-bold"
@@ -297,27 +297,25 @@ export const TrackingDetails = () => {
                     {stages.map((stage, i) => {
                         const stageStatus = stageStatuses[i];
                         const isCompleted = stageStatus === 'completed';
-                        const isActive    = stageStatus === 'active';
-                        const upload      = stageUploads[i];
-                        const isLast      = i === stages.length - 1;
+                        const isActive = stageStatus === 'active';
+                        const upload = stageUploads[i];
+                        const isLast = i === stages.length - 1;
 
                         return (
                             <div
                                 key={i}
-                                className={`relative flex gap-4 px-5 py-4 transition-colors ${
-                                    isActive ? 'bg-blue-500/5 dark:bg-blue-500/8' : ''
-                                }`}
+                                className={`relative flex gap-4 px-5 py-4 transition-colors ${isActive ? 'bg-blue-500/5 dark:bg-blue-500/8' : ''
+                                    }`}
                             >
                                 {/* Step indicator column */}
                                 <div className="flex flex-col items-center shrink-0 pt-0.5">
                                     {/* Circle */}
-                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 border-2 transition-all ${
-                                        isCompleted
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 border-2 transition-all ${isCompleted
                                             ? 'bg-emerald-500 border-emerald-500 text-white'
                                             : isActive
                                                 ? 'bg-blue-500/10 border-blue-500 text-blue-500'
                                                 : 'bg-surface-secondary border-border text-text-muted'
-                                    }`}>
+                                        }`}>
                                         {isCompleted ? (
                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
@@ -328,9 +326,8 @@ export const TrackingDetails = () => {
                                     </div>
                                     {/* Connector line */}
                                     {!isLast && (
-                                        <div className={`w-0.5 flex-1 mt-1 min-h-[24px] rounded-full transition-colors ${
-                                            isCompleted ? 'bg-emerald-400/60' : 'bg-border'
-                                        }`} />
+                                        <div className={`w-0.5 flex-1 mt-1 min-h-[24px] rounded-full transition-colors ${isCompleted ? 'bg-emerald-400/60' : 'bg-border'
+                                            }`} />
                                     )}
                                 </div>
 
@@ -339,9 +336,8 @@ export const TrackingDetails = () => {
                                     <div className="flex items-start justify-between gap-2">
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2 mb-0.5">
-                                                <h3 className={`text-sm font-bold ${
-                                                    isCompleted ? 'text-text-primary' : isActive ? 'text-blue-600 dark:text-blue-400' : 'text-text-secondary'
-                                                }`}>
+                                                <h3 className={`text-sm font-bold ${isCompleted ? 'text-text-primary' : isActive ? 'text-blue-600 dark:text-blue-400' : 'text-text-secondary'
+                                                    }`}>
                                                     {stage.title}
                                                 </h3>
                                                 {isActive && (
@@ -362,13 +358,12 @@ export const TrackingDetails = () => {
                                         {/* Upload button */}
                                         <button
                                             onClick={e => { e.stopPropagation(); handleStageUploadClick(i); }}
-                                            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs font-bold transition-all shrink-0 self-center shadow-sm"
+                                            className="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 active:scale-95 text-white transition-all shrink-0 self-center shadow-sm"
                                             title="Upload document for this stage"
                                         >
-                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                                             </svg>
-                                            Upload
                                         </button>
                                     </div>
 
