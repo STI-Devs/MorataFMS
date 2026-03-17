@@ -35,6 +35,10 @@
   /* Accent tint (for time card, calendar tint in light mode) */
   --color-surface-tint: #eff6ff;
   --color-border-tint: #dbeafe;
+
+  /* Skeleton loaders — must be visibly distinct from surface (#ffffff) */
+  --color-skeleton: #e5e7eb;
+  --color-skeleton-shine: #f3f4f6;
 }
 
 .dark {
@@ -63,6 +67,10 @@
   /* Tint (stat cards) */
   --color-surface-tint: #1e1e1e;
   --color-border-tint: #2a2a2a;
+
+  /* Skeleton loaders — visible on dark surfaces */
+  --color-skeleton: #2e2e2e;
+  --color-skeleton-shine: #383838;
 }
 
 /* Mix mode: dark sidebar, light content area.
@@ -90,6 +98,8 @@
   --color-sidebar-border: var(--color-sidebar-border);
   --color-surface-tint: var(--color-surface-tint);
   --color-border-tint: var(--color-border-tint);
+  --color-skeleton: var(--color-skeleton);
+  --color-skeleton-shine: var(--color-skeleton-shine);
 }
 
 /* ============================================
@@ -173,12 +183,24 @@
 /* Shimmer effect */
 @keyframes shimmer {
   0% {
-    background-position: -1000px 0;
+    background-position: -800px 0;
   }
 
   100% {
-    background-position: 1000px 0;
+    background-position: 800px 0;
   }
+}
+
+/* Professional skeleton shimmer — use instead of animate-pulse */
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--color-skeleton) 0%,
+    var(--color-skeleton-shine) 40%,
+    var(--color-skeleton) 80%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
 }
 
 /* Sliding panel animations for auth pages */

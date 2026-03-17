@@ -1,4 +1,4 @@
-﻿import { getStatusStyle } from '../lib/statusStyles';
+import { getStatusStyle } from '../lib/statusStyles';
 
 interface StatusBadgeProps {
     status: string;
@@ -12,13 +12,9 @@ export function StatusBadge({ status }: StatusBadgeProps) {
     const s = getStatusStyle(status);
     return (
         <span
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold w-fit whitespace-nowrap"
-            style={{ color: s.color, backgroundColor: s.bg }}
+            className="inline-flex items-center text-xs font-bold w-fit whitespace-nowrap uppercase tracking-[0.05em]"
+            style={{ color: s.color }}
         >
-            <span
-                className="w-1.5 h-1.5 rounded-full inline-block"
-                style={{ backgroundColor: s.color, boxShadow: `0 0 4px ${s.color}` }}
-            />
             {status}
         </span>
     );

@@ -75,8 +75,12 @@ function TableSkeleton() {
                     <div className="h-4 w-28 rounded bg-surface-secondary animate-pulse" />
                     <div className="h-4 w-36 rounded bg-surface-secondary animate-pulse" />
                     <div className="h-4 w-20 rounded bg-surface-secondary animate-pulse" />
-                    <div className="h-6 w-20 rounded-full bg-surface-secondary animate-pulse" />
-                    <div className="h-6 w-16 rounded-full bg-surface-secondary animate-pulse mx-auto" />
+                    <div className="flex justify-center">
+                        <div className="h-6 w-20 rounded-full bg-surface-secondary animate-pulse" />
+                    </div>
+                    <div className="flex justify-center">
+                        <div className="h-6 w-16 rounded-full bg-surface-secondary animate-pulse" />
+                    </div>
                 </div>
             ))}
         </div>
@@ -246,11 +250,15 @@ export const Documents = () => {
                             <div>
                                 <p className="text-3xl font-bold tabular-nums text-text-primary">
                                     {isLoading ? (
-                                        <span className="inline-block h-8 w-10 rounded bg-surface-secondary animate-pulse" />
+                                        <span className="inline-block h-8 w-16 rounded bg-surface-secondary animate-pulse" />
                                     ) : stat.value}
                                 </p>
                                 <p className="text-xs mt-1 font-semibold text-text-secondary">{stat.label}</p>
-                                <p className="text-xs mt-0.5 text-text-muted">{stat.sub}</p>
+                                <div className="text-xs mt-0.5 text-text-muted flex items-center h-4">
+                                    {isLoading ? (
+                                        <span className="inline-block h-3 w-24 rounded bg-surface-secondary animate-pulse" />
+                                    ) : stat.sub}
+                                </div>
                             </div>
                             <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: `${stat.color}20` }}>
                                 <StatIcon d={stat.icon} color={stat.color} />

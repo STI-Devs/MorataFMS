@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { Icon } from '../../../components/Icon';
 import { StatusBadge } from '../../../components/StatusBadge';
 import type { ApiExportTransaction, ExportTransaction } from '../types';
@@ -16,23 +16,23 @@ export const ExportList = () => {
                 title="Export Transactions"
                 subtitle="Track and manage all export shipments"
                 encodeButtonLabel="Encode Export"
-                gridTemplateColumns="1.2fr 1.2fr 1.2fr 1.2fr 1fr 1.2fr 80px"
+                gridTemplateColumns="1.5fr 1.2fr 1.5fr 1.2fr 110px 1.5fr 60px"
                 mapResponseData={data => (data as ApiExportTransaction[]).map(mapExportTransaction)}
                 renderHeaders={() => (
                     <>
-                        <span className="text-xs text-text-secondary uppercase tracking-wider text-left pl-2">Shipper</span>
-                        <span className="text-xs text-text-secondary uppercase tracking-wider text-left">Bill of Lading</span>
-                        <span className="text-xs text-text-secondary uppercase tracking-wider text-left">Vessel</span>
-                        <span className="text-xs text-text-secondary uppercase tracking-wider text-center">Departure Date</span>
-                        <span className="text-xs text-text-secondary uppercase tracking-wider text-center">Status</span>
-                        <span className="text-xs text-text-secondary uppercase tracking-wider text-left">Destination</span>
-                        <span className="text-xs text-text-secondary uppercase tracking-wider text-center">Actions</span>
+                        <span className="text-[10px] font-bold text-text-muted uppercase tracking-[0.08em] text-left">Shipper</span>
+                        <span className="text-[10px] font-bold text-text-muted uppercase tracking-[0.08em] text-left">Bill of Lading</span>
+                        <span className="text-[10px] font-bold text-text-muted uppercase tracking-[0.08em] text-left">Vessel</span>
+                        <span className="text-[10px] font-bold text-text-muted uppercase tracking-[0.08em] text-center">Departure Date</span>
+                        <span className="text-[10px] font-bold text-text-muted uppercase tracking-[0.08em] text-center">Status</span>
+                        <span className="text-[10px] font-bold text-text-muted uppercase tracking-[0.08em] text-left">Destination</span>
+                        <span className="text-[10px] font-bold text-text-muted uppercase tracking-[0.08em] text-center"></span>
                     </>
                 )}
                 renderRow={(row, _, navigate, onCancel) => (
                     <>
-                        <div className="flex items-center justify-start gap-1.5 min-w-0 pl-2">
-                            <p className="text-sm text-text-primary font-bold truncate">{row.shipper}</p>
+                        <div className="flex items-center justify-start gap-1.5 min-w-0 pr-2">
+                            <p className="text-sm font-bold text-text-primary truncate" title={row.shipper}>{row.shipper}</p>
                             {row.open_remarks_count > 0 && (
                                 <button
                                     onClick={e => { e.stopPropagation(); setRemarkTarget(row); }}
@@ -45,13 +45,13 @@ export const ExportList = () => {
                                 </button>
                             )}
                         </div>
-                        <p className="text-sm text-text-secondary font-bold truncate text-left">{row.bl}</p>
-                        <p className="text-sm text-text-secondary font-bold truncate text-left">{row.vessel}</p>
-                        <p className="text-sm text-text-secondary font-bold truncate text-center">{row.departureDate}</p>
-                        <div className="flex justify-center">
+                        <p className="text-sm text-text-secondary font-bold truncate text-left" title={row.bl || ''}>{row.bl || '—'}</p>
+                        <p className="text-sm text-text-secondary font-bold truncate text-left" title={row.vessel || ''}>{row.vessel || '—'}</p>
+                        <p className="text-sm text-text-muted font-semibold truncate text-center" title={row.departureDate || ''}>{row.departureDate || '—'}</p>
+                        <div className="flex justify-center flex-shrink-0">
                             <StatusBadge status={row.status} />
                         </div>
-                        <p className="text-sm text-text-secondary font-bold truncate text-left">{row.portOfDestination}</p>
+                        <p className="text-sm text-text-secondary font-bold truncate text-left" title={row.portOfDestination}>{row.portOfDestination}</p>
                         <div className="flex justify-center gap-1.5">
                             <button
                                 className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-md transition-colors"
@@ -63,8 +63,8 @@ export const ExportList = () => {
                             <button
                                 className={`p-1.5 rounded-md transition-colors ${
                                     row.status === 'Processing' || row.status === 'In Transit'
-                                        ? 'text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/30 cursor-pointer'
-                                        : 'text-text-muted cursor-not-allowed'
+                                        ? 'text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 cursor-pointer'
+                                        : 'text-text-muted/30 cursor-not-allowed'
                                 }`}
                                 onClick={e => {
                                     e.stopPropagation();

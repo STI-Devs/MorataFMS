@@ -129,13 +129,6 @@ export const ArchivesPage = () => {
         );
     }
 
-    if (isLoading) return (
-        <div className="flex flex-col items-center justify-center py-32 gap-4">
-            <div className="w-8 h-8 border-2 border-blue-400/25 border-t-blue-500 rounded-full animate-spin" />
-            <p className="text-sm text-text-muted font-medium">Loading archives…</p>
-        </div>
-    );
-
     if (isError) return (
         <EmptyState icon="alert-circle" title="Failed to load archives" subtitle="Check your connection and try again." />
     );
@@ -193,34 +186,69 @@ export const ArchivesPage = () => {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
                 {/* Archive Completeness */}
                 <div className="bg-surface rounded-xl border border-border shadow-sm p-6 flex items-center gap-6">
-                    <CircularProgress pct={globalPct} />
-                    <div className="min-w-0">
-                        <p className="text-xs font-bold text-text-muted uppercase tracking-wider">Completeness</p>
-                        <p className="text-sm text-text-muted mt-1">{totalBLs.toLocaleString()} total BLs</p>
+                    {isLoading ? (
+                        <div className="w-16 h-16 rounded-full bg-surface-secondary animate-pulse" />
+                    ) : (
+                        <CircularProgress pct={globalPct} />
+                    )}
+                    <div className="min-w-0 flex-1">
+                        <p className="text-xs font-bold text-text-muted uppercase tracking-wider mb-1">Completeness</p>
+                        {isLoading ? (
+                            <div className="h-4 w-24 bg-surface-secondary rounded animate-pulse mt-1" />
+                        ) : (
+                            <p className="text-sm text-text-muted mt-1">{totalBLs.toLocaleString()} total BLs</p>
+                        )}
                     </div>
                 </div>
                 {/* Fully Documented */}
-                <div className="bg-surface rounded-xl border border-border shadow-sm p-6">
-                    <p className="text-xs font-bold text-text-muted uppercase tracking-wider">Fully Documented</p>
-                    <p className="text-4xl font-black text-emerald-500 tabular-nums mt-2">{completedBLs.toLocaleString()}</p>
-                    <p className="text-sm text-emerald-500 mt-1">Compliant records</p>
+                <div className="bg-surface rounded-xl border border-border shadow-sm p-6 flex flex-col justify-center">
+                    <p className="text-xs font-bold text-text-muted uppercase tracking-wider mb-2">Fully Documented</p>
+                    {isLoading ? (
+                        <>
+                            <div className="h-10 w-24 bg-surface-secondary rounded animate-pulse" />
+                            <div className="h-4 w-32 bg-surface-secondary rounded animate-pulse mt-2" />
+                        </>
+                    ) : (
+                        <>
+                            <p className="text-4xl font-black text-emerald-500 tabular-nums">{completedBLs.toLocaleString()}</p>
+                            <p className="text-sm text-emerald-500 mt-1">Compliant records</p>
+                        </>
+                    )}
                 </div>
                 {/* Missing Documents */}
-                <div className="bg-surface rounded-xl border border-border shadow-sm p-6">
-                    <p className="text-xs font-bold text-text-muted uppercase tracking-wider">Missing Documents</p>
-                    <p className="text-4xl font-black text-red-500 tabular-nums mt-2">{incompleteBLs.toLocaleString()}</p>
-                    <p className="text-sm text-red-400 mt-1">Incomplete records</p>
+                <div className="bg-surface rounded-xl border border-border shadow-sm p-6 flex flex-col justify-center">
+                    <p className="text-xs font-bold text-text-muted uppercase tracking-wider mb-2">Missing Documents</p>
+                    {isLoading ? (
+                        <>
+                            <div className="h-10 w-24 bg-surface-secondary rounded animate-pulse" />
+                            <div className="h-4 w-32 bg-surface-secondary rounded animate-pulse mt-2" />
+                        </>
+                    ) : (
+                        <>
+                            <p className="text-4xl font-black text-red-500 tabular-nums">{incompleteBLs.toLocaleString()}</p>
+                            <p className="text-sm text-red-400 mt-1">Incomplete records</p>
+                        </>
+                    )}
                 </div>
                 {/* Storage + I/E Split */}
-                <div className="bg-surface rounded-xl border border-border shadow-sm p-6">
-                    <p className="text-xs font-bold text-text-muted uppercase tracking-wider">Storage Used</p>
-                    <p className="text-4xl font-black text-text-primary tabular-nums mt-2">{formatBytes(totalStorageBytes)}</p>
-                    <div className="flex items-center gap-3 mt-2">
-                        <span className="text-sm font-bold text-blue-500 tabular-nums">{totalImports} <span className="text-blue-400 font-normal">imp</span></span>
-                        <span className="text-text-muted text-sm">/</span>
-                        <span className="text-sm font-bold text-indigo-500 tabular-nums">{totalExports} <span className="text-indigo-400 font-normal">exp</span></span>
-                        <span className="text-sm text-text-muted ml-auto">{totalDocs} files</span>
-                    </div>
+                <div className="bg-surface rounded-xl border border-border shadow-sm p-6 flex flex-col justify-center">
+                    <p className="text-xs font-bold text-text-muted uppercase tracking-wider mb-2">Storage Used</p>
+                    {isLoading ? (
+                        <>
+                            <div className="h-10 w-32 bg-surface-secondary rounded animate-pulse" />
+                            <div className="h-4 w-48 bg-surface-secondary rounded animate-pulse mt-3" />
+                        </>
+                    ) : (
+                        <>
+                            <p className="text-4xl font-black text-text-primary tabular-nums">{formatBytes(totalStorageBytes)}</p>
+                            <div className="flex items-center gap-3 mt-2">
+                                <span className="text-sm font-bold text-blue-500 tabular-nums">{totalImports} <span className="text-blue-400 font-normal">imp</span></span>
+                                <span className="text-text-muted text-sm">/</span>
+                                <span className="text-sm font-bold text-indigo-500 tabular-nums">{totalExports} <span className="text-indigo-400 font-normal">exp</span></span>
+                                <span className="text-sm text-text-muted ml-auto">{totalDocs} files</span>
+                            </div>
+                        </>
+                    )}
                 </div>
             </div>
 
@@ -365,38 +393,57 @@ export const ArchivesPage = () => {
                     </div>
 
                 {/* Flat document view */}
-                {viewMode === 'document' && (
-                    <ArchivesDocumentView
-                        flatDocumentList={flatDocumentList}
-                        nav={nav}
-                        setViewMode={setViewMode}
-                    />
-                )}
+                {isLoading ? (
+                    <div className="divide-y divide-border/50">
+                        {Array.from({ length: 6 }).map((_, i) => (
+                            <div key={i} className="flex items-center justify-between p-4 px-6 border-b border-border/50">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-10 h-10 rounded-lg bg-surface-secondary animate-pulse" />
+                                    <div>
+                                        <div className="h-4 w-32 bg-surface-secondary rounded animate-pulse" />
+                                        <div className="h-3 w-20 bg-surface-secondary rounded animate-pulse mt-2" />
+                                    </div>
+                                </div>
+                                <div className="h-4 w-24 bg-surface-secondary rounded animate-pulse" />
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <>
+                        {viewMode === 'document' && (
+                            <ArchivesDocumentView
+                                flatDocumentList={flatDocumentList}
+                                nav={nav}
+                                setViewMode={setViewMode}
+                            />
+                        )}
 
-                {/* Global search results */}
-                {viewMode === 'folder' && globalSearch.trim() && (
-                    <GlobalSearchResults
-                        globalSearch={globalSearch}
-                        globalResults={globalResults}
-                        nav={nav}
-                        setGlobalSearch={setGlobalSearch}
-                    />
-                )}
+                        {/* Global search results */}
+                        {viewMode === 'folder' && globalSearch.trim() && (
+                            <GlobalSearchResults
+                                globalSearch={globalSearch}
+                                globalResults={globalResults}
+                                nav={nav}
+                                setGlobalSearch={setGlobalSearch}
+                            />
+                        )}
 
-                {/* Year accordion (folder view) */}
-                {viewMode === 'folder' && !globalSearch.trim() && drill.level === 'years' && (
-                    <ArchivesFolderView
-                        archiveData={archiveData}
-                        filterYear={filterYear}
-                        filterType={filterType}
-                        filterStatus={filterStatus}
-                        expandedYears={expandedYears}
-                        toggleYear={toggleYear}
-                        nav={nav}
-                        openMenuKey={openMenuKey}
-                        setOpenMenuKey={setOpenMenuKey}
-                        onOpenUpload={() => setShowLegacyUpload(true)}
-                    />
+                        {/* Year accordion (folder view) */}
+                        {viewMode === 'folder' && !globalSearch.trim() && drill.level === 'years' && (
+                            <ArchivesFolderView
+                                archiveData={archiveData}
+                                filterYear={filterYear}
+                                filterType={filterType}
+                                filterStatus={filterStatus}
+                                expandedYears={expandedYears}
+                                toggleYear={toggleYear}
+                                nav={nav}
+                                openMenuKey={openMenuKey}
+                                setOpenMenuKey={setOpenMenuKey}
+                                onOpenUpload={() => setShowLegacyUpload(true)}
+                            />
+                        )}
+                    </>
                 )}
 
                 {/* BL folder view (drill level: bls) */}

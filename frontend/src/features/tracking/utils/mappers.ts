@@ -1,4 +1,4 @@
-﻿import type {
+import type {
     ApiExportTransaction,
     ApiImportTransaction,
     ExportTransaction,
@@ -18,10 +18,10 @@ export function mapImportTransaction(t: ApiImportTransaction): ImportTransaction
         cancelled: 'Cancelled',
     };
     const colorMap: Record<string, string> = {
-        green: 'bg-green-500',
-        yellow: 'bg-yellow-500',
-        red: 'bg-red-500',
-        orange: 'bg-orange-500',
+        green: '#22c55e',   // text-green-500
+        yellow: '#eab308',  // text-yellow-500
+        red: '#ef4444',     // text-red-500
+        orange: '#f97316',  // text-orange-500
     };
 
     return {
@@ -29,7 +29,8 @@ export function mapImportTransaction(t: ApiImportTransaction): ImportTransaction
         ref: t.customs_ref_no,
         bl: t.bl_no,
         status: statusMap[t.status] ?? 'Delayed',
-        color: colorMap[t.selective_color] ?? 'bg-red-500',
+        color: colorMap[t.selective_color] ?? '#ef4444',
+        colorLabel: t.selective_color ? (t.selective_color.charAt(0).toUpperCase() + t.selective_color.slice(1)) : 'None',
         importer: t.importer?.name ?? 'Unknown',
         date: t.arrival_date ?? '',
         open_remarks_count: t.open_remarks_count ?? 0,
@@ -55,7 +56,9 @@ export function mapExportTransaction(t: ApiExportTransaction): ExportTransaction
         bl: t.bl_no,
         status: statusMap[t.status] ?? 'Delayed',
         color: '',
+        colorLabel: '',
         shipper: t.shipper?.name ?? 'Unknown',
+
         vessel: t.vessel ?? '—',
         departureDate: t.created_at
             ? new Date(t.created_at).toLocaleDateString('en-US', {

@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { Icon } from '../../../components/Icon';
 import { StatusBadge } from '../../../components/StatusBadge';
 import type { ApiImportTransaction, ImportTransaction } from '../types';
@@ -16,26 +16,26 @@ export const ImportList = () => {
                 title="Import Transactions"
                 subtitle="Track and manage all import shipments"
                 encodeButtonLabel="Encode Import"
-                gridTemplateColumns="50px 1.2fr 1.2fr 1fr 1.5fr 1fr 80px"
+                gridTemplateColumns="90px 1.2fr 1fr 120px 2fr 1.2fr 60px"
                 mapResponseData={data => (data as ApiImportTransaction[]).map(mapImportTransaction)}
                 renderHeaders={() => (
                     <>
-                        <span className="text-xs text-text-secondary uppercase tracking-wider text-center">BLSC</span>
-                        <span className="text-xs text-text-secondary uppercase tracking-wider text-left pl-2">Customs Ref No.</span>
-                        <span className="text-xs text-text-secondary uppercase tracking-wider text-left">Bill of Lading</span>
-                        <span className="text-xs text-text-secondary uppercase tracking-wider text-center">Status</span>
-                        <span className="text-xs text-text-secondary uppercase tracking-wider text-left">Importer</span>
-                        <span className="text-xs text-text-secondary uppercase tracking-wider text-center">Arrival Date</span>
-                        <span className="text-xs text-text-secondary uppercase tracking-wider text-center">Actions</span>
+                        <span className="text-[10px] font-bold text-text-muted uppercase tracking-[0.08em] text-center">Selectivity</span>
+                        <span className="text-[10px] font-bold text-text-muted uppercase tracking-[0.08em] text-left">Customs Ref No.</span>
+                        <span className="text-[10px] font-bold text-text-muted uppercase tracking-[0.08em] text-left">Bill of Lading</span>
+                        <span className="text-[10px] font-bold text-text-muted uppercase tracking-[0.08em] text-center">Status</span>
+                        <span className="text-[10px] font-bold text-text-muted uppercase tracking-[0.08em] text-left pl-4">Importer</span>
+                        <span className="text-[10px] font-bold text-text-muted uppercase tracking-[0.08em] text-center">Arrival Date</span>
+                        <span className="text-[10px] font-bold text-text-muted uppercase tracking-[0.08em] text-center"></span>
                     </>
                 )}
                 renderRow={(row, _, navigate, onCancel) => (
                     <>
-                        <div className="flex justify-center">
-                            <span className={`w-2.5 h-2.5 rounded-full ${row.color}`} />
+                        <div className="flex justify-center items-center">
+                            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: row.color, boxShadow: `0 0 4px ${row.color}40` }} />
                         </div>
-                        <div className="flex items-center justify-start gap-1.5 min-w-0 pl-2">
-                            <p className="text-sm text-text-primary font-bold truncate">{row.ref}</p>
+                        <div className="flex items-center justify-start gap-1.5 min-w-0 pr-2">
+                            <p className="text-sm font-bold text-text-primary truncate" title={row.ref}>{row.ref}</p>
                             {row.open_remarks_count > 0 && (
                                 <button
                                     onClick={e => { e.stopPropagation(); setRemarkTarget(row); }}
@@ -48,12 +48,12 @@ export const ImportList = () => {
                                 </button>
                             )}
                         </div>
-                        <p className="text-sm text-text-secondary font-bold truncate text-left">{row.bl}</p>
-                        <div className="flex justify-center">
+                        <p className="text-sm text-text-secondary font-bold truncate text-left" title={row.bl || ''}>{row.bl || '—'}</p>
+                        <div className="flex justify-center flex-shrink-0">
                             <StatusBadge status={row.status} />
                         </div>
-                        <p className="text-sm text-text-secondary font-bold truncate text-left">{row.importer}</p>
-                        <p className="text-sm text-text-secondary font-bold truncate text-center">{row.date}</p>
+                        <p className="text-sm text-text-secondary font-bold truncate text-left pl-4" title={row.importer}>{row.importer}</p>
+                        <p className="text-sm text-text-muted font-semibold truncate text-center" title={row.date || ''}>{row.date || '—'}</p>
                         <div className="flex justify-center gap-1.5">
                             <button
                                 className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-md transition-colors"
@@ -65,8 +65,8 @@ export const ImportList = () => {
                             <button
                                 className={`p-1.5 rounded-md transition-colors ${
                                     row.status === 'Pending' || row.status === 'In Transit'
-                                        ? 'text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/30 cursor-pointer'
-                                        : 'text-text-muted cursor-not-allowed'
+                                        ? 'text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 cursor-pointer'
+                                        : 'text-text-muted/30 cursor-not-allowed'
                                 }`}
                                 onClick={e => {
                                     e.stopPropagation();

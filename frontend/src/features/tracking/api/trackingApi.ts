@@ -60,13 +60,13 @@ export const trackingApi = {
     },
 
     // --- Stats (total counts across all records) ---
-    getImportStats: async (): Promise<TransactionStats> => {
-        const response = await api.get('/api/import-transactions/stats');
+    getImportStats: async (signal?: AbortSignal): Promise<TransactionStats> => {
+        const response = await api.get('/api/import-transactions/stats', { signal });
         return response.data.data;
     },
 
-    getExportStats: async (): Promise<TransactionStats> => {
-        const response = await api.get('/api/export-transactions/stats');
+    getExportStats: async (signal?: AbortSignal): Promise<TransactionStats> => {
+        const response = await api.get('/api/export-transactions/stats', { signal });
         return response.data.data;
     },
 

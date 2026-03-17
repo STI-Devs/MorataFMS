@@ -99,13 +99,6 @@ export const EncoderArchivePage = () => {
         );
     }
 
-    if (isLoading) return (
-        <div className="flex flex-col items-center justify-center py-32 gap-4">
-            <div className="w-8 h-8 border-2 border-blue-400/25 border-t-blue-500 rounded-full animate-spin" />
-            <p className="text-sm text-text-muted font-medium">Loading your archive…</p>
-        </div>
-    );
-
     if (isError) return (
         <EmptyState icon="alert-circle" title="Failed to load your archive" subtitle="Check your connection and try again." />
     );
@@ -166,32 +159,68 @@ export const EncoderArchivePage = () => {
             {/* Stats cards row — encoder-specific */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
                 {/* My Uploads */}
-                <div className="bg-surface rounded-xl border border-border shadow-sm p-6">
-                    <p className="text-xs font-bold text-text-muted uppercase tracking-wider">My Uploads</p>
-                    <p className="text-4xl font-black text-teal-500 tabular-nums mt-2">{totalMyUploads.toLocaleString()}</p>
-                    <p className="text-sm text-teal-400 mt-1">Total files uploaded</p>
+                <div className="bg-surface rounded-xl border border-border shadow-sm p-6 flex flex-col justify-center">
+                    <p className="text-xs font-bold text-text-muted uppercase tracking-wider mb-2">My Uploads</p>
+                    {isLoading ? (
+                        <>
+                            <div className="h-10 w-24 bg-surface-secondary rounded animate-pulse" />
+                            <div className="h-4 w-32 bg-surface-secondary rounded animate-pulse mt-2" />
+                        </>
+                    ) : (
+                        <>
+                            <p className="text-4xl font-black text-teal-500 tabular-nums">{totalMyUploads.toLocaleString()}</p>
+                            <p className="text-sm text-teal-400 mt-1">Total files uploaded</p>
+                        </>
+                    )}
                 </div>
                 {/* BL Records */}
-                <div className="bg-surface rounded-xl border border-border shadow-sm p-6">
-                    <p className="text-xs font-bold text-text-muted uppercase tracking-wider">BL Records</p>
-                    <p className="text-4xl font-black text-blue-500 tabular-nums mt-2">{uniqueBLs.toLocaleString()}</p>
-                    <p className="text-sm text-blue-400 mt-1">Across all transactions</p>
+                <div className="bg-surface rounded-xl border border-border shadow-sm p-6 flex flex-col justify-center">
+                    <p className="text-xs font-bold text-text-muted uppercase tracking-wider mb-2">BL Records</p>
+                    {isLoading ? (
+                        <>
+                            <div className="h-10 w-24 bg-surface-secondary rounded animate-pulse" />
+                            <div className="h-4 w-32 bg-surface-secondary rounded animate-pulse mt-2" />
+                        </>
+                    ) : (
+                        <>
+                            <p className="text-4xl font-black text-blue-500 tabular-nums">{uniqueBLs.toLocaleString()}</p>
+                            <p className="text-sm text-blue-400 mt-1">Across all transactions</p>
+                        </>
+                    )}
                 </div>
                 {/* This Month */}
-                <div className="bg-surface rounded-xl border border-border shadow-sm p-6">
-                    <p className="text-xs font-bold text-text-muted uppercase tracking-wider">This Month</p>
-                    <p className="text-4xl font-black text-orange-500 tabular-nums mt-2">{thisMonthUploads.toLocaleString()}</p>
-                    <p className="text-sm text-orange-400 mt-1">Files uploaded this month</p>
+                <div className="bg-surface rounded-xl border border-border shadow-sm p-6 flex flex-col justify-center">
+                    <p className="text-xs font-bold text-text-muted uppercase tracking-wider mb-2">This Month</p>
+                    {isLoading ? (
+                        <>
+                            <div className="h-10 w-24 bg-surface-secondary rounded animate-pulse" />
+                            <div className="h-4 w-32 bg-surface-secondary rounded animate-pulse mt-2" />
+                        </>
+                    ) : (
+                        <>
+                            <p className="text-4xl font-black text-orange-500 tabular-nums">{thisMonthUploads.toLocaleString()}</p>
+                            <p className="text-sm text-orange-400 mt-1">Files uploaded this month</p>
+                        </>
+                    )}
                 </div>
                 {/* Storage Used */}
-                <div className="bg-surface rounded-xl border border-border shadow-sm p-6">
-                    <p className="text-xs font-bold text-text-muted uppercase tracking-wider">Storage Used</p>
-                    <p className="text-4xl font-black text-text-primary tabular-nums mt-2">{formatBytes(totalStorageBytes)}</p>
-                    <div className="flex items-center gap-3 mt-2">
-                        <span className="text-sm font-bold text-blue-500 tabular-nums">{archiveData.reduce((s, y) => s + y.imports, 0)} <span className="text-blue-400 font-normal">imp</span></span>
-                        <span className="text-text-muted text-sm">/</span>
-                        <span className="text-sm font-bold text-indigo-500 tabular-nums">{archiveData.reduce((s, y) => s + y.exports, 0)} <span className="text-indigo-400 font-normal">exp</span></span>
-                    </div>
+                <div className="bg-surface rounded-xl border border-border shadow-sm p-6 flex flex-col justify-center">
+                    <p className="text-xs font-bold text-text-muted uppercase tracking-wider mb-2">Storage Used</p>
+                    {isLoading ? (
+                        <>
+                            <div className="h-10 w-32 bg-surface-secondary rounded animate-pulse" />
+                            <div className="h-4 w-48 bg-surface-secondary rounded animate-pulse mt-3" />
+                        </>
+                    ) : (
+                        <>
+                            <p className="text-4xl font-black text-text-primary tabular-nums">{formatBytes(totalStorageBytes)}</p>
+                            <div className="flex items-center gap-3 mt-2">
+                                <span className="text-sm font-bold text-blue-500 tabular-nums">{archiveData.reduce((s, y) => s + y.imports, 0)} <span className="text-blue-400 font-normal">imp</span></span>
+                                <span className="text-text-muted text-sm">/</span>
+                                <span className="text-sm font-bold text-indigo-500 tabular-nums">{archiveData.reduce((s, y) => s + y.exports, 0)} <span className="text-indigo-400 font-normal">exp</span></span>
+                            </div>
+                        </>
+                    )}
                 </div>
             </div>
 
@@ -308,39 +337,58 @@ export const EncoderArchivePage = () => {
                     </div>
 
                     {/* Flat document view */}
-                    {viewMode === 'document' && (
-                        <ArchivesDocumentView
-                            flatDocumentList={flatDocumentList}
-                            nav={nav}
-                            setViewMode={setViewMode}
-                        />
-                    )}
+                    {isLoading ? (
+                        <div className="divide-y divide-border/50">
+                            {Array.from({ length: 6 }).map((_, i) => (
+                                <div key={i} className="flex items-center justify-between p-4 px-6 border-b border-border/50">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-10 h-10 rounded-lg bg-surface-secondary animate-pulse" />
+                                        <div>
+                                            <div className="h-4 w-32 bg-surface-secondary rounded animate-pulse" />
+                                            <div className="h-3 w-20 bg-surface-secondary rounded animate-pulse mt-2" />
+                                        </div>
+                                    </div>
+                                    <div className="h-4 w-24 bg-surface-secondary rounded animate-pulse" />
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <>
+                            {viewMode === 'document' && (
+                                <ArchivesDocumentView
+                                    flatDocumentList={flatDocumentList}
+                                    nav={nav}
+                                    setViewMode={setViewMode}
+                                />
+                            )}
 
-                    {/* Global search results */}
-                    {viewMode === 'folder' && globalSearch.trim() && (
-                        <GlobalSearchResults
-                            globalSearch={globalSearch}
-                            globalResults={globalResults}
-                            nav={nav}
-                            setGlobalSearch={setGlobalSearch}
-                        />
-                    )}
+                            {/* Global search results */}
+                            {viewMode === 'folder' && globalSearch.trim() && (
+                                <GlobalSearchResults
+                                    globalSearch={globalSearch}
+                                    globalResults={globalResults}
+                                    nav={nav}
+                                    setGlobalSearch={setGlobalSearch}
+                                />
+                            )}
 
-                    {/* Year accordion (folder view) */}
-                    {viewMode === 'folder' && !globalSearch.trim() && drill.level === 'years' && (
-                        <ArchivesFolderView
-                            archiveData={archiveData}
-                            filterYear={filterYear}
-                            filterType={filterType}
-                            filterStatus="all"
-                            expandedYears={expandedYears}
-                            toggleYear={toggleYear}
-                            nav={nav}
-                            openMenuKey={openMenuKey}
-                            setOpenMenuKey={setOpenMenuKey}
-                            onOpenUpload={() => setShowLegacyUpload(true)}
-                            showAuditButton={false}
-                        />
+                            {/* Year accordion (folder view) */}
+                            {viewMode === 'folder' && !globalSearch.trim() && drill.level === 'years' && (
+                                <ArchivesFolderView
+                                    archiveData={archiveData}
+                                    filterYear={filterYear}
+                                    filterType={filterType}
+                                    filterStatus="all"
+                                    expandedYears={expandedYears}
+                                    toggleYear={toggleYear}
+                                    nav={nav}
+                                    openMenuKey={openMenuKey}
+                                    setOpenMenuKey={setOpenMenuKey}
+                                    onOpenUpload={() => setShowLegacyUpload(true)}
+                                    showAuditButton={false}
+                                />
+                            )}
+                        </>
                     )}
 
                     {/* BL folder view (drill level: bls) */}

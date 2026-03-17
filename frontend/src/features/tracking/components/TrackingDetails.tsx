@@ -8,6 +8,7 @@ import { trackingApi } from '../api/trackingApi';
 import type { ApiExportTransaction, ApiImportTransaction, ExportTransaction, ImportTransaction, LayoutContext } from '../types';
 import { mapExportTransaction, mapImportTransaction } from '../utils/mappers';
 import EditTransactionModal from './EditTransactionModal';
+import { RemarkViewerModal } from './RemarkViewerModal';
 
 
 interface StageUpload {
@@ -70,6 +71,7 @@ export const TrackingDetails = () => {
     const [loading,        setLoading]        = useState(true);
 
     const [isEditModalOpen,    setIsEditModalOpen]    = useState(false);
+    const [isRemarkModalOpen,  setIsRemarkModalOpen]  = useState(false);
     const [isUploadOpen,       setIsUploadOpen]       = useState(false);
     const [selectedStageIndex, setSelectedStageIndex] = useState<number | null>(null);
     const [stageUploads,       setStageUploads]       = useState<Record<number, StageUpload>>({});
@@ -168,12 +170,7 @@ export const TrackingDetails = () => {
                 <div className="flex items-start justify-between gap-4">
                     <div>
                         <div className="flex items-center gap-2.5 mb-0.5">
-                            {isImport && (
-                                <span
-                                    className={`w-3.5 h-3.5 rounded-full shrink-0 ${transaction.color}`}
-                                    title="Selective Color (BLSC)"
-                                />
-                            )}
+
                             <h1 className="text-2xl font-bold text-text-primary">{transaction.ref}</h1>
                         </div>
                         <p className="text-xs text-text-muted mt-0.5">
@@ -182,6 +179,18 @@ export const TrackingDetails = () => {
                         </p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
+                        <button
+                            onClick={() => setIsRemarkModalOpen(true)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-text-secondary border border-border-strong rounded-lg hover:bg-hover hover:text-text-primary transition-colors relative"
+                        >
+                            <Icon name="flag" className="w-3.5 h-3.5" />
+                            Remarks
+                            {transaction.open_remarks_count > 0 && (
+                                <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center px-1 border-2 border-surface shrink-0">
+                                    {transaction.open_remarks_count}
+                                </span>
+                            )}
+                        </button>
                         <button
                             onClick={() => setIsEditModalOpen(true)}
                             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-text-secondary border border-border-strong rounded-lg hover:bg-hover hover:text-text-primary transition-colors"
@@ -224,15 +233,23 @@ export const TrackingDetails = () => {
                         {isImport ? (
                             <>
                                 <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted mb-1.5">Selective Color</p>
-                                <div className="flex items-center gap-2">
-                                    <span className={`w-3 h-3 rounded-full shrink-0 ${transaction.color}`} />
-                                    <p className="text-sm font-bold text-text-primary capitalize">
-                                        {transaction.color.includes('green') ? 'Green'
-                                            : transaction.color.includes('yellow') ? 'Yellow'
-                                            : transaction.color.includes('orange') ? 'Orange'
-                                            : transaction.color.includes('red')    ? 'Red'
-                                            : '—'}
-                                    </p>
+                                <div className="flex items-center">
+                                    <span
+                                        className="text-sm font-bold capitalize px-2 py-0.5 rounded-md"
+                                        style={{
+                                            color: (transaction as ImportTransaction).color,
+                                            backgroundColor: `${(transaction as ImportTransaction).color}18`,
+                                        }}
+                                    >
+                                        {(() => {
+                                            const hex = (transaction as ImportTransaction).color;
+                                            if (hex === '#22c55e') return 'Green';
+                                            if (hex === '#eab308') return 'Yellow';
+                                            if (hex === '#f97316') return 'Orange';
+                                            if (hex === '#ef4444') return 'Red';
+                                            return (transaction as ImportTransaction).colorLabel || '—';
+                                        })()}
+                                    </span>
                                 </div>
                             </>
                         ) : (
@@ -400,6 +417,20 @@ export const TrackingDetails = () => {
                 type={isImport ? 'import' : 'export'}
                 transaction={rawTransaction ?? null}
             />
+
+            {isRemarkModalOpen && (
+                <RemarkViewerModal
+                    isOpen={isRemarkModalOpen}
+                    onClose={() => {
+                        setIsRemarkModalOpen(false);
+                        // Optimistic update: reset open remarks badge without re-fetching
+                        setTransaction(prev => prev ? { ...prev, open_remarks_count: 0 } : prev);
+                    }}
+                    transactionType={isImport ? 'import' : 'export'}
+                    transactionId={transaction.id}
+                    transactionLabel={`${isImport ? 'Import' : 'Export'} — ${transaction.ref}`}
+                />
+            )}
         </div>
     );
 };

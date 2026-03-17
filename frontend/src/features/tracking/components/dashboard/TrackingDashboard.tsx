@@ -66,7 +66,7 @@ export const TrackingDashboard = () => {
                     <div className="overflow-x-auto">
                         <div
                             className="shrink-0 grid gap-2 px-4 py-3 border-b border-border bg-surface-secondary/50 items-center"
-                            style={{ gridTemplateColumns: '16px 140px 130px 100px 300px 95px', width: 'max-content', minWidth: '100%' }}
+                            style={{ gridTemplateColumns: '32px 140px 130px 100px 284px 95px', width: 'max-content', minWidth: '100%' }}
                         >
                             <ColHeader>SC</ColHeader>
                             <ColHeader className="whitespace-nowrap">Customs Ref No.</ColHeader>
@@ -86,13 +86,16 @@ export const TrackingDashboard = () => {
                                         key={row.id}
                                         onClick={() => navigate(`/tracking/${row.ref}`)}
                                         className={`grid gap-2 px-4 py-3.5 items-center cursor-pointer hover:bg-hover/60 transition-colors border-b border-border/30 ${i % 2 !== 0 ? 'bg-surface-secondary/30' : ''}`}
-                                        style={{ gridTemplateColumns: '16px 140px 130px 100px 300px 95px', width: 'max-content', minWidth: '100%' }}
+                                        style={{ gridTemplateColumns: '32px 140px 130px 100px 284px 95px', width: 'max-content', minWidth: '100%' }}
                                     >
-                                        <span className={`w-2 h-2 rounded-full shrink-0 self-center ${row.color}`} />
+                                        <span 
+                                            className="w-2.5 h-2.5 rounded-full shrink-0 self-center mx-auto" 
+                                            style={{ backgroundColor: row.color, boxShadow: `0 0 4px ${row.color}40` }} 
+                                        />
                                         <p className="text-xs font-bold text-text-primary truncate">{row.ref}</p>
                                         <p className="text-xs text-text-secondary truncate text-center">{row.bl || '—'}</p>
                                         <div className="flex justify-center"><StatusBadge status={row.status} /></div>
-                                        <p className="text-xs text-text-secondary">{row.importer}</p>
+                                        <p className="text-xs text-text-secondary truncate">{row.importer}</p>
                                         <p className="text-xs text-text-muted text-center truncate">{row.date || '—'}</p>
                                     </div>
                                 ))

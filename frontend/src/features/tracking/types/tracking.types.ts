@@ -9,6 +9,7 @@ export interface ImportTransaction {
     bl: string;
     status: string;
     color: string;
+    colorLabel: string;
     importer: string;
     date: string;
     open_remarks_count: number;
@@ -20,6 +21,7 @@ export interface ExportTransaction {
     bl: string;
     status: string;
     color: string;
+    colorLabel: string;
     shipper: string;
     vessel: string;
     departureDate: string;
@@ -33,6 +35,7 @@ export interface TransactionStats {
     in_progress: number;
     completed: number;
     cancelled: number;
+    overdue?: number;
 }
 
 export interface FileData {
@@ -156,6 +159,7 @@ export interface ApiDocument {
     size_bytes: number;
     formatted_size: string;
     version: number;
+    download_url: string;
     uploaded_by: { id: number; name: string } | null;
     created_at: string;
     updated_at: string;

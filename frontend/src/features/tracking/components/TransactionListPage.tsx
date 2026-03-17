@@ -29,13 +29,7 @@ export interface TransactionListPageProps<T> {
 }
 
 
-function StatIcon({ d, color }: { d: string; color: string }) {
-    return (
-        <svg className="w-4 h-4" fill="none" stroke={color} viewBox="0 0 24 24" strokeWidth={1.8}>
-            <path strokeLinecap="round" strokeLinejoin="round" d={d} />
-        </svg>
-    );
-}
+
 
 
 export function TransactionListPage<T>({
@@ -90,48 +84,56 @@ export function TransactionListPage<T>({
     const handleResetFilter = () => { setFilterType(''); setFilterValue(''); setOpenDropdown(null); };
 
     const total = (stats?.pending ?? 0) + (stats?.in_progress ?? 0);
-    const statCards = [
-        { label: 'Active Shipments', value: total,                   color: '#0a84ff', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' },
-        { label: 'Pending Action',   value: stats?.pending ?? 0,     color: '#ff9f0a', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
-        { label: 'In Progress',      value: stats?.in_progress ?? 0, color: '#64d2ff', icon: 'M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0' },
-    ];
+    const isLoadingStats = statsQuery.isLoading || isLoading;
 
-    if (isLoading) {
-        return (
-            <div className="flex items-center justify-center h-96">
-                <div className="animate-spin rounded-full h-8 w-8 border-[3px] border-border border-t-blue-600" />
-            </div>
-        );
-    }
+    const statCards = [
+        { label: 'Active Shipments', value: total, dot: '#0a84ff', sub: 'Total active' },
+        { label: 'Pending Action',   value: stats?.pending ?? 0, dot: '#ff9f0a', sub: 'Needs attention' },
+        { label: 'In Progress',      value: stats?.in_progress ?? 0, dot: '#64d2ff', sub: 'Currently moving' },
+        ...(type === 'import' ? [{ label: 'Overdue Shipments', value: stats?.overdue ?? 0, dot: '#ef4444', sub: 'Past target dates' }] : []),
+    ];
 
     return (
         <div className="space-y-5 p-4">
 
             {/* Header */}
-            <div className="flex justify-between items-end">
+            <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-3xl font-bold mb-1 text-text-primary">{title}</h1>
-                    <p className="text-sm text-text-secondary">{subtitle}</p>
+                    <h1 className="text-2xl font-bold text-text-primary tracking-tight">{title}</h1>
+                    <p className="text-xs text-text-muted mt-0.5">{subtitle}</p>
                 </div>
                 <div className="text-right hidden sm:block shrink-0">
-                    <p className="text-2xl font-bold tabular-nums text-text-primary">{dateTime.time}</p>
-                    <p className="text-sm text-text-secondary">{dateTime.date}</p>
+                    <p className="text-xl font-bold tabular-nums text-text-primary">{dateTime.time}</p>
+                    <p className="text-xs text-text-muted">{dateTime.date}</p>
                 </div>
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className={`grid gap-3 ${type === 'import' ? 'grid-cols-2 lg:grid-cols-4' : 'grid-cols-3'}`}>
                 {statCards.map(stat => (
-                    <div key={stat.label} className="bg-surface rounded-xl p-4 border border-border shadow-sm">
-                        <div className="flex items-start justify-between">
-                            <div>
-                                <p className="text-3xl font-bold tabular-nums text-text-primary">{stat.value}</p>
-                                <p className="text-xs mt-1 font-semibold text-text-secondary">{stat.label}</p>
-                            </div>
-                            <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: `${stat.color}20` }}>
-                                <StatIcon d={stat.icon} color={stat.color} />
-                            </div>
+                    <div
+                        key={stat.label}
+                        className="bg-surface border border-border rounded-lg px-4 py-3.5"
+                    >
+                        <p className="text-[11px] font-medium text-text-muted uppercase tracking-widest mb-2">
+                            {stat.label}
+                        </p>
+                        <div className="flex items-center gap-2">
+                            {stat.dot && (
+                                <span
+                                    className="w-2 h-2 rounded-full flex-shrink-0"
+                                    style={{ backgroundColor: stat.dot }}
+                                />
+                            )}
+                            {isLoadingStats ? (
+                                <div className="h-8 w-20 skeleton-shimmer rounded-lg" />
+                            ) : (
+                                <p className="text-[2rem] font-semibold tabular-nums text-text-primary leading-none">
+                                    {stat.value}
+                                </p>
+                            )}
                         </div>
+                        <p className="text-xs text-text-muted mt-2">{stat.sub}</p>
                     </div>
                 ))}
             </div>
@@ -245,7 +247,30 @@ export function TransactionListPage<T>({
 
                     {/* Data rows */}
                     <div>
-                        {data.length === 0 ? (
+                        {isLoading ? (
+                            <div className="divide-y divide-border/50">
+                                {Array.from({ length: 6 }).map((_, i) => {
+                                    // Realistic varied widths per column - mirrors actual data
+                                    const widths = ['30px', '90px', '80px', '70px', '120px', '80px', '30px'];
+                                    return (
+                                        <div key={i} className="grid gap-4 py-3.5 px-4 items-center" style={{ gridTemplateColumns }}>
+                                            {gridTemplateColumns.split(' ').map((_, colIdx) => (
+                                                <div
+                                                    key={colIdx}
+                                                    className="skeleton-shimmer rounded-md"
+                                                    style={{
+                                                        height: colIdx === 0 ? '10px' : '13px',
+                                                        width: widths[colIdx] ?? '70px',
+                                                        maxWidth: '100%',
+                                                        borderRadius: colIdx === 3 ? '999px' : '6px', // pill for status column
+                                                    }}
+                                                />
+                                            ))}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        ) : data.length === 0 ? (
                             <div className="py-16 flex flex-col items-center gap-3 text-text-muted">
                                 <Icon name="file-text" className="w-10 h-10 opacity-30" />
                                 <p className="text-sm font-semibold">No {type} transactions found</p>
