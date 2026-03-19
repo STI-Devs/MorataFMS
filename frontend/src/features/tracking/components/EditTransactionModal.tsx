@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Icon } from '../../../components/Icon';
 import { Spinner } from '../../../components/Spinner';
 import { useAuth } from '../../auth/hooks/useAuth';
@@ -24,10 +24,12 @@ export default function EditTransactionModal({ isOpen, onClose, type, transactio
 
     const updateMutation = useUpdateTransaction(type);
 
-    // Form state
+    // Form state - initialized directly from props
+    // The component stays mounted or remounts based on parent, but to ensure 
+    // it resets cleanly if the transaction changes while open, we can derive it or rely on the parent's remount behavior.
     const [refNo, setRefNo] = useState('');
     const [blNo, setBlNo] = useState('');
-    const [blsc, setBlsc] = useState('yellow'); // default
+    const [blsc, setBlsc] = useState('yellow');
     const [importerId, setImporterId] = useState('');
     const [shipperId, setShipperId] = useState('');
     const [originCountryId, setOriginCountryId] = useState('');
@@ -35,25 +37,27 @@ export default function EditTransactionModal({ isOpen, onClose, type, transactio
     const [vessel, setVessel] = useState('');
     const [arrivalDate, setArrivalDate] = useState('');
 
-    useEffect(() => {
-        if (isOpen && transaction) {
-            if (type === 'import') {
-                const t = transaction as ApiImportTransaction;
-                setRefNo(t.customs_ref_no || '');
-                setBlNo(t.bl_no || '');
-                setBlsc(t.selective_color || 'yellow');
-                setImporterId(t.importer?.id?.toString() || '');
-                setOriginCountryId(t.origin_country?.id?.toString() || '');
-                setArrivalDate(t.arrival_date || '');
-            } else {
-                const t = transaction as ApiExportTransaction;
-                setBlNo(t.bl_no || '');
-                setShipperId(t.shipper?.id?.toString() || '');
-                setVessel(t.vessel || '');
-                setDestCountryId(t.destination_country?.id?.toString() || '');
-            }
+    // Sync state if transaction changes
+    const [prevTxnId, setPrevTxnId] = useState<number | null>(null);
+
+    if (transaction && transaction.id !== prevTxnId) {
+        setPrevTxnId(transaction.id);
+        if (type === 'import') {
+            const t = transaction as ApiImportTransaction;
+            setRefNo(t.customs_ref_no || '');
+            setBlNo(t.bl_no || '');
+            setBlsc(t.selective_color || 'yellow');
+            setImporterId(t.importer?.id?.toString() || '');
+            setOriginCountryId(t.origin_country?.id?.toString() || '');
+            setArrivalDate(t.arrival_date || '');
+        } else {
+            const t = transaction as ApiExportTransaction;
+            setBlNo(t.bl_no || '');
+            setShipperId(t.shipper?.id?.toString() || '');
+            setVessel(t.vessel || '');
+            setDestCountryId(t.destination_country?.id?.toString() || '');
         }
-    }, [isOpen, transaction, type]);
+    }
 
     if (!isOpen || !transaction) return null;
 
@@ -87,6 +91,11 @@ export default function EditTransactionModal({ isOpen, onClose, type, transactio
     };
 
     const isPending = updateMutation.isPending;
+    
+    // Type-safe error extraction
+    const errorMessage = updateMutation.error 
+        ? (updateMutation.error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to update transaction. Please check the inputs.'
+        : '';
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-backdrop-in">
@@ -108,7 +117,7 @@ export default function EditTransactionModal({ isOpen, onClose, type, transactio
                 <div className="p-4 sm:p-5 overflow-y-auto">
                     {updateMutation.isError && (
                         <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 text-sm">
-                            {(updateMutation.error as any)?.response?.data?.message || 'Failed to update transaction. Please check the inputs.'}
+                            {errorMessage}
                         </div>
                     )}
 

@@ -25,9 +25,25 @@ export const EXPORT_STAGES: StageDefinition[] = [
     { title: 'Billing of Liquidation',     icon: 'file-text',    description: 'Finalize billing and close out the export transaction.',           type: 'billing' },
 ];
 
+/**
+ * Derives stage visual state purely from whether a document exists for that stage.
+ * Replaces the old status-string-based approach which was not reactive to uploads.
+ *
+ * @param hasDoc       - Whether this stage has an uploaded document
+ * @param isFirstEmpty - Whether this is the first stage without a document (= active/in-progress)
+ */
+export function getStageStatusFromDoc(
+    hasDoc: boolean,
+    isFirstEmpty: boolean,
+): 'completed' | 'active' | 'pending' {
+    if (hasDoc) return 'completed';
+    if (isFirstEmpty) return 'active';
+    return 'pending';
+}
 
+/** @deprecated Use getStageStatusFromDoc. Kept for backward compatibility. */
 export function getStageStatus(index: number, status: string): 'completed' | 'active' | 'pending' {
-    if (status === 'Cleared' || status === 'Shipped') return 'completed';
+    if (status === 'Cleared' || status === 'Shipped' || status === 'Completed') return 'completed';
     if (status === 'In Transit') {
         if (index < 3) return 'completed';
         if (index === 3) return 'active';
@@ -39,9 +55,49 @@ export function getStageStatus(index: number, status: string): 'completed' | 'ac
 }
 
 export function getStatusStyle(status: string): { color: string; bg: string } {
-    if (status === 'Cleared' || status === 'Shipped')   return { color: '#30d158', bg: 'rgba(48,209,88,0.13)' };
-    if (status === 'Pending' || status === 'Processing') return { color: '#ff9f0a', bg: 'rgba(255,159,10,0.13)' };
-    if (status === 'In Transit')                         return { color: '#64d2ff', bg: 'rgba(100,210,255,0.13)' };
-    if (status === 'Cancelled')                          return { color: '#ff453a', bg: 'rgba(255,69,58,0.13)' };
-    return { color: '#8e8e93', bg: 'rgba(142,142,147,0.13)' };
+    switch (status) {
+        case 'Cleared':
+        case 'Shipped':
+        case 'completed':
+        case 'Completed':      return { color: '#30d158', bg: 'rgba(48,209,88,0.13)' };
+        case 'Vessel Arrived': return { color: '#0a84ff', bg: 'rgba(10,132,255,0.13)' };
+        case 'In Transit':     return { color: '#64d2ff', bg: 'rgba(100,210,255,0.13)' };
+        case 'Departure':      return { color: '#bf5af2', bg: 'rgba(191,90,242,0.13)' };
+        case 'in_progress':
+        case 'Processing':
+        case 'pending':
+        case 'Pending':        return { color: '#ff9f0a', bg: 'rgba(255,159,10,0.13)' };
+        case 'cancelled':
+        case 'Cancelled':      return { color: '#ff453a', bg: 'rgba(255,69,58,0.13)' };
+        default:               return { color: '#8e8e93', bg: 'rgba(142,142,147,0.13)' };
+    }
 }
+
+/**
+ * Derives a human-readable import status label from the set of uploaded document types.
+ * Used by the UI badge so it reflects document state without waiting for a DB status update.
+ *
+ * Import ladder:
+ *   No docs → Pending → BOC → Vessel Arrived → PPA/DO/Port/Releasing → Processing → Billing → Completed
+ */
+export function getImportDisplayStatus(docTypes: string[]): string {
+    if (docTypes.includes('billing'))                                                 return 'Completed';
+    if (docTypes.some(t => ['ppa', 'do', 'port_charges', 'releasing'].includes(t))) return 'Processing';
+    if (docTypes.includes('boc'))                                                     return 'Vessel Arrived';
+    return 'Pending';
+}
+
+/**
+ * Derives a human-readable export status label from the set of uploaded document types.
+ *
+ * Export ladder:
+ *   No docs → Pending → BOC → In Transit → BL → Departure → CO/DCCCI → Processing → Billing → Completed
+ */
+export function getExportDisplayStatus(docTypes: string[]): string {
+    if (docTypes.includes('billing'))                              return 'Completed';
+    if (docTypes.some(t => ['co', 'dccci'].includes(t)))          return 'Processing';
+    if (docTypes.includes('bl_generation'))                        return 'Departure';
+    if (docTypes.includes('boc'))                                  return 'In Transit';
+    return 'Pending';
+}
+

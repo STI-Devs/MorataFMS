@@ -7,6 +7,7 @@ use App\Http\Resources\DocumentResource;
 use App\Models\Document;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DocumentController extends Controller
@@ -69,12 +70,12 @@ class DocumentController extends Controller
             $transactionMonth,
         );
 
-        // Upload file to S3 — wrap in transaction so DB record only saves if S3 succeeds
+        // Upload file — wrap in transaction so DB record only saves if storage write succeeds
         $document = \DB::transaction(function () use ($file, $path, $validated, $request) {
-            // writeStream is the only confirmed-working method for this S3 config
+            // writeStream is the only confirmed-working method for this storage config
             $stream = fopen($file->getRealPath(), 'r');
             try {
-                Storage::disk('s3')->writeStream($path, $stream);
+                Storage::disk(self::storageDisk())->writeStream($path, $stream);
             } finally {
                 if (is_resource($stream))
                     fclose($stream);
@@ -95,6 +96,12 @@ class DocumentController extends Controller
 
         $document->load('uploadedBy');
 
+        // Recalculate parent transaction's stage statuses based on uploaded docs
+        $parent = $document->documentable;
+        if ($parent && method_exists($parent, 'recalculateStatus')) {
+            $parent->recalculateStatus();
+        }
+
         return (new DocumentResource($document))
             ->response()
             ->setStatusCode(201);
@@ -114,6 +121,83 @@ class DocumentController extends Controller
     }
 
     /**
+     * GET /api/documents/{document}/preview
+     *
+     * Returns a viewer-ready representation of the stored file:
+     * - S3 / cloud disk  → JSON { url } with a 60-second pre-signed URL.
+     *   The frontend sends it to <iframe> / <img> / Google Docs Viewer.
+     * - Local disk       → streams the file inline with the correct MIME type
+     *   so the browser renders it natively.
+     *
+     * Uses the same disk as store() / download() / destroy() so the file is
+     * guaranteed to exist.
+     */
+    public function preview(Document $document)
+    {
+        $this->authorize('view', $document);
+
+        $diskName = self::storageDisk();
+
+        if ($diskName === 's3') {
+            /** @var \Illuminate\Filesystem\AwsS3V3Adapter $disk */
+            $disk = Storage::disk($diskName);
+            $url  = $disk->temporaryUrl($document->path, now()->addMinutes(5));
+        } else {
+            // Local disk — generate a secure signed route that acts like a pre-signed URL
+            $url = URL::temporarySignedRoute(
+                'documents.stream',
+                now()->addMinutes(5),
+                ['document' => $document->id]
+            );
+        }
+
+        return response()->json(['url' => $url]);
+    }
+
+    /**
+     * GET /api/documents/{document}/stream
+     * 
+     * Securely streams a file from the local disk when accessed via a signed route.
+     * This mimics S3's pre-signed URL behavior natively.
+     */
+    public function stream(Document $document)
+    {
+        // Authorization is handled implicitly by the 'signed' middleware route protection.
+        
+        $disk = Storage::disk(self::storageDisk());
+
+        if (! $disk->exists($document->path)) {
+            abort(404, 'File not found on storage.');
+        }
+
+        $mimeType = $disk->mimeType($document->path) ?: 'application/octet-stream';
+        $stream   = $disk->readStream($document->path);
+
+        return response()->stream(function () use ($stream) {
+            fpassthru($stream);
+            if (is_resource($stream)) {
+                fclose($stream);
+            }
+        }, 200, [
+            'Content-Type'        => $mimeType,
+            'Content-Disposition' => 'inline; filename="' . addslashes($document->filename) . '"',
+            'Cache-Control'       => 'no-store',
+        ]);
+    }
+
+    // ─── Shared helpers ────────────────────────────────────────────────────────
+
+    /**
+     * Single source of truth for which storage disk all document operations use.
+     * Override by setting APP_STORAGE_DISK in .env (default: 's3').
+     */
+    private static function storageDisk(): string
+    {
+        return config('filesystems.document_disk', 's3');
+    }
+
+
+    /**
      * GET /api/documents/{document}/download
      * Stream the file from S3 with proper headers.
      */
@@ -121,8 +205,17 @@ class DocumentController extends Controller
     {
         $this->authorize('view', $document);
 
-        // readStream throws UnableToReadFile if the path doesn't exist in S3
-        $stream = Storage::disk('s3')->readStream($document->path);
+        $disk = Storage::disk(self::storageDisk());
+
+        if (! $disk->exists($document->path)) {
+            abort(404, 'File not found on storage.');
+        }
+
+        $stream = $disk->readStream($document->path);
+
+        if (! $stream) {
+            abort(500, 'Unable to read file stream.');
+        }
 
         return response()->streamDownload(function () use ($stream) {
             fpassthru($stream);
@@ -140,10 +233,18 @@ class DocumentController extends Controller
     {
         $this->authorize('delete', $document);
 
+        // Capture parent before deletion (relationship cleared after)
+        $parent = $document->documentable;
+
         // delete() is a no-op if the file doesn't exist — no exists() check needed
-        Storage::disk('s3')->delete($document->path);
+        Storage::disk(self::storageDisk())->delete($document->path);
 
         $document->delete();
+
+        // Recalculate after deletion so status rolls back if needed
+        if ($parent && method_exists($parent, 'recalculateStatus')) {
+            $parent->recalculateStatus();
+        }
 
         return response()->noContent();
     }

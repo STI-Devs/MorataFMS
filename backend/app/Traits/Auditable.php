@@ -2,6 +2,7 @@
 
 namespace App\Traits;
 
+use App\Enums\AuditEvent;
 use App\Models\AuditLog;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Request;
@@ -52,7 +53,7 @@ trait Auditable
     {
         // Log when a model is created
         static::created(function ($model) {
-            $model->logAudit('created', [], $model->getAuditableAttributes());
+            $model->logAudit(AuditEvent::Created, [], $model->getAuditableAttributes());
         });
 
         // Log when a model is updated (only changed fields)
@@ -73,13 +74,13 @@ trait Auditable
 
             // Only log if there are actual tracked changes
             if (!empty($new)) {
-                $model->logAudit('updated', $original, $new);
+                $model->logAudit(AuditEvent::Updated, $original, $new);
             }
         });
 
         // Log when a model is deleted
         static::deleted(function ($model) {
-            $model->logAudit('deleted', $model->getAuditableAttributes(), []);
+            $model->logAudit(AuditEvent::Deleted, $model->getAuditableAttributes(), []);
         });
     }
 
@@ -103,21 +104,23 @@ trait Auditable
     /**
      * Create the audit log entry.
      */
-    protected function logAudit(string $event, array $oldValues, array $newValues): void
+    protected function logAudit(AuditEvent|string $event, array $oldValues, array $newValues): void
     {
-        // Skip logging when auditing is suppressed (e.g. during seeders/imports)
         if (static::$auditingDisabled) {
             return;
         }
 
+        // Resolve to string value if enum was passed
+        $eventValue = $event instanceof AuditEvent ? $event->value : $event;
+
         AuditLog::create([
             'auditable_type' => get_class($this),
-            'auditable_id' => $this->getKey(),
-            'user_id' => Auth::id(),
-            'event' => $event,
-            'old_values' => !empty($oldValues) ? $oldValues : null,
-            'new_values' => !empty($newValues) ? $newValues : null,
-            'ip_address' => Request::ip(),
+            'auditable_id'   => $this->getKey(),
+            'user_id'        => Auth::id(),
+            'event'          => $eventValue,
+            'old_values'     => !empty($oldValues) ? $oldValues : null,
+            'new_values'     => !empty($newValues) ? $newValues : null,
+            'ip_address'     => Request::ip(),
         ]);
     }
 

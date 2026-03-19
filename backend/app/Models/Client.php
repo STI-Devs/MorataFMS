@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ClientType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -23,6 +24,7 @@ class Client extends Model
 
     protected $casts = [
         'is_active' => 'boolean',
+        'type'      => ClientType::class,
     ];
 
     public function country(): BelongsTo
@@ -48,12 +50,12 @@ class Client extends Model
 
     public function scopeImporters($query)
     {
-        return $query->whereIn('type', ['importer', 'both', 'all']);
+        return $query->whereIn('type', [ClientType::Importer->value, ClientType::Both->value]);
     }
 
     public function scopeExporters($query)
     {
-        return $query->whereIn('type', ['exporter', 'both', 'all']);
+        return $query->whereIn('type', [ClientType::Exporter->value, ClientType::Both->value]);
     }
 
     public function scopeNotarial($query)

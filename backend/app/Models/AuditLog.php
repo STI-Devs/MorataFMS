@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\AuditEvent;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
@@ -23,6 +24,7 @@ class AuditLog extends Model
     protected $casts = [
         'old_values' => 'array',
         'new_values' => 'array',
+        'event'      => AuditEvent::class,
     ];
 
     // Relationships

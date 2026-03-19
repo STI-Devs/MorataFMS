@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\RemarkSeverity;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -24,6 +25,7 @@ class TransactionRemark extends Model
     protected $casts = [
         'is_resolved' => 'boolean',
         'resolved_at' => 'datetime',
+        'severity'    => RemarkSeverity::class,
     ];
 
     // ── Relationships ────────────────────────────────────────────────────────

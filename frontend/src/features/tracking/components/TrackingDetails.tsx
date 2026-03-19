@@ -7,8 +7,9 @@ import { trackingApi } from '../api/trackingApi';
 import type { ApiDocument, DocumentableType, ExportTransaction, ImportTransaction } from '../types';
 import { useTransactionDetail } from '../hooks/useTransactionDetail';
 import { useAddDocumentToCache, useTransactionDocuments } from '../hooks/useTransactionDocuments';
+import { useDocumentPreview } from '../hooks/useDocumentPreview';
 import { useQueryClient } from '@tanstack/react-query';
-import { EXPORT_STAGES, IMPORT_STAGES, getStageStatus, getStatusStyle } from '../utils/stageUtils';
+import { EXPORT_STAGES, IMPORT_STAGES, getStageStatusFromDoc, getStatusStyle, getImportDisplayStatus, getExportDisplayStatus } from '../utils/stageUtils';
 import { TrackingDetailsSkeleton } from './TrackingDetailsSkeleton';
 import { TrackingHeader } from './TrackingHeader';
 import { TransactionInfoCard } from './TransactionInfoCard';
@@ -44,14 +45,42 @@ export const TrackingDetails = () => {
     const [isUploadOpen,       setIsUploadOpen]       = useState(false);
     const [selectedStageIndex, setSelectedStageIndex] = useState<number | null>(null);
     const [uploadingStage,     setUploadingStage]     = useState<number | null>(null);
+    const [deletingDocId,      setDeletingDocId]      = useState<number | null>(null);
+    const [replacingDoc,       setReplacingDoc]       = useState<ApiDocument | null>(null);
     const [uploadError,        setUploadError]        = useState<string | null>(null);
-    const [previewFile,        setPreviewFile]        = useState<{ file: File | string | null; name: string } | null>(null);
+
+    const { previewFile, setPreviewFile, handlePreviewDoc } = useDocumentPreview();
 
     // ── Handlers ───────────────────────────────────────────────────────
     const handleStageUploadClick = (index: number) => {
         setSelectedStageIndex(index);
+        setReplacingDoc(null);
         setUploadError(null);
         setIsUploadOpen(true);
+    };
+
+    const handleReplaceDoc = (index: number, oldDoc: ApiDocument) => {
+        setSelectedStageIndex(index);
+        setReplacingDoc(oldDoc);
+        setUploadError(null);
+        setIsUploadOpen(true);
+    };
+
+    const handleDeleteDoc = async (doc: ApiDocument) => {
+        if (!txDetail || !docableType) return;
+        setDeletingDocId(doc.id);
+        try {
+            await trackingApi.deleteDocument(doc.id);
+            // Remove from local cache immediately
+            queryClient.setQueryData<ApiDocument[]>(
+                ['transaction-documents', docableType, txDetail.raw.id],
+                (prev = []) => prev.filter(d => d.id !== doc.id),
+            );
+            // Refresh transaction so status badge updates
+            queryClient.invalidateQueries({ queryKey: ['transaction-detail', referenceId] });
+        } finally {
+            setDeletingDocId(null);
+        }
     };
 
     const handleUpload = async (file: File) => {
@@ -67,22 +96,29 @@ export const TrackingDetails = () => {
                 documentable_type: docableType,
                 documentable_id:   txDetail.raw.id,
             });
-            addDocToCache(docableType, txDetail.raw.id, doc);
+
+            // If replacing, delete old doc silently after new one is saved
+            if (replacingDoc) {
+                await trackingApi.deleteDocument(replacingDoc.id);
+                // Update cache: remove old, add new
+                queryClient.setQueryData<ApiDocument[]>(
+                    ['transaction-documents', docableType, txDetail.raw.id],
+                    (prev = []) => [doc, ...prev.filter(d => d.id !== replacingDoc.id && d.type !== doc.type)],
+                );
+            } else {
+                addDocToCache(docableType, txDetail.raw.id, doc);
+            }
+
+            // Refresh transaction so status badge reflects backend recalculation
+            queryClient.invalidateQueries({ queryKey: ['transaction-detail', referenceId] });
+
             setIsUploadOpen(false);
+            setReplacingDoc(null);
         } catch (err: unknown) {
             const apiErr = err as { response?: { data?: { message?: string } } };
             setUploadError(apiErr?.response?.data?.message ?? 'Upload failed. Please try again.');
         } finally {
             setUploadingStage(null);
-        }
-    };
-
-    const handlePreviewDoc = async (doc: ApiDocument) => {
-        try {
-            const blobUrl = await trackingApi.getDocumentPreviewUrl(doc.id);
-            setPreviewFile({ file: blobUrl, name: doc.filename });
-        } catch {
-            trackingApi.downloadDocument(doc.id, doc.filename);
         }
     };
 
@@ -109,18 +145,30 @@ export const TrackingDetails = () => {
 
     // ── Derived values ─────────────────────────────────────────────────
     const { mapped: transaction, isImport } = txDetail;
-    const s             = getStatusStyle(transaction.status);
-    const stageStatuses = stages.map((_, i) => getStageStatus(i, transaction.status));
-    const activeIndex   = stageStatuses.findIndex(s => s === 'active');
-    const importTx      = isImport  ? (transaction as ImportTransaction)  : null;
-    const exportTx      = !isImport ? (transaction as ExportTransaction)  : null;
+
+    // Derive the badge label from uploaded doc types — instant reactivity,
+    // and matches exactly what the backend saves after the enum migration.
+    const uploadedDocTypes = Object.values(stageDocuments).map(d => d.type);
+    const displayStatus    = isImport
+        ? getImportDisplayStatus(uploadedDocTypes)
+        : getExportDisplayStatus(uploadedDocTypes);
+
+    const s = getStatusStyle(displayStatus);
+
+    // Derive stage statuses from document presence (document-driven, not status-string-driven)
+    const firstEmptyIdx  = stages.findIndex((_, i) => !stageDocuments[i]);
+    const stageStatuses  = stages.map((_, i) =>
+        getStageStatusFromDoc(!!stageDocuments[i], i === firstEmptyIdx),
+    );
+    const activeIndex    = stageStatuses.findIndex(s => s === 'active');
+    const importTx       = isImport  ? (transaction as ImportTransaction)  : null;
+    const exportTx       = !isImport ? (transaction as ExportTransaction)  : null;
 
     return (
         <div className="flex flex-col space-y-5 pb-6">
 
             <TrackingHeader
-                transaction={transaction}
-                isImport={isImport}
+                transaction={{ ...transaction, status: displayStatus }}
                 onBack={() => navigate(-1)}
                 onRemarksClick={() => setIsRemarkModalOpen(true)}
                 onEditClick={() => setIsEditModalOpen(true)}
@@ -156,9 +204,12 @@ export const TrackingDetails = () => {
                             stageStatus={stageStatuses[i]}
                             doc={stageDocuments[i]}
                             isUploading={uploadingStage === i}
+                            isDeleting={deletingDocId === stageDocuments[i]?.id}
                             activeIndex={activeIndex}
                             onUploadClick={handleStageUploadClick}
                             onPreviewDoc={handlePreviewDoc}
+                            onDeleteDoc={handleDeleteDoc}
+                            onReplaceDoc={handleReplaceDoc}
                         />
                     ))}
                 </div>
@@ -179,6 +230,12 @@ export const TrackingDetails = () => {
                 onClose={() => setPreviewFile(null)}
                 file={previewFile?.file ?? null}
                 fileName={previewFile?.name ?? ''}
+                onDownload={previewFile ? () => {
+                    // find the doc matching the current preview name and download it
+                    const allDocs = Object.values(stageDocuments).flat();
+                    const doc = allDocs.find(d => d.filename === previewFile.name);
+                    if (doc) trackingApi.downloadDocument(doc.id, doc.filename);
+                } : undefined}
             />
 
             <EditTransactionModal

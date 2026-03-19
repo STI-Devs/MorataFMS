@@ -195,10 +195,9 @@ export const trackingApi = {
     },
 
     getDocumentPreviewUrl: async (id: number): Promise<string> => {
-        const response = await api.get(`/api/documents/${id}/download`, {
-            responseType: 'blob',
-        });
-        return window.URL.createObjectURL(new Blob([response.data]));
+        // Both S3 and Local disks now safely return a pre-signed JSON URL
+        const { data } = await api.get<{ url: string }>(`/api/documents/${id}/preview`);
+        return data.url;
     },
 };
 

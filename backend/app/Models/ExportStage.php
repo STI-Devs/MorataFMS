@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\StageStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -29,9 +30,13 @@ class ExportStage extends Model
 
     protected $casts = [
         'docs_prep_completed_at' => 'datetime',
-        'co_completed_at' => 'datetime',
-        'cil_completed_at' => 'datetime',
-        'bl_completed_at' => 'datetime',
+        'co_completed_at'        => 'datetime',
+        'cil_completed_at'       => 'datetime',
+        'bl_completed_at'        => 'datetime',
+        'docs_prep_status'       => StageStatus::class,
+        'co_status'              => StageStatus::class,
+        'cil_status'             => StageStatus::class,
+        'bl_status'              => StageStatus::class,
     ];
 
     // Relationships

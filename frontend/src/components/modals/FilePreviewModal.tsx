@@ -1,22 +1,77 @@
-﻿import { Icon } from '../Icon';
+import { Icon } from '../Icon';
 
 interface FilePreviewModalProps {
     isOpen: boolean;
     onClose: () => void;
-    /** File object (for local preview before upload) or a URL string (for remote files). */
+    /**
+     * - `File`   → local file selected by user (before upload)
+     * - `string` → pre-signed S3 URL returned by `/api/documents/{id}/preview`
+     * - `null`   → nothing to preview
+     */
     file: File | string | null;
     fileName?: string;
+    /** Called when the user wants to download the file instead. */
+    onDownload?: () => void;
 }
 
-export const FilePreviewModal: React.FC<FilePreviewModalProps> = ({ isOpen, onClose, file, fileName }) => {
+// File-type classification helpers
+const EXT_RE = /\.([a-z0-9]+)$/i;
+const getExt = (name: string) => (name.match(EXT_RE)?.[1] ?? '').toLowerCase();
+
+const IMAGE_EXTS    = new Set(['jpeg', 'jpg', 'png', 'gif', 'webp', 'svg', 'bmp']);
+const PDF_EXTS      = new Set(['pdf']);
+const OFFICE_EXTS   = new Set(['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'odt', 'ods', 'odp', 'csv']);
+
+type PreviewType = 'image' | 'pdf' | 'office' | 'local-raw' | 'unsupported';
+
+function classifyFile(name: string, isLocal: boolean): PreviewType {
+    const ext = getExt(name);
+    if (IMAGE_EXTS.has(ext))  return 'image';
+    if (PDF_EXTS.has(ext))    return isLocal ? 'local-raw' : 'pdf';   // local PDF → raw blob
+    if (OFFICE_EXTS.has(ext)) return isLocal ? 'unsupported' : 'office';
+    return isLocal ? 'local-raw' : 'unsupported';
+}
+
+function googleDocsUrl(presignedUrl: string) {
+    return `https://docs.google.com/viewer?url=${encodeURIComponent(presignedUrl)}&embedded=true`;
+}
+
+export const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
+    isOpen, onClose, file, fileName, onDownload,
+}) => {
     if (!isOpen) return null;
 
-    const isFileObject = file instanceof File;
-    const fileUrl = isFileObject ? URL.createObjectURL(file) : (typeof file === 'string' ? file : null);
-    const displayName = fileName || (isFileObject ? file.name : (typeof file === 'string' ? file : 'Unknown File'));
+    const isLocalFile  = file instanceof File;
+    // blob: URLs are created client-side (local disk path) and are not publicly
+    // accessible — Google Docs Viewer cannot load them, so treat them as "local".
+    const isBlobUrl    = typeof file === 'string' && file.startsWith('blob:');
+    const isRemoteUrl  = typeof file === 'string' && !isBlobUrl;
 
-    const isImage = displayName.match(/\.(jpeg|jpg|gif|png|webp)$/i) != null;
-    const isPdf = displayName.match(/\.pdf$/i) != null;
+    // Derive a stable blob URL for local File objects
+    const localBlobUrl = isLocalFile ? URL.createObjectURL(file) : null;
+
+    const displayName  = fileName
+        || (isLocalFile ? file.name : (isRemoteUrl ? fileName ?? 'Document' : 'Unknown File'));
+
+    const previewType  = displayName ? classifyFile(displayName, isLocalFile || isBlobUrl) : 'unsupported';
+
+    // Build the URL that the viewer will actually load
+    const viewerUrl = (() => {
+        if (isLocalFile && localBlobUrl) {
+            // Local File object — images & PDFs render natively
+            return localBlobUrl;
+        }
+        if (isBlobUrl) {
+            // Local disk stream — same treatment as a local File; blob: URLs are
+            // not publicly accessible so Google Docs Viewer cannot use them.
+            return file as string;
+        }
+        if (isRemoteUrl) {
+            if (previewType === 'office') return googleDocsUrl(file as string);
+            return file as string; // image or pdf — use the pre-signed URL directly
+        }
+        return null;
+    })();
 
     return (
         <div
@@ -24,10 +79,10 @@ export const FilePreviewModal: React.FC<FilePreviewModalProps> = ({ isOpen, onCl
             onClick={onClose}
         >
             <div
-                className="relative w-full max-w-4xl max-h-[90vh] flex flex-col rounded-2xl shadow-2xl overflow-hidden bg-surface border border-border animate-modal-in"
+                className="relative w-full max-w-4xl max-h-[92vh] flex flex-col rounded-2xl shadow-2xl overflow-hidden bg-surface border border-border animate-modal-in"
                 onClick={e => e.stopPropagation()}
             >
-                {/* Header */}
+                {/* ── Header ─────────────────────────────────────────── */}
                 <div className="flex items-center justify-between p-4 border-b border-border shrink-0">
                     <div className="flex items-center gap-3 min-w-0">
                         <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 shrink-0">
@@ -35,42 +90,94 @@ export const FilePreviewModal: React.FC<FilePreviewModalProps> = ({ isOpen, onCl
                         </div>
                         <h3 className="text-lg font-bold text-text-primary truncate">{displayName}</h3>
                     </div>
-                    <button
-                        onClick={onClose}
-                        className="p-2 rounded-xl text-text-muted hover:text-text-primary hover:bg-hover transition-all shrink-0"
-                    >
-                        <Icon name="x" className="w-5 h-5" />
-                    </button>
+                    <div className="flex items-center gap-2 shrink-0">
+                        {onDownload && (
+                            <button
+                                onClick={onDownload}
+                                title="Download file"
+                                className="p-2 rounded-xl text-text-muted hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all"
+                            >
+                                <Icon name="download" className="w-5 h-5" />
+                            </button>
+                        )}
+                        <button
+                            onClick={onClose}
+                            className="p-2 rounded-xl text-text-muted hover:text-text-primary hover:bg-hover transition-all"
+                        >
+                            <Icon name="x" className="w-5 h-5" />
+                        </button>
+                    </div>
                 </div>
 
-                {/* Content */}
-                <div className="flex-1 overflow-auto p-4 flex items-center justify-center bg-surface-secondary min-h-[300px]">
-                    {fileUrl ? (
-                        isImage ? (
-                            <img src={fileUrl} alt={displayName} className="max-w-full max-h-[70vh] object-contain rounded-lg" />
-                        ) : isPdf ? (
-                            <iframe src={fileUrl} className="w-full h-[600px] border-none rounded-lg" title="PDF Preview" />
-                        ) : (
-                            <div className="text-center p-8">
-                                <div className="w-16 h-16 mx-auto mb-4 p-3 rounded-2xl bg-surface border border-border">
-                                    <Icon name="file-text" className="w-full h-full text-text-muted" />
-                                </div>
-                                <p className="text-text-secondary font-bold mb-2">Preview not available</p>
-                                <p className="font-mono text-sm text-text-muted">{displayName}</p>
-                            </div>
-                        )
-                    ) : (
-                        <div className="text-center p-8">
-                            <div className="w-16 h-16 mx-auto mb-4 p-3 rounded-2xl bg-surface border border-border">
-                                <Icon name="file-text" className="w-full h-full text-text-muted" />
-                            </div>
-                            <p className="text-lg font-bold text-text-primary mb-1">File Preview</p>
-                            <p className="text-sm text-text-muted mb-2">Preview placeholder for:</p>
-                            <p className="font-mono text-sm font-bold text-blue-600 dark:text-blue-400">{displayName}</p>
-                        </div>
+                {/* ── Content ────────────────────────────────────────── */}
+                <div className="flex-1 overflow-hidden bg-surface-secondary min-h-[400px] flex items-center justify-center">
+                    {previewType === 'image' && viewerUrl && (
+                        <img
+                            src={viewerUrl}
+                            alt={displayName}
+                            className="max-w-full max-h-[78vh] object-contain rounded-lg p-4"
+                        />
+                    )}
+
+                    {(previewType === 'pdf' || previewType === 'local-raw') && viewerUrl && (
+                        <iframe
+                            src={viewerUrl}
+                            className="w-full h-[78vh] border-none"
+                            title="Document Preview"
+                        />
+                    )}
+
+                    {previewType === 'office' && viewerUrl && (
+                        <iframe
+                            src={viewerUrl}
+                            className="w-full h-[78vh] border-none"
+                            title="Document Preview (Google Docs Viewer)"
+                        />
+                    )}
+
+                    {previewType === 'unsupported' && (
+                        <UnsupportedPreview name={displayName ?? ''} onDownload={onDownload} />
+                    )}
+
+                    {!viewerUrl && !['image', 'pdf', 'local-raw', 'office'].includes(previewType) && (
+                        <UnsupportedPreview name={displayName ?? ''} onDownload={onDownload} />
                     )}
                 </div>
+
+                {/* Google Docs Viewer note */}
+                {previewType === 'office' && (
+                    <div className="px-4 py-2 border-t border-border bg-surface shrink-0">
+                        <p className="text-xs text-text-muted text-center">
+                            Powered by{' '}
+                            <span className="font-semibold text-blue-600 dark:text-blue-400">Google Docs Viewer</span>
+                            {' '}· Preview may take a few seconds to load
+                        </p>
+                    </div>
+                )}
             </div>
         </div>
     );
 };
+
+// ── Sub-component ────────────────────────────────────────────────────────────
+
+const UnsupportedPreview: React.FC<{ name: string; onDownload?: () => void }> = ({ name, onDownload }) => (
+    <div className="text-center p-10 flex flex-col items-center gap-4">
+        <div className="w-16 h-16 p-3 rounded-2xl bg-surface border border-border flex items-center justify-center">
+            <Icon name="file-text" className="w-full h-full text-text-muted" />
+        </div>
+        <div>
+            <p className="text-text-secondary font-bold mb-1">Preview not available</p>
+            <p className="font-mono text-sm text-text-muted">{name}</p>
+        </div>
+        {onDownload && (
+            <button
+                onClick={onDownload}
+                className="mt-2 flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors"
+            >
+                <Icon name="download" className="w-4 h-4" />
+                Download to view
+            </button>
+        )}
+    </div>
+);

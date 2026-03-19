@@ -85,14 +85,18 @@ export function TransactionListPage<T>({
 
     const handleResetFilter = () => { setFilterType(''); setFilterValue(''); setOpenDropdown(null); };
 
-    const total = (stats?.pending ?? 0) + (stats?.in_progress ?? 0);
+    // Stats may arrive as strings from the API; normalize to numbers to avoid "1" + "0" => "10".
+    const pendingCount = Number(stats?.pending ?? 0);
+    const inProgressCount = Number(stats?.in_progress ?? 0);
+    const overdueCount = Number(stats?.overdue ?? 0);
+    const total = pendingCount + inProgressCount;
     const isLoadingStats = statsQuery.isLoading || isLoading;
 
     const statCards = [
         { label: 'Active Shipments', value: total, dot: '#0a84ff', sub: 'Total active' },
-        { label: 'Pending Action', value: stats?.pending ?? 0, dot: '#ff9f0a', sub: 'Needs attention' },
-        { label: 'In Progress', value: stats?.in_progress ?? 0, dot: '#64d2ff', sub: 'Currently moving' },
-        ...(type === 'import' ? [{ label: 'Overdue Shipments', value: stats?.overdue ?? 0, dot: '#ef4444', sub: 'Past target dates' }] : []),
+        { label: 'Pending Action', value: pendingCount, dot: '#ff9f0a', sub: 'Needs attention' },
+        { label: 'In Progress', value: inProgressCount, dot: '#64d2ff', sub: 'Currently moving' },
+        ...(type === 'import' ? [{ label: 'Overdue Shipments', value: overdueCount, dot: '#ef4444', sub: 'Past target dates' }] : []),
     ];
 
     return (

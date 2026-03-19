@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Enums\UserRole;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -51,9 +52,10 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-            'departments' => 'array',
-            'is_active' => 'boolean',
+            'password'          => 'hashed',
+            'departments'       => 'array',
+            'is_active'         => 'boolean',
+            'role'              => UserRole::class,
         ];
     }
 
@@ -69,17 +71,17 @@ class User extends Authenticatable
 
     public function isAdmin(): bool
     {
-        return $this->role === 'admin';
+        return $this->role === UserRole::Admin;
     }
 
     public function isLawyer(): bool
     {
-        return $this->role === 'lawyer';
+        return $this->role === UserRole::Supervisor; // mapped: supervisor = lawyer role
     }
 
     public function isParalegal(): bool
     {
-        return $this->role === 'paralegal';
+        return $this->role === UserRole::Broker; // mapped: broker = paralegal role
     }
 
     /**
@@ -87,12 +89,13 @@ class User extends Authenticatable
      */
     public function isLegalStaff(): bool
     {
-        return in_array($this->role, ['paralegal', 'lawyer']);
+        return in_array($this->role, [UserRole::Broker, UserRole::Supervisor]);
     }
 
-    public function hasRoleAtLeast(string $minimumRole): bool
+    public function hasRoleAtLeast(string|UserRole $minimumRole): bool
     {
-        return (self::ROLE_HIERARCHY[$this->role] ?? 0) >= (self::ROLE_HIERARCHY[$minimumRole] ?? 99);
+        $min = $minimumRole instanceof UserRole ? $minimumRole : UserRole::from($minimumRole);
+        return $this->role instanceof UserRole && $this->role->isAtLeast($min);
     }
 
     // --- Department Helpers ---

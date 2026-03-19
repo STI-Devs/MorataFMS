@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\CountryType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -18,6 +19,7 @@ class Country extends Model
 
     protected $casts = [
         'is_active' => 'boolean',
+        'type'      => CountryType::class,
     ];
 
     public function clients(): HasMany
@@ -38,11 +40,11 @@ class Country extends Model
 
     public function scopeImportOrigins($query)
     {
-        return $query->whereIn('type', ['import_origin', 'both']);
+        return $query->whereIn('type', [CountryType::ImportOrigin->value, CountryType::Both->value]);
     }
 
     public function scopeExportDestinations($query)
     {
-        return $query->whereIn('type', ['export_destination', 'both']);
+        return $query->whereIn('type', [CountryType::ExportDestination->value, CountryType::Both->value]);
     }
 }

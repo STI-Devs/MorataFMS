@@ -10,6 +10,7 @@ import { useImports } from '../../tracking/hooks/useImports';
 import type { ApiDocument, DocumentableType, LayoutContext } from '../../tracking/types';
 import { useDocuments } from '../hooks/useDocuments';
 import { useUploadDocument } from '../hooks/useUploadDocument';
+import { useDocumentPreview } from '../../tracking/hooks/useDocumentPreview';
 
 
 type DocFileType = 'pdf' | 'docx' | 'jpg' | 'png' | 'other';
@@ -132,7 +133,8 @@ export const DocumentsDetail = () => {
 
     const [isUploadOpen, setIsUploadOpen]         = useState(false);
     const [uploadError, setUploadError]           = useState<string | undefined>();
-    const [previewState, setPreviewState]         = useState<{ url: string; filename: string } | null>(null);
+
+    const { previewFile, setPreviewFile, handlePreviewDoc } = useDocumentPreview();
 
     const { data: importsData, isLoading: importsLoading } = useImports({ per_page: 100 });
     const { data: exportsData, isLoading: exportsLoading } = useExports({ per_page: 100 });
@@ -174,16 +176,6 @@ export const DocumentsDetail = () => {
                 onError:   () => setUploadError('Upload failed. Please try again.'),
             },
         );
-    };
-
-    const handlePreview = async (docId: number, filename: string) => {
-        const url = await trackingApi.getDocumentPreviewUrl(docId);
-        setPreviewState({ url, filename });
-    };
-
-    const handlePreviewClose = () => {
-        if (previewState?.url) URL.revokeObjectURL(previewState.url);
-        setPreviewState(null);
     };
 
     const displayRef    = ref ?? '';
@@ -376,7 +368,10 @@ export const DocumentsDetail = () => {
                                     <button
                                         className="p-1.5 text-text-secondary hover:bg-hover rounded-md transition-colors"
                                         title="Preview"
-                                        onClick={() => handlePreview(doc.id, doc.name)}
+                                        onClick={() => {
+                                            const apiDoc = apiDocuments.find(d => d.id === doc.id);
+                                            if (apiDoc) handlePreviewDoc(apiDoc);
+                                        }}
                                     >
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -402,10 +397,14 @@ export const DocumentsDetail = () => {
 
             {/* File preview modal */}
             <FilePreviewModal
-                isOpen={!!previewState}
-                onClose={handlePreviewClose}
-                file={previewState?.url ?? null}
-                fileName={previewState?.filename}
+                isOpen={!!previewFile}
+                onClose={() => setPreviewFile(null)}
+                file={previewFile?.file ?? null}
+                fileName={previewFile?.name ?? ''}
+                onDownload={previewFile ? () => {
+                    const doc = apiDocuments.find(d => d.filename === previewFile.name);
+                    if (doc) trackingApi.downloadDocument(doc.id, doc.filename);
+                } : undefined}
             />
         </div>
     );

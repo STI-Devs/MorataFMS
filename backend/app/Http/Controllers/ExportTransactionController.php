@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ExportStatus;
 use App\Http\Requests\CancelTransactionRequest;
 use App\Http\Requests\StoreExportTransactionRequest;
 use App\Http\Requests\UpdateExportTransactionRequest;
@@ -68,7 +69,7 @@ class ExportTransactionController extends Controller
 
         $transaction = new ExportTransaction($request->validated());
         $transaction->assigned_user_id = $request->user()->id;
-        $transaction->status = 'pending';
+        $transaction->status = ExportStatus::Pending;
         $transaction->save();
 
         $transaction->load(['shipper', 'stages', 'assignedUser', 'destinationCountry']);
@@ -103,11 +104,18 @@ class ExportTransactionController extends Controller
 
         $counts = ExportTransaction::selectRaw("
             COUNT(*) as total,
-            SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
-            SUM(CASE WHEN status = 'in_progress' THEN 1 ELSE 0 END) as in_progress,
-            SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
-            SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled
-        ")->first();
+            SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as pending,
+            SUM(CASE WHEN status IN (?,?,?) THEN 1 ELSE 0 END) as in_progress,
+            SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as completed,
+            SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as cancelled
+        ", [
+            ExportStatus::Pending->value,
+            ExportStatus::InTransit->value,
+            ExportStatus::Departure->value,
+            ExportStatus::Processing->value,
+            ExportStatus::Completed->value,
+            ExportStatus::Cancelled->value,
+        ])->first();
 
         return response()->json(['data' => $counts]);
     }
@@ -120,13 +128,18 @@ class ExportTransactionController extends Controller
     {
         $this->authorize('update', $export_transaction);
 
-        if (!in_array($export_transaction->status, ['pending', 'in_progress'])) {
+        if (!in_array($export_transaction->status, [
+            ExportStatus::Pending,
+            ExportStatus::InTransit,
+            ExportStatus::Departure,
+            ExportStatus::Processing,
+        ])) {
             return response()->json([
-                'message' => 'Only pending or in-progress transactions can be cancelled.',
+                'message' => 'Only active transactions can be cancelled.',
             ], 422);
         }
 
-        $export_transaction->status = 'cancelled';
+        $export_transaction->status = ExportStatus::Cancelled;
         $export_transaction->notes = $request->validated()['reason'];
         $export_transaction->save();
 

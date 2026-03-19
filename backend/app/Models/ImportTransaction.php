@@ -2,6 +2,9 @@
 
 namespace App\Models;
 
+use App\Enums\ImportStatus;
+use App\Enums\SelectiveColor;
+use App\Enums\StageStatus;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -26,8 +29,10 @@ class ImportTransaction extends Model
     ];
 
     protected $casts = [
-        'arrival_date' => 'date',
-        'is_archive' => 'boolean',
+        'arrival_date'    => 'date',
+        'is_archive'      => 'boolean',
+        'status'          => ImportStatus::class,
+        'selective_color' => SelectiveColor::class,
     ];
 
     // Relationships
@@ -61,7 +66,6 @@ class ImportTransaction extends Model
         return $this->morphMany(TransactionRemark::class, 'remarkble');
     }
 
-    // Boot method to auto-create stages
     protected static function booted(): void
     {
         static::created(function (ImportTransaction $transaction) {
@@ -69,20 +73,73 @@ class ImportTransaction extends Model
         });
     }
 
+    /**
+     * Recalculate stage and transaction statuses based on uploaded documents.
+     * Called automatically by DocumentController after every upload or delete.
+     */
+    public function recalculateStatus(): void
+    {
+        // Map of document type → ImportStage field name
+        $stageMap = [
+            'boc'          => 'boc',
+            'ppa'          => 'ppa',
+            'do'           => 'do',
+            'port_charges' => 'port_charges',
+            'releasing'    => 'releasing',
+            'billing'      => 'billing',
+        ];
+
+        // Get all uploaded document types for this transaction
+        $docTypes = $this->documents()->pluck('type')->toArray();
+
+        // Update per-stage statuses on the stages record
+        $stages = $this->stages;
+        if ($stages) {
+            $stageUpdates = [];
+            foreach ($stageMap as $docType => $stageKey) {
+                $hasDoc           = in_array($docType, $docTypes);
+                $completedAtField = "{$stageKey}_completed_at";
+                $stageUpdates["{$stageKey}_status"] = $hasDoc ? StageStatus::Completed->value : StageStatus::Pending->value;
+                $stageUpdates[$completedAtField]    = $hasDoc ? ($stages->$completedAtField ?? now()) : null;
+            }
+            $stages->update($stageUpdates);
+        }
+
+        // Derive overall transaction status from highest completed stage
+        if (in_array('billing', $docTypes)) {
+            $newStatus = ImportStatus::Completed;
+        } elseif (array_intersect(['ppa', 'do', 'port_charges', 'releasing'], $docTypes)) {
+            $newStatus = ImportStatus::Processing;
+        } elseif (in_array('boc', $docTypes)) {
+            $newStatus = ImportStatus::VesselArrived;
+        } else {
+            $newStatus = ImportStatus::Pending;
+        }
+
+        // Only update if status actually changed (prevents audit noise)
+        if ($this->status !== $newStatus) {
+            $this->status = $newStatus;
+            $this->saveQuietly();
+        }
+    }
+
     // Scopes
     public function scopePending($query)
     {
-        return $query->where('status', 'pending');
+        return $query->where('status', ImportStatus::Pending->value);
     }
 
     public function scopeInProgress($query)
     {
-        return $query->where('status', 'in_progress');
+        return $query->whereIn('status', [
+            ImportStatus::VesselArrived->value,
+            ImportStatus::Processing->value,
+        ]);
     }
 
     public function scopeCompleted($query)
     {
-        return $query->where('status', 'completed');
+        return $query->where('status', ImportStatus::Completed->value);
     }
 
     // Helper to get current stage progress

@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ImportStatus;
+use App\Enums\UserRole;
 use App\Http\Requests\CancelTransactionRequest;
 use App\Http\Requests\StoreImportTransactionRequest;
 use App\Http\Requests\UpdateImportTransactionRequest;
@@ -68,7 +70,7 @@ class ImportTransactionController extends Controller
 
         $transaction = new ImportTransaction($request->validated());
         $transaction->assigned_user_id = $request->user()->id;
-        $transaction->status = 'pending';
+        $transaction->status = ImportStatus::Pending;
         $transaction->save();
 
         $transaction->load(['importer', 'originCountry', 'stages', 'assignedUser']);
@@ -90,7 +92,7 @@ class ImportTransactionController extends Controller
 
         // Encoders cannot change the selectivity color — it is a BOC classification
         // that must be updated by an admin, lawyer, or paralegal.
-        if ($request->user()->role === 'encoder') {
+        if ($request->user()->role === UserRole::Encoder) {
             unset($data['selective_color']);
         }
 
@@ -128,13 +130,17 @@ class ImportTransactionController extends Controller
     {
         $this->authorize('update', $import_transaction);
 
-        if (!in_array($import_transaction->status, ['pending', 'in_progress'])) {
+        if (!in_array($import_transaction->status, [
+            ImportStatus::Pending,
+            ImportStatus::VesselArrived,
+            ImportStatus::Processing,
+        ])) {
             return response()->json([
-                'message' => 'Only pending or in-progress transactions can be cancelled.',
+                'message' => 'Only active transactions can be cancelled.',
             ], 422);
         }
 
-        $import_transaction->status = 'cancelled';
+        $import_transaction->status = ImportStatus::Cancelled;
         $import_transaction->notes = $request->validated()['reason'];
         $import_transaction->save();
 

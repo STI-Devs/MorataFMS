@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\StageStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -36,12 +37,18 @@ class ImportStage extends Model
     ];
 
     protected $casts = [
-        'boc_completed_at' => 'datetime',
-        'ppa_completed_at' => 'datetime',
-        'do_completed_at' => 'datetime',
+        'boc_completed_at'          => 'datetime',
+        'ppa_completed_at'          => 'datetime',
+        'do_completed_at'           => 'datetime',
         'port_charges_completed_at' => 'datetime',
-        'releasing_completed_at' => 'datetime',
-        'billing_completed_at' => 'datetime',
+        'releasing_completed_at'    => 'datetime',
+        'billing_completed_at'      => 'datetime',
+        'boc_status'                => StageStatus::class,
+        'ppa_status'                => StageStatus::class,
+        'do_status'                 => StageStatus::class,
+        'port_charges_status'       => StageStatus::class,
+        'releasing_status'          => StageStatus::class,
+        'billing_status'            => StageStatus::class,
     ];
 
     // Relationships

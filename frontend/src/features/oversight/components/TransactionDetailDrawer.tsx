@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Icon } from '../../../components/Icon';
 import { FilePreviewModal } from '../../../components/modals/FilePreviewModal';
 import { trackingApi } from '../../tracking/api/trackingApi';
+import { useDocumentPreview } from '../../tracking/hooks/useDocumentPreview';
 import { useCreateRemark, useDocuments, useRemarks, useResolveRemark } from '../hooks/useRemarks';
 import type { CreateRemarkData, Remark, RemarkDocument } from '../types/remark.types';
 import type { OversightTransaction } from '../types/transaction.types';
@@ -29,8 +30,7 @@ interface Props {
 
 export const TransactionDetailDrawer = ({ transaction, onClose }: Props) => {
     const [activeTab, setActiveTab] = useState<Tab>('Documents');
-    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-    const [previewName, setPreviewName] = useState('');
+    const { previewFile, setPreviewFile, handlePreviewDoc } = useDocumentPreview();
     const [previewLoading, setPreviewLoading] = useState<number | null>(null);
     const drawerRef = useRef<HTMLDivElement>(null);
 
@@ -72,9 +72,8 @@ export const TransactionDetailDrawer = ({ transaction, onClose }: Props) => {
     const handlePreview = async (docId: number, filename: string) => {
         setPreviewLoading(docId);
         try {
-            const url = await trackingApi.getDocumentPreviewUrl(docId);
-            setPreviewName(filename);
-            setPreviewUrl(url);
+            // Reconstruct the minimal ApiDocument shape required by handlePreviewDoc
+            await handlePreviewDoc({ id: docId, filename } as import('../../tracking/types').ApiDocument);
         } finally {
             setPreviewLoading(null);
         }
@@ -391,10 +390,14 @@ export const TransactionDetailDrawer = ({ transaction, onClose }: Props) => {
 
             {/* File Preview Modal */}
             <FilePreviewModal
-                isOpen={!!previewUrl}
-                onClose={() => { setPreviewUrl(null); setPreviewName(''); }}
-                file={previewUrl}
-                fileName={previewName}
+                isOpen={!!previewFile}
+                onClose={() => setPreviewFile(null)}
+                file={previewFile?.file ?? null}
+                fileName={previewFile?.name ?? ''}
+                onDownload={previewFile ? () => {
+                    const doc = documents.find(d => d.filename === previewFile.name);
+                    if (doc) handleDownload(doc.id, doc.filename);
+                } : undefined}
             />
         </>
     );

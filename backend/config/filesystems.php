@@ -17,6 +17,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Document Storage Disk
+    |--------------------------------------------------------------------------
+    |
+    | The disk used by DocumentController for all file operations (upload,
+    | download, preview, delete). Set APP_STORAGE_DISK in .env to switch
+    | between 'local' (development) and 's3' (production).
+    | Default: 's3' (keeps backward-compat with existing stored files).
+    |
+    */
+    'document_disk' => env('APP_STORAGE_DISK', 's3'),
+
+
+    /*
+    |--------------------------------------------------------------------------
     | Filesystem Disks
     |--------------------------------------------------------------------------
     |

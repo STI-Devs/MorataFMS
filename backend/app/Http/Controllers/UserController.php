@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\UserRole;
 use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
 use App\Http\Resources\UserResource;
@@ -36,7 +37,7 @@ class UserController extends Controller
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
         ]);
-        $user->role = $validated['role']; // Server-managed: set explicitly
+        $user->role = UserRole::from($validated['role']); // Server-managed: set explicitly
         $user->save();
 
         return (new UserResource($user))
@@ -73,7 +74,7 @@ class UserController extends Controller
             $user->password = Hash::make($validated['password']);
         }
         if (isset($validated['role'])) {
-            $user->role = $validated['role']; // Server-managed
+            $user->role = UserRole::from($validated['role']); // Server-managed
         }
         if (isset($validated['departments'])) {
             $user->departments = $validated['departments']; // Server-managed
@@ -106,8 +107,8 @@ class UserController extends Controller
         $this->authorize('update', $user);
 
         // Prevent locking out the entire system by deactivating the last active admin.
-        if ($user->role === 'admin') {
-            $activeAdminCount = User::where('role', 'admin')
+        if ($user->role === UserRole::Admin) {
+            $activeAdminCount = User::where('role', UserRole::Admin->value)
                 ->where('is_active', true)
                 ->count();
 

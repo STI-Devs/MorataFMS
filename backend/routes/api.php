@@ -22,6 +22,11 @@ Route::prefix('auth')->group(function () {
     require __DIR__ . '/auth.php';
 });
 
+// Document management (protected by signed URLs for preview/download)
+Route::get('documents/{document}/stream', [DocumentController::class, 'stream'])
+    ->name('documents.stream')
+    ->middleware('signed');
+
 Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
 
     // Current user
@@ -64,6 +69,7 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
     // Document management
     Route::apiResource('documents', DocumentController::class)->except(['update']);
     Route::get('documents/{document}/download', [DocumentController::class, 'download']);
+    Route::get('documents/{document}/preview', [DocumentController::class, 'preview']);
 
     // Archive uploads (legacy)
     Route::prefix('archives')->group(function () {
