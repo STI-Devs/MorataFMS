@@ -1,8 +1,8 @@
-﻿import api from '../../../lib/axios';
+import api from '../../../lib/axios';
 import type { EncoderUser, OversightListResponse } from '../types/transaction.types';
 
 export const transactionApi = {
-    // Get all transactions combined (supervisor+)
+    // Get all transactions combined (admin)
     async getAllTransactions(): Promise<OversightListResponse> {
         const response = await api.get('/api/transactions');
         return response.data;
@@ -42,3 +42,5 @@ export const transactionApi = {
         return response.data;
     },
 };
+
+

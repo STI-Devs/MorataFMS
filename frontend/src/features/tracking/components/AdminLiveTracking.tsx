@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { Icon } from '../../../components/Icon';
 import { StatusBadge } from '../../../components/StatusBadge';
-import { useTransactionList } from '../hooks/useTransactionList';
+import { useAllExportsData, useAllImportsData } from '../hooks/useAllTransactionRecords';
 import type { ApiExportTransaction, ApiImportTransaction, ExportTransaction, ImportTransaction } from '../types';
 import { mapExportTransaction, mapImportTransaction } from '../utils/mappers';
 
@@ -41,16 +41,16 @@ export const AdminLiveTracking = () => {
         return () => clearInterval(id);
     }, []);
 
-    const LIVE_PARAMS = { exclude_statuses: 'completed,cancelled', per_page: 500 };
+    const LIVE_PARAMS = { exclude_statuses: 'completed,cancelled' };
 
-    const { data: importsData, isLoading: importsLoading } = useTransactionList('import', LIVE_PARAMS);
-    const { data: exportsData, isLoading: exportsLoading } = useTransactionList('export', LIVE_PARAMS);
+    const { data: importsData, isLoading: importsLoading } = useAllImportsData(LIVE_PARAMS);
+    const { data: exportsData, isLoading: exportsLoading } = useAllExportsData(LIVE_PARAMS);
 
     const imports = useMemo<ImportTransaction[]>(() =>
-        ((importsData?.data as ApiImportTransaction[]) || []).map(mapImportTransaction), [importsData]);
+        ((importsData as ApiImportTransaction[]) || []).map(mapImportTransaction), [importsData]);
 
     const exports = useMemo<ExportTransaction[]>(() =>
-        ((exportsData?.data as ApiExportTransaction[]) || []).map(mapExportTransaction), [exportsData]);
+        ((exportsData as ApiExportTransaction[]) || []).map(mapExportTransaction), [exportsData]);
 
     return (
         <div className="min-h-screen w-full flex flex-col p-6 gap-5"

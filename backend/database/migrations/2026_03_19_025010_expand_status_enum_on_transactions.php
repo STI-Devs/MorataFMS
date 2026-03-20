@@ -9,15 +9,18 @@ use Illuminate\Support\Facades\DB;
  * match the frontend display exactly, and never need schema changes
  * to add new statuses in the future.
  */
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
         // Step 1: Change to VARCHAR (preserves all existing data)
-        DB::statement("ALTER TABLE import_transactions
-            MODIFY COLUMN status VARCHAR(30) NOT NULL DEFAULT 'Pending'");
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE import_transactions
+                MODIFY COLUMN status VARCHAR(30) NOT NULL DEFAULT 'Pending'");
 
-        DB::statement("ALTER TABLE export_transactions
-            MODIFY COLUMN status VARCHAR(30) NOT NULL DEFAULT 'Pending'");
+            DB::statement("ALTER TABLE export_transactions
+                MODIFY COLUMN status VARCHAR(30) NOT NULL DEFAULT 'Pending'");
+        }
 
         // Step 2: Migrate old snake_case values → rich labels
         DB::statement("UPDATE import_transactions SET status = 'Pending'       WHERE status = 'pending'");
@@ -44,10 +47,12 @@ return new class extends Migration {
         DB::statement("UPDATE export_transactions SET status = 'completed'   WHERE status = 'Completed'");
         DB::statement("UPDATE export_transactions SET status = 'cancelled'   WHERE status = 'Cancelled'");
 
-        DB::statement("ALTER TABLE import_transactions
-            MODIFY COLUMN status ENUM('pending','in_progress','completed','cancelled') NOT NULL DEFAULT 'pending'");
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE import_transactions
+                MODIFY COLUMN status ENUM('pending','in_progress','completed','cancelled') NOT NULL DEFAULT 'pending'");
 
-        DB::statement("ALTER TABLE export_transactions
-            MODIFY COLUMN status ENUM('pending','in_progress','completed','cancelled') NOT NULL DEFAULT 'pending'");
+            DB::statement("ALTER TABLE export_transactions
+                MODIFY COLUMN status ENUM('pending','in_progress','completed','cancelled') NOT NULL DEFAULT 'pending'");
+        }
     }
 };

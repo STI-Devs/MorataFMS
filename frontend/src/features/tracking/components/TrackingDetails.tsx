@@ -9,6 +9,7 @@ import { useTransactionDetail } from '../hooks/useTransactionDetail';
 import { useAddDocumentToCache, useTransactionDocuments } from '../hooks/useTransactionDocuments';
 import { useDocumentPreview } from '../hooks/useDocumentPreview';
 import { useQueryClient } from '@tanstack/react-query';
+import { trackingKeys } from '../utils/queryKeys';
 import { EXPORT_STAGES, IMPORT_STAGES, getStageStatusFromDoc, getStatusStyle, getImportDisplayStatus, getExportDisplayStatus } from '../utils/stageUtils';
 import { TrackingDetailsSkeleton } from './TrackingDetailsSkeleton';
 import { TrackingHeader } from './TrackingHeader';
@@ -73,11 +74,11 @@ export const TrackingDetails = () => {
             await trackingApi.deleteDocument(doc.id);
             // Remove from local cache immediately
             queryClient.setQueryData<ApiDocument[]>(
-                ['transaction-documents', docableType, txDetail.raw.id],
+                trackingKeys.documents.list(docableType, txDetail.raw.id),
                 (prev = []) => prev.filter(d => d.id !== doc.id),
             );
             // Refresh transaction so status badge updates
-            queryClient.invalidateQueries({ queryKey: ['transaction-detail', referenceId] });
+            queryClient.invalidateQueries({ queryKey: trackingKeys.detail(referenceId) });
         } finally {
             setDeletingDocId(null);
         }
@@ -102,7 +103,7 @@ export const TrackingDetails = () => {
                 await trackingApi.deleteDocument(replacingDoc.id);
                 // Update cache: remove old, add new
                 queryClient.setQueryData<ApiDocument[]>(
-                    ['transaction-documents', docableType, txDetail.raw.id],
+                    trackingKeys.documents.list(docableType, txDetail.raw.id),
                     (prev = []) => [doc, ...prev.filter(d => d.id !== replacingDoc.id && d.type !== doc.type)],
                 );
             } else {
@@ -110,7 +111,7 @@ export const TrackingDetails = () => {
             }
 
             // Refresh transaction so status badge reflects backend recalculation
-            queryClient.invalidateQueries({ queryKey: ['transaction-detail', referenceId] });
+            queryClient.invalidateQueries({ queryKey: trackingKeys.detail(referenceId) });
 
             setIsUploadOpen(false);
             setReplacingDoc(null);
@@ -242,7 +243,7 @@ export const TrackingDetails = () => {
                 isOpen={isEditModalOpen}
                 onClose={() => {
                     setIsEditModalOpen(false);
-                    queryClient.invalidateQueries({ queryKey: ['transaction-detail', referenceId] });
+                    queryClient.invalidateQueries({ queryKey: trackingKeys.detail(referenceId) });
                 }}
                 type={isImport ? 'import' : 'export'}
                 transaction={txDetail.raw ?? null}
@@ -260,3 +261,4 @@ export const TrackingDetails = () => {
         </div>
     );
 };
+

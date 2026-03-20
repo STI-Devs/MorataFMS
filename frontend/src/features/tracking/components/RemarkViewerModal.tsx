@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTheme } from '../../../context/ThemeContext';
 import { remarkApi } from '../../oversight/api/remarkApi';
 import type { Remark } from '../../oversight/types/remark.types';
+import { trackingKeys } from '../utils/queryKeys';
 
 const SEVERITY_CFG = {
     info: { label: 'Info', color: '#0a84ff', bg: 'rgba(10,132,255,0.12)' },
@@ -33,8 +34,8 @@ export const RemarkViewerModal = ({ isOpen, onClose, transactionType, transactio
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['remarks', transactionType, transactionId] });
             // Refresh import/export list to update badge
-            qc.invalidateQueries({ queryKey: ['imports'] });
-            qc.invalidateQueries({ queryKey: ['exports'] });
+            qc.invalidateQueries({ queryKey: trackingKeys.imports.all });
+            qc.invalidateQueries({ queryKey: trackingKeys.exports.all });
         },
     });
 
@@ -44,15 +45,8 @@ export const RemarkViewerModal = ({ isOpen, onClose, transactionType, transactio
     const openRemarks = remarks.filter(r => !r.is_resolved);
     const resolvedRemarks = remarks.filter(r => r.is_resolved);
 
-    const timeAgo = (dateStr: string) => {
-        const diff = Date.now() - new Date(dateStr).getTime();
-        const mins = Math.floor(diff / 60000);
-        if (mins < 1) return 'just now';
-        if (mins < 60) return `${mins}m ago`;
-        const hrs = Math.floor(mins / 60);
-        if (hrs < 24) return `${hrs}h ago`;
-        return `${Math.floor(hrs / 24)}d ago`;
-    };
+    const formatTimestamp = (dateStr: string) =>
+        new Date(dateStr).toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' });
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-backdrop-in" onClick={onClose}>
@@ -100,7 +94,7 @@ export const RemarkViewerModal = ({ isOpen, onClose, transactionType, transactio
                                                         {cfg.label}
                                                     </span>
                                                     <span className={`text-[10px] ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
-                                                        {r.author?.name} · {timeAgo(r.created_at)}
+                                                        {r.author?.name} · {formatTimestamp(r.created_at)}
                                                     </span>
                                                 </div>
                                                 <p className={`text-sm leading-relaxed ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
@@ -158,3 +152,4 @@ export const RemarkViewerModal = ({ isOpen, onClose, transactionType, transactio
         </div>
     );
 };
+

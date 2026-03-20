@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\SelectiveColor;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rules\Enum;
 
 class UpdateImportTransactionRequest extends FormRequest
 {
@@ -23,9 +25,9 @@ class UpdateImportTransactionRequest extends FormRequest
                 'min:4',
                 'max:50',
                 'regex:/^[A-Za-z0-9\-]+$/',
-                'unique:import_transactions,bl_no,' . $id,
+                'unique:import_transactions,bl_no,'.$id,
             ],
-            'selective_color' => ['required', 'in:green,yellow,red'],
+            'selective_color' => ['required', new Enum(SelectiveColor::class)],
             'importer_id' => ['required', 'integer', 'exists:clients,id'],
             'origin_country_id' => ['nullable', 'integer', 'exists:countries,id'],
             'arrival_date' => ['required', 'date', 'after_or_equal:2000-01-01'],
@@ -42,7 +44,6 @@ class UpdateImportTransactionRequest extends FormRequest
             'bl_no.regex' => 'Bill of Lading may only contain letters, numbers, and hyphens.',
             'bl_no.unique' => 'This BL number already exists. Each shipment must have a unique BL number.',
             'selective_color.required' => 'Selective Color (BLSC) is required.',
-            'selective_color.in' => 'Selective Color must be green, yellow, or red.',
             'importer_id.required' => 'Please select an importer.',
             'importer_id.exists' => 'The selected importer does not exist.',
             'origin_country_id.exists' => 'The selected country of origin does not exist.',

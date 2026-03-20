@@ -4,10 +4,15 @@ namespace App\Http\Controllers;
 
 use App\Http\Resources\AuditLogResource;
 use App\Models\AuditLog;
+use App\Queries\AuditLogs\AuditLogIndexQuery;
 use Illuminate\Http\Request;
 
 class AuditLogController extends Controller
 {
+    public function __construct(
+        private AuditLogIndexQuery $auditLogIndexQuery,
+    ) {}
+
     /**
      * GET /api/audit-logs
      * Paginated list of audit logs with optional filters.
@@ -16,53 +21,7 @@ class AuditLogController extends Controller
     {
         $this->authorize('viewAny', AuditLog::class);
 
-        $query = AuditLog::with(['user', 'auditable']);
-
-        if ($type = $request->query('auditable_type')) {
-            $fullType = 'App\\Models\\' . $type;
-            $query->where('auditable_type', $fullType);
-        }
-
-        if ($id = $request->query('auditable_id')) {
-            $query->where('auditable_id', $id);
-        }
-
-        if ($event = $request->query('event')) {
-            $query->where('event', $event);
-        }
-
-        if ($userId = $request->query('user_id')) {
-            $query->where('user_id', $userId);
-        }
-
-        // Actor filter: 'human' (default) = authenticated users only,
-        // 'system' = automated/null-user actions, 'all' = no filter.
-        $actor = $request->query('actor', 'human');
-        if ($actor === 'human') {
-            $query->whereNotNull('user_id');
-        } elseif ($actor === 'system') {
-            $query->whereNull('user_id');
-        }
-        // 'all' — no additional constraint
-
-        // Date range filters
-        if ($from = $request->query('from')) {
-            $query->whereDate('created_at', '>=', $from);
-        }
-        if ($to = $request->query('to')) {
-            $query->whereDate('created_at', '<=', $to);
-        }
-
-        // Search filter
-        if ($search = $request->query('search')) {
-            $query->whereHas('user', function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%");
-            });
-        }
-
-        $perPage = min((int) $request->input('per_page', 25), 100);
-
-        $logs = $query->orderBy('created_at', 'desc')->paginate($perPage);
+        $logs = $this->auditLogIndexQuery->handle($request);
 
         return AuditLogResource::collection($logs);
     }
@@ -75,8 +34,8 @@ class AuditLogController extends Controller
     {
         $this->authorize('viewAny', AuditLog::class);
 
-        $actions = AuditLog::distinct()->orderBy('event')->pluck('event');
-
-        return response()->json(['data' => $actions]);
+        return response()->json([
+            'data' => $this->auditLogIndexQuery->actions(),
+        ]);
     }
 }

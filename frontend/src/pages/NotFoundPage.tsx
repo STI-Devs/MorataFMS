@@ -1,9 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../features/auth';
+import { getHomePath } from '../features/auth/utils/access';
+import { appRoutes } from '../lib/appRoutes';
 
 const NotFoundPage: React.FC = () => {
     const navigate = useNavigate();
+    const { user } = useAuth();
     const [seconds, setSeconds] = useState(10);
+    const homePath = getHomePath(user) || appRoutes.landing;
 
     useEffect(() => {
         const timer = setInterval(() => {
@@ -11,14 +16,14 @@ const NotFoundPage: React.FC = () => {
         }, 1000);
 
         const redirect = setTimeout(() => {
-            navigate('/transactions');
+            navigate(homePath);
         }, 10000);
 
         return () => {
             clearInterval(timer);
             clearTimeout(redirect);
         };
-    }, [navigate]);
+    }, [homePath, navigate]);
 
     return (
         <div className="fixed inset-0 z-[9999] bg-black overflow-hidden flex items-center justify-center font-sans tracking-tight">
@@ -58,7 +63,7 @@ const NotFoundPage: React.FC = () => {
 
                         <div className="pt-6">
                             <button
-                                onClick={() => navigate('/transactions')}
+                                onClick={() => navigate(homePath)}
                                 className="px-12 py-3 border border-white rounded-full text-lg font-medium hover:bg-white hover:text-black transition-all duration-300 transform active:scale-95 bg-black/30 backdrop-blur-sm shadow-lg"
                             >
                                 Back to home

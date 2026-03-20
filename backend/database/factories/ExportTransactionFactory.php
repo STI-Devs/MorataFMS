@@ -2,12 +2,13 @@
 
 namespace Database\Factories;
 
+use App\Enums\ExportStatus;
 use App\Models\Client;
 use App\Models\ExportTransaction;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\ExportTransaction>
+ * @extends Factory<ExportTransaction>
  */
 class ExportTransactionFactory extends Factory
 {
@@ -17,26 +18,26 @@ class ExportTransactionFactory extends Factory
     {
         return [
             'shipper_id' => Client::factory(),
-            'bl_no' => 'BL-' . fake()->unique()->numerify('########'),
-            'vessel' => 'MV ' . fake()->lastName() . ' ' . fake()->randomElement(['Star', 'Express', 'Voyager', 'Spirit']),
+            'bl_no' => 'BL-'.fake()->unique()->numerify('########'),
+            'vessel' => 'MV '.fake()->lastName().' '.fake()->randomElement(['Star', 'Express', 'Voyager', 'Spirit']),
             'destination_country_id' => null,
             'assigned_user_id' => null,
-            'status' => fake()->randomElement(['pending', 'in_progress', 'completed']),
+            'status' => fake()->randomElement([ExportStatus::Pending, ExportStatus::Processing, ExportStatus::Completed]),
             'notes' => fake()->optional()->sentence(),
         ];
     }
 
     public function pending(): static
     {
-        return $this->state(fn(array $attributes) => [
-            'status' => 'pending',
+        return $this->state(fn (array $attributes) => [
+            'status' => ExportStatus::Pending,
         ]);
     }
 
     public function completed(): static
     {
-        return $this->state(fn(array $attributes) => [
-            'status' => 'completed',
+        return $this->state(fn (array $attributes) => [
+            'status' => ExportStatus::Completed,
         ]);
     }
 }

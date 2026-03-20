@@ -20,7 +20,10 @@ export const useCreateClient = () => {
     const qc = useQueryClient();
     return useMutation({
         mutationFn: (data: CreateClientData) => clientApi.createClient(data),
-        onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'clients'] }),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['admin', 'clients'] });
+            qc.invalidateQueries({ queryKey: ['clients'] });
+        },
     });
 };
 
@@ -28,7 +31,10 @@ export const useUpdateClient = () => {
     const qc = useQueryClient();
     return useMutation({
         mutationFn: ({ id, data }: { id: number; data: UpdateClientData }) => clientApi.updateClient(id, data),
-        onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'clients'] }),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['admin', 'clients'] });
+            qc.invalidateQueries({ queryKey: ['clients'] });
+        },
     });
 };
 
@@ -36,6 +42,9 @@ export const useToggleClient = () => {
     const qc = useQueryClient();
     return useMutation({
         mutationFn: (id: number) => clientApi.toggleActiveClient(id),
-        onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'clients'] }),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['admin', 'clients'] });
+            qc.invalidateQueries({ queryKey: ['clients'] });
+        },
     });
 };

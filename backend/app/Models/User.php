@@ -4,7 +4,9 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Enums\UserRole;
+use App\Support\Auth\UserAccess;
 use App\Traits\Auditable;
+use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -12,8 +14,8 @@ use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasApiTokens, Auditable;
+    /** @use HasFactory<UserFactory> */
+    use Auditable, HasApiTokens, HasFactory, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -30,6 +32,7 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
+        'job_title',
         'password',
     ];
 
@@ -52,21 +55,27 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
-            'password'          => 'hashed',
-            'departments'       => 'array',
-            'is_active'         => 'boolean',
-            'role'              => UserRole::class,
+            'password' => 'hashed',
+            'departments' => 'array',
+            'is_active' => 'boolean',
+            'role' => UserRole::class,
         ];
     }
 
+    protected static function booted(): void
+    {
+        static::saving(function (self $user): void {
+            $user->departments = UserAccess::departmentsForRole($user->role);
+        });
+    }
+
     // --- Role Helpers ---
-    // Role hierarchy: encoder < paralegal < lawyer < admin
+    // Final auth roles: encoder < paralegal < admin
 
     public const ROLE_HIERARCHY = [
         'encoder' => 1,
         'paralegal' => 2,
-        'lawyer' => 3,
-        'admin' => 4,
+        'admin' => 3,
     ];
 
     public function isAdmin(): bool
@@ -74,28 +83,33 @@ class User extends Authenticatable
         return $this->role === UserRole::Admin;
     }
 
-    public function isLawyer(): bool
-    {
-        return $this->role === UserRole::Supervisor; // mapped: supervisor = lawyer role
-    }
-
     public function isParalegal(): bool
     {
-        return $this->role === UserRole::Broker; // mapped: broker = paralegal role
+        return $this->role === UserRole::Paralegal;
     }
 
     /**
-     * Check if user is legal staff (paralegal or lawyer).
+     * Check if user is legal staff.
      */
     public function isLegalStaff(): bool
     {
-        return in_array($this->role, [UserRole::Broker, UserRole::Supervisor]);
+        return in_array($this->role, [UserRole::Paralegal, UserRole::Admin], true);
     }
 
     public function hasRoleAtLeast(string|UserRole $minimumRole): bool
     {
-        $min = $minimumRole instanceof UserRole ? $minimumRole : UserRole::from($minimumRole);
+        $min = self::normalizeRole($minimumRole);
+
         return $this->role instanceof UserRole && $this->role->isAtLeast($min);
+    }
+
+    public static function normalizeRole(string|UserRole $role): UserRole
+    {
+        if ($role instanceof UserRole) {
+            return $role;
+        }
+
+        return UserRole::from(strtolower(trim($role)));
     }
 
     // --- Department Helpers ---
@@ -105,7 +119,7 @@ class User extends Authenticatable
      */
     public function getDepartmentsArray(): array
     {
-        return $this->departments ?? ['brokerage'];
+        return UserAccess::departmentsForRole($this->role);
     }
 
     /**
@@ -117,6 +131,7 @@ class User extends Authenticatable
         if ($this->isAdmin()) {
             return true;
         }
+
         return in_array($department, $this->getDepartmentsArray());
     }
 
@@ -141,9 +156,14 @@ class User extends Authenticatable
      */
     public function isMultiDepartment(): bool
     {
-        if ($this->isAdmin()) {
-            return true;
-        }
         return count($this->getDepartmentsArray()) > 1;
+    }
+
+    /**
+     * @return array<string, bool>
+     */
+    public function getPermissionMap(): array
+    {
+        return UserAccess::permissionsFor($this->role, $this->getDepartmentsArray());
     }
 }

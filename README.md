@@ -196,4 +196,4 @@ MorataFMS/
 └── README.md
 ```
 
-For detailed technical reference (DB schema, API routes, ERD), see [`PROJECT_CONTEXT.md`](./PROJECT_CONTEXT.md).
+For workspace-level guidance, see [`AGENTS.md`](./AGENTS.md).

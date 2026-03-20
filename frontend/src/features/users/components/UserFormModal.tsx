@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { getApiError } from '../../../lib/apiErrors';
 import type { CreateUserData, UpdateUserData, User, UserRole } from '../types/user.types';
 
@@ -13,7 +13,6 @@ interface UserFormModalProps {
 const ROLES: { value: UserRole; label: string }[] = [
     { value: 'encoder', label: 'Encoder' },
     { value: 'paralegal', label: 'Paralegal' },
-    { value: 'lawyer', label: 'Lawyer' },
     { value: 'admin', label: 'Admin' },
 ];
 
@@ -24,6 +23,7 @@ export const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode }: UserFor
     const [formData, setFormData] = useState({
         name: '',
         email: '',
+        job_title: '',
         password: '',
         role: 'encoder' as UserRole,
     });
@@ -32,9 +32,9 @@ export const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode }: UserFor
 
     useEffect(() => {
         if (mode === 'edit' && user) {
-            setFormData({ name: user.name, email: user.email, password: '', role: user.role });
+            setFormData({ name: user.name, email: user.email, job_title: user.job_title || '', password: '', role: user.role });
         } else {
-            setFormData({ name: '', email: '', password: '', role: 'encoder' });
+            setFormData({ name: '', email: '', job_title: '', password: '', role: 'encoder' });
         }
         setError('');
     }, [mode, user, isOpen]);
@@ -45,9 +45,17 @@ export const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode }: UserFor
         setIsSubmitting(true);
         try {
             if (mode === 'create') {
-                await onSubmit(formData as CreateUserData);
+                await onSubmit({
+                    ...formData,
+                    job_title: formData.job_title.trim() || undefined,
+                } as CreateUserData);
             } else {
-                const updateData: UpdateUserData = { name: formData.name, email: formData.email, role: formData.role };
+                const updateData: UpdateUserData = {
+                    name: formData.name,
+                    email: formData.email,
+                    job_title: formData.job_title.trim() || null,
+                    role: formData.role,
+                };
                 await onSubmit(updateData);
             }
             onClose();
@@ -102,6 +110,17 @@ export const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode }: UserFor
                         />
                     </div>
 
+                    <div>
+                        <label className={labelCls}>Job Title</label>
+                        <input
+                            type="text"
+                            value={formData.job_title}
+                            onChange={(e) => setFormData({ ...formData, job_title: e.target.value })}
+                            placeholder="e.g. Lawyer, Office Admin"
+                            className={inputCls}
+                        />
+                    </div>
+
                     {mode === 'create' && (
                         <div>
                             <label className={labelCls}>Password</label>
@@ -152,3 +171,4 @@ export const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode }: UserFor
         </div>
     );
 };
+

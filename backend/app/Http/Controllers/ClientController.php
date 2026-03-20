@@ -5,8 +5,8 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreClientRequest;
 use App\Http\Requests\UpdateClientRequest;
 use App\Http\Resources\ClientResource;
-use App\Http\Resources\ImportTransactionResource;
 use App\Http\Resources\ExportTransactionResource;
+use App\Http\Resources\ImportTransactionResource;
 use App\Models\Client;
 use Illuminate\Http\Request;
 
@@ -23,7 +23,7 @@ class ClientController extends Controller
         $query = Client::with('country')->orderBy('name');
 
         // Admin sees inactive clients too
-        if (!$request->user()->isAdmin()) {
+        if (! $request->user()->isAdmin()) {
             $query->active();
         }
 
@@ -99,13 +99,13 @@ class ClientController extends Controller
 
     /**
      * POST /api/clients/{client}/toggle-active
-     * Toggle client active status (supervisor+).
+     * Toggle client active status (admin only).
      */
     public function toggleActive(Client $client)
     {
         $this->authorize('update', $client);
 
-        $client->is_active = !$client->is_active;
+        $client->is_active = ! $client->is_active;
         $client->save();
 
         return new ClientResource($client->load('country'));

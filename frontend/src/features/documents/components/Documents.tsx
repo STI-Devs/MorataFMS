@@ -3,8 +3,7 @@ import { useNavigate, useOutletContext, useSearchParams } from 'react-router-dom
 import { Icon } from '../../../components/Icon';
 import { Pagination } from '../../../components/Pagination';
 import { UploadModal } from '../../../components/modals/UploadModal';
-import { useExports } from '../../tracking/hooks/useExports';
-import { useImports } from '../../tracking/hooks/useImports';
+import { useAllExportsData, useAllImportsData } from '../../tracking/hooks/useAllTransactionRecords';
 import type { LayoutContext } from '../../tracking/types';
 
 
@@ -109,18 +108,18 @@ export const Documents = () => {
         data: importsData,
         isLoading: importsLoading,
         isError: importsError,
-    } = useImports({ per_page: 500 });
+    } = useAllImportsData();
 
     const {
         data: exportsData,
         isLoading: exportsLoading,
         isError: exportsError,
-    } = useExports({ per_page: 500 });
+    } = useAllExportsData();
 
     const isLoading = importsLoading || exportsLoading;
     const isError = importsError || exportsError;
 
-    const importRows: DocumentRow[] = (importsData?.data ?? []).map(t => ({
+    const importRows: DocumentRow[] = (importsData ?? []).map(t => ({
         id: t.id,
         ref: t.customs_ref_no,
         blNo: t.bl_no || '—',
@@ -134,7 +133,7 @@ export const Documents = () => {
         docCount: t.documents_count,
     }));
 
-    const exportRows: DocumentRow[] = (exportsData?.data ?? []).map(t => ({
+    const exportRows: DocumentRow[] = (exportsData ?? []).map(t => ({
         id: t.id,
         ref: buildExportRef(t.id),
         blNo: t.bl_no || '—',

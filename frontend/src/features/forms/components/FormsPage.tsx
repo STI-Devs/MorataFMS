@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import type { LayoutContext } from '../../tracking/types';
-import html2pdf from 'html2pdf.js';
 import { TEMPLATES } from '../constants/templates';
 import type { Field, FormTemplate } from '../types/forms.types';
 import { DocumentPreview } from './DocumentPreview';
@@ -32,6 +31,7 @@ export const FormsPage = () => {
         try {
             const element = document.getElementById('document-preview-container');
             if (!element) return;
+            const { default: html2pdf } = await import('html2pdf.js');
             await html2pdf().set({
                 margin: 10,
                 filename: `${activeTemplate.title.replace(/\s+/g, '_').toLowerCase()}.pdf`,

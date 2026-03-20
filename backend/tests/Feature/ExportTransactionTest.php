@@ -54,7 +54,7 @@ test('export transactions can be filtered by status', function () {
     ExportTransaction::factory()->completed()->create();
 
     $response = $this->actingAs($user)
-        ->getJson('/api/export-transactions?status=pending');
+        ->getJson('/api/export-transactions?status=Pending');
 
     $response->assertOk();
     $data = $response->json('data');
@@ -81,7 +81,7 @@ test('authenticated users can create export transactions with valid data', funct
     $response->assertCreated()
         ->assertJsonPath('data.bl_no', 'BL-EXP-12345')
         ->assertJsonPath('data.vessel', 'MV Pacific Star')
-        ->assertJsonPath('data.status', 'pending')
+        ->assertJsonPath('data.status', 'Pending')
         ->assertJsonPath('data.shipper.id', $client->id)
         ->assertJsonPath('data.shipper.name', $client->name);
 
@@ -107,7 +107,7 @@ test('creating an export transaction auto-creates stages', function () {
     $transaction = ExportTransaction::where('bl_no', 'BL-STAGE-EXP-001')->first();
     expect($transaction)->not->toBeNull();
     expect($transaction->stages)->not->toBeNull();
-    expect($transaction->stages->docs_prep_status)->toBe('pending');
+    expect($transaction->stages->docs_prep_status->value)->toBe('pending');
 });
 
 // --- Validation ---
@@ -156,11 +156,11 @@ test('mass assignment of status is ignored on create', function () {
             'bl_no' => 'BL-HACK-EXP-001',
             'vessel' => 'MV Hacker Ship',
             'destination_country_id' => $country->id,
-            'status' => 'completed', // Attacker trying to skip workflow
+            'status' => 'Completed', // Attacker trying to skip workflow
         ]);
 
     $response->assertCreated()
-        ->assertJsonPath('data.status', 'pending'); // Server always sets 'pending'
+        ->assertJsonPath('data.status', 'Pending'); // Server always sets 'Pending'
 });
 
 test('mass assignment of assigned_user_id is ignored on create', function () {
@@ -251,7 +251,7 @@ test('admins can update any export transaction', function () {
 
 test('updating an export transaction ignores mass assignment of status', function () {
     $user = User::factory()->create(['role' => 'encoder']);
-    $transaction = ExportTransaction::factory()->create(['assigned_user_id' => $user->id, 'status' => 'pending']);
+    $transaction = ExportTransaction::factory()->create(['assigned_user_id' => $user->id, 'status' => 'Pending']);
     $client = Client::factory()->exporter()->create();
     $country = Country::factory()->create();
 
@@ -261,7 +261,7 @@ test('updating an export transaction ignores mass assignment of status', functio
             'bl_no' => 'BL-UPDATED',
             'vessel' => 'MV Updated',
             'destination_country_id' => $country->id,
-            'status' => 'completed', // Attacker trying to skip workflow
+            'status' => 'Completed', // Attacker trying to skip workflow
         ]);
 
     $response->assertOk();
@@ -269,7 +269,7 @@ test('updating an export transaction ignores mass assignment of status', functio
     // Status should remain unchanged by the update endpoint
     $this->assertDatabaseHas('export_transactions', [
         'id' => $transaction->id,
-        'status' => 'pending'
+        'status' => 'Pending',
     ]);
 });
 

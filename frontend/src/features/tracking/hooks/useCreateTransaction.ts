@@ -1,6 +1,7 @@
-﻿import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { trackingApi } from '../api/trackingApi';
 import type { CreateExportPayload, CreateImportPayload } from '../types';
+import { trackingKeys } from '../utils/queryKeys';
 
 /**
  * Unified hook that wraps createImport / createExport into a single mutation
@@ -18,7 +19,9 @@ export function useCreateTransaction(type: 'import' | 'export') {
             return trackingApi.createExport(data as CreateExportPayload);
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: [type === 'import' ? 'imports' : 'exports'] });
+            queryClient.invalidateQueries({
+                queryKey: type === 'import' ? trackingKeys.imports.all : trackingKeys.exports.all,
+            });
         },
     });
 }

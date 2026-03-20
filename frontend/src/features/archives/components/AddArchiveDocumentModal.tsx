@@ -59,6 +59,7 @@ export const AddArchiveDocumentModal: React.FC<AddArchiveDocumentModalProps> = (
                 documentable_id: transactionId,
             });
             queryClient.invalidateQueries({ queryKey: ['archives'] });
+            queryClient.invalidateQueries({ queryKey: ['my-archives'] });
             // Reset and close
             setSelectedStage('');
             setFile(null);

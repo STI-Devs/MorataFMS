@@ -8,6 +8,7 @@ use App\Http\Requests\StoreExportTransactionRequest;
 use App\Http\Requests\UpdateExportTransactionRequest;
 use App\Http\Resources\ExportTransactionResource;
 use App\Models\ExportTransaction;
+use App\Support\Transactions\ExportStatusWorkflow;
 use Illuminate\Http\Request;
 
 class ExportTransactionController extends Controller
@@ -21,7 +22,7 @@ class ExportTransactionController extends Controller
         $this->authorize('viewAny', ExportTransaction::class);
 
         $query = ExportTransaction::with(['shipper', 'stages', 'assignedUser', 'destinationCountry'])
-            ->withCount(['remarks as open_remarks_count' => fn($q) => $q->where('is_resolved', false)])
+            ->withCount(['remarks as open_remarks_count' => fn ($q) => $q->where('is_resolved', false)])
             ->withCount('documents');
 
         if ($search = $request->query('search')) {
@@ -42,17 +43,21 @@ class ExportTransactionController extends Controller
 
         // Filter by status
         if ($status = $request->query('status')) {
-            $query->where('status', $status);
+            $statuses = ExportStatusWorkflow::filterStatuses($status);
+            count($statuses) === 1
+                ? $query->where('status', $statuses[0])
+                : $query->whereIn('status', $statuses);
         }
 
         // Exclude statuses (comma-separated) — used by tracking to hide completed/cancelled
         if ($exclude = $request->query('exclude_statuses')) {
-            $query->whereNotIn('status', explode(',', $exclude));
+            $query->whereNotIn('status', ExportStatusWorkflow::normalizeList($exclude));
         }
 
         $perPage = $request->input('per_page', 15);
-        if ($perPage > 500)
+        if ($perPage > 500) {
             $perPage = 500;
+        }
 
         $transactions = $query->orderBy('created_at', 'desc')->paginate($perPage);
 
@@ -102,13 +107,13 @@ class ExportTransactionController extends Controller
     {
         $this->authorize('viewAny', ExportTransaction::class);
 
-        $counts = ExportTransaction::selectRaw("
+        $counts = ExportTransaction::selectRaw('
             COUNT(*) as total,
             SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as pending,
             SUM(CASE WHEN status IN (?,?,?) THEN 1 ELSE 0 END) as in_progress,
             SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as completed,
             SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as cancelled
-        ", [
+        ', [
             ExportStatus::Pending->value,
             ExportStatus::InTransit->value,
             ExportStatus::Departure->value,
@@ -128,12 +133,7 @@ class ExportTransactionController extends Controller
     {
         $this->authorize('update', $export_transaction);
 
-        if (!in_array($export_transaction->status, [
-            ExportStatus::Pending,
-            ExportStatus::InTransit,
-            ExportStatus::Departure,
-            ExportStatus::Processing,
-        ])) {
+        if (! ExportStatusWorkflow::isCancellable($export_transaction->status)) {
             return response()->json([
                 'message' => 'Only active transactions can be cancelled.',
             ], 422);

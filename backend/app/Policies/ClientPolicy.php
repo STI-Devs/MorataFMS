@@ -18,7 +18,7 @@ class ClientPolicy
     /**
      * Any authenticated user can create a basic client record.
      * Encoders need this to register new clients on-the-fly during archive uploads.
-     * Full client details can be enriched by managers later.
+     * Full client details can be enriched by admins later.
      */
     public function create(User $user): bool
     {

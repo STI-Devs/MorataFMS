@@ -1,5 +1,7 @@
-﻿import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../features/auth';
+import { getHomePath } from '../features/auth/utils/access';
+import { appRoutes } from '../lib/appRoutes';
 
 const LandingPage: React.FC = () => {
     const navigate = useNavigate();
@@ -7,9 +9,9 @@ const LandingPage: React.FC = () => {
 
     const handleHeaderAction = () => {
         if (isAuthenticated) {
-            navigate(user?.role === 'admin' ? '/transactions' : '/tracking');
+            navigate(getHomePath(user));
         } else {
-            navigate('/login');
+            navigate(appRoutes.login);
         }
     };
 
@@ -114,3 +116,4 @@ const LandingPage: React.FC = () => {
 };
 
 export default LandingPage;
+

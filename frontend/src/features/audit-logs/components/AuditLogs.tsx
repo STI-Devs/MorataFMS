@@ -31,7 +31,7 @@ const formatKey = (key: string) => {
         .replace(/\b\w/g, l => l.toUpperCase());
 };
 
-const formatValue = (val: any) => {
+const formatValue = (val: unknown) => {
     if (val === null || val === undefined) return '(none)';
     if (typeof val === 'boolean') return val ? 'Yes' : 'No';
     if (val === '') return '(empty)';

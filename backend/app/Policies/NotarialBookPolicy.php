@@ -24,21 +24,19 @@ class NotarialBookPolicy
     }
 
     /**
-     * Only lawyer or admin can create new books.
+     * Only admins can create new books.
      */
     public function create(User $user): bool
     {
-        return $user->hasLegalAccess()
-            && $user->hasRoleAtLeast('lawyer');
+        return $user->isAdmin();
     }
 
     /**
-     * Only lawyer or admin can update books (e.g., archive).
+     * Only admins can update books (e.g., archive).
      */
     public function update(User $user, NotarialBook $book): bool
     {
-        return $user->hasLegalAccess()
-            && $user->hasRoleAtLeast('lawyer');
+        return $user->isAdmin();
     }
 
     /**

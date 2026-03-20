@@ -1,7 +1,7 @@
 <?php
 
-use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\ArchiveController;
+use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\CountryController;
 use App\Http\Controllers\DocumentController;
@@ -9,17 +9,17 @@ use App\Http\Controllers\ExportTransactionController;
 use App\Http\Controllers\ImportTransactionController;
 use App\Http\Controllers\NotarialBookController;
 use App\Http\Controllers\NotarialEntryController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\TransactionRemarkController;
 use App\Http\Controllers\UserController;
 use App\Http\Resources\UserResource;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->group(function () {
-    require __DIR__ . '/auth.php';
+    require __DIR__.'/auth.php';
 });
 
 // Document management (protected by signed URLs for preview/download)
@@ -35,24 +35,7 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
     });
 
     // Self-service profile update (any authenticated user)
-    Route::put('/user/profile', function (Request $request) {
-        $validated = $request->validate([
-            'name' => ['sometimes', 'string', 'max:255'],
-            'password' => ['sometimes', 'string', 'min:8', 'confirmed'],
-            'password_confirmation' => ['sometimes', 'string'],
-        ]);
-
-        $user = $request->user();
-        if (!empty($validated['name'])) {
-            $user->name = $validated['name'];
-        }
-        if (!empty($validated['password'])) {
-            $user->password = Hash::make($validated['password']);
-        }
-        $user->save();
-
-        return new UserResource($user);
-    });
+    Route::put('/user/profile', [ProfileController::class, 'update']);
 
     // Import/Export transactions (encoder-accessible)
     Route::get('import-transactions/stats', [ImportTransactionController::class, 'stats']);
@@ -110,10 +93,10 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
         // Transaction oversight (admin)
         Route::get('transactions', [TransactionController::class, 'index']);
         Route::get('transactions/encoders', [TransactionController::class, 'encoders']);
-        Route::patch('transactions/import/{id}/reassign', [TransactionController::class, 'reassignImport']);
-        Route::patch('transactions/export/{id}/reassign', [TransactionController::class, 'reassignExport']);
-        Route::patch('transactions/import/{id}/status', [TransactionController::class, 'overrideImportStatus']);
-        Route::patch('transactions/export/{id}/status', [TransactionController::class, 'overrideExportStatus']);
+        Route::patch('transactions/import/{importTransaction}/reassign', [TransactionController::class, 'reassignImport']);
+        Route::patch('transactions/export/{exportTransaction}/reassign', [TransactionController::class, 'reassignExport']);
+        Route::patch('transactions/import/{importTransaction}/status', [TransactionController::class, 'overrideImportStatus']);
+        Route::patch('transactions/export/{exportTransaction}/status', [TransactionController::class, 'overrideExportStatus']);
 
         // Transaction remarks (admin creates; listing/resolving also works for encoders)
         Route::get('transactions/{type}/{id}/remarks', [TransactionRemarkController::class, 'index']);

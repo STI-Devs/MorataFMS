@@ -2,8 +2,10 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\SelectiveColor;
 use App\Models\Document;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rules\Enum;
 
 class StoreArchiveImportRequest extends FormRequest
 {
@@ -25,7 +27,7 @@ class StoreArchiveImportRequest extends FormRequest
                 'regex:/^[A-Za-z0-9\-]+$/',
                 'unique:import_transactions,bl_no',
             ],
-            'selective_color' => ['required', 'in:green,yellow,red'],
+            'selective_color' => ['required', new Enum(SelectiveColor::class)],
             'importer_id' => ['required', 'integer', 'exists:clients,id'],
             'origin_country_id' => ['nullable', 'integer', 'exists:countries,id'],
 
@@ -40,12 +42,12 @@ class StoreArchiveImportRequest extends FormRequest
                 'required_with:documents',
                 'file',
                 'max:10240',
-                'mimes:pdf,jpg,jpeg,png,docx,xlsx,csv'
+                'mimes:pdf,jpg,jpeg,png,docx,xlsx,csv',
             ],
             'documents.*.stage' => [
                 'required_with:documents',
                 'string',
-                'in:' . implode(',', array_keys(Document::getTypeLabels()))
+                'in:'.implode(',', array_keys(Document::getTypeLabels())),
             ],
         ];
     }
@@ -59,7 +61,6 @@ class StoreArchiveImportRequest extends FormRequest
             'bl_no.regex' => 'Bill of Lading number may only contain letters, numbers, and hyphens.',
             'bl_no.unique' => 'This BL number already exists. Each shipment must have a unique BL number.',
             'selective_color.required' => 'Selective Color (BLSC) is required.',
-            'selective_color.in' => 'Selective Color must be green, yellow, or red.',
             'importer_id.required' => 'Please select an importer.',
             'importer_id.exists' => 'The selected importer does not exist.',
             'origin_country_id.exists' => 'The selected country of origin does not exist.',

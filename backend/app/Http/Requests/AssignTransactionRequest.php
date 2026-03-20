@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class AssignTransactionRequest extends FormRequest
 {
@@ -14,7 +15,13 @@ class AssignTransactionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'assigned_user_id' => ['required', 'integer', 'exists:users,id'],
+            'assigned_user_id' => [
+                'required',
+                'integer',
+                Rule::exists('users', 'id')->where(function ($query) {
+                    $query->where('is_active', true);
+                }),
+            ],
         ];
     }
 }

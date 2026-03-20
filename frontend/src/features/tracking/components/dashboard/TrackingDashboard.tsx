@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { EmptyState } from '../../../../components/EmptyState';
 import { StatusBadge } from '../../../../components/StatusBadge';
-import { useTransactionList } from '../../hooks/useTransactionList';
+import { useAllExportsData, useAllImportsData } from '../../hooks/useAllTransactionRecords';
 import type { ApiExportTransaction, ApiImportTransaction, ExportTransaction, ImportTransaction, LayoutContext } from '../../types';
 import { mapExportTransaction, mapImportTransaction } from '../../utils/mappers';
 
@@ -18,18 +18,18 @@ export const TrackingDashboard = () => {
     const navigate = useNavigate();
     const { dateTime } = useOutletContext<LayoutContext>();
 
-    const LIVE_PARAMS = { exclude_statuses: 'completed,cancelled', per_page: 500 };
+    const LIVE_PARAMS = { exclude_statuses: 'completed,cancelled' };
 
-    const { data: importsData, isLoading: importsLoading } = useTransactionList('import', LIVE_PARAMS);
-    const { data: exportsData, isLoading: exportsLoading } = useTransactionList('export', LIVE_PARAMS);
+    const { data: importsData, isLoading: importsLoading } = useAllImportsData(LIVE_PARAMS);
+    const { data: exportsData, isLoading: exportsLoading } = useAllExportsData(LIVE_PARAMS);
 
     const imports = useMemo<ImportTransaction[]>(
-        () => (importsData?.data as ApiImportTransaction[] | undefined)?.map(mapImportTransaction) ?? [],
+        () => (importsData as ApiImportTransaction[] | undefined)?.map(mapImportTransaction) ?? [],
         [importsData],
     );
 
     const exports = useMemo<ExportTransaction[]>(
-        () => (exportsData?.data as ApiExportTransaction[] | undefined)?.map(mapExportTransaction) ?? [],
+        () => (exportsData as ApiExportTransaction[] | undefined)?.map(mapExportTransaction) ?? [],
         [exportsData],
     );
 

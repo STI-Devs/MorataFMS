@@ -9,6 +9,7 @@ use App\Http\Requests\StoreImportTransactionRequest;
 use App\Http\Requests\UpdateImportTransactionRequest;
 use App\Http\Resources\ImportTransactionResource;
 use App\Models\ImportTransaction;
+use App\Support\Transactions\ImportStatusWorkflow;
 use Illuminate\Http\Request;
 
 class ImportTransactionController extends Controller
@@ -22,7 +23,7 @@ class ImportTransactionController extends Controller
         $this->authorize('viewAny', ImportTransaction::class);
 
         $query = ImportTransaction::with(['importer', 'originCountry', 'stages', 'assignedUser'])
-            ->withCount(['remarks as open_remarks_count' => fn($q) => $q->where('is_resolved', false)])
+            ->withCount(['remarks as open_remarks_count' => fn ($q) => $q->where('is_resolved', false)])
             ->withCount('documents');
 
         // Search by customs ref or BL number
@@ -38,12 +39,15 @@ class ImportTransactionController extends Controller
 
         // Filter by status
         if ($status = $request->query('status')) {
-            $query->where('status', $status);
+            $statuses = ImportStatusWorkflow::filterStatuses($status);
+            count($statuses) === 1
+                ? $query->where('status', $statuses[0])
+                : $query->whereIn('status', $statuses);
         }
 
         // Exclude statuses (comma-separated) — used by tracking to hide completed/cancelled
         if ($exclude = $request->query('exclude_statuses')) {
-            $query->whereNotIn('status', explode(',', $exclude));
+            $query->whereNotIn('status', ImportStatusWorkflow::normalizeList($exclude));
         }
 
         // Filter by selective color
@@ -52,8 +56,9 @@ class ImportTransactionController extends Controller
         }
 
         $perPage = $request->input('per_page', 15);
-        if ($perPage > 500)
+        if ($perPage > 500) {
             $perPage = 500;
+        }
 
         $transactions = $query->orderBy('created_at', 'desc')->paginate($perPage);
 
@@ -91,7 +96,7 @@ class ImportTransactionController extends Controller
         $data = $request->validated();
 
         // Encoders cannot change the selectivity color — it is a BOC classification
-        // that must be updated by an admin, lawyer, or paralegal.
+        // that must be updated by an admin or paralegal.
         if ($request->user()->role === UserRole::Encoder) {
             unset($data['selective_color']);
         }
@@ -111,13 +116,15 @@ class ImportTransactionController extends Controller
     {
         $this->authorize('viewAny', ImportTransaction::class);
 
-        $counts = ImportTransaction::selectRaw("
-            COUNT(*) as total,
-            SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
-            SUM(CASE WHEN status = 'in_progress' THEN 1 ELSE 0 END) as in_progress,
-            SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
-            SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled
-        ")->first();
+        $baseQuery = ImportTransaction::query();
+
+        $counts = [
+            'total' => (clone $baseQuery)->count(),
+            'pending' => (clone $baseQuery)->where('status', ImportStatus::Pending->value)->count(),
+            'in_progress' => (clone $baseQuery)->whereIn('status', ImportStatusWorkflow::inProgress())->count(),
+            'completed' => (clone $baseQuery)->where('status', ImportStatusWorkflow::completed())->count(),
+            'cancelled' => (clone $baseQuery)->where('status', ImportStatus::Cancelled->value)->count(),
+        ];
 
         return response()->json(['data' => $counts]);
     }
@@ -130,11 +137,7 @@ class ImportTransactionController extends Controller
     {
         $this->authorize('update', $import_transaction);
 
-        if (!in_array($import_transaction->status, [
-            ImportStatus::Pending,
-            ImportStatus::VesselArrived,
-            ImportStatus::Processing,
-        ])) {
+        if (! ImportStatusWorkflow::isCancellable($import_transaction->status)) {
             return response()->json([
                 'message' => 'Only active transactions can be cancelled.',
             ], 422);

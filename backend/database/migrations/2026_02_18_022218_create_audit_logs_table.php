@@ -4,7 +4,8 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
         Schema::create('audit_logs', function (Blueprint $table) {
@@ -17,7 +18,7 @@ return new class extends Migration {
             $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
 
             // What happened
-            $table->enum('event', ['created', 'updated', 'deleted']);
+            $table->string('event', 50);
 
             // Field-level change tracking
             $table->json('old_values')->nullable();

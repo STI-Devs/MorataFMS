@@ -13,7 +13,7 @@ export type DocStatusFilter = 'all' | 'complete' | 'incomplete';
 export type SortKey = 'bl' | 'client' | 'period' | 'files';
 
 const ROLE_RANK: Record<string, number> = {
-    encoder: 1, paralegal: 2, lawyer: 3, admin: 4,
+    encoder: 1, paralegal: 2, admin: 3,
 };
 export const hasRoleAtLeast = (userRole: string | undefined, minRole: string): boolean =>
     (ROLE_RANK[userRole ?? ''] ?? 0) >= (ROLE_RANK[minRole] ?? 99);
@@ -63,3 +63,4 @@ export const countIncompleteBLs = (archiveData: ArchiveYear[]): number => {
     }
     return incomplete;
 };
+

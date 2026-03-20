@@ -66,7 +66,7 @@ export const FolderRowMenu = ({ folderName, menuKey, openMenuKey, setOpenMenuKey
                         </div>
                     </button>
 
-                    {/* Delete — supervisor+ only */}
+                    {/* Delete ΓÇö admin only */}
                     {canDelete && (
                         <>
                             <div className="my-1 border-t border-border" />
@@ -366,3 +366,6 @@ export const ArchivesFolderView = ({
         </>
     );
 };
+
+
+

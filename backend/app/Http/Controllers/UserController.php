@@ -35,9 +35,10 @@ class UserController extends Controller
         $user = new User([
             'name' => $validated['name'],
             'email' => $validated['email'],
+            'job_title' => $validated['job_title'] ?? null,
             'password' => Hash::make($validated['password']),
         ]);
-        $user->role = UserRole::from($validated['role']); // Server-managed: set explicitly
+        $user->role = UserRole::from($validated['role']);
         $user->save();
 
         return (new UserResource($user))
@@ -70,14 +71,14 @@ class UserController extends Controller
         if (isset($validated['email'])) {
             $user->email = $validated['email'];
         }
+        if (array_key_exists('job_title', $validated)) {
+            $user->job_title = $validated['job_title'];
+        }
         if (isset($validated['password'])) {
             $user->password = Hash::make($validated['password']);
         }
         if (isset($validated['role'])) {
-            $user->role = UserRole::from($validated['role']); // Server-managed
-        }
-        if (isset($validated['departments'])) {
-            $user->departments = $validated['departments']; // Server-managed
+            $user->role = UserRole::from($validated['role']);
         }
 
         $user->save();

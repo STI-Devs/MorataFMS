@@ -1,5 +1,6 @@
-﻿import { Navigate } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { getHomePath } from '../utils/access';
 
 /**
  * Smart redirect component for the root path ("/").
@@ -21,11 +22,5 @@ export function RoleRedirect() {
     return <Navigate to="/login" replace />;
   }
 
-  // Route to correct dashboard based on role
-  if (user?.role === 'admin') {
-    return <Navigate to="/dashboard" replace />;
-  }
-
-  // Encoders, brokers, supervisors, managers → tracking
-  return <Navigate to="/tracking" replace />;
+  return <Navigate to={getHomePath(user)} replace />;
 }

@@ -67,7 +67,7 @@ test('archive import is accepted when file_date is today', function () {
         'file_date' => now()->toDateString(),
     ])->assertCreated()
         ->assertJsonPath('data.bl_no', 'BL-ARCH-TODAY-001')
-        ->assertJsonPath('data.status', 'completed'); // Archives are stored as completed
+        ->assertJsonPath('data.status', 'Completed'); // Archives are stored as completed
 });
 
 test('archive import is accepted when file_date is in the past', function () {
@@ -85,7 +85,7 @@ test('archive import is accepted when file_date is in the past', function () {
         'notes' => 'Legacy archive (2023)',
     ])->assertCreated()
         ->assertJsonPath('data.bl_no', 'BL-ARCH-PAST-001')
-        ->assertJsonPath('data.status', 'completed')
+        ->assertJsonPath('data.status', 'Completed')
         ->assertJsonPath('data.selective_color', 'yellow')
         ->assertJsonPath('data.importer.id', $client->id)
         ->assertJsonPath('data.origin_country.id', $country->id);
@@ -168,7 +168,7 @@ test('archive export is accepted when file_date is in the past', function () {
         'notes' => 'Legacy archive (2024)',
     ])->assertCreated()
         ->assertJsonPath('data.bl_no', 'BL-EXP-ARCH-PAST-001')
-        ->assertJsonPath('data.status', 'completed')
+        ->assertJsonPath('data.status', 'Completed')
         ->assertJsonPath('data.shipper.id', $client->id)
         ->assertJsonPath('data.destination_country.id', $country->id);
 });
@@ -493,7 +493,7 @@ test('archive listing only returns transactions with is_archive flag', function 
         'bl_no' => 'BL-ARCHIVE-VISIBLE',
         'importer_id' => $client->id,
         'arrival_date' => '2023-06-15',
-        'status' => 'completed',
+        'status' => 'Completed',
         'is_archive' => true,
     ]);
     // Attach a document so it appears in the flattened documents list
@@ -508,7 +508,7 @@ test('archive listing only returns transactions with is_archive flag', function 
         'bl_no' => 'BL-LIVE-HIDDEN',
         'importer_id' => $client->id,
         'arrival_date' => '2023-06-15',
-        'status' => 'completed',
+        'status' => 'Completed',
         'is_archive' => false,
     ]);
     Document::factory()->create([
@@ -526,3 +526,35 @@ test('archive listing only returns transactions with is_archive flag', function 
     expect($blNumbers)->not->toContain('BL-LIVE-HIDDEN');
 });
 
+test('archive import stores uploaded archive documents', function () {
+    Storage::fake('s3');
+
+    $user = User::factory()->create(['role' => 'admin']);
+    $client = Client::factory()->importer()->create();
+
+    $response = $this->actingAs($user)->post('/api/archives/import', [
+        'bl_no' => 'BL-ARCH-DOC-001',
+        'selective_color' => 'green',
+        'importer_id' => $client->id,
+        'file_date' => '2023-06-15',
+        'documents' => [
+            [
+                'file' => UploadedFile::fake()->create('archive-boc.pdf', 100, 'application/pdf'),
+                'stage' => 'boc',
+            ],
+        ],
+    ]);
+
+    $response->assertCreated();
+
+    $transaction = ImportTransaction::where('bl_no', 'BL-ARCH-DOC-001')->first();
+    expect($transaction)->not->toBeNull();
+
+    $document = Document::where('documentable_type', ImportTransaction::class)
+        ->where('documentable_id', $transaction->id)
+        ->latest()
+        ->first();
+
+    expect($document)->not->toBeNull();
+    Storage::disk('s3')->assertExists($document->path);
+});

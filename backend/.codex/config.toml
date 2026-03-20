@@ -1,0 +1,9 @@
+[mcp_servers.laravel-boost]
+command = "php"
+args = ["artisan", "boost:mcp"]
+cwd = "C:\\Users\\User\\Desktop\\MorataFMS\\backend"
+
+[mcp_servers.context7]
+command = "npx"
+args = ["-y", "@upstash/context7-mcp", "--api-key", "ctx7sk-ba1edfeb-4e5b-479b-9bbc-5b5c146e2007"]
+startup_timeout_sec = 20

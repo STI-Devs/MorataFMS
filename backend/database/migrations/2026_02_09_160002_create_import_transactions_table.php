@@ -4,7 +4,8 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
         Schema::create('import_transactions', function (Blueprint $table) {
@@ -19,7 +20,7 @@ return new class extends Migration {
 
             // Assignment and status
             $table->foreignId('assigned_user_id')->nullable()->constrained('users')->nullOnDelete();
-            $table->enum('status', ['pending', 'in_progress', 'completed', 'cancelled'])->default('pending');
+            $table->string('status', 30)->default('Pending');
             $table->text('notes')->nullable();
 
             $table->timestamps();

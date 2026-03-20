@@ -36,7 +36,6 @@ test('admin can access audit logs', function () {
         ->assertStatus(200);
 });
 
-
 // --- Automatic Logging ---
 
 test('creating an import transaction generates a created audit log', function () {
@@ -92,8 +91,8 @@ test('cancelling a transaction generates an updated audit log with old and new s
         ->first();
 
     expect($log)->not->toBeNull();
-    expect($log->old_values)->toHaveKey('status', 'pending');
-    expect($log->new_values)->toHaveKey('status', 'cancelled');
+    expect($log->old_values)->toHaveKey('status', 'Pending');
+    expect($log->new_values)->toHaveKey('status', 'Cancelled');
 });
 
 test('deleting a transaction generates a deleted audit log', function () {
@@ -133,18 +132,25 @@ test('password changes are never logged in audit trail', function () {
         ->putJson("/api/users/{$targetUser->id}", [
             'name' => 'Updated Name',
             'password' => 'new-password-123',
-        ]);
+            'password_confirmation' => 'new-password-123',
+        ])
+        ->assertOk();
 
     $logs = AuditLog::where('auditable_type', 'App\Models\User')
         ->where('auditable_id', $targetUser->id)
         ->where('event', 'updated')
         ->get();
 
+    expect($logs)->not->toBeEmpty();
+
     foreach ($logs as $log) {
-        expect($log->old_values)->not->toHaveKey('password');
-        expect($log->new_values)->not->toHaveKey('password');
-        expect($log->old_values)->not->toHaveKey('remember_token');
-        expect($log->new_values)->not->toHaveKey('remember_token');
+        $oldValues = $log->old_values ?? [];
+        $newValues = $log->new_values ?? [];
+
+        expect($oldValues)->not->toHaveKey('password');
+        expect($newValues)->not->toHaveKey('password');
+        expect($oldValues)->not->toHaveKey('remember_token');
+        expect($newValues)->not->toHaveKey('remember_token');
     }
 });
 

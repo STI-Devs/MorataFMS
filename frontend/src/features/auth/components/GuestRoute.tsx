@@ -1,5 +1,6 @@
-﻿import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { getHomePath } from '../utils/access';
 
 export function GuestRoute() {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -13,9 +14,7 @@ export function GuestRoute() {
   }
 
   if (isAuthenticated) {
-    // Redirect to correct dashboard based on role
-    const redirectTo = user?.role === 'admin' ? '/admin' : '/dashboard';
-    return <Navigate to={redirectTo} replace />;
+    return <Navigate to={getHomePath(user)} replace />;
   }
 
   return <Outlet />;

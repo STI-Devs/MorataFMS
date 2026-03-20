@@ -59,7 +59,7 @@ export const TransactionDetailDrawer = ({ transaction, onClose }: Props) => {
             setMessage('');
             setDocumentId(null);
         }
-    }, [transaction?.id]);
+    }, [isOpen, transaction?.id]);
 
     // Escape key closes drawer
     useEffect(() => {

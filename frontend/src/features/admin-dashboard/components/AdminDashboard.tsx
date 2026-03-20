@@ -1,4 +1,5 @@
-﻿import { useNavigate, useOutletContext } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
+import { adminDashboardQuickLinks, appRoutes } from '../../../lib/appRoutes';
 import type { LayoutContext } from '../../tracking/types';
 
 const statCards = [
@@ -40,15 +41,6 @@ const statCards = [
     },
 ];
 
-const quickLinks = [
-    { label: 'User Management', path: '/admin/users', color: '#bf5af2', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z' },
-    { label: 'Client Management', path: '/admin/clients', color: '#0a84ff', icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4' },
-    { label: 'Transaction Oversight', path: '/admin/transactions', color: '#30d158', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2' },
-    { label: 'Reports & Analytics', path: '/admin/reports', color: '#ff9f0a', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
-    { label: 'Audit Logs', path: '/admin/audit-logs', color: '#ff453a', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' },
-    { label: 'New Import', path: '/imports', color: '#64d2ff', icon: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12' },
-];
-
 export const AdminDashboard = () => {
     const navigate = useNavigate();
     const { user, dateTime } = useOutletContext<LayoutContext>();
@@ -57,7 +49,6 @@ export const AdminDashboard = () => {
 
     return (
         <div className="space-y-5 p-4">
-            {/* Header */}
             <div className="flex justify-between items-end">
                 <div>
                     <p className="text-xs font-semibold uppercase tracking-widest mb-1 text-text-muted">
@@ -76,7 +67,6 @@ export const AdminDashboard = () => {
                 </div>
             </div>
 
-            {/* Stat Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                 {statCards.map((stat) => (
                     <div
@@ -100,11 +90,10 @@ export const AdminDashboard = () => {
                 ))}
             </div>
 
-            {/* Quick Links Grid */}
             <div className="bg-surface rounded-lg border border-border p-5">
                 <h2 className="text-sm font-bold mb-4 text-text-primary">Quick Actions</h2>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-                    {quickLinks.map((link) => (
+                    {adminDashboardQuickLinks.map((link) => (
                         <button
                             key={link.label}
                             onClick={() => navigate(link.path)}
@@ -121,7 +110,6 @@ export const AdminDashboard = () => {
                 </div>
             </div>
 
-            {/* System Status Banner */}
             <div className="bg-surface rounded-lg border border-border p-4 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                     <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
@@ -131,7 +119,7 @@ export const AdminDashboard = () => {
                     </div>
                 </div>
                 <button
-                    onClick={() => navigate('/admin/reports')}
+                    onClick={() => navigate(appRoutes.reports)}
                     className="flex-shrink-0 px-4 py-2 rounded-lg text-xs font-semibold transition-all"
                     style={{ backgroundColor: '#0a84ff', color: '#fff' }}
                 >

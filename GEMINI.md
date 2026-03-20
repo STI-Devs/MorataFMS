@@ -1,372 +1,98 @@
-# MorataFMS - Project Context for Gemini
-
-## 1. Project Overview
-**MorataFMS (Freight Management System)** is a full-stack web application designed for F.M. Morata, a freight/customs brokerage company. It tracks import/export transactions, manages client records, and handles document storage.
-
-## 2. Technology Stack
-
-### Backend
-*   **Framework:** Laravel 12 (PHP 8.2+)
-*   **Database:** MySQL (configured in `.env`), with SQLite default in example.
-*   **Authentication:** Laravel Sanctum (SPA Cookie-based).
-*   **Scaffolding:** Laravel Breeze (API).
-*   **Key Libraries:** `laravel/sanctum`, `laravel/framework`.
-
-### Frontend
-*   **Framework:** React 19 (Vite)
-*   **Language:** TypeScript
-*   **Styling:** Tailwind CSS v4 (via `@tailwindcss/vite`)
-*   **State/Networking:** Axios, React Context (Auth), TanStack Query v5 (server state/caching).
-*   **Routing:** React Router DOM v7.
-
-## 3. Architecture & Conventions
-
-### Directory Structure
-*   **`backend/`**: Standard Laravel application.
-    *   `app/Models`: Contains Eloquent models (Client, User, ImportTransaction, etc.).
-    *   `app/Policies`: Authorization policies for each model with CRUD routes.
-    *   `app/Http/Requests`: Form Requests for input validation on every endpoint.
-    *   `app/Http/Resources`: API Resources for consistent JSON output.
-    *   `database/migrations`: Defines the schema including polymorphic `documents` table.
-    *   `routes/api.php`: API endpoints. Auth routes prefixed with `/auth`.
-*   **`frontend/`**: Domain-based React application.
-    *   `src/features/`: One folder per domain feature:
-        *   `auth/` — Login, AuthContext, useAuth hook.
-        *   `tracking/` — Core transaction tracking (ImportList, ExportList, TrackingDashboard, AdminLiveTracking). Owns `trackingApi.ts` — the shared API client.
-        *   `documents/` — Documents page & DocumentsDetail. Hooks reference `../../tracking/api/trackingApi`.
-        *   `archives/` — Archive dashboard + 10 sub-components + utils. Hooks reference tracking API; types reference `../../documents/types/document.types`.
-        *   `clients/` — ClientManagement + ClientFormModal. Has own `api/clientApi.ts`.
-        *   `users/` — UserManagement + modal. Has own `api/userApi.ts`.
-        *   `oversight/` — TransactionOversight + modals. Has own `api/transactionApi.ts`.
-        *   `reports/` — ReportsAnalytics. Has own `api/reportApi.ts`.
-        *   `audit-logs/` — AuditLogs page. Has own `api/auditLogApi.ts`.
-        *   `settings/` — Profile, Help pages.
-        *   `admin-dashboard/` — AdminDashboard page.
-    *   `src/pages/` — Standalone non-feature pages: `LandingPage`, `NotFoundPage`, `FormsPage`, `LawFirmPage`.
-    *   `src/components/` — Truly shared UI components:
-        *   `layout/MainLayout.tsx` — App shell with sidebar.
-        *   `modals/UploadModal.tsx`, `modals/FilePreviewModal.tsx` — Shared modals (used by tracking, documents, archives).
-        *   `Icon.tsx`, `Pagination.tsx`, `StatusBadge.tsx`, `Spinner.tsx`, `ActionMenu.tsx`, etc.
-    *   `src/lib/axios.ts`: Centralized Axios instance with CSRF handling.
-
-### Development Conventions
-*   **Authentication:** The frontend uses **cookie-based authentication**. It must first request `/sanctum/csrf-cookie` before attempting login.
-*   **API Pattern:** RESTful API with `apiResource` routes.
-*   **Styling:** Utility-first CSS using Tailwind with dark mode support.
-*   **Frontend State:** Context API for global state (Auth), TanStack Query for server state (data fetching/caching).
-
-## 4. Setup and Execution
-
-### Backend
-```bash
-cd backend
-composer install
-cp .env.example .env # Configure DB_DATABASE=morata_fms and DB_CONNECTION=mysql
-php artisan key:generate
-php artisan migrate --seed # Seeds countries and admin user
-php artisan serve
-```
-*   **Base URL:** `http://localhost:8000`
-*   **Default Admin:** `admin@morata.com` / `password`
-
-### Frontend
-```bash
-cd frontend
-pnpm install
-pnpm dev
-```
-*   **Base URL:** `http://localhost:3000`
-
-## 5. Key Domain Concepts
-
-### Transactions
-*   **Import:** Tracks incoming shipments. Has 6 stages (BOC, PPA, DO, Port Charges, Releasing, Billing).
-*   **Export:** Tracks outgoing shipments. Has 4 stages (Docs Prep, CO, CIL, BL).
-*   **Stages:** Each stage tracks status, completion time, and the user who completed it.
-
-### Documents
-*   **Polymorphic:** The `documents` table relates to both `import_transactions` and `export_transactions`.
-
-### Roles
-*   **Roles:** `encoder` | `paralegal` | `lawyer` | `admin`.
-*   Use `$user->role === 'admin'` or check role directly — there is no `hasRoleAtLeast()` helper.
-*   Helper methods: `isAdmin()`.
-
-## 6. Current Status (as of Mar 2026)
-*   **Completed:** Auth flow, DB Schema & Migrations, Dashboard UI, Seeders, API Security Hardening, Client/User/Oversight/Reports/AuditLog CRUD, Archive dashboard, Documents page, Frontend restructure (domain-based features).
-*   **Pending:** Full test coverage, advanced search/filter, performance optimizations.
-
-## 7. Important Files
-*   `PROJECT_CONTEXT.md`: Detailed technical reference (DB schema, ERD, API routes, frontend structure).
-*   `backend/routes/api.php`: API Route definitions.
-*   `frontend/src/lib/axios.ts`: Networking configuration.
-*   `frontend/src/features/auth/context/AuthContext.tsx`: Authentication logic.
-
-## 8. Security Conventions (MANDATORY)
-
-> **CRITICAL:** These rules MUST be followed when implementing ANY new backend feature.
-
-### Mass Assignment Protection
-*   **NEVER** put server-managed fields in `$fillable` (e.g., `status`, `assigned_user_id`, `role`, `uploaded_by`).
-*   Server-managed fields must be set explicitly in controllers: `$model->status = 'pending'; $model->save();` or via spread syntax.
-*   When in doubt, prefer `$guarded` over `$fillable`.
-
-### Authorization (Policies)
-*   **Every model with CRUD routes MUST have a Policy** in `app/Policies/`.
-*   Controllers MUST call `$this->authorize()` before any data-modifying operation.
-*   Roles: `encoder`, `paralegal`, `lawyer`, `admin`.
-*   Use direct role comparison: `$user->role === 'admin'` or `in_array($user->role, ['admin', 'lawyer'])` for role checks.
-
-### Input Validation (Form Requests)
-*   **Every store/update endpoint MUST use a Form Request** — never `$request->all()`.
-*   Only use `$request->validated()` to extract data.
-*   Always validate foreign key IDs with `exists:table,id`.
-
-### Rate Limiting
-*   All authenticated API routes use `throttle:60,1` middleware.
-*   Login already has its own rate limiter (5 attempts).
-
-### Security Testing
-*   When adding a new endpoint, always add tests for:
-    1. **Unauthenticated access** → should return 401
-    2. **Mass assignment protection** → server-managed fields should be ignored
-    3. **Authorization** → users without proper role should get 403
-
-## 9. Backend Patterns (Follow When Adding Features)
-
-When implementing a new model/feature in the backend, always follow this checklist:
-
-1.  **Migration** — Create the table with proper columns, foreign keys, and indexes.
-2.  **Model** — Only put user-editable fields in `$fillable`. Exclude server-managed fields.
-3.  **Policy** — Create `app/Policies/{Model}Policy.php` with `viewAny`, `create`, `update`, `delete` methods.
-4.  **Form Request** — Create `app/Http/Requests/Store{Model}Request.php` and `Update{Model}Request.php` with validation rules and `exists:` checks for foreign keys.
-5.  **API Resource** — Create `app/Http/Resources/{Model}Resource.php` for consistent JSON output.
-6.  **Controller** — Use `$this->authorize()`, `$request->validated()`, and explicit assignment for server fields.
-7.  **Routes** — Register via `Route::apiResource()` inside the `auth:sanctum` + `throttle:60,1` group.
-8.  **Tests** — Add auth guard, validation, mass assignment, and authorization tests.
-
-### Controller Pattern Example
-```php
-public function store(StoreModelRequest $request)
-{
-    $this->authorize('create', Model::class);
-
-    $model = new Model($request->validated());
-    $model->created_by = $request->user()->id; // Server-managed
-    $model->status = 'pending';                 // Server-managed
-    $model->save();
-
-    return new ModelResource($model);
-}
-```
-
-## 10. Agent Skills & Workflows Reference
-
-> When implementing a feature, always check `.agent/` for relevant skills and workflows before starting.
-
-### Skill Map (When to Use)
-
-| Task | Skill to Load | Path |
-|------|---------------|------|
-| Adding/modifying API endpoints | `api-patterns` | `.agent/skills/api-patterns/SKILL.md` |
-| Database schema changes | `database-design` | `.agent/skills/database-design/SKILL.md` |
-| Security audit or hardening | `vulnerability-scanner` | `.agent/skills/vulnerability-scanner/SKILL.md` |
-| Writing tests | `testing-patterns` | `.agent/skills/testing-patterns/SKILL.md` |
-| Frontend UI/UX work | `frontend-design` | `.agent/skills/frontend-design/SKILL.md` |
-| Tailwind CSS patterns | `tailwind-patterns` | `.agent/skills/tailwind-patterns/SKILL.md` |
-| Code quality review | `clean-code` | `.agent/skills/clean-code/SKILL.md` |
-| Debugging issues | `systematic-debugging` | `.agent/skills/systematic-debugging/SKILL.md` |
-
-### Workflow Map (Slash Commands)
-
-| Command | When to Use |
-|---------|-------------|
-| `/create` | Building a new feature from scratch |
-| `/enhance` | Adding to or improving existing features |
-| `/debug` | Finding and fixing bugs |
-| `/test` | Writing or running tests |
-| `/plan` | Planning a complex multi-file change |
-
-### How to Use
-1.  Before implementing, identify the relevant skill(s) from the table above.
-2.  Read the `SKILL.md` file to understand the principles and patterns.
-3.  Apply the skill's guidelines alongside this project's conventions (Sections 8-9).
-
-## 11. Frontend Patterns (Follow When Adding Features)
-
-When implementing a new feature in the frontend, always follow this structure:
-
-1.  **Create feature folder** — `src/features/{feature-name}/`
-2.  **Types** — `types/` — TypeScript interfaces for the domain.
-3.  **API** — `api/` — Axios calls using the shared `src/lib/axios.ts` instance.
-4.  **Components** — `components/` — React components for the feature.
-5.  **Hooks** — `hooks/` — Custom hooks for data fetching and state logic.
-6.  **Barrel export** — `index.ts` — Re-export public components/hooks for use in `App.tsx`.
-7.  **Context** — `context/` — Only if the feature needs global state.
-
-### Import Path Rules (CRITICAL — Vite enforces these at build time, not tsc)
-
-| File location | To reach `src/components/` | To reach another feature |
-|---|---|---|
-| `features/foo/components/` | `../../../components/` | `../../bar/` |
-| `features/foo/components/ui/` | `../../../../components/` | `../../../bar/` |
-| `features/foo/hooks/` | `../../../components/` | `../../bar/` |
-| `features/foo/utils/` | `../../../components/` | `../../bar/` |
-| `components/modals/` | `../` (sibling in components/) | N/A |
-
-> **IMPORTANT:** `documents/hooks/` and `archives/hooks/` have no local `api/` or `types/` — they must import from `../../tracking/api/trackingApi` and `../../documents/types/document.types` respectively. Always verify with `npx vite build` — TypeScript alone (`tsc --noEmit`) does NOT catch all missing module errors.
-
-### API Call Pattern
-```typescript
-import api from '@/lib/axios';
-
-export const getItems = async () => {
-    const { data } = await api.get('/items');
-    return data;
-};
-```
-
-### Services Layer (Not yet extracted)
-All features currently use their own colocated `api/` files. `trackingApi.ts` is the only shared API client (used by `documents` and `archives` hooks as well). **Do not add a `src/services/` folder yet** — extract only if a second feature needs to reference `trackingApi` directly.
-
-## 12. Data Fetching & Caching Patterns
-
-> **IMPORTANT:** All data fetching MUST use TanStack Query hooks. Do NOT use `useEffect` + `useState` for API calls.
-
-### Frontend (TanStack Query v5)
-*   `QueryClientProvider` is set up in `src/main.tsx` with `staleTime: 5min`, `retry: 1`.
-*   **Custom hooks** live in `src/features/{feature}/hooks/` (e.g., `useImports.ts`, `useClients.ts`).
-*   **Queries** (`useQuery`) — for reading data. Use descriptive query keys: `['imports', params]`.
-*   **Mutations** (`useMutation`) — for creating/updating. Always `invalidateQueries` on success.
-*   **Static data** (clients, countries) — use `staleTime: Infinity` (fetched once per session).
-*   **Dynamic data** (transactions) — use default `staleTime: 5min`.
-
-### Hook Pattern Example
-```typescript
-// Query hook (src/features/tracking/hooks/useImports.ts)
-import { useQuery } from '@tanstack/react-query';
-import { trackingApi } from '../api/trackingApi';
-
-export const useImports = (params?: Params) => {
-    return useQuery({
-        queryKey: ['imports', params],
-        queryFn: () => trackingApi.getImports(params),
-    });
-};
-
-// Mutation hook (src/features/tracking/hooks/useCreateImport.ts)
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-
-export const useCreateImport = () => {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: trackingApi.createImport,
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['imports'] }),
-    });
-};
-```
-
-### Lazy Query Pattern (`enabled` flag)
-Use `enabled` to defer a query until a condition is met (e.g., a modal is open). Always add an `enabled` param with a default of `true` for backward compatibility.
-```typescript
-// Hook: gate the query behind an enabled flag
-export const useClients = (type?: 'importer' | 'exporter', enabled = true) => {
-    return useQuery<ApiClient[]>({
-        queryKey: ['clients', type],
-        queryFn: () => trackingApi.getClients(type),
-        staleTime: Infinity,
-        enabled, // query only fires when enabled = true
-    });
-};
-
-// Consumer: only fetch when modal is open
-const { data: clients } = useClients('importer', isOpen);
-```
-
-### Background Prefetch Pattern (`prefetchQuery`)
-Use `prefetchQuery` in a parent page component to warm the cache **before** the user opens a modal or navigates to a sub-page. This gives instant dropdown population with zero wasted calls if the action is never triggered.
-
-> **Rule:** Use this for static/lookup data (`staleTime: Infinity`) that is needed in a modal or child component. The query keys MUST match the hooks used in the modal exactly.
-
-```typescript
-// In the parent page component (e.g., ImportList.tsx)
-import { useQueryClient } from '@tanstack/react-query';
-
-const queryClient = useQueryClient();
-
-useEffect(() => {
-    // Fires once on mount, non-blocking. Cache hit on subsequent renders.
-    queryClient.prefetchQuery({
-        queryKey: ['clients', 'importer'], // must match useClients('importer') key
-        queryFn: () => trackingApi.getClients('importer'),
-        staleTime: Infinity,
-    });
-}, [queryClient]);
-```
-
-**When to use each approach:**
-
-| Data Type | Approach |
-|---|---|
-| Static lookup (clients, countries) | `prefetchQuery` on parent mount + `enabled: isOpen` on hook |
-| Frequently changing data | Fetch on open (`enabled: isOpen`) — no prefetch |
-| Data needed immediately on page | Plain `useQuery` with no `enabled` flag |
-
-### Backend (Rate Limiting)
-*   All authenticated routes use `throttle:60,1` (60 requests/minute per user).
-*   Login has its own rate limiter (5 attempts).
-*   For static endpoints (e.g., `/api/countries`), consider using Laravel's `Cache::remember()` to avoid repeated DB queries.
-
-## 13. Audit Logging Conventions (MANDATORY)
-
-> **CRITICAL:** Every create, update, and delete event in the system MUST be traceable. Follow these rules without exception.
-
-### Three-Tier Actor Model
-
-| Actor | `user_id` | When it happens | In Event Log? |
-|---|---|---|---|
-| **Human** | Non-null | User clicks a button in the UI | ✅ Always (default view) |
-| **System** | `null` | Background jobs, cron tasks, webhooks | ✅ Hidden by default, toggle to see |
-| **Seeder/Dev** | N/A | `php artisan db:seed` | ❌ Completely suppressed |
-
-### How Auditing Works
-*   The `Auditable` trait (`app/Traits/Auditable.php`) auto-logs `created`, `updated`, and `deleted` events on any model that uses it.
-*   **Models with the trait:** `ImportTransaction`, `ExportTransaction`, `Document`, `User`, `Client`.
-*   Business-critical manual actions (reassign, status override) use `AuditLog::record()` explicitly in the controller.
-
-### Rules for Seeders / Data Imports (MANDATORY)
-*   **NEVER** let seeders generate audit log entries. Seeder data is fake — it MUST NOT appear in the Event Log.
-*   Always wrap seeder `create()` calls with the model's `withoutAuditing()` helper:
-
-```php
-// ✅ CORRECT — silent, no audit log entries
-ImportTransaction::withoutAuditing(function () {
-    ImportTransaction::factory()->count(50)->create();
-});
-
-// ❌ WRONG — floods audit log with 50 "System" entries
-ImportTransaction::factory()->count(50)->create();
-```
-
-### Rules for Background Jobs (Cron / Queued)
-*   Background jobs that mutate data (e.g., auto-archiving old transactions) **should** log naturally.
-*   The `user_id` will be `null` — this is correct. It shows as "System" in the Event Log.
-*   Admins can filter to see System-only events using the **Actor** dropdown.
-
-### Frontend Event Log Filter (Actor Toggle)
-The `AuditLogs.tsx` page has three actor modes:
-*   👤 **Humans Only** — Default view. Shows only authenticated user actions.
-*   ⚙️ **System Only** — Shows only automated/null-user events.
-*   🌐 **All Actors** — Unfiltered, shows everything.
-
-The backend `AuditLogController` supports the `?actor=human|system|all` query param (default: `human`).
-
-### When to Use `AuditLog::record()` Explicitly
-Use explicit `AuditLog::record()` calls (in addition to the trait's auto-logging) for business operations that are NOT a simple CRUD but carry audit significance:
-
-| Action | Use explicit record? |
-|---|---|
-| Encoder reassignment | ✅ Yes — attach old/new encoder names |
-| Status override (admin+) | ✅ Yes — attach old/new status |
-| Document archive | ✅ Yes — note who archived it |
-| Regular field update via form | ❌ No — trait handles it automatically |
+# MorataFMS Workspace Guidelines
+
+This file mirrors the root `AGENTS.md` for Gemini-oriented tooling.
+
+Use this file for cross-stack guidance only. Detailed implementation rules live in the scoped files:
+
+- `backend/AGENTS.md` for Laravel backend work
+- `frontend/AGENTS.md` for React frontend work
+
+## Project Overview
+
+MorataFMS is a full-stack operations system for F.M. Morata. It supports brokerage and legal workflows, with the core platform focused on:
+
+- import and export transaction tracking
+- client and user management
+- document handling and archiving
+- audit visibility
+- role-based access across brokerage and legal modules
+
+## Workspace Map
+
+- `backend/` is a Laravel 12 API with Sanctum-based SPA authentication
+- `frontend/` is a Vite + React + TypeScript application that consumes the backend API
+
+## Instruction Hierarchy
+
+Follow instructions in this order:
+
+1. direct user request
+2. root `AGENTS.md` / this mirrored `GEMINI.md`
+3. the nearest scoped `AGENTS.md`
+
+Use the nearest scoped file when working inside that part of the repo. Do not duplicate backend- or frontend-specific rules into the root file.
+
+## Source Of Truth Rules
+
+If documentation conflicts with the current codebase:
+
+- trust the live code and the scoped `AGENTS.md` files first
+
+If backend and frontend drift, the backend API contract is the source of truth for:
+
+- auth roles
+- permissions
+- resource payloads
+- validation and business rules
+
+## Current Cross-Stack Invariants
+
+These conventions are final unless intentionally changed across the stack:
+
+- auth roles are only `encoder`, `paralegal`, and `admin`
+- `job_title` is display metadata, not an authorization role
+- the frontend should consume backend `role`, `departments`, and `permissions` rather than infer access ad hoc
+- backend contract changes must update frontend types, API helpers, hooks, and affected UI in the same workstream
+
+Do not reintroduce deprecated auth role names in either layer.
+
+## Required Change Workflow
+
+Before creating or modifying code:
+
+1. inspect sibling files first
+2. reuse existing naming, structure, and helpers
+3. check whether the work belongs in `backend/` or `frontend/` scoped rules
+4. make the smallest clean change that fits current architecture
+
+Do not invent a new pattern when the repository already has one.
+
+## Architecture Guardrails
+
+- do not add new top-level folders without approval
+- do not add or replace dependencies without approval
+- do not create duplicate route registries, auth logic, or API layers
+- do not keep backward-compatibility hacks once the real contract has been normalized
+
+Prefer layered clarity over clever abstractions.
+
+## Verification
+
+After changes:
+
+- backend-only changes: run the relevant backend verification from `backend/AGENTS.md`
+- frontend-only changes: run the relevant frontend verification from `frontend/AGENTS.md`
+- cross-stack or API contract changes: verify both backend and frontend
+
+## Documentation Discipline
+
+Do not create extra documentation files unless explicitly requested.
+
+Keep this root guidance concise. Detailed implementation rules belong in scoped files close to the code they govern.
+
+## Reference Files
+
+Use these when you need context:
+
+- `backend/AGENTS.md` for Laravel-specific rules
+- `frontend/AGENTS.md` for React-specific rules

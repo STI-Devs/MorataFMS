@@ -247,7 +247,7 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
             if (err && typeof err === 'object' && 'response' in err) {
                 const res = (err as { response: { status: number; data?: { message?: string } } }).response;
                 if (res.status === 403) {
-                    setError('You don\'t have permission to create new clients. Please select from the dropdown or ask a supervisor to add the client first.');
+                    setError('You don\'t have permission to create new clients. Please select from the dropdown or ask an admin to add the client first.');
                 } else if (res.status === 422) {
                     const msg = res.data?.message || 'Validation error. Please check your inputs.';
                     setError(msg);
@@ -529,3 +529,5 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
         </div>
     );
 };
+
+

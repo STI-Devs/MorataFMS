@@ -54,7 +54,7 @@ test('import transactions can be filtered by status', function () {
     ImportTransaction::factory()->completed()->create();
 
     $response = $this->actingAs($user)
-        ->getJson('/api/import-transactions?status=pending');
+        ->getJson('/api/import-transactions?status=Pending');
 
     $response->assertOk();
     $data = $response->json('data');
@@ -84,7 +84,7 @@ test('authenticated users can create import transactions with valid data', funct
         ->assertJsonPath('data.customs_ref_no', 'REF-2026-001')
         ->assertJsonPath('data.bl_no', 'BL-12345678')
         ->assertJsonPath('data.selective_color', 'green')
-        ->assertJsonPath('data.status', 'pending')
+        ->assertJsonPath('data.status', 'Pending')
         ->assertJsonPath('data.importer.id', $client->id)
         ->assertJsonPath('data.importer.name', $client->name)
         ->assertJsonPath('data.origin_country.id', $country->id)
@@ -113,7 +113,7 @@ test('authenticated users can create import transactions without origin country'
         ]);
 
     $response->assertCreated()
-        ->assertJsonPath('data.status', 'pending');
+        ->assertJsonPath('data.status', 'Pending');
 });
 
 test('creating an import transaction auto-creates stages', function () {
@@ -131,7 +131,7 @@ test('creating an import transaction auto-creates stages', function () {
     $transaction = ImportTransaction::where('customs_ref_no', 'REF-STAGE-001')->first();
     expect($transaction)->not->toBeNull();
     expect($transaction->stages)->not->toBeNull();
-    expect($transaction->stages->boc_status)->toBe('pending');
+    expect($transaction->stages->boc_status->value)->toBe('pending');
 });
 
 // --- Validation ---
@@ -216,11 +216,11 @@ test('mass assignment of status is ignored on create', function () {
             'selective_color' => 'green',
             'importer_id' => $client->id,
             'arrival_date' => '2025-06-15',
-            'status' => 'completed', // Attacker trying to skip workflow
+            'status' => 'Completed', // Attacker trying to skip workflow
         ]);
 
     $response->assertCreated()
-        ->assertJsonPath('data.status', 'pending'); // Server always sets 'pending'
+        ->assertJsonPath('data.status', 'Pending'); // Server always sets 'pending'
 });
 
 test('mass assignment of assigned_user_id is ignored on create', function () {
@@ -250,7 +250,10 @@ test('assigned user can update their import transaction', function () {
     $user = User::factory()->create(['role' => 'encoder']);
     $client = Client::factory()->importer()->create();
     $country = Country::factory()->importOrigin()->create();
-    $transaction = ImportTransaction::factory()->create(['assigned_user_id' => $user->id]);
+    $transaction = ImportTransaction::factory()->create([
+        'assigned_user_id' => $user->id,
+        'selective_color' => 'yellow',
+    ]);
 
     $payload = [
         'customs_ref_no' => 'REF-UPDATED-001',
@@ -266,12 +269,12 @@ test('assigned user can update their import transaction', function () {
 
     $response->assertOk()
         ->assertJsonPath('data.customs_ref_no', 'REF-UPDATED-001')
-        ->assertJsonPath('data.selective_color', 'red');
+        ->assertJsonPath('data.selective_color', 'yellow');
 
     $this->assertDatabaseHas('import_transactions', [
         'id' => $transaction->id,
         'customs_ref_no' => 'REF-UPDATED-001',
-        'selective_color' => 'red',
+        'selective_color' => 'yellow',
     ]);
 });
 
@@ -313,7 +316,7 @@ test('admins can update any import transaction', function () {
 
 test('updating an import transaction ignores mass assignment of status', function () {
     $user = User::factory()->create(['role' => 'encoder']);
-    $transaction = ImportTransaction::factory()->create(['assigned_user_id' => $user->id, 'status' => 'pending']);
+    $transaction = ImportTransaction::factory()->create(['assigned_user_id' => $user->id, 'status' => 'Pending']);
     $client = Client::factory()->importer()->create();
 
     $response = $this->actingAs($user)
@@ -323,7 +326,7 @@ test('updating an import transaction ignores mass assignment of status', functio
             'selective_color' => 'red',
             'importer_id' => $client->id,
             'arrival_date' => '2025-06-20',
-            'status' => 'completed', // Attacker trying to skip workflow
+            'status' => 'Completed', // Attacker trying to skip workflow
         ]);
 
     $response->assertOk();
@@ -331,7 +334,7 @@ test('updating an import transaction ignores mass assignment of status', functio
     // Status should remain unchanged by the update endpoint
     $this->assertDatabaseHas('import_transactions', [
         'id' => $transaction->id,
-        'status' => 'pending'
+        'status' => 'Pending',
     ]);
 });
 

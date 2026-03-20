@@ -1,6 +1,7 @@
-﻿import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { trackingApi } from '../api/trackingApi';
 import type { CreateExportPayload } from '../types';
+import { trackingKeys } from '../utils/queryKeys';
 
 export const useCreateExport = () => {
     const queryClient = useQueryClient();
@@ -8,7 +9,7 @@ export const useCreateExport = () => {
     return useMutation({
         mutationFn: (data: CreateExportPayload) => trackingApi.createExport(data),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['exports'] });
+            queryClient.invalidateQueries({ queryKey: trackingKeys.exports.all });
         },
     });
 };

@@ -26,34 +26,30 @@ class DatabaseSeeder extends Seeder
             $admin = User::factory()->create([
                 'name' => 'Admin User',
                 'email' => 'admin@morata.com',
+                'job_title' => 'Administrator',
+                'role' => 'admin',
             ]);
-            $admin->role = 'admin';
-            $admin->departments = ['brokerage', 'legal'];
-            $admin->save();
 
-            $lawyer = User::factory()->create([
-                'name' => 'Lawyer User',
+            User::factory()->create([
+                'name' => 'Lawyer Admin',
                 'email' => 'lawyer@morata.com',
+                'job_title' => 'Lawyer',
+                'role' => 'admin',
             ]);
-            $lawyer->role = 'lawyer';
-            $lawyer->departments = ['legal'];
-            $lawyer->save();
 
-            $paralegal = User::factory()->create([
+            User::factory()->create([
                 'name' => 'Paralegal User',
                 'email' => 'paralegal@morata.com',
+                'job_title' => 'Paralegal',
+                'role' => 'paralegal',
             ]);
-            $paralegal->role = 'paralegal';
-            $paralegal->departments = ['legal'];
-            $paralegal->save();
 
-            $encoder = User::factory()->create([
+            User::factory()->create([
                 'name' => 'Encoder User',
                 'email' => 'encoder@morata.com',
+                'job_title' => 'Encoder',
+                'role' => 'encoder',
             ]);
-            $encoder->role = 'encoder';
-            $encoder->departments = ['brokerage'];
-            $encoder->save();
         });
     }
 }

@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Archives\CreateArchiveExport;
+use App\Actions\Archives\CreateArchiveImport;
 use App\Http\Requests\StoreArchiveExportRequest;
 use App\Http\Requests\StoreArchiveImportRequest;
 use App\Http\Resources\ExportTransactionResource;
 use App\Http\Resources\ImportTransactionResource;
-use App\Models\Document;
-use App\Models\ExportTransaction;
-use App\Models\ImportTransaction;
+use App\Queries\Archives\ArchiveIndexQuery;
 use Illuminate\Http\JsonResponse;
 
 /**
@@ -25,6 +25,12 @@ use Illuminate\Http\JsonResponse;
  */
 class ArchiveController extends Controller
 {
+    public function __construct(
+        private CreateArchiveImport $createArchiveImport,
+        private CreateArchiveExport $createArchiveExport,
+        private ArchiveIndexQuery $archiveIndexQuery,
+    ) {}
+
     /**
      * GET /api/archives
      * List all archived transactions grouped by year.
@@ -38,99 +44,13 @@ class ArchiveController extends Controller
         $mine = request()->boolean('mine');
 
         // Admin-only unless ?mine=1 (encoder can see own uploads)
-        if (!$mine && !request()->user()->isAdmin()) {
+        if (! $mine && ! request()->user()->isAdmin()) {
             abort(403, 'Only administrators can access the full archive.');
         }
 
-        $userId = $mine ? request()->user()->id : null;
-
-        // Query on is_archive — explicit, unambiguous, indexed.
-        // Year comes from the actual historical date fields, not created_at.
-        $imports = ImportTransaction::where('is_archive', true)
-            ->with([
-                'documents' => fn($q) => $userId ? $q->where('uploaded_by', $userId) : $q,
-                'documents.uploadedBy',
-                'importer',
-            ])
-            ->get()
-            ->when($userId, fn($col) => $col->filter(fn($t) => $t->documents->isNotEmpty()))
-            ->map(fn($t) => [
-                'transaction_type' => 'import',
-                'year' => $t->arrival_date?->year ?? $t->created_at->year,
-                'month' => $t->arrival_date?->month ?? $t->created_at->month,
-                'bl_no' => $t->bl_no,
-                'client' => $t->importer?->name ?? 'Unknown',
-                'documents' => $t->documents->map(fn($d) => [
-                    'id' => $d->id,
-                    'type' => 'import',
-                    'bl_no' => $t->bl_no,
-                    'month' => $t->arrival_date?->month ?? $t->created_at->month,
-                    'client' => $t->importer?->name ?? 'Unknown',
-                    'selective_color' => $t->selective_color,
-                    'transaction_date' => ($t->arrival_date ?? $t->created_at)->toDateString(),
-                    'transaction_id' => $t->id,
-                    'documentable_type' => 'App\\Models\\ImportTransaction',
-                    'stage' => $d->type,
-                    'filename' => $d->filename,
-                    'formatted_size' => $d->formatted_size,
-                    'uploaded_at' => $d->created_at?->toIso8601String(),
-                    'uploader' => $d->uploadedBy ? [
-                        'id' => $d->uploadedBy->id,
-                        'name' => $d->uploadedBy->name,
-                    ] : null,
-                ]),
-            ]);
-
-        $exports = ExportTransaction::where('is_archive', true)
-            ->with([
-                'documents' => fn($q) => $userId ? $q->where('uploaded_by', $userId) : $q,
-                'documents.uploadedBy',
-                'shipper',
-                'destinationCountry',
-            ])
-            ->get()
-            ->when($userId, fn($col) => $col->filter(fn($t) => $t->documents->isNotEmpty()))
-            ->map(fn($t) => [
-                'transaction_type' => 'export',
-                // export_date holds the historical shipment date (set from file_date).
-                'year' => $t->export_date?->year ?? $t->created_at->year,
-                'month' => $t->export_date?->month ?? $t->created_at->month,
-                'bl_no' => $t->bl_no,
-                'client' => $t->shipper?->name ?? 'Unknown',
-                'documents' => $t->documents->map(fn($d) => [
-                    'id' => $d->id,
-                    'type' => 'export',
-                    'bl_no' => $t->bl_no,
-                    'month' => $t->export_date?->month ?? $t->created_at->month,
-                    'client' => $t->shipper?->name ?? 'Unknown',
-                    'destination_country' => $t->destinationCountry?->name ?? null,
-                    'transaction_date' => ($t->export_date ?? $t->created_at)->toDateString(),
-                    'transaction_id' => $t->id,
-                    'documentable_type' => 'App\\Models\\ExportTransaction',
-                    'stage' => $d->type,
-                    'filename' => $d->filename,
-                    'formatted_size' => $d->formatted_size,
-                    'uploaded_at' => $d->created_at?->toIso8601String(),
-                    'uploader' => $d->uploadedBy ? [
-                        'id' => $d->uploadedBy->id,
-                        'name' => $d->uploadedBy->name,
-                    ] : null,
-                ]),
-            ]);
-
-        // Merge, group by year descending, flatten documents
-        $grouped = $imports->merge($exports)
-            ->groupBy('year')
-            ->sortKeysDesc()
-            ->map(fn($items, $year) => [
-                'year' => (int) $year,
-                'imports' => $items->where('transaction_type', 'import')->count(),
-                'exports' => $items->where('transaction_type', 'export')->count(),
-                'documents' => $items->pluck('documents')->flatten(1)->values(),
-            ])
-            ->values();
-
-        return response()->json(['data' => $grouped]);
+        return response()->json([
+            'data' => $this->archiveIndexQuery->handle(request()->user(), $mine),
+        ]);
     }
 
     /**
@@ -140,27 +60,14 @@ class ArchiveController extends Controller
      */
     public function storeImport(StoreArchiveImportRequest $request)
     {
-        if (!in_array($request->user()->role, ['admin', 'encoder'])) {
+        if (! in_array($request->user()->role->value, ['admin', 'encoder'])) {
             abort(403, 'Only administrators or encoders can upload archive records.');
         }
 
-        $validated = $request->validated();
-
-        $transaction = new ImportTransaction();
-        $transaction->customs_ref_no = $validated['customs_ref_no']
-            ?? 'ARCH-' . $validated['file_date'] . '-' . strtoupper(substr(uniqid(), -6));
-        $transaction->bl_no = $validated['bl_no'];
-        $transaction->selective_color = $validated['selective_color'];
-        $transaction->importer_id = $validated['importer_id'];
-        $transaction->origin_country_id = $validated['origin_country_id'] ?? null;
-        $transaction->arrival_date = $validated['file_date']; // map archive file_date → arrival_date
-        $transaction->notes = $validated['notes'] ?? null;
-        $transaction->is_archive = true;       // explicit archive marker
-        $transaction->assigned_user_id = $request->user()->id;
-        $transaction->status = 'completed';
-        $transaction->save();
-
-        $transaction->load(['importer', 'originCountry', 'stages', 'assignedUser']);
+        $transaction = $this->createArchiveImport->handle(
+            $request->validated(),
+            $request->user(),
+        );
 
         return (new ImportTransactionResource($transaction))
             ->response()
@@ -174,29 +81,17 @@ class ArchiveController extends Controller
      */
     public function storeExport(StoreArchiveExportRequest $request)
     {
-        if (!in_array($request->user()->role, ['admin', 'encoder'])) {
+        if (! in_array($request->user()->role->value, ['admin', 'encoder'])) {
             abort(403, 'Only administrators or encoders can upload archive records.');
         }
 
-        $validated = $request->validated();
-
-        $transaction = new ExportTransaction();
-        $transaction->bl_no = $validated['bl_no'];
-        $transaction->vessel = $validated['vessel'] ?? 'N/A';
-        $transaction->shipper_id = $validated['shipper_id'];
-        $transaction->destination_country_id = $validated['destination_country_id'];
-        $transaction->notes = $validated['notes'] ?? null;
-        $transaction->export_date = $validated['file_date']; // historical shipment date
-        $transaction->is_archive = true;                     // explicit archive marker
-        $transaction->assigned_user_id = $request->user()->id;
-        $transaction->status = 'completed';
-        $transaction->save();
-
-        $transaction->load(['shipper', 'destinationCountry', 'stages', 'assignedUser']);
+        $transaction = $this->createArchiveExport->handle(
+            $request->validated(),
+            $request->user(),
+        );
 
         return (new ExportTransactionResource($transaction))
             ->response()
             ->setStatusCode(201);
     }
 }
-

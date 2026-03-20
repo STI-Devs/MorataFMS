@@ -24,7 +24,6 @@ class AuditLog extends Model
     protected $casts = [
         'old_values' => 'array',
         'new_values' => 'array',
-        'event'      => AuditEvent::class,
     ];
 
     // Relationships
@@ -54,18 +53,20 @@ class AuditLog extends Model
      * Bridges the action/description-style with the main Spatie-style schema.
      */
     public static function record(
-        string $action,
+        AuditEvent|string $event,
         string $description,
         ?int $userId = null,
         ?string $subjectType = null,
         ?int $subjectId = null,
         ?string $ipAddress = null
     ): self {
+        $eventValue = $event instanceof AuditEvent ? $event->value : $event;
+
         return static::create([
             'user_id' => $userId,
-            'event' => $action,
+            'event' => $eventValue,
             'auditable_type' => $subjectType
-                ? 'App\\Models\\' . ucfirst($subjectType) . 'Transaction'
+                ? 'App\\Models\\'.ucfirst($subjectType).'Transaction'
                 : null,
             'auditable_id' => $subjectId,
             'new_values' => ['description' => $description],

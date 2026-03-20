@@ -18,9 +18,9 @@ class TransactionOversightController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        // Only supervisor+ can view the oversight dashboard
+        // Only admins can view the oversight dashboard
         $user = $request->user();
-        if (!$user->isAdmin()) {
+        if (! $user->isAdmin()) {
             abort(403, 'Unauthorized.');
         }
 
@@ -47,8 +47,8 @@ class TransactionOversightController extends Controller
             $importQuery->where(function ($q) use ($search) {
                 $q->where('customs_ref_no', 'like', "%{$search}%")
                     ->orWhere('bl_no', 'like', "%{$search}%")
-                    ->orWhereHas('importer', fn($q) => $q->where('name', 'like', "%{$search}%"))
-                    ->orWhereHas('assignedUser', fn($q) => $q->where('name', 'like', "%{$search}%"));
+                    ->orWhereHas('importer', fn ($q) => $q->where('name', 'like', "%{$search}%"))
+                    ->orWhereHas('assignedUser', fn ($q) => $q->where('name', 'like', "%{$search}%"));
             });
         }
 
@@ -75,8 +75,8 @@ class TransactionOversightController extends Controller
             $exportQuery->where(function ($q) use ($search) {
                 $q->where('bl_no', 'like', "%{$search}%")
                     ->orWhere('vessel', 'like', "%{$search}%")
-                    ->orWhereHas('shipper', fn($q) => $q->where('name', 'like', "%{$search}%"))
-                    ->orWhereHas('assignedUser', fn($q) => $q->where('name', 'like', "%{$search}%"));
+                    ->orWhereHas('shipper', fn ($q) => $q->where('name', 'like', "%{$search}%"))
+                    ->orWhereHas('assignedUser', fn ($q) => $q->where('name', 'like', "%{$search}%"));
             });
         }
 
@@ -146,7 +146,7 @@ class TransactionOversightController extends Controller
      */
     public function encoders(Request $request): JsonResponse
     {
-        if (!$request->user()->isAdmin()) {
+        if (! $request->user()->isAdmin()) {
             abort(403, 'Unauthorized.');
         }
 
@@ -162,7 +162,7 @@ class TransactionOversightController extends Controller
      */
     public function assignImport(AssignTransactionRequest $request, ImportTransaction $import): JsonResponse
     {
-        if (!$request->user()->isAdmin()) {
+        if (! $request->user()->isAdmin()) {
             abort(403, 'Unauthorized.');
         }
 
@@ -183,7 +183,7 @@ class TransactionOversightController extends Controller
      */
     public function assignExport(AssignTransactionRequest $request, ExportTransaction $export): JsonResponse
     {
-        if (!$request->user()->isAdmin()) {
+        if (! $request->user()->isAdmin()) {
             abort(403, 'Unauthorized.');
         }
 
@@ -204,7 +204,7 @@ class TransactionOversightController extends Controller
      */
     public function overrideImportStatus(OverrideStatusRequest $request, ImportTransaction $import): JsonResponse
     {
-        if (!$request->user()->isAdmin()) {
+        if (! $request->user()->isAdmin()) {
             abort(403, 'Unauthorized.');
         }
 
@@ -222,7 +222,7 @@ class TransactionOversightController extends Controller
      */
     public function overrideExportStatus(OverrideStatusRequest $request, ExportTransaction $export): JsonResponse
     {
-        if (!$request->user()->isAdmin()) {
+        if (! $request->user()->isAdmin()) {
             abort(403, 'Unauthorized.');
         }
 

@@ -8,6 +8,8 @@ import { useCreateTransaction } from '../hooks/useCreateTransaction';
 import { useTransactionList } from '../hooks/useTransactionList';
 import { useTransactionStats } from '../hooks/useTransactionStats';
 import type { ApiExportTransaction, ApiImportTransaction, CreateExportPayload, CreateImportPayload, LayoutContext } from '../types';
+import { trackingKeys } from '../utils/queryKeys';
+import { fetchTransactionDetail } from '../utils/transactionDetail';
 import { CancelTransactionModal } from './CancelTransactionModal';
 import { EncodeModal } from './EncodeModal';
 import { useQueryClient } from '@tanstack/react-query';
@@ -202,7 +204,7 @@ export function TransactionListPage<T>({
                                 {openDropdown === 'value' && (
                                     <div className="absolute top-full left-0 mt-1 w-36 bg-surface border border-border-strong rounded-xl shadow-lg z-[100] overflow-hidden animate-dropdown-in">
                                         {type === 'import' && filterType === 'SC' && (
-                                            ['Green', 'Yellow', 'Orange', 'Red'].map(opt => (
+                                            ['Green', 'Yellow', 'Red'].map(opt => (
                                                 <button key={opt} className="w-full text-left px-4 py-2 text-sm text-text-primary hover:bg-hover transition-colors" onClick={() => { setFilterValue(opt); setOpenDropdown(null); }}>
                                                     {opt}
                                                 </button>
@@ -292,8 +294,8 @@ export function TransactionListPage<T>({
                                         const ref = (row as { ref?: string }).ref;
                                         if (ref) {
                                             queryClient.prefetchQuery({
-                                                queryKey: ['transaction-detail', ref],
-                                                queryFn: () => import('../api/trackingApi').then(m => m.trackingApi.getTransactionByRef(ref)),
+                                                queryKey: trackingKeys.detail(ref),
+                                                queryFn: () => fetchTransactionDetail(ref),
                                                 staleTime: 5 * 60 * 1000,
                                             });
                                         }

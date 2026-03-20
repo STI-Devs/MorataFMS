@@ -33,12 +33,12 @@ class NotarialEntryPolicy
     }
 
     /**
-     * Only lawyer or admin can update entries.
+     * Paralegals and admins can update entries.
      */
     public function update(User $user, NotarialEntry $entry): bool
     {
         return $user->hasLegalAccess()
-            && $user->hasRoleAtLeast('lawyer');
+            && $user->hasRoleAtLeast('paralegal');
     }
 
     /**

@@ -8,20 +8,36 @@ import type {
     CreateExportPayload,
     CreateImportPayload,
     DocumentableType,
-    ExportTransaction,
-    ImportTransaction,
     PaginatedResponse,
     TransactionStats,
     UploadDocumentPayload,
 } from '../types';
 
-export const trackingApi = {
-    // --- Single Transaction ---
-    getTransactionByRef: async (ref: string): Promise<{ data: ImportTransaction | ExportTransaction, isImport: boolean }> => {
-        const response = await api.get(`/api/transactions/${ref}`);
-        return response.data;
-    },
+const MAX_PAGE_SIZE = 500;
 
+async function fetchAllPages<T>(
+    fetchPage: (page: number) => Promise<PaginatedResponse<T>>,
+): Promise<T[]> {
+    const firstPage = await fetchPage(1);
+    const allRows = [...firstPage.data];
+    const lastPage = firstPage.meta?.last_page ?? 1;
+
+    if (lastPage <= 1) {
+        return allRows;
+    }
+
+    const remainingPages = await Promise.all(
+        Array.from({ length: lastPage - 1 }, (_, index) => fetchPage(index + 2)),
+    );
+
+    for (const page of remainingPages) {
+        allRows.push(...page.data);
+    }
+
+    return allRows;
+}
+
+export const trackingApi = {
     // --- Import Transactions ---
     getImports: async (params?: {
         search?: string;
@@ -56,6 +72,33 @@ export const trackingApi = {
         const response = await api.get('/api/export-transactions', { params });
         return response.data;
     },
+
+    getAllImports: async (params?: {
+        search?: string;
+        status?: string;
+        selective_color?: string;
+        exclude_statuses?: string;
+    }): Promise<ApiImportTransaction[]> =>
+        fetchAllPages((page) =>
+            trackingApi.getImports({
+                ...params,
+                page,
+                per_page: MAX_PAGE_SIZE,
+            }),
+        ),
+
+    getAllExports: async (params?: {
+        search?: string;
+        status?: string;
+        exclude_statuses?: string;
+    }): Promise<ApiExportTransaction[]> =>
+        fetchAllPages((page) =>
+            trackingApi.getExports({
+                ...params,
+                page,
+                per_page: MAX_PAGE_SIZE,
+            }),
+        ),
 
     createExport: async (data: CreateExportPayload): Promise<ApiExportTransaction> => {
         const response = await api.post('/api/export-transactions', data);

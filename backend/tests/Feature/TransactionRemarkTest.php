@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Document;
 use App\Models\ImportTransaction;
 use App\Models\TransactionRemark;
 use App\Models\User;
@@ -32,7 +33,7 @@ test('unauthenticated users cannot resolve remarks', function () {
 // --- Authorization ---
 
 test('non-admin users cannot create remarks', function () {
-    $encoder = User::where('email', 'encoder@morata.com')->firstOrFail();
+    $encoder = User::factory()->create(['email' => 'encoder@morata.com', 'role' => 'encoder']);
     $transaction = ImportTransaction::factory()->create(['assigned_user_id' => $encoder->id]);
 
     $this->actingAs($encoder)
@@ -44,7 +45,7 @@ test('non-admin users cannot create remarks', function () {
 });
 
 test('encoder cannot view remarks on transactions not assigned to them', function () {
-    $encoder = User::where('email', 'encoder@morata.com')->firstOrFail();
+    $encoder = User::factory()->create(['email' => 'encoder@morata.com', 'role' => 'encoder']);
     $otherEncoder = User::factory()->create(['role' => 'encoder']);
     $transaction = ImportTransaction::factory()->create(['assigned_user_id' => $otherEncoder->id]);
 
@@ -54,8 +55,8 @@ test('encoder cannot view remarks on transactions not assigned to them', functio
 });
 
 test('encoder can view remarks on their assigned transaction', function () {
-    $admin = User::where('email', 'admin@morata.com')->firstOrFail();
-    $encoder = User::where('email', 'encoder@morata.com')->firstOrFail();
+    $admin = User::factory()->create(['email' => 'admin@morata.com', 'role' => 'admin']);
+    $encoder = User::factory()->create(['email' => 'encoder@morata.com', 'role' => 'encoder']);
     $transaction = ImportTransaction::factory()->create(['assigned_user_id' => $encoder->id]);
 
     // Admin creates a remark
@@ -75,7 +76,7 @@ test('encoder can view remarks on their assigned transaction', function () {
 // --- Create Remark ---
 
 test('admin can create a remark on an import transaction', function () {
-    $admin = User::where('email', 'admin@morata.com')->firstOrFail();
+    $admin = User::factory()->create(['email' => 'admin@morata.com', 'role' => 'admin']);
     $transaction = ImportTransaction::factory()->create();
 
     $response = $this->actingAs($admin)
@@ -103,7 +104,7 @@ test('admin can create a remark on an import transaction', function () {
 // --- Validation ---
 
 test('creating remark fails without required fields', function () {
-    $admin = User::where('email', 'admin@morata.com')->firstOrFail();
+    $admin = User::factory()->create(['email' => 'admin@morata.com', 'role' => 'admin']);
     $transaction = ImportTransaction::factory()->create();
 
     $this->actingAs($admin)
@@ -113,7 +114,7 @@ test('creating remark fails without required fields', function () {
 });
 
 test('creating remark fails with invalid severity', function () {
-    $admin = User::where('email', 'admin@morata.com')->firstOrFail();
+    $admin = User::factory()->create(['email' => 'admin@morata.com', 'role' => 'admin']);
     $transaction = ImportTransaction::factory()->create();
 
     $this->actingAs($admin)
@@ -126,7 +127,7 @@ test('creating remark fails with invalid severity', function () {
 });
 
 test('creating remark fails with message exceeding 1000 characters', function () {
-    $admin = User::where('email', 'admin@morata.com')->firstOrFail();
+    $admin = User::factory()->create(['email' => 'admin@morata.com', 'role' => 'admin']);
     $transaction = ImportTransaction::factory()->create();
 
     $this->actingAs($admin)
@@ -138,10 +139,29 @@ test('creating remark fails with message exceeding 1000 characters', function ()
         ->assertJsonValidationErrors(['message']);
 });
 
+test('creating remark fails when attached document belongs to another transaction', function () {
+    $admin = User::factory()->create(['email' => 'admin@morata.com', 'role' => 'admin']);
+    $transaction = ImportTransaction::factory()->create();
+    $otherTransaction = ImportTransaction::factory()->create();
+    $document = Document::factory()->create([
+        'documentable_type' => ImportTransaction::class,
+        'documentable_id' => $otherTransaction->id,
+    ]);
+
+    $this->actingAs($admin)
+        ->postJson("/api/transactions/import/{$transaction->id}/remarks", [
+            'severity' => 'warning',
+            'message' => 'Attached to the wrong transaction.',
+            'document_id' => $document->id,
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['document_id']);
+});
+
 // --- Resolve Remark ---
 
 test('admin can resolve a remark', function () {
-    $admin = User::where('email', 'admin@morata.com')->firstOrFail();
+    $admin = User::factory()->create(['email' => 'admin@morata.com', 'role' => 'admin']);
     $transaction = ImportTransaction::factory()->create();
 
     $remark = TransactionRemark::factory()->create([
@@ -163,8 +183,8 @@ test('admin can resolve a remark', function () {
 });
 
 test('assigned encoder can resolve a remark', function () {
-    $admin = User::where('email', 'admin@morata.com')->firstOrFail();
-    $encoder = User::where('email', 'encoder@morata.com')->firstOrFail();
+    $admin = User::factory()->create(['email' => 'admin@morata.com', 'role' => 'admin']);
+    $encoder = User::factory()->create(['email' => 'encoder@morata.com', 'role' => 'encoder']);
     $transaction = ImportTransaction::factory()->create(['assigned_user_id' => $encoder->id]);
 
     $remark = TransactionRemark::factory()->create([
@@ -184,8 +204,8 @@ test('assigned encoder can resolve a remark', function () {
 });
 
 test('unrelated encoder cannot resolve a remark', function () {
-    $admin = User::where('email', 'admin@morata.com')->firstOrFail();
-    $encoder = User::where('email', 'encoder@morata.com')->firstOrFail();
+    $admin = User::factory()->create(['email' => 'admin@morata.com', 'role' => 'admin']);
+    $encoder = User::factory()->create(['email' => 'encoder@morata.com', 'role' => 'encoder']);
     $otherEncoder = User::factory()->create(['role' => 'encoder']);
     $transaction = ImportTransaction::factory()->create(['assigned_user_id' => $otherEncoder->id]);
 
@@ -201,7 +221,7 @@ test('unrelated encoder cannot resolve a remark', function () {
 });
 
 test('resolving an already-resolved remark returns 422', function () {
-    $admin = User::where('email', 'admin@morata.com')->firstOrFail();
+    $admin = User::factory()->create(['email' => 'admin@morata.com', 'role' => 'admin']);
     $transaction = ImportTransaction::factory()->create();
 
     $remark = TransactionRemark::factory()->create([
@@ -221,7 +241,7 @@ test('resolving an already-resolved remark returns 422', function () {
 // --- Invalid transaction type ---
 
 test('creating remark with invalid transaction type returns 404', function () {
-    $admin = User::where('email', 'admin@morata.com')->firstOrFail();
+    $admin = User::factory()->create(['email' => 'admin@morata.com', 'role' => 'admin']);
 
     $this->actingAs($admin)
         ->postJson('/api/transactions/invalid/1/remarks', [

@@ -30,8 +30,8 @@ export const authApi = {
         return response.data;
     },
 
-    // Update profile (name and/or password)
-    async updateProfile(payload: { name?: string; password?: string; password_confirmation?: string }): Promise<User> {
+    // Update profile (name, job title, and/or password)
+    async updateProfile(payload: { name?: string; job_title?: string | null; password?: string; password_confirmation?: string }): Promise<User> {
         // Typically returns UserResource — unwrap { data: User } if present
         const response = await api.put<{ data: User } | User>(`/api/user/profile`, payload);
         return (response.data as { data: User }).data ?? (response.data as User);

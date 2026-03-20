@@ -1,7 +1,8 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getLoginError } from '../../../lib/apiErrors';
 import { useAuth } from "../hooks/useAuth";
+import { getHomePath } from "../utils/access";
 
 export const LoginForm = () => {
   const [email, setEmail] = useState("");
@@ -13,14 +14,6 @@ export const LoginForm = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const getRedirectPath = (role: string, departments: string[]): string => {
-    if (role === 'admin') return '/transactions';
-    if (role === 'encoder') return '/tracking';
-    // Legal-only roles: lawyer, paralegal
-    if (departments.includes('legal')) return '/law-firm';
-    return '/tracking';
-  };
-
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
@@ -28,7 +21,7 @@ export const LoginForm = () => {
 
     try {
       const user = await login({ email, password });
-      navigate(getRedirectPath(user.role, user.departments ?? []));
+      navigate(getHomePath(user));
     } catch (err: unknown) {
       console.error("Login failed:", err);
       setError(getLoginError(err));

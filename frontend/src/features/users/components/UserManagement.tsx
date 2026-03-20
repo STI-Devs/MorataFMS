@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useAuth } from '../../auth/hooks/useAuth';
 import type { LayoutContext } from '../../tracking/types';
@@ -11,11 +11,6 @@ const roleConfig: Record<string, { label: string; color: string; icon: string }>
         label: 'Admin',
         color: '#bf5af2',
         icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z',
-    },
-    lawyer: {
-        label: 'Lawyer',
-        color: '#0a84ff',
-        icon: 'M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3',
     },
     paralegal: {
         label: 'Paralegal',
@@ -223,7 +218,7 @@ export const UserManagement = () => {
                         <table className="w-full">
                             <thead>
                                 <tr className="border-b border-border">
-                                    {['Name', 'Email', 'Role', 'Status', 'Actions'].map((h, i) => (
+                                    {['Name', 'Email', 'Job Title', 'Role', 'Status', 'Actions'].map((h, i) => (
                                         <th key={h} className={`px-5 py-3 text-xs font-semibold uppercase tracking-wider ${i === 0 ? 'text-left' : 'text-center'
                                             } text-text-muted`}>
                                             {h}
@@ -253,7 +248,17 @@ export const UserManagement = () => {
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="px-5 py-3.5 text-sm text-text-secondary text-center">{user.email}</td>
+                                        <td className="px-5 py-3.5 text-sm text-text-secondary text-center">
+                                            <div className="space-y-1">
+                                                <div>{user.email}</div>
+                                                <div className="text-[11px] uppercase tracking-widest text-text-muted">
+                                                    {user.departments.join(' / ')}
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-5 py-3.5 text-center text-sm text-text-secondary">
+                                            {user.job_title || '—'}
+                                        </td>
                                         <td className="px-5 py-3.5 text-center"><RoleBadge role={user.role} /></td>
                                         <td className="px-5 py-3.5 text-center">
                                             <span
@@ -334,3 +339,4 @@ export const UserManagement = () => {
         </div>
     );
 };
+

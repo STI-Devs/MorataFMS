@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests;
 
-use App\Models\User;
+use App\Enums\UserRole;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules;
 
@@ -15,13 +15,17 @@ class StoreUserRequest extends FormRequest
 
     public function rules(): array
     {
-        $validRoles = implode(',', array_keys(User::ROLE_HIERARCHY));
+        $validRoles = implode(',', array_map(
+            static fn (UserRole $role): string => $role->value,
+            UserRole::cases(),
+        ));
 
         return [
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users,email'],
+            'job_title' => ['nullable', 'string', 'max:255'],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'role' => ['required', 'string', 'in:' . $validRoles],
+            'role' => ['required', 'string', 'in:'.$validRoles],
         ];
     }
 }

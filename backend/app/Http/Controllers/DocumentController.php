@@ -2,9 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Documents\StoreTransactionDocument;
 use App\Http\Requests\StoreDocumentRequest;
 use App\Http\Resources\DocumentResource;
 use App\Models\Document;
+use App\Models\ExportTransaction;
+use App\Models\ImportTransaction;
+use Illuminate\Filesystem\AwsS3V3Adapter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
@@ -12,6 +16,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DocumentController extends Controller
 {
+    public function __construct(private StoreTransactionDocument $storeTransactionDocument) {}
+
     /**
      * GET /api/documents
      * List all documents, optionally filtered by transaction.
@@ -41,60 +47,14 @@ class DocumentController extends Controller
     {
         $this->authorize('create', Document::class);
 
-        $file = $request->file('file');
         $validated = $request->validated();
-
-        // Look up BL number and date from the transaction for a human-readable S3 path
-        $transaction = $validated['documentable_type']::find($validated['documentable_id']);
-        $blNo = $transaction?->bl_no ?? '';
-
-        // Derive year and month from transaction date:
-        // arrival_date (imports) → export_date (exports) → created_at → now()
-        $transactionDate = $transaction?->arrival_date
-            ?? $transaction?->export_date
-            ?? $transaction?->created_at
-            ?? now();
-        $transactionYear = $transactionDate->year;
-        $transactionMonth = $transactionDate->month;
-
-        // Generate S3 path: {documents|archives}/{imports|exports}/{year}/{MM-Month}/{BL}/{type}_{name}
-        $isArchive = (bool) ($transaction?->is_archive ?? false);
-        $path = Document::generateS3Path(
-            $validated['documentable_type'],
-            $validated['documentable_id'],
+        $transaction = $this->resolveDocumentable($validated['documentable_type'], $validated['documentable_id']);
+        $document = $this->storeTransactionDocument->handle(
+            $transaction,
+            $request->file('file'),
             $validated['type'],
-            $file->getClientOriginalName(),
-            $blNo,
-            $transactionYear,
-            $isArchive,
-            $transactionMonth,
+            $request->user()->id,
         );
-
-        // Upload file — wrap in transaction so DB record only saves if storage write succeeds
-        $document = \DB::transaction(function () use ($file, $path, $validated, $request) {
-            // writeStream is the only confirmed-working method for this storage config
-            $stream = fopen($file->getRealPath(), 'r');
-            try {
-                Storage::disk(self::storageDisk())->writeStream($path, $stream);
-            } finally {
-                if (is_resource($stream))
-                    fclose($stream);
-            }
-
-
-            $document = new Document($validated);
-            $document->documentable_type = $validated['documentable_type'];
-            $document->documentable_id = $validated['documentable_id'];
-            $document->filename = $file->getClientOriginalName();
-            $document->path = $path;
-            $document->size_bytes = $file->getSize();
-            $document->uploaded_by = $request->user()->id;
-            $document->save();
-
-            return $document;
-        });
-
-        $document->load('uploadedBy');
 
         // Recalculate parent transaction's stage statuses based on uploaded docs
         $parent = $document->documentable;
@@ -139,9 +99,9 @@ class DocumentController extends Controller
         $diskName = self::storageDisk();
 
         if ($diskName === 's3') {
-            /** @var \Illuminate\Filesystem\AwsS3V3Adapter $disk */
+            /** @var AwsS3V3Adapter $disk */
             $disk = Storage::disk($diskName);
-            $url  = $disk->temporaryUrl($document->path, now()->addMinutes(5));
+            $url = $disk->temporaryUrl($document->path, now()->addMinutes(5));
         } else {
             // Local disk — generate a secure signed route that acts like a pre-signed URL
             $url = URL::temporarySignedRoute(
@@ -156,14 +116,14 @@ class DocumentController extends Controller
 
     /**
      * GET /api/documents/{document}/stream
-     * 
+     *
      * Securely streams a file from the local disk when accessed via a signed route.
      * This mimics S3's pre-signed URL behavior natively.
      */
     public function stream(Document $document)
     {
         // Authorization is handled implicitly by the 'signed' middleware route protection.
-        
+
         $disk = Storage::disk(self::storageDisk());
 
         if (! $disk->exists($document->path)) {
@@ -171,7 +131,7 @@ class DocumentController extends Controller
         }
 
         $mimeType = $disk->mimeType($document->path) ?: 'application/octet-stream';
-        $stream   = $disk->readStream($document->path);
+        $stream = $disk->readStream($document->path);
 
         return response()->stream(function () use ($stream) {
             fpassthru($stream);
@@ -179,9 +139,9 @@ class DocumentController extends Controller
                 fclose($stream);
             }
         }, 200, [
-            'Content-Type'        => $mimeType,
-            'Content-Disposition' => 'inline; filename="' . addslashes($document->filename) . '"',
-            'Cache-Control'       => 'no-store',
+            'Content-Type' => $mimeType,
+            'Content-Disposition' => 'inline; filename="'.addslashes($document->filename).'"',
+            'Cache-Control' => 'no-store',
         ]);
     }
 
@@ -195,7 +155,6 @@ class DocumentController extends Controller
     {
         return config('filesystems.document_disk', 's3');
     }
-
 
     /**
      * GET /api/documents/{document}/download
@@ -247,5 +206,13 @@ class DocumentController extends Controller
         }
 
         return response()->noContent();
+    }
+
+    private function resolveDocumentable(string $documentableType, int $documentableId): ImportTransaction|ExportTransaction
+    {
+        return match ($documentableType) {
+            ImportTransaction::class => ImportTransaction::findOrFail($documentableId),
+            ExportTransaction::class => ExportTransaction::findOrFail($documentableId),
+        };
     }
 }

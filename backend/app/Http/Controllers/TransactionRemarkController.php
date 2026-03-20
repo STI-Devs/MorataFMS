@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Remarks\CreateTransactionRemark;
 use App\Http\Requests\StoreRemarkRequest;
 use App\Http\Resources\TransactionRemarkResource;
 use App\Models\ExportTransaction;
@@ -12,6 +13,8 @@ use Illuminate\Http\Request;
 
 class TransactionRemarkController extends Controller
 {
+    public function __construct(private CreateTransactionRemark $createTransactionRemark) {}
+
     /**
      * Resolve the transaction model from the polymorphic {type}/{id} route.
      */
@@ -34,7 +37,7 @@ class TransactionRemarkController extends Controller
         $transaction = $this->resolveTransaction($type, $id);
 
         // Encoders can only see remarks on transactions assigned to them
-        if (!$user->isAdmin() && $transaction->assigned_user_id !== $user->id) {
+        if (! $user->isAdmin() && $transaction->assigned_user_id !== $user->id) {
             abort(403, 'Unauthorized.');
         }
 
@@ -55,17 +58,13 @@ class TransactionRemarkController extends Controller
     public function store(StoreRemarkRequest $request, string $type, string $id): JsonResponse
     {
         $transaction = $this->resolveTransaction($type, $id);
+        $remark = $this->createTransactionRemark->handle(
+            $transaction,
+            $request->validated(),
+            $request->user(),
+        );
 
-        $remark = new TransactionRemark($request->validated());
-        $remark->remarkble_type = get_class($transaction);
-        $remark->remarkble_id = $transaction->id;
-        $remark->author_id = $request->user()->id;
-        $remark->is_resolved = false;
-        $remark->save();
-
-        $remark->load(['author:id,name,role', 'document:id,filename,type']);
-
-        return (TransactionRemarkResource::make($remark))
+        return TransactionRemarkResource::make($remark)
             ->response()
             ->setStatusCode(201);
     }
@@ -80,7 +79,7 @@ class TransactionRemarkController extends Controller
         $transaction = $remark->remarkble;
 
         // Only admin or the assigned encoder can resolve
-        if (!$user->isAdmin() && $transaction->assigned_user_id !== $user->id) {
+        if (! $user->isAdmin() && $transaction->assigned_user_id !== $user->id) {
             abort(403, 'Unauthorized.');
         }
 

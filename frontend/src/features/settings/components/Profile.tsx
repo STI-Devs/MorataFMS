@@ -6,6 +6,7 @@ export const Profile = () => {
     const { user, setUser } = useAuth();
     const [formData, setFormData] = useState({
         name:            user?.name || '',
+        jobTitle:        user?.job_title || '',
         password:        '',
         confirmPassword: '',
     });
@@ -14,7 +15,13 @@ export const Profile = () => {
     const [error,   setError]   = useState<string | null>(null);
 
     useEffect(() => {
-        if (user) setFormData(prev => ({ ...prev, name: user.name || '' }));
+        if (user) {
+            setFormData(prev => ({
+                ...prev,
+                name: user.name || '',
+                jobTitle: user.job_title || '',
+            }));
+        }
     }, [user]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -37,8 +44,9 @@ export const Profile = () => {
 
         setSaving(true);
         try {
-            const payload: { name?: string; password?: string; password_confirmation?: string } = {};
+            const payload: { name?: string; job_title?: string | null; password?: string; password_confirmation?: string } = {};
             if (formData.name.trim())  payload.name = formData.name.trim();
+            payload.job_title = formData.jobTitle.trim() || null;
             if (formData.password) {
                 payload.password              = formData.password;
                 payload.password_confirmation = formData.confirmPassword;
@@ -46,14 +54,15 @@ export const Profile = () => {
 
             const updated = await authApi.updateProfile(payload);
             setUser(updated);
-            setFormData(prev => ({ ...prev, password: '', confirmPassword: '' }));
+            setFormData(prev => ({ ...prev, jobTitle: updated.job_title || '', password: '', confirmPassword: '' }));
             setSuccess(true);
             setTimeout(() => setSuccess(false), 3000);
         } catch (err: unknown) {
-            const e = err as { response?: { data?: { message?: string; errors?: { name?: string[]; password?: string[] } } } };
+            const e = err as { response?: { data?: { message?: string; errors?: { name?: string[]; job_title?: string[]; password?: string[] } } } };
             const msg =
                 e?.response?.data?.message      ||
                 e?.response?.data?.errors?.name?.[0]     ||
+                e?.response?.data?.errors?.job_title?.[0] ||
                 e?.response?.data?.errors?.password?.[0] ||
                 'Failed to update profile. Please try again.';
             setError(msg);
@@ -63,7 +72,8 @@ export const Profile = () => {
     };
 
     const initials  = (user?.name || 'U').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-    const roleLabel = (user?.role || 'user').charAt(0).toUpperCase() + (user?.role || 'user').slice(1);
+    const roleLabel = user?.role_label || ((user?.role || 'user').charAt(0).toUpperCase() + (user?.role || 'user').slice(1));
+    const jobTitleLabel = user?.job_title || 'No job title set';
 
     return (
         <div className="min-h-full flex items-start justify-center py-8 px-4">
@@ -96,6 +106,7 @@ export const Profile = () => {
 
                             <div className="text-center">
                                 <p className="text-sm font-bold text-text-primary">{user?.name || 'User'}</p>
+                                <p className="mt-1 text-xs uppercase tracking-[0.18em] text-text-muted">{jobTitleLabel}</p>
                                 <span className="inline-block mt-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-blue-500/10 text-blue-400">
                                     {roleLabel}
                                 </span>
@@ -107,6 +118,12 @@ export const Profile = () => {
                                         <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                                     </svg>
                                     <span className="truncate">{user?.email || '—'}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <svg className="w-3.5 h-3.5 text-text-muted shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M20 7l-8-4-8 4m16 0v10l-8 4m8-14l-8 4m0 10l-8-4V7m8 14V11M4 7l8 4" />
+                                    </svg>
+                                    <span className="truncate">{jobTitleLabel}</span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <svg className="w-3.5 h-3.5 text-text-muted shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -122,6 +139,7 @@ export const Profile = () => {
 
                             {[
                                 { label: 'Name',         name: 'name',    type: 'text',     value: formData.name,            editable: true,  placeholder: '' },
+                                { label: 'Job Title',    name: 'jobTitle', type: 'text',     value: formData.jobTitle,        editable: true,  placeholder: 'e.g. Lawyer, Managing Partner' },
                                 { label: 'Role',         name: 'role',    type: 'text',     value: roleLabel,                editable: false, placeholder: '' },
                                 { label: 'E-mail',       name: 'email',   type: 'email',    value: user?.email || '',         editable: false, placeholder: '' },
                                 { label: 'New Password', name: 'password', type: 'password', value: formData.password,        editable: true,  placeholder: 'Leave blank to keep current password' },

@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 
 export const Help = () => {
     const [openFaq, setOpenFaq] = useState<number | null>(null);
@@ -22,7 +22,7 @@ export const Help = () => {
         },
         {
             q: 'I need to change my role or permissions.',
-            a: "Role changes must be approved by a supervisor or admin. Please contact your manager and they will coordinate with the system administrator.",
+            a: "Role changes must be approved by an admin. Please coordinate with the system administrator for account access updates.",
         },
     ];
 
@@ -133,3 +133,4 @@ export const Help = () => {
         </div>
     );
 };
+

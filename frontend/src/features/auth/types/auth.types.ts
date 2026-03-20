@@ -1,11 +1,16 @@
-﻿// Auth Types
+import type { AppRole, PermissionMap } from '../../../types/access';
+
+// Auth Types
 export interface User {
     id: number;
     email: string;
     name: string;
-    role: 'admin' | 'encoder' | 'lawyer' | 'paralegal';
+    job_title: string | null;
+    role: AppRole;
+    role_label: string;
     departments: ('brokerage' | 'legal')[];
     multi_department: boolean;
+    permissions: PermissionMap;
 }
 
 export interface LoginCredentials {

@@ -5,9 +5,14 @@ import { FilePreviewModal } from '../../../components/modals/FilePreviewModal';
 import { UploadModal } from '../../../components/modals/UploadModal';
 import { getStatusStyle } from '../../../lib/statusStyles';
 import { trackingApi } from '../../tracking/api/trackingApi';
-import { useExports } from '../../tracking/hooks/useExports';
-import { useImports } from '../../tracking/hooks/useImports';
-import type { ApiDocument, DocumentableType, LayoutContext } from '../../tracking/types';
+import { useTransactionDetail } from '../../tracking/hooks/useTransactionDetail';
+import type {
+    ApiDocument,
+    ApiExportTransaction,
+    ApiImportTransaction,
+    DocumentableType,
+    LayoutContext,
+} from '../../tracking/types';
 import { useDocuments } from '../hooks/useDocuments';
 import { useUploadDocument } from '../hooks/useUploadDocument';
 import { useDocumentPreview } from '../../tracking/hooks/useDocumentPreview';
@@ -80,10 +85,6 @@ function formatBytes(bytes: number): string {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function buildExportRef(id: number) {
-    return `EXP-${String(id).padStart(4, '0')}`;
-}
-
 function mapDocument(doc: ApiDocument): TransactionDoc {
     const uploaderName = doc.uploaded_by?.name ?? 'Unknown';
     return {
@@ -135,22 +136,14 @@ export const DocumentsDetail = () => {
     const [uploadError, setUploadError]           = useState<string | undefined>();
 
     const { previewFile, setPreviewFile, handlePreviewDoc } = useDocumentPreview();
+    const { data: txDetail, isLoading: txnLoading } = useTransactionDetail(ref);
 
-    const { data: importsData, isLoading: importsLoading } = useImports({ per_page: 100 });
-    const { data: exportsData, isLoading: exportsLoading } = useExports({ per_page: 100 });
-    const txnLoading = importsLoading || exportsLoading;
-
-    const matchedImport = (importsData?.data ?? []).find(t => t.customs_ref_no === ref);
-    const matchedExport = (exportsData?.data ?? []).find(t => buildExportRef(t.id) === ref);
-
-    const isImport = !!matchedImport;
-    const txnId    = matchedImport?.id ?? matchedExport?.id ?? 0;
-
+    const txnFound = !!txDetail;
+    const isImport = txDetail?.isImport ?? true;
+    const txnId = txDetail?.raw.id ?? 0;
     const documentableType: DocumentableType = isImport
         ? 'App\\Models\\ImportTransaction'
         : 'App\\Models\\ExportTransaction';
-
-    const txnFound = !!(matchedImport || matchedExport);
 
     const { data: apiDocuments = [], isLoading: docsLoading } = useDocuments(
         documentableType,
@@ -161,13 +154,19 @@ export const DocumentsDetail = () => {
     const documents: TransactionDoc[] = apiDocuments.map(mapDocument);
 
     const { mutate: uploadDocument, isPending: isUploading } = useUploadDocument();
+    const rawImport: ApiImportTransaction | null = txDetail?.isImport
+        ? txDetail.raw as ApiImportTransaction
+        : null;
+    const rawExport: ApiExportTransaction | null = txDetail && !txDetail.isImport
+        ? txDetail.raw as ApiExportTransaction
+        : null;
 
     const handleUpload = (file: File) => {
         setUploadError(undefined);
         uploadDocument(
             {
                 file,
-                type:               file.name.split('.').pop() ?? 'file',
+                type:               'others',
                 documentable_type:  documentableType,
                 documentable_id:    txnId,
             },
@@ -179,9 +178,9 @@ export const DocumentsDetail = () => {
     };
 
     const displayRef    = ref ?? '';
-    const displayClient = matchedImport?.importer?.name ?? matchedExport?.shipper?.name ?? '—';
-    const displayDate   = matchedImport?.arrival_date ?? matchedExport?.created_at.slice(0, 10) ?? '—';
-    const displayStatus = matchedImport?.status ?? matchedExport?.status ?? '—';
+    const displayClient = rawImport?.importer?.name ?? rawExport?.shipper?.name ?? '—';
+    const displayDate   = rawImport?.arrival_date ?? rawExport?.created_at.slice(0, 10) ?? '—';
+    const displayStatus = txDetail?.mapped.status ?? '—';
     const displayType   = isImport ? 'import' : 'export';
 
     const backButton = (
@@ -223,7 +222,7 @@ export const DocumentsDetail = () => {
         );
     }
 
-    const resolvedStatus = matchedImport?.status ?? matchedExport?.status ?? '';
+    const resolvedStatus = txDetail?.raw.status ?? '';
     if (resolvedStatus === 'in_progress') {
         return (
             <div className="space-y-5 p-4">
