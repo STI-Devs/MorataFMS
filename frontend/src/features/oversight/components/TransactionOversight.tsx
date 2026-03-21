@@ -1,7 +1,9 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { Icon } from '../../../components/Icon';
+import { Pagination } from '../../../components/Pagination';
+import { useDebounce } from '../../../hooks/useDebounce';
 import type { LayoutContext } from '../../tracking/types';
 import { useAllTransactions } from '../hooks/useTransactions';
 import type { OversightTransaction } from '../types/transaction.types';
@@ -32,7 +34,10 @@ export const TransactionOversight = () => {
     const { dateTime } = useOutletContext<LayoutContext>();
     const qc = useQueryClient();
 
+    const [page, setPage] = useState(1);
+    const [perPage, setPerPage] = useState(15);
     const [searchTerm, setSearchTerm] = useState('');
+    const debouncedSearch = useDebounce(searchTerm, 300);
     const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
     const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
     const [reassignTarget, setReassignTarget] = useState<OversightTransaction | null>(null);
@@ -40,7 +45,13 @@ export const TransactionOversight = () => {
     const [remarkTarget, setRemarkTarget] = useState<OversightTransaction | null>(null);
     const [detailTarget, setDetailTarget] = useState<OversightTransaction | null>(null);
 
-    const { data, isLoading, isError, refetch } = useAllTransactions();
+    const { data, isLoading, isError, refetch } = useAllTransactions({
+        page,
+        per_page: perPage,
+        search: debouncedSearch,
+        status: statusFilter,
+        type: typeFilter !== 'all' ? typeFilter : undefined,
+    });
 
     const stats = {
         total: data?.total ?? 0,
@@ -48,21 +59,8 @@ export const TransactionOversight = () => {
         exports: data?.exports_count ?? 0,
     };
 
-    const filteredTransactions = useMemo(() => {
-        const transactions: OversightTransaction[] = data?.data ?? [];
-        return transactions.filter((t) => {
-            const matchesType = typeFilter === 'all' || t.type === typeFilter;
-            const matchesStatus = statusFilter === 'all' || t.status === statusFilter;
-            const search = searchTerm.toLowerCase();
-            const matchesSearch =
-                !search ||
-                t.reference_no?.toLowerCase().includes(search) ||
-                t.bl_no?.toLowerCase().includes(search) ||
-                t.client?.toLowerCase().includes(search) ||
-                t.assigned_to?.toLowerCase().includes(search);
-            return matchesType && matchesStatus && matchesSearch;
-        });
-    }, [data, typeFilter, statusFilter, searchTerm]);
+    const transactions: OversightTransaction[] = data?.data ?? [];
+    const meta = data?.meta;
 
     // Invalidate cache after modal success to get fresh data
     const handleReassignSuccess = () => qc.invalidateQueries({ queryKey: ['admin', 'transactions'] });
@@ -121,7 +119,10 @@ export const TransactionOversight = () => {
                             type="text"
                             placeholder="Search by ref, BL, client, encoder..."
                             value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onChange={(e) => {
+                                setSearchTerm(e.target.value);
+                                setPage(1);
+                            }}
                             className="w-full pl-9 pr-3 h-9 rounded-lg border border-border bg-surface text-text-primary text-sm placeholder:text-text-muted focus:outline-none focus:border-blue-500/50 transition-colors"
                         />
                     </div>
@@ -131,7 +132,10 @@ export const TransactionOversight = () => {
                         {(['all', 'import', 'export'] as TypeFilter[]).map((t) => (
                             <button
                                 key={t}
-                                onClick={() => setTypeFilter(t)}
+                                onClick={() => {
+                                    setTypeFilter(t);
+                                    setPage(1);
+                                }}
                                 className={`px-3 py-1 text-xs font-bold capitalize transition-colors ${typeFilter === t
                                     ? 'bg-text-primary text-surface'
                                     : 'bg-surface-secondary text-text-secondary hover:text-text-primary'
@@ -143,7 +147,10 @@ export const TransactionOversight = () => {
                     </div>
                     <select
                         value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+                        onChange={(e) => {
+                            setStatusFilter(e.target.value as StatusFilter);
+                            setPage(1);
+                        }}
                         className="h-9 rounded-md border border-border bg-surface text-text-primary text-sm px-3 focus:outline-none focus:border-blue-500/50 transition-colors cursor-pointer shrink-0"
                     >
                         <option value="all">All Statuses</option>
@@ -164,7 +171,7 @@ export const TransactionOversight = () => {
                         <p className="text-sm text-red-500 font-medium">Failed to load transactions. Please try again.</p>
                         <button onClick={() => refetch()} className="mt-3 text-xs text-blue-500 hover:underline">Retry</button>
                     </div>
-                ) : filteredTransactions.length === 0 ? (
+                ) : transactions.length === 0 ? (
                     <div className="p-12 text-center">
                         <p className="text-text-muted text-sm">
                             {searchTerm || typeFilter !== 'all' || statusFilter !== 'all'
@@ -185,7 +192,7 @@ export const TransactionOversight = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {filteredTransactions.map((t, idx) => {
+                                {transactions.map((t, idx) => {
                                     const sc = STATUS_CFG[t.status] ?? STATUS_CFG.pending;
                                     const tc = TYPE_CFG[t.type] ?? TYPE_CFG.import;
                                     const rowKey = `${t.type}-${t.id}`;
@@ -277,9 +284,22 @@ export const TransactionOversight = () => {
                                 })}
                             </tbody>
                         </table>
-                        <div className="px-5 py-3 border-t border-border text-xs text-text-muted">
-                            Showing {filteredTransactions.length} of {stats.total} transactions
-                        </div>
+                        {meta && meta.last_page > 1 ? (
+                            <Pagination
+                                currentPage={meta.current_page}
+                                totalPages={meta.last_page}
+                                perPage={meta.per_page}
+                                onPageChange={setPage}
+                                onPerPageChange={(value) => {
+                                    setPerPage(value);
+                                    setPage(1);
+                                }}
+                            />
+                        ) : (
+                            <div className="px-5 py-3 border-t border-border text-xs text-text-muted">
+                                Showing {transactions.length} of {stats.total} transactions
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
@@ -314,5 +334,3 @@ export const TransactionOversight = () => {
         </div>
     );
 };
-
-

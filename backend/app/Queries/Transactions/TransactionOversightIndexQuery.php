@@ -7,6 +7,7 @@ use App\Models\ImportTransaction;
 use App\Support\Transactions\ExportStatusWorkflow;
 use App\Support\Transactions\ImportStatusWorkflow;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class TransactionOversightIndexQuery
 {
@@ -15,9 +16,10 @@ class TransactionOversightIndexQuery
         $search = $request->query('search');
         $status = $request->query('status');
         $type = $request->query('type');
+        $perPage = min(max((int) $request->input('per_page', 15), 1), 50);
 
-        $importQuery = ImportTransaction::with(['importer:id,name', 'assignedUser:id,name', 'stages'])
-            ->withCount(['remarks as open_remarks_count' => fn ($query) => $query->where('is_resolved', false)])
+        $importQuery = ImportTransaction::query()
+            ->selectRaw("id, 'import' as type, created_at")
             ->where('is_archive', false);
 
         if ($search) {
@@ -36,8 +38,8 @@ class TransactionOversightIndexQuery
                 : $importQuery->whereIn('status', $importStatuses);
         }
 
-        $exportQuery = ExportTransaction::with(['shipper:id,name', 'assignedUser:id,name', 'destinationCountry:id,name', 'stages'])
-            ->withCount(['remarks as open_remarks_count' => fn ($query) => $query->where('is_resolved', false)])
+        $exportQuery = ExportTransaction::query()
+            ->selectRaw("id, 'export' as type, created_at")
             ->where('is_archive', false);
 
         if ($search) {
@@ -59,43 +61,73 @@ class TransactionOversightIndexQuery
         $importsCount = $type === 'export' ? 0 : (clone $importQuery)->count();
         $exportsCount = $type === 'import' ? 0 : (clone $exportQuery)->count();
 
-        $imports = $type === 'export'
-            ? collect()
-            : $importQuery->orderByDesc('created_at')->get();
-        $exports = $type === 'import'
-            ? collect()
-            : $exportQuery->orderByDesc('created_at')->get();
+        $unionQuery = match ($type) {
+            'import' => $importQuery->toBase(),
+            'export' => $exportQuery->toBase(),
+            default => $importQuery->toBase()->unionAll($exportQuery->toBase()),
+        };
 
-        $data = collect();
+        $paginator = DB::query()
+            ->fromSub($unionQuery, 'oversight_transactions')
+            ->orderByDesc('created_at')
+            ->paginate($perPage);
 
-        foreach ($imports as $transaction) {
-            $data->push([
-                'id' => $transaction->id,
-                'type' => 'import',
-                'reference_no' => $transaction->customs_ref_no,
-                'bl_no' => $transaction->bl_no,
-                'client' => $transaction->importer?->name,
-                'client_id' => $transaction->importer_id,
-                'date' => $transaction->arrival_date?->toDateString(),
-                'status' => $transaction->status,
-                'selective_color' => $transaction->selective_color,
-                'assigned_to' => $transaction->assignedUser?->name,
-                'assigned_user_id' => $transaction->assigned_user_id,
-                'open_remarks_count' => $transaction->open_remarks_count ?? 0,
-                'created_at' => $transaction->created_at?->toISOString(),
-                'stages' => $transaction->stages ? [
-                    'boc' => $transaction->stages->boc_status,
-                    'ppa' => $transaction->stages->ppa_status,
-                    'do' => $transaction->stages->do_status,
-                    'port_charges' => $transaction->stages->port_charges_status,
-                    'releasing' => $transaction->stages->releasing_status,
-                    'billing' => $transaction->stages->billing_status,
-                ] : null,
-            ]);
-        }
+        $items = collect($paginator->items());
+        $importIds = $items->where('type', 'import')->pluck('id');
+        $exportIds = $items->where('type', 'export')->pluck('id');
 
-        foreach ($exports as $transaction) {
-            $data->push([
+        $imports = ImportTransaction::with(['importer:id,name', 'assignedUser:id,name', 'stages'])
+            ->withCount(['remarks as open_remarks_count' => fn ($query) => $query->where('is_resolved', false)])
+            ->whereIn('id', $importIds)
+            ->get()
+            ->keyBy('id');
+
+        $exports = ExportTransaction::with(['shipper:id,name', 'assignedUser:id,name', 'destinationCountry:id,name', 'stages'])
+            ->withCount(['remarks as open_remarks_count' => fn ($query) => $query->where('is_resolved', false)])
+            ->whereIn('id', $exportIds)
+            ->get()
+            ->keyBy('id');
+
+        $data = $items->map(function ($item) use ($imports, $exports) {
+            if ($item->type === 'import') {
+                $transaction = $imports->get($item->id);
+
+                if (! $transaction) {
+                    return null;
+                }
+
+                return [
+                    'id' => $transaction->id,
+                    'type' => 'import',
+                    'reference_no' => $transaction->customs_ref_no,
+                    'bl_no' => $transaction->bl_no,
+                    'client' => $transaction->importer?->name,
+                    'client_id' => $transaction->importer_id,
+                    'date' => $transaction->arrival_date?->toDateString(),
+                    'status' => $transaction->status,
+                    'selective_color' => $transaction->selective_color,
+                    'assigned_to' => $transaction->assignedUser?->name,
+                    'assigned_user_id' => $transaction->assigned_user_id,
+                    'open_remarks_count' => $transaction->open_remarks_count ?? 0,
+                    'created_at' => $transaction->created_at?->toISOString(),
+                    'stages' => $transaction->stages ? [
+                        'boc' => $transaction->stages->boc_status,
+                        'ppa' => $transaction->stages->ppa_status,
+                        'do' => $transaction->stages->do_status,
+                        'port_charges' => $transaction->stages->port_charges_status,
+                        'releasing' => $transaction->stages->releasing_status,
+                        'billing' => $transaction->stages->billing_status,
+                    ] : null,
+                ];
+            }
+
+            $transaction = $exports->get($item->id);
+
+            if (! $transaction) {
+                return null;
+            }
+
+            return [
                 'id' => $transaction->id,
                 'type' => 'export',
                 'reference_no' => null,
@@ -117,14 +149,20 @@ class TransactionOversightIndexQuery
                     'cil' => $transaction->stages->cil_status,
                     'bl' => $transaction->stages->bl_status,
                 ] : null,
-            ]);
-        }
+            ];
+        })->filter()->values();
 
         return [
-            'data' => $data->sortByDesc('created_at')->values(),
+            'data' => $data,
             'total' => $importsCount + $exportsCount,
             'imports_count' => $importsCount,
             'exports_count' => $exportsCount,
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'total_records' => $paginator->total(),
+            ],
         ];
     }
 }

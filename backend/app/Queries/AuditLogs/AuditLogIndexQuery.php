@@ -3,6 +3,7 @@
 namespace App\Queries\AuditLogs;
 
 use App\Models\AuditLog;
+use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -36,11 +37,11 @@ class AuditLogIndexQuery
         };
 
         if ($from = $request->query('from')) {
-            $query->whereDate('created_at', '>=', $from);
+            $query->where('created_at', '>=', CarbonImmutable::parse($from)->startOfDay());
         }
 
         if ($to = $request->query('to')) {
-            $query->whereDate('created_at', '<=', $to);
+            $query->where('created_at', '<', CarbonImmutable::parse($to)->addDay()->startOfDay());
         }
 
         if ($search = $request->query('search')) {

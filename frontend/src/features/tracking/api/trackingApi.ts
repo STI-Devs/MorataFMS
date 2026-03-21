@@ -7,6 +7,7 @@ import type {
     ApiImportTransaction,
     CreateExportPayload,
     CreateImportPayload,
+    DocumentTransactionListResponse,
     DocumentableType,
     PaginatedResponse,
     TransactionStats,
@@ -206,6 +207,16 @@ export const trackingApi = {
         return response.data.data;
     },
 
+    getDocumentTransactions: async (params?: {
+        search?: string;
+        type?: 'import' | 'export';
+        page?: number;
+        per_page?: number;
+    }): Promise<DocumentTransactionListResponse> => {
+        const response = await api.get('/api/documents/transactions', { params });
+        return response.data;
+    },
+
     uploadDocument: async (payload: UploadDocumentPayload): Promise<ApiDocument> => {
         const formData = new FormData();
         formData.append('file', payload.file);
@@ -243,4 +254,3 @@ export const trackingApi = {
         return data.url;
     },
 };
-

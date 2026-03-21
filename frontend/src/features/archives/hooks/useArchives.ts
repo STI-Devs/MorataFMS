@@ -1,4 +1,4 @@
-﻿import { useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import type { ArchiveYear } from '../../documents/types/document.types';
 import { trackingApi } from '../../tracking/api/trackingApi';
 

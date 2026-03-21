@@ -4,6 +4,7 @@ namespace App\Queries\Reports;
 
 use App\Models\ExportTransaction;
 use App\Models\ImportTransaction;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
@@ -11,16 +12,20 @@ class MonthlyReportQuery
 {
     public function handle(int $year): array
     {
+        [$start, $end] = $this->yearBounds($year);
+
         $imports = $this->monthlyCounts(
             ImportTransaction::query()
                 ->where('is_archive', false)
-                ->whereYear('created_at', $year)
+                ->where('created_at', '>=', $start)
+                ->where('created_at', '<', $end)
         );
 
         $exports = $this->monthlyCounts(
             ExportTransaction::query()
                 ->where('is_archive', false)
-                ->whereYear('created_at', $year)
+                ->where('created_at', '>=', $start)
+                ->where('created_at', '<', $end)
         );
 
         $months = [];
@@ -72,5 +77,15 @@ class MonthlyReportQuery
             ->get(['created_at'])
             ->groupBy(fn ($record) => $record->created_at?->month)
             ->map->count();
+    }
+
+    /**
+     * @return array{0: CarbonImmutable, 1: CarbonImmutable}
+     */
+    private function yearBounds(int $year): array
+    {
+        $start = CarbonImmutable::create($year, 1, 1, 0, 0, 0);
+
+        return [$start, $start->addYear()];
     }
 }

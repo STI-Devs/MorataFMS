@@ -16,5 +16,6 @@ export const trackingKeys = {
         all: ['documents'] as const,
         list: (documentableType: DocumentableType | undefined, documentableId: number | undefined) =>
             ['documents', documentableType, documentableId] as const,
+        transactions: (params?: unknown) => ['documents', 'transactions', params] as const,
     },
 };

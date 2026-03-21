@@ -1,4 +1,4 @@
-﻿export interface ImportStages {
+export interface ImportStages {
     boc: string;
     ppa: string;
     do: string;
@@ -38,6 +38,20 @@ export interface OversightListResponse {
     total: number;
     imports_count: number;
     exports_count: number;
+    meta: {
+        current_page: number;
+        last_page: number;
+        per_page: number;
+        total_records: number;
+    };
+}
+
+export interface OversightQueryParams {
+    page?: number;
+    per_page?: number;
+    search?: string;
+    status?: string;
+    type?: 'import' | 'export';
 }
 
 export interface EncoderUser {

@@ -1,18 +1,23 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useOutletContext, useSearchParams } from 'react-router-dom';
 import { Icon } from '../../../components/Icon';
 import { Pagination } from '../../../components/Pagination';
 import { useDebounce } from '../../../hooks/useDebounce';
+import { trackingApi } from '../api/trackingApi';
 import { useCancelTransaction } from '../hooks/useCancelTransaction';
 import { useCreateTransaction } from '../hooks/useCreateTransaction';
 import { useTransactionList } from '../hooks/useTransactionList';
 import { useTransactionStats } from '../hooks/useTransactionStats';
 import type { ApiExportTransaction, ApiImportTransaction, CreateExportPayload, CreateImportPayload, LayoutContext } from '../types';
 import { trackingKeys } from '../utils/queryKeys';
-import { fetchTransactionDetail } from '../utils/transactionDetail';
 import { CancelTransactionModal } from './CancelTransactionModal';
 import { EncodeModal } from './EncodeModal';
 import { useQueryClient } from '@tanstack/react-query';
+
+function getPagesToPrefetch(currentPage: number, totalPages: number): number[] {
+    return Array.from({ length: 3 }, (_, index) => currentPage + index + 1)
+        .filter((pageNumber) => pageNumber <= totalPages);
+}
 
 
 export interface TransactionListPageProps<T> {
@@ -66,15 +71,16 @@ export function TransactionListPage<T>({
     const createMutation = useCreateTransaction(type);
     const cancelMutation = useCancelTransaction(type);
 
-    const { data: response, isLoading, isFetching } = useTransactionList(type, {
+    const baseParams = useMemo(() => ({
         search: debouncedSearch || undefined,
-        // When user picks a status explicitly, honour it; otherwise hide finalized (in Documents)
         status: filterType === 'Status' ? filterValue : undefined,
         exclude_statuses: filterType === 'Status' ? undefined : 'completed,cancelled',
         selective_color: filterType === 'SC' ? filterValue : undefined,
         page,
         per_page: perPage,
-    });
+    }), [debouncedSearch, filterType, filterValue, page, perPage]);
+
+    const { data: response, isLoading, isFetching } = useTransactionList(type, baseParams);
 
     const data = useMemo(() => mapResponseData(response?.data ?? []), [response, mapResponseData]);
     const stats = statsQuery.data;
@@ -93,6 +99,47 @@ export function TransactionListPage<T>({
     const overdueCount = Number(stats?.overdue ?? 0);
     const total = pendingCount + inProgressCount;
     const isLoadingStats = statsQuery.isLoading || isLoading;
+
+    useEffect(() => {
+        const meta = response?.meta;
+
+        if (!meta || meta.last_page <= 1) {
+            return;
+        }
+
+        const pagesToPrefetch = getPagesToPrefetch(page, meta.last_page);
+
+        for (const pageNumber of pagesToPrefetch) {
+            if (type === 'import') {
+                const params = {
+                    ...baseParams,
+                    page: pageNumber,
+                };
+
+                void queryClient.prefetchQuery({
+                    queryKey: trackingKeys.imports.list(params),
+                    queryFn: () => trackingApi.getImports(params),
+                    staleTime: 5 * 60 * 1000,
+                });
+
+                continue;
+            }
+
+            const params = {
+                search: baseParams.search,
+                status: baseParams.status,
+                exclude_statuses: baseParams.exclude_statuses,
+                page: pageNumber,
+                per_page: baseParams.per_page,
+            };
+
+            void queryClient.prefetchQuery({
+                queryKey: trackingKeys.exports.list(params),
+                queryFn: () => trackingApi.getExports(params),
+                staleTime: 5 * 60 * 1000,
+            });
+        }
+    }, [baseParams, page, queryClient, response?.meta, type]);
 
     const statCards = [
         { label: 'Active Shipments', value: total, dot: '#0a84ff', sub: 'Total active' },
@@ -290,16 +337,6 @@ export function TransactionListPage<T>({
                                     className={`grid gap-4 py-3 items-center cursor-pointer transition-all px-4 hover:bg-hover border-b border-border/50 ${i % 2 !== 0 ? 'bg-surface-secondary/40' : ''}`}
                                     style={{ gridTemplateColumns }}
                                     onClick={() => navigate(`/tracking/${(row as { ref?: string }).ref ?? ''}`)}
-                                    onMouseEnter={() => {
-                                        const ref = (row as { ref?: string }).ref;
-                                        if (ref) {
-                                            queryClient.prefetchQuery({
-                                                queryKey: trackingKeys.detail(ref),
-                                                queryFn: () => fetchTransactionDetail(ref),
-                                                staleTime: 5 * 60 * 1000,
-                                            });
-                                        }
-                                    }}
                                 >
                                     {renderRow(row, i, navigate, (id, ref) => setCancelTarget({ id, ref }))}
                                 </div>

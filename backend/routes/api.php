@@ -50,6 +50,7 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
     Route::get('/countries', [CountryController::class, 'index']);
 
     // Document management
+    Route::get('documents/transactions', [DocumentController::class, 'transactions']);
     Route::apiResource('documents', DocumentController::class)->except(['update']);
     Route::get('documents/{document}/download', [DocumentController::class, 'download']);
     Route::get('documents/{document}/preview', [DocumentController::class, 'preview']);

@@ -3,8 +3,9 @@ import { useNavigate, useOutletContext, useSearchParams } from 'react-router-dom
 import { Icon } from '../../../components/Icon';
 import { Pagination } from '../../../components/Pagination';
 import { UploadModal } from '../../../components/modals/UploadModal';
-import { useAllExportsData, useAllImportsData } from '../../tracking/hooks/useAllTransactionRecords';
+import { useDebounce } from '../../../hooks/useDebounce';
 import type { LayoutContext } from '../../tracking/types';
+import { useDocumentTransactions } from '../hooks/useDocumentTransactions';
 
 
 type TransactionType = 'import' | 'export';
@@ -37,11 +38,6 @@ const FILTER_LABELS: Record<TypeFilter, string> = {
 };
 
 const TABLE_GRID = '110px 140px 1.4fr 1fr 110px 110px';
-
-
-function buildExportRef(id: number) {
-    return `EXP-${String(id).padStart(4, '0')}`;
-}
 
 /** Convert ALL CAPS or mixed-case strings to Title Case */
 function toTitleCase(str: string): string {
@@ -96,6 +92,7 @@ export const Documents = () => {
     const perPage = parseInt(searchParams.get('per_page') || '10');
 
     const [searchQuery, setSearchQuery] = useState('');
+    const debouncedSearch = useDebounce(searchQuery, 400);
     const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [isUploadOpen, setIsUploadOpen] = useState(false);
@@ -103,78 +100,54 @@ export const Documents = () => {
     const setPage = (p: number) => setSearchParams(prev => { prev.set('page', String(p)); return prev; });
     const setPerPage = (pp: number) => setSearchParams(prev => { prev.set('per_page', String(pp)); prev.set('page', '1'); return prev; });
 
-    // Fetch all finalized transactions (completed + cancelled) — filter client-side
     const {
-        data: importsData,
-        isLoading: importsLoading,
-        isError: importsError,
-    } = useAllImportsData();
+        data: response,
+        isLoading,
+        isError,
+    } = useDocumentTransactions({
+        search: debouncedSearch || undefined,
+        type: typeFilter === 'all' ? undefined : typeFilter,
+        page,
+        per_page: perPage,
+    });
 
-    const {
-        data: exportsData,
-        isLoading: exportsLoading,
-        isError: exportsError,
-    } = useAllExportsData();
-
-    const isLoading = importsLoading || exportsLoading;
-    const isError = importsError || exportsError;
-
-    const importRows: DocumentRow[] = (importsData ?? []).map(t => ({
-        id: t.id,
-        ref: t.customs_ref_no,
-        blNo: t.bl_no || '—',
-        client: t.importer?.name ?? '—',
-        type: 'import',
-        date: t.arrival_date,
-        dateLabel: 'Arrival',
-        port: '—',
-        vessel: '—',
-        status: t.status,
-        docCount: t.documents_count,
+    const rows: DocumentRow[] = (response?.data ?? []).map(row => ({
+        id: row.id,
+        ref: row.ref,
+        blNo: row.bl_no || '—',
+        client: row.client || '—',
+        type: row.type,
+        date: row.date,
+        dateLabel: row.date_label,
+        port: row.port || '—',
+        vessel: row.vessel || '—',
+        status: row.status,
+        docCount: row.documents_count,
     }));
 
-    const exportRows: DocumentRow[] = (exportsData ?? []).map(t => ({
-        id: t.id,
-        ref: buildExportRef(t.id),
-        blNo: t.bl_no || '—',
-        client: t.shipper?.name ?? '—',
-        type: 'export',
-        date: t.created_at.slice(0, 10),
-        dateLabel: 'Export',
-        port: t.destination_country?.name ?? '—',
-        vessel: t.vessel || '—',
-        status: t.status,
-        docCount: t.documents_count,
-    }));
-
-    // Only finalized transactions: completed or cancelled
-    const rows: DocumentRow[] = [...importRows, ...exportRows]
-        .filter(r => r.status === 'completed' || r.status === 'cancelled');
-
-    const importCount = rows.filter(r => r.type === 'import').length;
-    const exportCount = rows.filter(r => r.type === 'export').length;
-    const cancelledCount = rows.filter(r => r.status === 'cancelled').length;
-    const totalDocs = rows.reduce((s, r) => s + r.docCount, 0);
-    const missingDocs = rows.filter(r => r.docCount === 0).length;
+    const counts = response?.counts;
+    const meta = response?.meta;
+    const totalDocs = rows.reduce((sum, row) => sum + row.docCount, 0);
+    const missingDocs = rows.filter(row => row.docCount === 0).length;
 
     const stats = [
         {
             label: 'Completed Transactions',
-            value: rows.length - cancelledCount,
-            sub: `${rows.length - cancelledCount} shipments cleared`,
+            value: counts?.completed ?? 0,
+            sub: `${counts?.completed ?? 0} shipments cleared`,
             color: '#0a84ff',
             icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2',
         },
         {
             label: 'Import Cleared',
-            value: importCount,
+            value: counts?.imports ?? 0,
             sub: 'Inbound shipments',
             color: '#0a84ff',
             icon: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12',
         },
         {
             label: 'Export Shipped',
-            value: exportCount,
+            value: counts?.exports ?? 0,
             sub: 'Outbound shipments',
             color: '#30d158',
             icon: 'M12 19l9 2-9-18-9 18 9-2zm0 0v-8',
@@ -182,28 +155,11 @@ export const Documents = () => {
         {
             label: 'Total Files',
             value: totalDocs,
-            sub: missingDocs > 0 ? `⚠ ${missingDocs} shipments missing docs` : 'All shipments have files',
+            sub: missingDocs > 0 ? `${missingDocs} visible shipments missing docs` : 'Visible shipments have files',
             color: missingDocs > 0 ? '#ff9f0a' : '#30d158',
             icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
         },
     ];
-
-    // Client-side search + type filter on completed rows
-    const filtered = rows.filter(r => {
-        const matchType = typeFilter === 'all' || r.type === typeFilter;
-        const q = searchQuery.toLowerCase();
-        const matchSearch = !q
-            || r.blNo.toLowerCase().includes(q)
-            || r.ref.toLowerCase().includes(q)
-            || r.client.toLowerCase().includes(q);
-        return matchType && matchSearch;
-    });
-
-    // Client-side pagination over the filtered results
-    const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
-    const safePage = Math.min(page, totalPages);
-    const pageStart = (safePage - 1) * perPage;
-    const paginated = filtered.slice(pageStart, pageStart + perPage);
 
     const handleTypeFilter = (cat: TypeFilter) => {
         setTypeFilter(cat);
@@ -329,24 +285,25 @@ export const Documents = () => {
                 ) : (
                     <>
                         <div>
-                            {filtered.length === 0 ? (
+                            {rows.length === 0 ? (
                                 <div className="py-16 flex flex-col items-center gap-3 text-text-muted">
                                     <Icon name="file-text" className="w-10 h-10 opacity-30" />
                                     <p className="text-sm font-semibold">
-                                        {rows.length === 0
+                                        {response?.meta?.total === 0
                                             ? 'No completed transactions yet'
                                             : 'No transactions match your filter'}
                                     </p>
-                                    {rows.length === 0 && (
+                                    {response?.meta?.total === 0 && (
                                         <p className="text-xs text-center max-w-xs">
                                             Completed import and export transactions will appear here once all stages are done.
                                         </p>
                                     )}
                                 </div>
                             ) : (
-                                paginated.map((row, i) => {
+                                rows.map((row, i) => {
                                     const tc = TYPE_CONFIG[row.type];
                                     const isMissingDocs = row.docCount === 0;
+                                    const normalizedStatus = row.status.toLowerCase();
                                     return (
                                         <div
                                             key={row.id}
@@ -380,7 +337,7 @@ export const Documents = () => {
 
                                             {/* Status badge — dynamic based on status + type */}
                                             <div className="flex justify-center">
-                                                {row.status === 'cancelled' ? (
+                                                {normalizedStatus === 'cancelled' ? (
                                                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold" style={{ color: '#ff453a', backgroundColor: 'rgba(255,69,58,0.13)' }}>
                                                         <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ backgroundColor: '#ff453a', boxShadow: '0 0 4px #ff453a' }} />
                                                         Cancelled
@@ -418,10 +375,10 @@ export const Documents = () => {
                         </div>
 
                         {/* Pagination */}
-                        {filtered.length > 0 && (
+                        {meta && meta.last_page > 1 && (
                             <Pagination
-                                currentPage={safePage}
-                                totalPages={totalPages}
+                                currentPage={meta.current_page}
+                                totalPages={meta.last_page}
                                 perPage={perPage}
                                 onPageChange={setPage}
                                 onPerPageChange={setPerPage}

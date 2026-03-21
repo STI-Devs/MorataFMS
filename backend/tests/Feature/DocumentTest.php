@@ -28,6 +28,45 @@ test('authenticated users can list documents', function () {
     $response->assertStatus(200);
 });
 
+test('authenticated users can list finalized document transactions with pagination', function () {
+    $user = User::factory()->create(['role' => 'encoder']);
+
+    $importTransaction = ImportTransaction::factory()->create([
+        'customs_ref_no' => 'IMP-DOC-001',
+        'bl_no' => 'BL-IMP-DOC-001',
+        'status' => 'Completed',
+    ]);
+    Document::factory()->count(2)->create([
+        'documentable_type' => ImportTransaction::class,
+        'documentable_id' => $importTransaction->id,
+    ]);
+
+    ExportTransaction::factory()->create([
+        'bl_no' => 'BL-EXP-DOC-001',
+        'status' => 'Cancelled',
+    ]);
+
+    ImportTransaction::factory()->create([
+        'customs_ref_no' => 'IMP-PENDING-001',
+        'bl_no' => 'BL-PENDING-001',
+        'status' => 'Pending',
+    ]);
+
+    $response = $this->actingAs($user)
+        ->getJson('/api/documents/transactions?type=import&search=IMP-DOC&per_page=1')
+        ->assertOk();
+
+    $response
+        ->assertJsonPath('meta.per_page', 1)
+        ->assertJsonPath('meta.total', 1)
+        ->assertJsonPath('counts.imports', 1)
+        ->assertJsonPath('counts.exports', 0)
+        ->assertJsonPath('counts.completed', 1)
+        ->assertJsonPath('counts.cancelled', 0)
+        ->assertJsonPath('data.0.ref', 'IMP-DOC-001')
+        ->assertJsonPath('data.0.documents_count', 2);
+});
+
 test('encoder can upload a document to an import transaction', function () {
     $user = User::factory()->create(['role' => 'encoder']);
     $import = ImportTransaction::factory()->create();
@@ -148,7 +187,7 @@ test('documents can be filtered by transaction', function () {
 
     $this->actingAs($user);
 
-    $response = $this->getJson('/api/documents?' . http_build_query([
+    $response = $this->getJson('/api/documents?'.http_build_query([
         'documentable_type' => 'App\Models\ImportTransaction',
         'documentable_id' => $import1->id,
     ]));

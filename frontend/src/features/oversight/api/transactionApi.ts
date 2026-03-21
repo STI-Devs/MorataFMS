@@ -1,10 +1,10 @@
 import api from '../../../lib/axios';
-import type { EncoderUser, OversightListResponse } from '../types/transaction.types';
+import type { EncoderUser, OversightListResponse, OversightQueryParams } from '../types/transaction.types';
 
 export const transactionApi = {
     // Get all transactions combined (admin)
-    async getAllTransactions(): Promise<OversightListResponse> {
-        const response = await api.get('/api/transactions');
+    async getAllTransactions(params?: OversightQueryParams): Promise<OversightListResponse> {
+        const response = await api.get('/api/transactions', { params });
         return response.data;
     },
 

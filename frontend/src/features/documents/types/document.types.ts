@@ -49,6 +49,38 @@ export interface ArchiveYear {
     documents: ArchiveDocument[];
 }
 
+export interface DocumentTransactionListRow {
+    id: number;
+    type: TransactionType;
+    ref: string;
+    bl_no: string;
+    client: string;
+    date: string;
+    date_label: string;
+    port: string;
+    vessel: string;
+    status: string;
+    documents_count: number;
+}
+
+export interface DocumentTransactionCounts {
+    completed: number;
+    imports: number;
+    exports: number;
+    cancelled: number;
+}
+
+export interface DocumentTransactionListResponse {
+    data: DocumentTransactionListRow[];
+    counts: DocumentTransactionCounts;
+    meta: {
+        current_page: number;
+        last_page: number;
+        per_page: number;
+        total: number;
+    };
+}
+
 
 /** Per-stage file attachment used in the legacy upload form */
 export interface StageUpload {

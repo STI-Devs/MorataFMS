@@ -16,5 +16,6 @@ export const useExports = (params?: UseExportsParams) => {
         queryKey: trackingKeys.exports.list(params),
         queryFn: () => trackingApi.getExports(params),
         placeholderData: keepPreviousData,
+        enabled: params !== undefined,
     });
 };

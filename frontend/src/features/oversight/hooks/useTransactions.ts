@@ -1,10 +1,12 @@
-﻿import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { transactionApi } from '../api/transactionApi';
+import type { OversightQueryParams } from '../types/transaction.types';
 
-export const useAllTransactions = () =>
+export const useAllTransactions = (params?: OversightQueryParams) =>
     useQuery({
-        queryKey: ['admin', 'transactions'],
-        queryFn: () => transactionApi.getAllTransactions(),
+        queryKey: ['admin', 'transactions', params],
+        queryFn: () => transactionApi.getAllTransactions(params),
+        placeholderData: keepPreviousData,
     });
 
 export const useEncoders = () =>

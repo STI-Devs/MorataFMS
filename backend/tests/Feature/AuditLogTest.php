@@ -229,3 +229,46 @@ test('audit logs include user information', function () {
         ],
     ]);
 });
+
+test('audit logs date filters include only records inside the requested day range', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+
+    AuditLog::query()->insert([
+        [
+            'auditable_type' => 'App\Models\User',
+            'auditable_id' => $admin->id,
+            'user_id' => $admin->id,
+            'event' => 'created',
+            'created_at' => '2026-03-04 23:59:59',
+        ],
+        [
+            'auditable_type' => 'App\Models\User',
+            'auditable_id' => $admin->id,
+            'user_id' => $admin->id,
+            'event' => 'updated',
+            'created_at' => '2026-03-05 00:00:00',
+        ],
+        [
+            'auditable_type' => 'App\Models\User',
+            'auditable_id' => $admin->id,
+            'user_id' => $admin->id,
+            'event' => 'deleted',
+            'created_at' => '2026-03-05 23:59:59',
+        ],
+        [
+            'auditable_type' => 'App\Models\User',
+            'auditable_id' => $admin->id,
+            'user_id' => $admin->id,
+            'event' => 'created',
+            'created_at' => '2026-03-06 00:00:00',
+        ],
+    ]);
+
+    $response = $this->actingAs($admin)
+        ->getJson('/api/audit-logs?from=2026-03-05&to=2026-03-05')
+        ->assertOk();
+
+    $events = collect($response->json('data'))->pluck('event')->all();
+
+    expect($events)->toBe(['deleted', 'updated']);
+});

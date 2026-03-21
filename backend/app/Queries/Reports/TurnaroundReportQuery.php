@@ -6,6 +6,7 @@ use App\Models\ExportTransaction;
 use App\Models\ImportTransaction;
 use App\Support\Transactions\ExportStatusWorkflow;
 use App\Support\Transactions\ImportStatusWorkflow;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
@@ -13,23 +14,19 @@ class TurnaroundReportQuery
 {
     public function handle(int $year, ?int $month = null): array
     {
+        [$start, $end] = $this->periodBounds($year, $month);
+
         $importQuery = ImportTransaction::query()
             ->where('is_archive', false)
             ->where('status', ImportStatusWorkflow::completed())
-            ->whereYear('created_at', $year);
-
-        if ($month !== null) {
-            $importQuery->whereMonth('created_at', $month);
-        }
+            ->where('created_at', '>=', $start)
+            ->where('created_at', '<', $end);
 
         $exportQuery = ExportTransaction::query()
             ->where('is_archive', false)
             ->where('status', ExportStatusWorkflow::completed())
-            ->whereYear('created_at', $year);
-
-        if ($month !== null) {
-            $exportQuery->whereMonth('created_at', $month);
-        }
+            ->where('created_at', '>=', $start)
+            ->where('created_at', '<', $end);
 
         return [
             'imports' => $this->statsFor($importQuery),
@@ -93,5 +90,19 @@ class TurnaroundReportQuery
             'min_days' => $stats?->min_days !== null ? (int) $stats->min_days : null,
             'max_days' => $stats?->max_days !== null ? (int) $stats->max_days : null,
         ];
+    }
+
+    /**
+     * @return array{0: CarbonImmutable, 1: CarbonImmutable}
+     */
+    private function periodBounds(int $year, ?int $month = null): array
+    {
+        $start = CarbonImmutable::create($year, $month ?? 1, 1, 0, 0, 0);
+
+        if ($month === null) {
+            return [$start, $start->addYear()];
+        }
+
+        return [$start, $start->addMonth()];
     }
 }

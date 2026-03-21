@@ -19,6 +19,32 @@ test('admin can access the transaction oversight dashboard', function () {
         ]);
 });
 
+test('admin can filter and paginate transaction oversight results', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+
+    ImportTransaction::factory()->count(2)->create([
+        'status' => 'Pending',
+        'is_archive' => false,
+    ]);
+    ImportTransaction::factory()->create([
+        'status' => 'Completed',
+        'is_archive' => true,
+    ]);
+
+    $response = $this->actingAs($admin)
+        ->getJson('/api/transactions?type=import&per_page=1')
+        ->assertOk();
+
+    $response
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('imports_count', 2)
+        ->assertJsonPath('exports_count', 0)
+        ->assertJsonPath('total', 2)
+        ->assertJsonPath('meta.per_page', 1)
+        ->assertJsonPath('meta.total_records', 2)
+        ->assertJsonPath('data.0.type', 'import');
+});
+
 test('non admins cannot access the transaction oversight dashboard', function () {
     $encoder = User::factory()->create(['role' => 'encoder']);
 

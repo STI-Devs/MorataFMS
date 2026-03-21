@@ -4,20 +4,20 @@ namespace App\Queries\Reports;
 
 use App\Models\ExportTransaction;
 use App\Models\ImportTransaction;
+use Carbon\CarbonImmutable;
 
 class ClientReportQuery
 {
     public function handle(int $year, ?int $month = null): array
     {
+        [$start, $end] = $this->periodBounds($year, $month);
+
         $importQuery = ImportTransaction::query()
             ->where('is_archive', false)
-            ->whereYear('import_transactions.created_at', $year)
+            ->where('import_transactions.created_at', '>=', $start)
+            ->where('import_transactions.created_at', '<', $end)
             ->join('clients', 'import_transactions.importer_id', '=', 'clients.id')
             ->selectRaw('clients.id as client_id, clients.name as client_name, clients.type as client_type, COUNT(*) as imports');
-
-        if ($month !== null) {
-            $importQuery->whereMonth('import_transactions.created_at', $month);
-        }
 
         $importCounts = $importQuery
             ->groupBy('clients.id', 'clients.name', 'clients.type')
@@ -26,13 +26,10 @@ class ClientReportQuery
 
         $exportQuery = ExportTransaction::query()
             ->where('is_archive', false)
-            ->whereYear('export_transactions.created_at', $year)
+            ->where('export_transactions.created_at', '>=', $start)
+            ->where('export_transactions.created_at', '<', $end)
             ->join('clients', 'export_transactions.shipper_id', '=', 'clients.id')
             ->selectRaw('clients.id as client_id, clients.name as client_name, clients.type as client_type, COUNT(*) as exports');
-
-        if ($month !== null) {
-            $exportQuery->whereMonth('export_transactions.created_at', $month);
-        }
 
         $exportCounts = $exportQuery
             ->groupBy('clients.id', 'clients.name', 'clients.type')
@@ -62,5 +59,19 @@ class ClientReportQuery
         usort($clients, fn (array $left, array $right) => $right['total'] <=> $left['total']);
 
         return ['clients' => $clients];
+    }
+
+    /**
+     * @return array{0: CarbonImmutable, 1: CarbonImmutable}
+     */
+    private function periodBounds(int $year, ?int $month = null): array
+    {
+        $start = CarbonImmutable::create($year, $month ?? 1, 1, 0, 0, 0);
+
+        if ($month === null) {
+            return [$start, $start->addYear()];
+        }
+
+        return [$start, $start->addMonth()];
     }
 }

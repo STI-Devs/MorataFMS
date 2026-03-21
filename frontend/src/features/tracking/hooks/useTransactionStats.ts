@@ -8,8 +8,8 @@ import { useImportStats } from './useImportStats';
  * TODO: Replace with a single /api/transactions/stats?type=import|export when available.
  */
 export function useTransactionStats(type: 'import' | 'export'): { data: TransactionStats | undefined; isLoading: boolean } {
-    const importStats = useImportStats();
-    const exportStats = useExportStats();
+    const importStats = useImportStats(type === 'import');
+    const exportStats = useExportStats(type === 'export');
 
     const result = type === 'import' ? importStats : exportStats;
     return { data: result.data, isLoading: result.isLoading };
