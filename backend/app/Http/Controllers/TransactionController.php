@@ -6,6 +6,8 @@ use App\Actions\Transactions\OverrideTransactionStatus;
 use App\Actions\Transactions\ReassignTransaction;
 use App\Http\Requests\AssignTransactionRequest;
 use App\Http\Requests\OverrideStatusRequest;
+use App\Http\Resources\ExportTransactionResource;
+use App\Http\Resources\ImportTransactionResource;
 use App\Models\ExportTransaction;
 use App\Models\ImportTransaction;
 use App\Models\User;
@@ -30,6 +32,58 @@ class TransactionController extends Controller
         $this->authorize('transactions.viewOversight');
 
         return response()->json($this->transactionOversightIndexQuery->handle($request));
+    }
+
+    /**
+     * GET /api/tracking/{referenceId}
+     * Resolve a single live-tracking transaction by reference.
+     */
+    public function showTracking(Request $request, string $referenceId): JsonResponse
+    {
+        $this->authorize('viewAny', ImportTransaction::class);
+
+        $importTransaction = ImportTransaction::query()
+            ->visibleTo($request->user())
+            ->with(['importer', 'originCountry', 'stages', 'assignedUser'])
+            ->withCount(['remarks as open_remarks_count' => fn ($query) => $query->where('is_resolved', false)])
+            ->withCount('documents')
+            ->where('customs_ref_no', $referenceId)
+            ->first();
+
+        if ($importTransaction) {
+            abort_if($importTransaction->status->isTerminal(), 404);
+
+            return response()->json([
+                'data' => [
+                    'type' => 'import',
+                    'transaction' => (new ImportTransactionResource($importTransaction))->resolve($request),
+                ],
+            ]);
+        }
+
+        $exportId = $this->parseExportReference($referenceId);
+
+        if ($exportId === null) {
+            abort(404);
+        }
+
+        $exportTransaction = ExportTransaction::query()
+            ->visibleTo($request->user())
+            ->with(['shipper', 'stages', 'assignedUser', 'destinationCountry'])
+            ->withCount(['remarks as open_remarks_count' => fn ($query) => $query->where('is_resolved', false)])
+            ->withCount('documents')
+            ->find($exportId);
+
+        if (! $exportTransaction || $exportTransaction->status->isTerminal()) {
+            abort(404);
+        }
+
+        return response()->json([
+            'data' => [
+                'type' => 'export',
+                'transaction' => (new ExportTransactionResource($exportTransaction))->resolve($request),
+            ],
+        ]);
     }
 
     /**
@@ -130,5 +184,14 @@ class TransactionController extends Controller
             'message' => 'Status updated successfully.',
             'status' => $exportTransaction->status,
         ]);
+    }
+
+    private function parseExportReference(string $referenceId): ?int
+    {
+        if (preg_match('/^(?:EXP-)?(\d+)$/i', trim($referenceId), $matches) !== 1) {
+            return null;
+        }
+
+        return (int) $matches[1];
     }
 }

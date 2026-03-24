@@ -100,6 +100,35 @@ test('export transactions can be filtered by status', function () {
     expect($data)->toHaveCount(2);
 });
 
+test('active export transactions can be fetched through the tracking detail endpoint', function () {
+    $user = User::factory()->create(['role' => 'encoder']);
+    $transaction = ExportTransaction::factory()->pending()->create([
+        'assigned_user_id' => $user->id,
+    ]);
+
+    $referenceId = 'EXP-'.str_pad((string) $transaction->id, 4, '0', STR_PAD_LEFT);
+
+    $this->actingAs($user)
+        ->getJson("/api/tracking/{$referenceId}")
+        ->assertOk()
+        ->assertJsonPath('data.type', 'export')
+        ->assertJsonPath('data.transaction.id', $transaction->id)
+        ->assertJsonPath('data.transaction.bl_no', $transaction->bl_no);
+});
+
+test('completed export transactions are hidden from the tracking detail endpoint', function () {
+    $user = User::factory()->create(['role' => 'encoder']);
+    $transaction = ExportTransaction::factory()->completed()->create([
+        'assigned_user_id' => $user->id,
+    ]);
+
+    $referenceId = 'EXP-'.str_pad((string) $transaction->id, 4, '0', STR_PAD_LEFT);
+
+    $this->actingAs($user)
+        ->getJson("/api/tracking/{$referenceId}")
+        ->assertNotFound();
+});
+
 // --- Store (Create) ---
 
 test('authenticated users can create export transactions with valid data', function () {

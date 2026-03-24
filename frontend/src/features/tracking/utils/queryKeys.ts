@@ -11,7 +11,8 @@ export const trackingKeys = {
         list: (params?: unknown) => ['exports', params] as const,
         stats: ['export-stats'] as const,
     },
-    detail: (referenceId: string | undefined) => ['transaction-detail', referenceId] as const,
+    detail: (referenceId: string | undefined, scope: 'tracking' | 'record' = 'tracking') =>
+        ['transaction-detail', scope, referenceId] as const,
     documents: {
         all: ['documents'] as const,
         list: (documentableType: DocumentableType | undefined, documentableId: number | undefined) =>

@@ -146,6 +146,30 @@ test('encoder can upload a document to an import transaction', function () {
     Storage::disk('s3')->assertExists($document->path);
 });
 
+test('encoder can upload additional documents to a completed transaction', function () {
+    $user = User::factory()->create(['role' => 'encoder']);
+    $import = ImportTransaction::factory()->completed()->create(['assigned_user_id' => $user->id]);
+    Document::factory()->create([
+        'type' => 'billing',
+        'documentable_type' => ImportTransaction::class,
+        'documentable_id' => $import->id,
+        'uploaded_by' => $user->id,
+    ]);
+
+    $response = $this->actingAs($user)->postJson('/api/documents', [
+        'file' => UploadedFile::fake()->create('additional.pdf', 256, 'application/pdf'),
+        'type' => 'others',
+        'documentable_type' => ImportTransaction::class,
+        'documentable_id' => $import->id,
+    ]);
+
+    $response->assertCreated();
+
+    $import->refresh();
+
+    expect($import->status->value)->toBe('Completed');
+});
+
 test('encoder cannot upload a document to another encoders transaction', function () {
     $encoder = User::factory()->create(['role' => 'encoder']);
     $otherEncoder = User::factory()->create(['role' => 'encoder']);

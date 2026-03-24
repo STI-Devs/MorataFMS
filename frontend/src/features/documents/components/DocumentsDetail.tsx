@@ -136,7 +136,7 @@ export const DocumentsDetail = () => {
     const [uploadError, setUploadError]           = useState<string | undefined>();
 
     const { previewFile, setPreviewFile, handlePreviewDoc } = useDocumentPreview();
-    const { data: txDetail, isLoading: txnLoading } = useTransactionDetail(ref);
+    const { data: txDetail, isLoading: txnLoading } = useTransactionDetail(ref, { scope: 'record' });
 
     const txnFound = !!txDetail;
     const isImport = txDetail?.isImport ?? true;
@@ -222,8 +222,10 @@ export const DocumentsDetail = () => {
         );
     }
 
-    const resolvedStatus = txDetail?.raw.status ?? '';
-    if (resolvedStatus === 'in_progress') {
+    const resolvedStatus = txDetail?.raw.status?.toLowerCase() ?? '';
+    const isFinalized = resolvedStatus === 'completed' || resolvedStatus === 'cancelled';
+
+    if (!isFinalized) {
         return (
             <div className="space-y-5 p-4">
                 {backButton}

@@ -38,6 +38,7 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
     Route::put('/user/profile', [ProfileController::class, 'update']);
 
     // Import/Export transactions (encoder-accessible)
+    Route::get('tracking/{referenceId}', [TransactionController::class, 'showTracking']);
     Route::get('import-transactions/stats', [ImportTransactionController::class, 'stats']);
     Route::get('export-transactions/stats', [ExportTransactionController::class, 'stats']);
     Route::patch('import-transactions/{import_transaction}/cancel', [ImportTransactionController::class, 'cancel']);

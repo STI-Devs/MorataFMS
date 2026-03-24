@@ -5,6 +5,7 @@ import type {
     ApiDocument,
     ApiExportTransaction,
     ApiImportTransaction,
+    ApiTrackingDetail,
     CreateExportPayload,
     CreateImportPayload,
     DocumentTransactionListResponse,
@@ -39,6 +40,11 @@ async function fetchAllPages<T>(
 }
 
 export const trackingApi = {
+    getTrackingDetail: async (referenceId: string): Promise<ApiTrackingDetail> => {
+        const response = await api.get(`/api/tracking/${encodeURIComponent(referenceId)}`);
+        return response.data.data;
+    },
+
     // --- Import Transactions ---
     getImports: async (params?: {
         search?: string;

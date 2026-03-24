@@ -104,6 +104,18 @@ export interface ApiExportTransaction {
     documents_count: number;
 }
 
+export interface ApiImportTrackingDetail {
+    type: 'import';
+    transaction: ApiImportTransaction;
+}
+
+export interface ApiExportTrackingDetail {
+    type: 'export';
+    transaction: ApiExportTransaction;
+}
+
+export type ApiTrackingDetail = ApiImportTrackingDetail | ApiExportTrackingDetail;
+
 export interface ApiClient {
     id: number;
     name: string;

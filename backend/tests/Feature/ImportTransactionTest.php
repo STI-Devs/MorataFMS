@@ -100,6 +100,33 @@ test('import transactions can be filtered by status', function () {
     expect($data)->toHaveCount(2);
 });
 
+test('active import transactions can be fetched through the tracking detail endpoint', function () {
+    $user = User::factory()->create(['role' => 'encoder']);
+    $transaction = ImportTransaction::factory()->pending()->create([
+        'customs_ref_no' => 'TRACK-IMP-001',
+        'assigned_user_id' => $user->id,
+    ]);
+
+    $this->actingAs($user)
+        ->getJson('/api/tracking/TRACK-IMP-001')
+        ->assertOk()
+        ->assertJsonPath('data.type', 'import')
+        ->assertJsonPath('data.transaction.id', $transaction->id)
+        ->assertJsonPath('data.transaction.customs_ref_no', 'TRACK-IMP-001');
+});
+
+test('completed import transactions are hidden from the tracking detail endpoint', function () {
+    $user = User::factory()->create(['role' => 'encoder']);
+    ImportTransaction::factory()->completed()->create([
+        'customs_ref_no' => 'TRACK-IMP-DONE',
+        'assigned_user_id' => $user->id,
+    ]);
+
+    $this->actingAs($user)
+        ->getJson('/api/tracking/TRACK-IMP-DONE')
+        ->assertNotFound();
+});
+
 // --- Store (Create) ---
 
 test('authenticated users can create import transactions with valid data', function () {
