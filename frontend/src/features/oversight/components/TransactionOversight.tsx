@@ -1,10 +1,9 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { CurrentDateTime } from '../../../components/CurrentDateTime';
 import { Icon } from '../../../components/Icon';
 import { Pagination } from '../../../components/Pagination';
 import { useDebounce } from '../../../hooks/useDebounce';
-import type { LayoutContext } from '../../tracking/types';
 import { useAllTransactions } from '../hooks/useTransactions';
 import type { OversightTransaction } from '../types/transaction.types';
 import { ReassignModal } from './ReassignModal';
@@ -31,7 +30,6 @@ const TYPE_CFG: Record<string, { color: string; bg: string }> = {
 
 
 export const TransactionOversight = () => {
-    const { dateTime } = useOutletContext<LayoutContext>();
     const qc = useQueryClient();
 
     const [page, setPage] = useState(1);
@@ -75,12 +73,11 @@ export const TransactionOversight = () => {
                     <h1 className="text-3xl font-bold mb-1 text-text-primary">Transaction Oversight</h1>
                     <p className="text-sm text-text-secondary">All imports &amp; exports — reassign encoders, override statuses</p>
                 </div>
-                <div className="flex items-center gap-6 hidden sm:flex shrink-0">
-                    <div className="text-right">
-                        <p className="text-2xl font-bold tabular-nums text-text-primary leading-none">{dateTime.time}</p>
-                        <p className="text-xs font-semibold text-text-muted mt-1 uppercase tracking-widest leading-none">{dateTime.date}</p>
-                    </div>
-                </div>
+                <CurrentDateTime
+                    className="text-right hidden sm:block shrink-0"
+                    timeClassName="text-2xl font-bold tabular-nums text-text-primary leading-none"
+                    dateClassName="text-xs font-semibold text-text-muted mt-1 uppercase tracking-widest leading-none"
+                />
             </div>
 
             {/* Stats */}

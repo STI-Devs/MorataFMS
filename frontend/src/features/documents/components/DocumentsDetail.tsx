@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
+import { CurrentDateTime } from '../../../components/CurrentDateTime';
 import { Icon } from '../../../components/Icon';
 import { FilePreviewModal } from '../../../components/modals/FilePreviewModal';
 import { UploadModal } from '../../../components/modals/UploadModal';
+import { appRoutes } from '../../../lib/appRoutes';
 import { getStatusStyle } from '../../../lib/statusStyles';
 import { trackingApi } from '../../tracking/api/trackingApi';
 import { useTransactionDetail } from '../../tracking/hooks/useTransactionDetail';
@@ -11,7 +13,6 @@ import type {
     ApiExportTransaction,
     ApiImportTransaction,
     DocumentableType,
-    LayoutContext,
 } from '../../tracking/types';
 import { useDocuments } from '../hooks/useDocuments';
 import { useUploadDocument } from '../hooks/useUploadDocument';
@@ -130,7 +131,6 @@ function FileTypeIcon({ type }: { type: DocFileType }) {
 export const DocumentsDetail = () => {
     const { ref } = useParams<{ ref: string }>();
     const navigate = useNavigate();
-    const { dateTime } = useOutletContext<LayoutContext>();
 
     const [isUploadOpen, setIsUploadOpen]         = useState(false);
     const [uploadError, setUploadError]           = useState<string | undefined>();
@@ -185,7 +185,7 @@ export const DocumentsDetail = () => {
 
     const backButton = (
         <button
-            onClick={() => navigate('/documents')}
+            onClick={() => navigate(appRoutes.documents)}
             className="flex items-center gap-2 text-sm font-semibold text-text-secondary hover:text-text-primary transition-colors group"
         >
             <svg className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -280,11 +280,12 @@ export const DocumentsDetail = () => {
                     </div>
                     <p className="text-sm text-text-secondary">{toTitleCase(displayClient)} · {formatDate(displayDate)}</p>
                 </div>
-                <div className="text-right hidden sm:block shrink-0">
-                    <p className="text-2xl font-bold tabular-nums text-text-primary">{dateTime.time}</p>
-                    <p className="text-sm text-text-secondary">{dateTime.date}</p>
+                    <CurrentDateTime
+                        className="text-right hidden sm:block shrink-0"
+                        timeClassName="text-2xl font-bold tabular-nums text-text-primary"
+                        dateClassName="text-sm text-text-secondary"
+                    />
                 </div>
-            </div>
 
             {/* Document List Card */}
             <div className="bg-surface rounded-xl border border-border overflow-hidden shadow-sm">

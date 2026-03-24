@@ -1,4 +1,5 @@
 import { Navigate, Outlet, useLocation, useOutletContext } from 'react-router-dom';
+import { appRoutes } from '../../../lib/appRoutes';
 import type { AppRole } from '../../../types/access';
 import { useAuth } from '../hooks/useAuth';
 import { getHomePath } from '../utils/access';
@@ -21,7 +22,7 @@ export function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return <Navigate to={appRoutes.login} state={{ from: location }} replace />;
   }
 
   if (allowedRoles && user && !allowedRoles.includes(user.role)) {

@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { useOutletContext } from 'react-router-dom';
-import type { LayoutContext } from '../../tracking/types';
+import { useCurrentDateTime } from '../../../hooks/useCurrentDateTime';
 import { useClientReport, useMonthlyReport, useTurnaroundReport } from '../hooks/useReports';
 import type { ClientReportResponse, MonthlyReportResponse, TurnaroundReportResponse } from '../types/report.types';
 
@@ -135,7 +134,7 @@ const StatCard = ({ label, value, unit, icon, accent }: { label: string; value: 
 );
 
 export const ReportsAnalytics = () => {
-    const { dateTime } = useOutletContext<LayoutContext>();
+    const dateTime = useCurrentDateTime();
 
     const currentYear = new Date().getFullYear();
     const [year, setYear] = useState(currentYear);

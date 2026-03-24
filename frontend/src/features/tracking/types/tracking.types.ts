@@ -1,6 +1,5 @@
 export interface LayoutContext {
     user?: { name: string; role: string };
-    dateTime: { time: string; date: string };
 }
 
 export interface ImportTransaction {

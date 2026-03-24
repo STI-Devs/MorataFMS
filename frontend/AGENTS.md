@@ -4,6 +4,15 @@ These guidelines apply to all work inside `frontend/`.
 
 The goal is to keep this React frontend scalable, consistent with the Laravel backend, and well-structured without over-engineering.
 
+## Skills Activation
+
+- `vercel-react-best-practices` — Use this local skill for React performance, rerender, bundle size, route-splitting, hydration, and production-readiness work inside `frontend/`. Trigger whenever a task involves React component refactors, hooks, lazy routes, bundle warnings, rendering churn, or frontend audits.
+
+## Package Manager
+
+- Use `pnpm` for dependency management and script execution inside `frontend/`.
+- Do not mix `npm` and `pnpm` in the same frontend workstream unless the user explicitly asks for it.
+
 ## Core Rule
 
 Before creating, moving, or modifying any frontend file:
@@ -31,6 +40,7 @@ Before making any significant frontend change, check these first when relevant:
 - `src/lib/appRoutes.ts` for route names, navigation, and guarded paths
 - `src/lib/axios.ts` for HTTP client behavior
 - sibling `api/`, `hooks/`, `types/`, and `components/` files in the same feature
+- sibling `*.test.ts` or `*.test.tsx` files in the same feature when behavior is already covered
 - `src/features/auth/utils/access.ts` for role and access behavior
 - existing query key helpers before adding new React Query keys
 
@@ -169,6 +179,7 @@ Follow existing naming patterns:
 - hooks: `useSomething.ts`
 - utilities: `camelCase.ts`
 - feature types: `*.types.ts` where that pattern already exists
+- colocated tests: `*.test.ts` or `*.test.tsx`
 
 Names should describe business intent clearly. Prefer `useTransactionDetail` over vague names like `useData`.
 
@@ -206,14 +217,36 @@ Avoid unless clearly justified:
 
 This app should remain straightforward to onboard into.
 
+## Verification Scripts
+
+- Do not create ad hoc verification scripts when a Vitest test can prove the behavior.
+- Prefer the smallest command that proves the change.
+- Use `pnpm vitest run path/to/file.test.tsx` for targeted frontend tests.
+- Use `pnpm test` for the full frontend unit/component suite.
+- Use `pnpm run test:coverage` when you need a coverage report to inspect gaps.
+- Use `pnpm smoke` for build-level assertions that are awkward to express as component tests.
+
+## Test Enforcement
+
+- Every meaningful frontend behavior change should be programmatically tested. Add a new test or update an existing one, then run the affected tests.
+- Prefer colocated Vitest tests beside the feature they cover.
+- Use React Testing Library and `@testing-library/jest-dom` for DOM-facing component and route behavior.
+- Use the configured Vitest DOM environment from `vite.config.ts`; do not invent a second frontend test runner without approval.
+- Mock feature API modules at the feature boundary unless the test is specifically about shared infrastructure.
+- Do not delete tests without approval.
+- Do not treat blanket 100% coverage as the default goal. The expectation is strong regression coverage for changed and high-risk flows, then expand coverage deliberately over time.
+
 ## Verification
 
 After frontend changes, always run:
 
-1. `npm run lint`
-2. `npm run build`
+1. `pnpm lint`
+2. `pnpm test`
+3. `pnpm build`
 
 If the change affects backend-connected flows, also sanity-check that the frontend types and API unwrapping still match the backend resources.
+
+If the change targets production-readiness, bundle behavior, or build regressions, also run `pnpm smoke`.
 
 ## Documentation Discipline
 
@@ -229,6 +262,7 @@ When asked to create or modify frontend code, follow this order:
 2. Identify the existing convention for naming, routes, types, hooks, and API usage.
 3. Reuse shared helpers and constants.
 4. Make the smallest clean change that fits the current architecture.
-5. Run `npm run lint` and `npm run build`.
+5. Add or update tests for the changed behavior.
+6. Run `pnpm lint`, the affected `pnpm` test command, and `pnpm build`.
 
 If a requested change would break these conventions, pause and realign before implementing it.

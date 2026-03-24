@@ -1,9 +1,6 @@
-import { useOutletContext } from 'react-router-dom';
-import type { LayoutContext } from '../../tracking/types';
+import { CurrentDateTime } from '../../../components/CurrentDateTime';
 
 export const LegalDocumentsPage = () => {
-    const { dateTime } = useOutletContext<LayoutContext>();
-
     return (
         <div className="w-full p-8 pb-12 space-y-7">
             {/* Page header */}
@@ -12,10 +9,11 @@ export const LegalDocumentsPage = () => {
                     <h1 className="text-4xl font-bold tracking-tight text-text-primary">Documents</h1>
                     <p className="text-base text-text-muted mt-1">F.M. Morata — Legal Documents</p>
                 </div>
-                <div className="text-right shrink-0">
-                    <p className="text-2xl font-bold tabular-nums text-text-primary">{dateTime.time}</p>
-                    <p className="text-sm text-text-muted">{dateTime.date}</p>
-                </div>
+                <CurrentDateTime
+                    className="text-right shrink-0"
+                    timeClassName="text-2xl font-bold tabular-nums text-text-primary"
+                    dateClassName="text-sm text-text-muted"
+                />
             </div>
 
             {/* Content area */}

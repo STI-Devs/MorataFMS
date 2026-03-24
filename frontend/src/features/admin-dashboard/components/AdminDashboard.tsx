@@ -1,4 +1,5 @@
 import { useNavigate, useOutletContext } from 'react-router-dom';
+import { CurrentDateTime } from '../../../components/CurrentDateTime';
 import { adminDashboardQuickLinks, appRoutes } from '../../../lib/appRoutes';
 import type { LayoutContext } from '../../tracking/types';
 
@@ -43,7 +44,7 @@ const statCards = [
 
 export const AdminDashboard = () => {
     const navigate = useNavigate();
-    const { user, dateTime } = useOutletContext<LayoutContext>();
+    const { user } = useOutletContext<LayoutContext>();
 
     const userName = user?.name || 'User';
 
@@ -61,10 +62,11 @@ export const AdminDashboard = () => {
                         Here's what's happening with your shipments today.
                     </p>
                 </div>
-                <div className="text-right hidden sm:block">
-                    <p className="text-2xl font-bold tabular-nums text-text-primary">{dateTime.time}</p>
-                    <p className="text-sm text-text-secondary">{dateTime.date}</p>
-                </div>
+                <CurrentDateTime
+                    className="text-right hidden sm:block"
+                    timeClassName="text-2xl font-bold tabular-nums text-text-primary"
+                    dateClassName="text-sm text-text-secondary"
+                />
             </div>
 
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">

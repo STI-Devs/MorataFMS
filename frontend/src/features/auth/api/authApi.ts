@@ -26,8 +26,8 @@ export const authApi = {
 
     // Get current user
     async getCurrentUser(): Promise<User> {
-        const response = await api.get<User>(`/api/user`);
-        return response.data;
+        const response = await api.get<{ data: User } | User>(`/api/user`);
+        return (response.data as { data: User }).data ?? (response.data as User);
     },
 
     // Update profile (name, job title, and/or password)

@@ -1,12 +1,11 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { CurrentDateTime } from '../../../components/CurrentDateTime';
 import { ConfirmationModal } from '../../../components/ConfirmationModal';
 import { Icon } from '../../../components/Icon';
 import type { ArchiveDocument, ArchiveYear, TransactionType } from '../../documents/types/document.types';
 import { EXPORT_STAGES, IMPORT_STAGES } from '../../documents/types/document.types';
 import { trackingApi } from '../../tracking/api/trackingApi';
-import type { LayoutContext } from '../../tracking/types';
 import { useArchives } from '../hooks/useArchives';
 import type { DocStatusFilter, DrillState, SortKey, ViewMode } from '../utils/archive.utils';
 import {
@@ -26,7 +25,6 @@ import { EmptyState } from './ui/EmptyState';
 import { ViewToggle } from './ui/ViewToggle';
 
 export const ArchivesPage = () => {
-    const { dateTime } = useOutletContext<LayoutContext>();
     const queryClient = useQueryClient();
     const { data: archiveData = [], isLoading, isError } = useArchives();
 
@@ -176,10 +174,11 @@ export const ArchivesPage = () => {
                     <h1 className="text-4xl font-bold tracking-tight text-text-primary">Archive Dashboard</h1>
                     <p className="text-base text-text-muted mt-1">Historical import &amp; export document storage</p>
                 </div>
-                <div className="text-right shrink-0">
-                    <p className="text-2xl font-bold tabular-nums text-text-primary">{dateTime.time}</p>
-                    <p className="text-sm text-text-muted">{dateTime.date}</p>
-                </div>
+                <CurrentDateTime
+                    className="text-right shrink-0"
+                    timeClassName="text-2xl font-bold tabular-nums text-text-primary"
+                    dateClassName="text-sm text-text-muted"
+                />
             </div>
 
             {/* Stats cards row */}

@@ -1,23 +1,15 @@
-﻿import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../hooks/useAuth";
+import { appRoutes } from "../../../lib/appRoutes";
 import { LoginForm } from "./LoginForm";
 
 export const AuthPage = () => {
     const navigate = useNavigate();
-    const { isAuthenticated, isLoading } = useAuth();
-
-    useEffect(() => {
-        if (!isLoading && isAuthenticated) {
-            navigate('/');
-        }
-    }, [isAuthenticated, isLoading, navigate]);
 
     return (
         <div className="min-h-screen flex items-center justify-center p-6 relative bg-black">
             {/* Back Button */}
             <button
-                onClick={() => navigate('/')}
+                onClick={() => navigate(appRoutes.landing)}
                 className="absolute top-8 left-8 z-30 flex items-center gap-3 text-white/40 hover:text-white transition-all duration-300 group cursor-pointer"
             >
                 <div className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center group-hover:border-white/30 group-hover:bg-white/5 transition-all duration-300 backdrop-blur-sm">

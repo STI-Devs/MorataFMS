@@ -1,0 +1,49 @@
+import assert from 'node:assert/strict';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import test from 'node:test';
+import { fileURLToPath } from 'node:url';
+
+const rootDir = dirname(fileURLToPath(import.meta.url));
+
+function read(relativePath) {
+    return readFileSync(join(rootDir, relativePath), 'utf8');
+}
+
+test('frontend package no longer depends on html2pdf.js', () => {
+    const pkg = JSON.parse(read('package.json'));
+    assert.equal('html2pdf.js' in (pkg.dependencies ?? {}), false);
+});
+
+test('forms export flow relies on browser print instead of html2pdf', () => {
+    const formsPage = read('src/features/forms/components/FormsPage.tsx');
+    assert.doesNotMatch(formsPage, /html2pdf/);
+    assert.match(formsPage, /Print \/ Save as PDF/);
+});
+
+test('auth bootstrap restores the server session without localStorage caching', () => {
+    const authContext = read('src/features/auth/context/AuthContext.tsx');
+    assert.match(authContext, /authApi\.getCurrentUser\(\)/);
+    assert.doesNotMatch(authContext, /localStorage/);
+});
+
+test('document preview does not leak signed URLs to Google Docs Viewer', () => {
+    const previewHook = read('src/features/tracking/hooks/useDocumentPreview.ts');
+    assert.doesNotMatch(previewHook, /docs\.google/);
+    assert.match(previewHook, /downloadDocument/);
+});
+
+test('lazy page imports target concrete modules instead of feature barrels', () => {
+    const lazyPages = read('src/lib/lazyPages.ts');
+    assert.doesNotMatch(lazyPages, /features\/[^'"]+\/index/);
+});
+
+test('production build no longer emits an html2pdf chunk', () => {
+    const assetsDir = join(rootDir, 'dist', 'assets');
+
+    assert.equal(existsSync(assetsDir), true);
+    assert.equal(
+        readdirSync(assetsDir).some(file => file.toLowerCase().includes('html2pdf')),
+        false,
+    );
+});

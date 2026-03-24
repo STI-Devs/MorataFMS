@@ -1,4 +1,5 @@
 import { Navigate } from 'react-router-dom';
+import { appRoutes } from '../../../lib/appRoutes';
 import { useAuth } from '../hooks/useAuth';
 import { getHomePath } from '../utils/access';
 
@@ -19,7 +20,7 @@ export function RoleRedirect() {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to={appRoutes.login} replace />;
   }
 
   return <Navigate to={getHomePath(user)} replace />;

@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { useNavigate, useOutletContext, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { CurrentDateTime } from '../../../components/CurrentDateTime';
 import { Icon } from '../../../components/Icon';
 import { Pagination } from '../../../components/Pagination';
 import { UploadModal } from '../../../components/modals/UploadModal';
 import { useDebounce } from '../../../hooks/useDebounce';
-import type { LayoutContext } from '../../tracking/types';
 import { useDocumentTransactions } from '../hooks/useDocumentTransactions';
 
 
@@ -84,7 +84,6 @@ function TableSkeleton() {
 
 
 export const Documents = () => {
-    const { dateTime } = useOutletContext<LayoutContext>();
     const navigate = useNavigate();
 
     const [searchParams, setSearchParams] = useSearchParams();
@@ -181,10 +180,11 @@ export const Documents = () => {
                     <h1 className="text-3xl font-bold mb-1 text-text-primary">Documents</h1>
                     <p className="text-sm text-text-secondary">Browse cleared shipments & manage files</p>
                 </div>
-                <div className="text-right hidden sm:block shrink-0">
-                    <p className="text-2xl font-bold tabular-nums text-text-primary">{dateTime.time}</p>
-                    <p className="text-sm text-text-secondary">{dateTime.date}</p>
-                </div>
+                <CurrentDateTime
+                    className="text-right hidden sm:block shrink-0"
+                    timeClassName="text-2xl font-bold tabular-nums text-text-primary"
+                    dateClassName="text-sm text-text-secondary"
+                />
             </div>
 
             {/* Error banner */}

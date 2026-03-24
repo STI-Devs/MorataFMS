@@ -1,0 +1,445 @@
+import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { appRoutes } from '../../../lib/appRoutes';
+import {
+    makeApiDocument,
+    makeImportDetailResult,
+} from '../../../test/fixtures/tracking';
+import { createTestQueryClient, renderWithProviders } from '../../../test/renderWithProviders';
+import { trackingKeys } from '../utils/queryKeys';
+import { TrackingDetails } from './TrackingDetails';
+
+const {
+    mockDeleteDocument,
+    mockDownloadDocument,
+    mockUploadDocument,
+    mockUseAddDocumentToCache,
+    mockUseDocumentPreview,
+    mockUseTransactionDetail,
+    mockUseTransactionDocuments,
+    uploadCacheSpy,
+} = vi.hoisted(() => ({
+    mockDeleteDocument: vi.fn(),
+    mockDownloadDocument: vi.fn(),
+    mockUploadDocument: vi.fn(),
+    mockUseAddDocumentToCache: vi.fn(),
+    mockUseDocumentPreview: vi.fn(),
+    mockUseTransactionDetail: vi.fn(),
+    mockUseTransactionDocuments: vi.fn(),
+    uploadCacheSpy: vi.fn(),
+}));
+
+vi.mock('../hooks/useTransactionDetail', () => ({
+    useTransactionDetail: mockUseTransactionDetail,
+}));
+
+vi.mock('../hooks/useTransactionDocuments', () => ({
+    useTransactionDocuments: mockUseTransactionDocuments,
+    useAddDocumentToCache: mockUseAddDocumentToCache,
+}));
+
+vi.mock('../hooks/useDocumentPreview', () => ({
+    useDocumentPreview: mockUseDocumentPreview,
+}));
+
+vi.mock('../api/trackingApi', () => ({
+    trackingApi: {
+        deleteDocument: mockDeleteDocument,
+        downloadDocument: mockDownloadDocument,
+        uploadDocument: mockUploadDocument,
+    },
+}));
+
+vi.mock('./TrackingDetailsSkeleton', () => ({
+    TrackingDetailsSkeleton: () => <div>Tracking details skeleton</div>,
+}));
+
+vi.mock('./TrackingHeader', () => ({
+    TrackingHeader: ({
+        transaction,
+        onRemarksClick,
+        onEditClick,
+    }: {
+        transaction: { status: string; ref: string };
+        onRemarksClick: () => void;
+        onEditClick: () => void;
+    }) => (
+        <div>
+            <h1>{transaction.ref}</h1>
+            <span data-testid="tracking-status">{transaction.status}</span>
+            <button onClick={onRemarksClick}>Open remarks</button>
+            <button onClick={onEditClick}>Open edit</button>
+        </div>
+    ),
+}));
+
+vi.mock('./TransactionInfoCard', () => ({
+    TransactionInfoCard: () => <div>Transaction info card</div>,
+}));
+
+vi.mock('./StageRow', () => ({
+    StageRow: ({
+        index,
+        stage,
+        stageStatus,
+        doc,
+        onUploadClick,
+        onPreviewDoc,
+        onDeleteDoc,
+        onReplaceDoc,
+    }: {
+        index: number;
+        stage: { title: string };
+        stageStatus: string;
+        doc?: { filename: string };
+        onUploadClick: (index: number) => void;
+        onPreviewDoc: (doc: { filename: string }) => void;
+        onDeleteDoc: (doc: { filename: string }) => void;
+        onReplaceDoc: (index: number, doc: { filename: string }) => void;
+    }) => (
+        <div data-testid={`stage-row-${index}`}>
+            <span>{stage.title}</span>
+            <span data-testid={`stage-status-${index}`}>{stageStatus}</span>
+            {doc ? (
+                <>
+                    <span>{doc.filename}</span>
+                    <button onClick={() => onPreviewDoc(doc)}>Preview {index}</button>
+                    <button onClick={() => onDeleteDoc(doc)}>Delete {index}</button>
+                    <button onClick={() => onReplaceDoc(index, doc)}>Replace {index}</button>
+                </>
+            ) : (
+                <button onClick={() => onUploadClick(index)}>Upload {index}</button>
+            )}
+        </div>
+    ),
+}));
+
+vi.mock('../../../components/modals/UploadModal', () => ({
+    UploadModal: ({
+        isOpen,
+        title,
+        onClose,
+        onUpload,
+    }: {
+        isOpen: boolean;
+        title: string;
+        onClose: () => void;
+        onUpload: (file: File) => void;
+    }) => (
+        isOpen ? (
+            <div>
+                <span>Upload modal: {title}</span>
+                <button onClick={() => onUpload(new File(['document'], 'replacement.pdf', { type: 'application/pdf' }))}>
+                    Confirm upload
+                </button>
+                <button onClick={onClose}>Close upload</button>
+            </div>
+        ) : null
+    ),
+}));
+
+vi.mock('../../../components/modals/FilePreviewModal', () => ({
+    FilePreviewModal: ({
+        isOpen,
+        fileName,
+        onClose,
+        onDownload,
+    }: {
+        isOpen: boolean;
+        fileName?: string;
+        onClose: () => void;
+        onDownload?: () => void;
+    }) => (
+        isOpen ? (
+            <div>
+                <span>Preview modal: {fileName}</span>
+                <button onClick={onDownload}>Download preview</button>
+                <button onClick={onClose}>Close preview</button>
+            </div>
+        ) : null
+    ),
+}));
+
+vi.mock('./EditTransactionModal', () => ({
+    default: ({
+        isOpen,
+        onClose,
+    }: {
+        isOpen: boolean;
+        onClose: () => void;
+    }) => (
+        isOpen ? (
+            <div>
+                <span>Edit modal open</span>
+                <button onClick={onClose}>Close edit</button>
+            </div>
+        ) : null
+    ),
+}));
+
+vi.mock('./RemarkViewerModal', () => ({
+    RemarkViewerModal: ({
+        isOpen,
+        onClose,
+    }: {
+        isOpen: boolean;
+        onClose: () => void;
+    }) => (
+        isOpen ? (
+            <div>
+                <span>Remark modal open</span>
+                <button onClick={onClose}>Close remarks</button>
+            </div>
+        ) : null
+    ),
+}));
+
+describe('TrackingDetails', () => {
+    beforeEach(() => {
+        mockDeleteDocument.mockReset();
+        mockDownloadDocument.mockReset();
+        mockUploadDocument.mockReset();
+        mockUseAddDocumentToCache.mockReset();
+        mockUseDocumentPreview.mockReset();
+        mockUseTransactionDetail.mockReset();
+        mockUseTransactionDocuments.mockReset();
+        uploadCacheSpy.mockReset();
+
+        mockUseAddDocumentToCache.mockReturnValue(uploadCacheSpy);
+        mockUseDocumentPreview.mockReturnValue({
+            previewFile: null,
+            setPreviewFile: vi.fn(),
+            handlePreviewDoc: vi.fn(),
+        });
+    });
+
+    it('renders the loading skeleton while transaction or document data is pending', () => {
+        mockUseTransactionDetail.mockReturnValue({ data: undefined, isLoading: true });
+        mockUseTransactionDocuments.mockReturnValue({ byStageIndex: {}, isLoading: false });
+
+        renderWithProviders(<TrackingDetails />, {
+            route: '/tracking/IMP-2026-001',
+            path: appRoutes.trackingDetail,
+        });
+
+        expect(screen.getByText('Tracking details skeleton')).toBeInTheDocument();
+    });
+
+    it('renders the not found state when the transaction does not exist', () => {
+        mockUseTransactionDetail.mockReturnValue({ data: null, isLoading: false });
+        mockUseTransactionDocuments.mockReturnValue({ byStageIndex: {}, isLoading: false });
+
+        renderWithProviders(<TrackingDetails />, {
+            route: '/tracking/IMP-2026-001',
+            path: appRoutes.trackingDetail,
+        });
+
+        expect(screen.getByText('Transaction Not Found')).toBeInTheDocument();
+        expect(screen.getByText('IMP-2026-001')).toBeInTheDocument();
+    });
+
+    it('derives the display status and stage progression from the available documents', () => {
+        const detail = makeImportDetailResult({
+            customs_ref_no: 'IMP-2026-002',
+            status: 'Pending',
+        });
+
+        mockUseTransactionDetail.mockReturnValue({ data: detail, isLoading: false });
+        mockUseTransactionDocuments.mockReturnValue({
+            byStageIndex: {
+                0: makeApiDocument({ id: 701, type: 'boc', filename: 'boc.pdf' }),
+                1: makeApiDocument({ id: 702, type: 'ppa', filename: 'ppa.pdf' }),
+            },
+            isLoading: false,
+        });
+
+        renderWithProviders(<TrackingDetails />, {
+            route: '/tracking/IMP-2026-002',
+            path: appRoutes.trackingDetail,
+        });
+
+        expect(screen.getByTestId('tracking-status')).toHaveTextContent('Processing');
+        expect(screen.getByTestId('stage-status-0')).toHaveTextContent('completed');
+        expect(screen.getByTestId('stage-status-1')).toHaveTextContent('completed');
+        expect(screen.getByTestId('stage-status-2')).toHaveTextContent('active');
+    });
+
+    it('opens and closes the remarks, edit, upload, and preview flows through the screen wiring', async () => {
+        const previewHandler = vi.fn();
+        const clearPreview = vi.fn();
+        const doc = makeApiDocument({ id: 703, filename: 'invoice.pdf', type: 'boc' });
+
+        mockUseTransactionDetail.mockReturnValue({ data: makeImportDetailResult(), isLoading: false });
+        mockUseTransactionDocuments.mockReturnValue({
+            byStageIndex: {
+                0: doc,
+            },
+            isLoading: false,
+        });
+        mockUseDocumentPreview.mockReturnValue({
+            previewFile: { file: 'https://example.com/invoice.pdf', name: 'invoice.pdf' },
+            setPreviewFile: clearPreview,
+            handlePreviewDoc: previewHandler,
+        });
+
+        renderWithProviders(<TrackingDetails />, {
+            route: '/tracking/IMP-2026-001',
+            path: appRoutes.trackingDetail,
+        });
+
+        fireEvent.click(screen.getByText('Open remarks'));
+        expect(screen.getByText('Remark modal open')).toBeInTheDocument();
+        fireEvent.click(screen.getByText('Close remarks'));
+        await waitFor(() => {
+            expect(screen.queryByText('Remark modal open')).not.toBeInTheDocument();
+        });
+
+        fireEvent.click(screen.getByText('Open edit'));
+        expect(screen.getByText('Edit modal open')).toBeInTheDocument();
+        fireEvent.click(screen.getByText('Close edit'));
+        await waitFor(() => {
+            expect(screen.queryByText('Edit modal open')).not.toBeInTheDocument();
+        });
+
+        fireEvent.click(screen.getByText('Upload 2'));
+        expect(screen.getByText('Upload modal: Delivery Order Request')).toBeInTheDocument();
+        fireEvent.click(screen.getByText('Close upload'));
+        await waitFor(() => {
+            expect(screen.queryByText('Upload modal: Delivery Order Request')).not.toBeInTheDocument();
+        });
+
+        fireEvent.click(screen.getByText('Preview 0'));
+        expect(previewHandler).toHaveBeenCalledWith(doc);
+        expect(screen.getByText('Preview modal: invoice.pdf')).toBeInTheDocument();
+        fireEvent.click(screen.getByText('Close preview'));
+        expect(clearPreview).toHaveBeenCalledWith(null);
+    });
+
+    it('deletes a document and invalidates the transaction detail query', async () => {
+        const doc = makeApiDocument({ id: 704, type: 'boc', filename: 'boc.pdf' });
+        const detail = makeImportDetailResult();
+        const queryClient = createTestQueryClient();
+        const setQueryDataSpy = vi.spyOn(queryClient, 'setQueryData');
+        const invalidateQueriesSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+        mockDeleteDocument.mockResolvedValue(undefined);
+        mockUseTransactionDetail.mockReturnValue({ data: detail, isLoading: false });
+        mockUseTransactionDocuments.mockReturnValue({
+            byStageIndex: { 0: doc },
+            isLoading: false,
+        });
+
+        renderWithProviders(<TrackingDetails />, {
+            route: '/tracking/IMP-2026-001',
+            path: appRoutes.trackingDetail,
+            queryClient,
+        });
+
+        fireEvent.click(screen.getByText('Delete 0'));
+
+        await waitFor(() => {
+            expect(mockDeleteDocument).toHaveBeenCalledWith(704);
+        });
+
+        expect(setQueryDataSpy).toHaveBeenCalledWith(
+            trackingKeys.documents.list('App\\Models\\ImportTransaction', detail.raw.id),
+            expect.any(Function),
+        );
+        expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+            queryKey: trackingKeys.detail('IMP-2026-001'),
+        });
+    });
+
+    it('uploads a new document for an empty stage and updates the cache through the add-to-cache hook', async () => {
+        const detail = makeImportDetailResult();
+        const uploadedDoc = makeApiDocument({ id: 705, type: 'do', filename: 'replacement.pdf' });
+        const queryClient = createTestQueryClient();
+        const invalidateQueriesSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+        mockUploadDocument.mockResolvedValue(uploadedDoc);
+        mockUseTransactionDetail.mockReturnValue({ data: detail, isLoading: false });
+        mockUseTransactionDocuments.mockReturnValue({
+            byStageIndex: {
+                0: makeApiDocument({ id: 706, type: 'boc', filename: 'boc.pdf' }),
+            },
+            isLoading: false,
+        });
+
+        renderWithProviders(<TrackingDetails />, {
+            route: '/tracking/IMP-2026-001',
+            path: appRoutes.trackingDetail,
+            queryClient,
+        });
+
+        fireEvent.click(screen.getByText('Upload 2'));
+        fireEvent.click(screen.getByText('Confirm upload'));
+
+        await waitFor(() => {
+            expect(mockUploadDocument).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    type: 'do',
+                    documentable_type: 'App\\Models\\ImportTransaction',
+                    documentable_id: detail.raw.id,
+                }),
+            );
+        });
+
+        expect(uploadCacheSpy).toHaveBeenCalledWith(
+            'App\\Models\\ImportTransaction',
+            detail.raw.id,
+            uploadedDoc,
+        );
+        expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+            queryKey: trackingKeys.detail('IMP-2026-001'),
+        });
+    });
+
+    it('replaces an existing document and keeps download actions wired to the current preview file', async () => {
+        const doc = makeApiDocument({ id: 707, type: 'boc', filename: 'invoice.pdf' });
+        const replacement = makeApiDocument({ id: 708, type: 'boc', filename: 'replacement.pdf' });
+        const detail = makeImportDetailResult();
+        const queryClient = createTestQueryClient();
+        const setQueryDataSpy = vi.spyOn(queryClient, 'setQueryData');
+
+        mockUploadDocument.mockResolvedValue(replacement);
+        mockDeleteDocument.mockResolvedValue(undefined);
+        mockUseTransactionDetail.mockReturnValue({ data: detail, isLoading: false });
+        mockUseTransactionDocuments.mockReturnValue({
+            byStageIndex: { 0: doc },
+            isLoading: false,
+        });
+        mockUseDocumentPreview.mockReturnValue({
+            previewFile: { file: 'https://example.com/invoice.pdf', name: 'invoice.pdf' },
+            setPreviewFile: vi.fn(),
+            handlePreviewDoc: vi.fn(),
+        });
+
+        renderWithProviders(<TrackingDetails />, {
+            route: '/tracking/IMP-2026-001',
+            path: appRoutes.trackingDetail,
+            queryClient,
+        });
+
+        fireEvent.click(screen.getByText('Download preview'));
+        expect(mockDownloadDocument).toHaveBeenCalledWith(707, 'invoice.pdf');
+
+        fireEvent.click(screen.getByText('Replace 0'));
+        fireEvent.click(screen.getByText('Confirm upload'));
+
+        await waitFor(() => {
+            expect(mockUploadDocument).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    type: 'boc',
+                    documentable_type: 'App\\Models\\ImportTransaction',
+                    documentable_id: detail.raw.id,
+                }),
+            );
+        });
+
+        expect(mockDeleteDocument).toHaveBeenCalledWith(707);
+        expect(setQueryDataSpy).toHaveBeenCalledWith(
+            trackingKeys.documents.list('App\\Models\\ImportTransaction', detail.raw.id),
+            expect.any(Function),
+        );
+    });
+});

@@ -1,6 +1,5 @@
-import { useState } from 'react';
-import { useOutletContext } from 'react-router-dom';
-import type { LayoutContext } from '../../tracking/types';
+import { Fragment, useState } from 'react';
+import { CurrentDateTime } from '../../../components/CurrentDateTime';
 import { useAuditLogs } from '../hooks/useAuditLogs';
 import type { AuditLogFilters } from '../types/auditLog.types';
 
@@ -42,8 +41,6 @@ const formatValue = (val: unknown) => {
 };
 
 export const AuditLogs = () => {
-    const { dateTime } = useOutletContext<LayoutContext>();
-
     const [search, setSearch] = useState('');
     const [actionFilter, setActionFilter] = useState('');
     const [actorFilter, setActorFilter] = useState<'human' | 'system' | 'all'>('human');
@@ -62,7 +59,7 @@ export const AuditLogs = () => {
         per_page: 25,
     };
 
-    const { data, isLoading, isError } = useAuditLogs(filters);
+    const { data, isLoading, isError, refetch } = useAuditLogs(filters);
 
     const logs = data?.data ?? [];
     const meta = data?.meta ?? { current_page: 1, last_page: 1, per_page: 25, total: 0 };
@@ -84,10 +81,11 @@ export const AuditLogs = () => {
                     <h1 className="text-3xl font-bold mb-1 text-text-primary">Audit Logs</h1>
                     <p className="text-sm text-text-secondary">Record of all create, update, and delete events in the system</p>
                 </div>
-                <div className="text-right hidden sm:block shrink-0">
-                    <p className="text-2xl font-bold tabular-nums text-text-primary">{dateTime.time}</p>
-                    <p className="text-sm text-text-secondary">{dateTime.date}</p>
-                </div>
+                <CurrentDateTime
+                    className="text-right hidden sm:block shrink-0"
+                    timeClassName="text-2xl font-bold tabular-nums text-text-primary"
+                    dateClassName="text-sm text-text-secondary"
+                />
             </div>
 
             {/* Stats */}
@@ -165,7 +163,7 @@ export const AuditLogs = () => {
                     <div className="p-16 text-center">
                         <p className="text-sm text-red-500 font-medium mb-2">Failed to load audit logs.</p>
                         <button
-                            onClick={() => window.location.reload()}
+                            onClick={() => void refetch()}
                             className="text-xs font-semibold text-text-secondary underline hover:text-text-primary"
                         >
                             Try again
@@ -210,10 +208,9 @@ export const AuditLogs = () => {
                                     const zebraRow = idx % 2 !== 0 ? 'bg-surface-secondary/30' : '';
 
                                     return (
-                                        <>
+                                        <Fragment key={log.id}>
                                             {/* ── Compact summary row ── */}
                                             <tr
-                                                key={log.id}
                                                 onClick={() => setExpandedId(isOpen ? null : log.id)}
                                                 className={`border-b border-border/50 transition-colors ${zebraRow} ${changeCount > 0 ? 'cursor-pointer hover:bg-hover' : ''} ${isOpen ? '!bg-hover' : ''}`}
                                             >
@@ -303,7 +300,7 @@ export const AuditLogs = () => {
 
                                             {/* ── Expanded detail panel (always rendered, animated via grid-rows) ── */}
                                             {changesData && (
-                                                <tr key={`${log.id}-detail`}>
+                                                <tr>
                                                     <td
                                                         colSpan={7}
                                                         className="p-0 border-0"
@@ -495,7 +492,7 @@ export const AuditLogs = () => {
                                                     </td>
                                                 </tr>
                                             )}
-                                        </>
+                                        </Fragment>
                                     );
                                 })}
                             </tbody>

@@ -1,24 +1,25 @@
-﻿import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useOutletContext, useSearchParams } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { CurrentDateTime } from '../../../components/CurrentDateTime';
 import { Icon } from '../../../components/Icon';
 import { Pagination } from '../../../components/Pagination';
 import { useDebounce } from '../../../hooks/useDebounce';
+import { appRoutes } from '../../../lib/appRoutes';
 import { trackingApi } from '../api/trackingApi';
 import { useCancelTransaction } from '../hooks/useCancelTransaction';
 import { useCreateTransaction } from '../hooks/useCreateTransaction';
 import { useTransactionList } from '../hooks/useTransactionList';
 import { useTransactionStats } from '../hooks/useTransactionStats';
-import type { ApiExportTransaction, ApiImportTransaction, CreateExportPayload, CreateImportPayload, LayoutContext } from '../types';
+import type { ApiExportTransaction, ApiImportTransaction, CreateExportPayload, CreateImportPayload } from '../types';
 import { trackingKeys } from '../utils/queryKeys';
 import { CancelTransactionModal } from './CancelTransactionModal';
 import { EncodeModal } from './EncodeModal';
-import { useQueryClient } from '@tanstack/react-query';
 
 function getPagesToPrefetch(currentPage: number, totalPages: number): number[] {
     return Array.from({ length: 3 }, (_, index) => currentPage + index + 1)
         .filter((pageNumber) => pageNumber <= totalPages);
 }
-
 
 export interface TransactionListPageProps<T> {
     type: 'import' | 'export';
@@ -36,10 +37,6 @@ export interface TransactionListPageProps<T> {
     mapResponseData: (data: (ApiImportTransaction | ApiExportTransaction)[]) => T[];
 }
 
-
-
-
-
 export function TransactionListPage<T>({
     type,
     title,
@@ -51,7 +48,6 @@ export function TransactionListPage<T>({
     mapResponseData,
 }: TransactionListPageProps<T>) {
     const navigate = useNavigate();
-    const { dateTime } = useOutletContext<LayoutContext>();
     const queryClient = useQueryClient();
 
     const [searchParams, setSearchParams] = useSearchParams();
@@ -89,7 +85,7 @@ export function TransactionListPage<T>({
         updater: (params: URLSearchParams) => void,
         options?: { replace?: boolean },
     ) => {
-        setSearchParams(prev => {
+        setSearchParams((prev) => {
             const next = new URLSearchParams(prev);
             updater(next);
 
@@ -98,19 +94,19 @@ export function TransactionListPage<T>({
     };
 
     const resetPage = () => {
-        updateSearchParams(params => {
+        updateSearchParams((params) => {
             params.set('page', '1');
         }, { replace: true });
     };
 
-    const setPage = (p: number) =>
-        updateSearchParams(params => {
-            params.set('page', String(p));
+    const setPage = (nextPage: number) =>
+        updateSearchParams((params) => {
+            params.set('page', String(nextPage));
         });
 
-    const setPerPage = (pp: number) =>
-        updateSearchParams(params => {
-            params.set('per_page', String(pp));
+    const setPerPage = (nextPerPage: number) =>
+        updateSearchParams((params) => {
+            params.set('per_page', String(nextPerPage));
             params.set('page', '1');
         });
 
@@ -138,7 +134,6 @@ export function TransactionListPage<T>({
         resetPage();
     };
 
-    // Stats may arrive as strings from the API; normalize to numbers to avoid "1" + "0" => "10".
     const pendingCount = Number(stats?.pending ?? 0);
     const inProgressCount = Number(stats?.in_progress ?? 0);
     const overdueCount = Number(stats?.overdue ?? 0);
@@ -202,15 +197,16 @@ export function TransactionListPage<T>({
                     <h1 className="text-2xl font-bold text-text-primary tracking-tight">{title}</h1>
                     <p className="text-xs text-text-muted mt-0.5">{subtitle}</p>
                 </div>
-                <div className="text-right hidden sm:block shrink-0">
-                    <p className="text-xl font-bold tabular-nums text-text-primary">{dateTime.time}</p>
-                    <p className="text-xs text-text-muted">{dateTime.date}</p>
-                </div>
+                <CurrentDateTime
+                    className="text-right hidden sm:block shrink-0"
+                    timeClassName="text-xl font-bold tabular-nums text-text-primary"
+                    dateClassName="text-xs text-text-muted"
+                />
             </div>
 
             {/* Stats */}
             <div className={`grid gap-3 ${type === 'import' ? 'grid-cols-2 lg:grid-cols-4' : 'grid-cols-3'}`}>
-                {statCards.map(stat => (
+                {statCards.map((stat) => (
                     <div
                         key={stat.label}
                         className="bg-surface border border-border rounded-lg px-4 py-3.5"
@@ -252,7 +248,7 @@ export function TransactionListPage<T>({
                                 type="text"
                                 placeholder={`Search ${type}s…`}
                                 value={searchQuery}
-                                onChange={e => handleSearchChange(e.target.value)}
+                                onChange={(event) => handleSearchChange(event.target.value)}
                                 className="w-full pl-9 pr-3 h-9 rounded-lg border border-border-strong bg-input-bg text-text-primary text-sm placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/60 transition-colors"
                             />
                         </div>
@@ -269,13 +265,13 @@ export function TransactionListPage<T>({
                                 </button>
                                 {openDropdown === 'filter' && (
                                     <div className="absolute top-full left-0 mt-1 w-32 bg-surface border border-border-strong rounded-xl shadow-lg z-50 overflow-hidden animate-dropdown-in">
-                                        {['SC', 'Status'].map(opt => (
+                                        {['SC', 'Status'].map((option) => (
                                             <button
-                                                key={opt}
+                                                key={option}
                                                 className="w-full text-left px-4 py-2 text-sm text-text-primary hover:bg-hover transition-colors"
-                                                onClick={() => handleFilterTypeChange(opt)}
+                                                onClick={() => handleFilterTypeChange(option)}
                                             >
-                                                {opt}
+                                                {option}
                                             </button>
                                         ))}
                                     </div>
@@ -296,16 +292,16 @@ export function TransactionListPage<T>({
                                 {openDropdown === 'value' && (
                                     <div className="absolute top-full left-0 mt-1 w-36 bg-surface border border-border-strong rounded-xl shadow-lg z-[100] overflow-hidden animate-dropdown-in">
                                         {type === 'import' && filterType === 'SC' && (
-                                            ['Green', 'Yellow', 'Red'].map(opt => (
-                                                <button key={opt} className="w-full text-left px-4 py-2 text-sm text-text-primary hover:bg-hover transition-colors" onClick={() => handleFilterValueChange(opt)}>
-                                                    {opt}
+                                            ['Green', 'Yellow', 'Red'].map((option) => (
+                                                <button key={option} className="w-full text-left px-4 py-2 text-sm text-text-primary hover:bg-hover transition-colors" onClick={() => handleFilterValueChange(option)}>
+                                                    {option}
                                                 </button>
                                             ))
                                         )}
                                         {((type === 'import' && filterType === 'Status') || type === 'export') && (
-                                            ['pending', 'in_progress'].map(opt => (
-                                                <button key={opt} className="w-full text-left px-4 py-2 text-sm text-text-primary hover:bg-hover transition-colors capitalize" onClick={() => handleFilterValueChange(opt)}>
-                                                    {opt.replace('_', ' ')}
+                                            ['pending', 'in_progress'].map((option) => (
+                                                <button key={option} className="w-full text-left px-4 py-2 text-sm text-text-primary hover:bg-hover transition-colors capitalize" onClick={() => handleFilterValueChange(option)}>
+                                                    {option.replace('_', ' ')}
                                                 </button>
                                             ))
                                         )}
@@ -349,20 +345,19 @@ export function TransactionListPage<T>({
                     <div>
                         {isLoading ? (
                             <div className="divide-y divide-border/50">
-                                {Array.from({ length: 6 }).map((_, i) => {
-                                    // Realistic varied widths per column - mirrors actual data
+                                {Array.from({ length: 6 }).map((_, index) => {
                                     const widths = ['30px', '90px', '80px', '70px', '120px', '80px', '30px'];
                                     return (
-                                        <div key={i} className="grid gap-4 py-3.5 px-4 items-center" style={{ gridTemplateColumns }}>
-                                            {gridTemplateColumns.split(' ').map((_, colIdx) => (
+                                        <div key={index} className="grid gap-4 py-3.5 px-4 items-center" style={{ gridTemplateColumns }}>
+                                            {gridTemplateColumns.split(' ').map((_, columnIndex) => (
                                                 <div
-                                                    key={colIdx}
+                                                    key={columnIndex}
                                                     className="skeleton-shimmer rounded-md"
                                                     style={{
-                                                        height: colIdx === 0 ? '10px' : '13px',
-                                                        width: widths[colIdx] ?? '70px',
+                                                        height: columnIndex === 0 ? '10px' : '13px',
+                                                        width: widths[columnIndex] ?? '70px',
                                                         maxWidth: '100%',
-                                                        borderRadius: colIdx === 3 ? '999px' : '6px', // pill for status column
+                                                        borderRadius: columnIndex === 3 ? '999px' : '6px',
                                                     }}
                                                 />
                                             ))}
@@ -376,16 +371,27 @@ export function TransactionListPage<T>({
                                 <p className="text-sm font-semibold">No {type} transactions found</p>
                             </div>
                         ) : (
-                            data.map((row, i) => (
-                                <div
-                                    key={i}
-                                    className={`grid gap-4 py-3 items-center cursor-pointer transition-all px-4 hover:bg-hover border-b border-border/50 ${i % 2 !== 0 ? 'bg-surface-secondary/40' : ''}`}
-                                    style={{ gridTemplateColumns }}
-                                    onClick={() => navigate(`/tracking/${(row as { ref?: string }).ref ?? ''}`)}
-                                >
-                                    {renderRow(row, i, navigate, (id, ref) => setCancelTarget({ id, ref }))}
-                                </div>
-                            ))
+                            data.map((row, index) => {
+                                const rowKey = (row as { id?: number; ref?: string }).id ?? (row as { ref?: string }).ref ?? index;
+                                const referenceId = (row as { ref?: string }).ref;
+
+                                return (
+                                    <div
+                                        key={rowKey}
+                                        className={`grid gap-4 py-3 items-center cursor-pointer transition-all px-4 hover:bg-hover border-b border-border/50 ${index % 2 !== 0 ? 'bg-surface-secondary/40' : ''}`}
+                                        style={{ gridTemplateColumns }}
+                                        onClick={() => {
+                                            if (!referenceId) {
+                                                return;
+                                            }
+
+                                            navigate(appRoutes.trackingDetail.replace(':referenceId', encodeURIComponent(referenceId)));
+                                        }}
+                                    >
+                                        {renderRow(row, index, navigate, (id, ref) => setCancelTarget({ id, ref }))}
+                                    </div>
+                                );
+                            })
                         )}
                     </div>
 
@@ -405,11 +411,11 @@ export function TransactionListPage<T>({
                 isOpen={isEncodeOpen}
                 onClose={() => setIsEncodeOpen(false)}
                 type={type}
-                onSave={async d => {
+                onSave={async (data) => {
                     await createMutation.mutateAsync(
                         type === 'import'
-                            ? (d as CreateImportPayload)
-                            : (d as CreateExportPayload),
+                            ? (data as CreateImportPayload)
+                            : (data as CreateExportPayload),
                     );
                 }}
             />
@@ -420,7 +426,7 @@ export function TransactionListPage<T>({
                 onClose={() => setCancelTarget(null)}
                 transactionRef={cancelTarget?.ref ?? ''}
                 isLoading={cancelMutation.isPending}
-                onConfirm={reason => {
+                onConfirm={(reason) => {
                     if (cancelTarget) {
                         cancelMutation.mutate(
                             { id: cancelTarget.id, reason },

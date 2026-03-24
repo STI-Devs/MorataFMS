@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import { CurrentDateTime } from '../../../components/CurrentDateTime';
 import { Icon } from '../../../components/Icon';
 import { StatusBadge } from '../../../components/StatusBadge';
+import { appRoutes } from '../../../lib/appRoutes';
 import { useAllExportsData, useAllImportsData } from '../hooks/useAllTransactionRecords';
 import type { ApiExportTransaction, ApiImportTransaction, ExportTransaction, ImportTransaction } from '../types';
 import { mapExportTransaction, mapImportTransaction } from '../utils/mappers';
@@ -27,20 +29,6 @@ const EmptyState = ({ label }: { label: string }) => (
 export const AdminLiveTracking = () => {
     const navigate = useNavigate();
 
-    const [dateTime, setDateTime] = useState({ time: '', date: '' });
-    useEffect(() => {
-        const fmt = () => {
-            const now = new Date();
-            setDateTime({
-                time: now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-                date: now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-            });
-        };
-        fmt();
-        const id = setInterval(fmt, 1000);
-        return () => clearInterval(id);
-    }, []);
-
     const LIVE_PARAMS = { exclude_statuses: 'completed,cancelled' };
 
     const { data: importsData, isLoading: importsLoading } = useAllImportsData(LIVE_PARAMS);
@@ -61,10 +49,11 @@ export const AdminLiveTracking = () => {
                 <h1 className="text-3xl font-bold mb-1" style={{ color: '#ffffff' }}>Live Tracking Overview</h1>
                 <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>Real-time view of all import and export transactions across all encoders.</p>
                 {/* Clock pinned top-right */}
-                <div className="absolute right-0 top-0 text-right">
-                    <p className="text-2xl font-bold tabular-nums" style={{ color: '#ffffff' }}>{dateTime.time}</p>
-                    <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>{dateTime.date}</p>
-                </div>
+                <CurrentDateTime
+                    className="absolute right-0 top-0 text-right"
+                    timeClassName="text-2xl font-bold tabular-nums text-white"
+                    dateClassName="text-sm text-white/50"
+                />
             </div>
 
             {/* Stat Cards */}
@@ -128,7 +117,9 @@ export const AdminLiveTracking = () => {
                         {importsLoading ? (<Spinner color="#30d158" />) :
                             imports.length === 0 ? <EmptyState label="imports" /> :
                                 imports.map((row, i) => (
-                                    <div key={row.id} onClick={() => navigate(`/tracking/${row.ref}`)}
+                                    <div
+                                        key={row.id}
+                                        onClick={() => navigate(appRoutes.trackingDetail.replace(':referenceId', encodeURIComponent(row.ref)))}
                                         className="grid gap-x-3 px-4 py-1.5 items-center cursor-pointer transition-colors"
                                         style={{
                                             gridTemplateColumns: '20px 1fr 0.9fr 120px 1.4fr 96px',
@@ -178,7 +169,9 @@ export const AdminLiveTracking = () => {
                         {exportsLoading ? (<Spinner color="#0a84ff" />) :
                             exports.length === 0 ? <EmptyState label="exports" /> :
                                 exports.map((row, i) => (
-                                    <div key={row.id} onClick={() => navigate(`/tracking/${row.ref}`)}
+                                    <div
+                                        key={row.id}
+                                        onClick={() => navigate(appRoutes.trackingDetail.replace(':referenceId', encodeURIComponent(row.ref)))}
                                         className="grid gap-x-3 px-4 py-1.5 items-center cursor-pointer transition-colors"
                                         style={{
                                             gridTemplateColumns: '1.4fr 1.1fr 1.2fr 96px 100px 1.2fr',

@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { CurrentDateTime } from '../../../components/CurrentDateTime';
 import { useAuth } from '../../auth/hooks/useAuth';
-import type { LayoutContext } from '../../tracking/types';
 import { useActivateUser, useCreateUser, useDeactivateUser, useUpdateUser, useUsers } from '../hooks/useUsers';
 import type { CreateUserData, UpdateUserData, User } from '../types/user.types';
 import { UserFormModal } from './UserFormModal';
@@ -40,7 +39,6 @@ function RoleBadge({ role }: { role: string }) {
 }
 
 export const UserManagement = () => {
-    const { dateTime } = useOutletContext<LayoutContext>();
     const { user: currentUser } = useAuth();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
@@ -101,10 +99,11 @@ export const UserManagement = () => {
                     <h1 className="text-2xl font-bold text-text-primary tracking-tight">User Management</h1>
                     <p className="text-xs text-text-muted mt-0.5">Create, edit, and manage user accounts</p>
                 </div>
-                <div className="text-right hidden sm:block">
-                    <p className="text-xl font-bold tabular-nums text-text-primary">{dateTime.time}</p>
-                    <p className="text-xs text-text-muted">{dateTime.date}</p>
-                </div>
+                <CurrentDateTime
+                    className="text-right hidden sm:block"
+                    timeClassName="text-xl font-bold tabular-nums text-text-primary"
+                    dateClassName="text-xs text-text-muted"
+                />
             </div>
 
             {/* Stat Cards */}

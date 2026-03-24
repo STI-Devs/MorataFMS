@@ -92,10 +92,6 @@ export const MainLayout = () => {
     const { theme, toggleTheme } = useTheme();
     const navigate = useNavigate();
     const location = useLocation();
-    const [dateTime, setDateTime] = useState({
-        time: '09:41 AM',
-        date: 'Nov 23, 2025',
-    });
 
     const departments = user?.departments ?? ['brokerage'];
     const isAdmin = user?.role === 'admin';
@@ -132,32 +128,6 @@ export const MainLayout = () => {
         return () => document.removeEventListener('mousedown', handler);
     }, [isAccountOpen]);
 
-    useEffect(() => {
-        const updateTime = () => {
-            const timeOptions: Intl.DateTimeFormatOptions = {
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: true,
-                timeZone: 'Asia/Manila',
-            };
-            const dateOptions: Intl.DateTimeFormatOptions = {
-                year: 'numeric',
-                month: 'short',
-                day: '2-digit',
-                timeZone: 'Asia/Manila',
-            };
-            const now = new Date();
-            setDateTime({
-                time: now.toLocaleTimeString('en-US', timeOptions),
-                date: now.toLocaleDateString('en-US', dateOptions),
-            });
-        };
-
-        updateTime();
-        const timer = setInterval(updateTime, 1000);
-        return () => clearInterval(timer);
-    }, []);
-
     const handleLogout = async () => {
         try {
             await logout();
@@ -193,7 +163,10 @@ export const MainLayout = () => {
             return;
         }
         if (newTab) {
-            window.open(path, '_blank');
+            const externalTab = window.open(path, '_blank');
+            if (externalTab) {
+                externalTab.opener = null;
+            }
             return;
         }
         navigate(path);
@@ -341,7 +314,7 @@ export const MainLayout = () => {
             <main className={`flex-1 overflow-y-auto p-6 relative flex flex-col ${isDetailsPage ? 'ml-64' : ''} ${isContentDark ? 'bg-[#111111]' : 'bg-white'}`}>
                 <div className="max-w-7xl w-full mx-auto flex-1 flex flex-col min-h-0">
                     <Suspense fallback={<PageFallback />}>
-                        <Outlet context={{ user, dateTime }} />
+                        <Outlet context={{ user }} />
                     </Suspense>
                 </div>
             </main>

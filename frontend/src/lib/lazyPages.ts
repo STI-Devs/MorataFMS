@@ -1,21 +1,19 @@
 import { lazy } from 'react';
 
-
-
 export const AdminDashboard = lazy(() =>
-    import('../features/admin-dashboard').then((module) => ({ default: module.AdminDashboard })),
+    import('../features/admin-dashboard/components/AdminDashboard').then((module) => ({ default: module.AdminDashboard })),
 );
 
 export const ArchivesPage = lazy(() =>
-    import('../features/archives').then((module) => ({ default: module.ArchivesPage })),
+    import('../features/archives/components/ArchivesPage').then((module) => ({ default: module.ArchivesPage })),
 );
 
 export const EncoderArchivePage = lazy(() =>
-    import('../features/archives').then((module) => ({ default: module.EncoderArchivePage })),
+    import('../features/archives/components/EncoderArchivePage').then((module) => ({ default: module.EncoderArchivePage })),
 );
 
 export const AuditLogs = lazy(() =>
-    import('../features/audit-logs').then((module) => ({ default: module.AuditLogs })),
+    import('../features/audit-logs/components/AuditLogs').then((module) => ({ default: module.AuditLogs })),
 );
 
 export const AuthPage = lazy(() =>
@@ -23,63 +21,63 @@ export const AuthPage = lazy(() =>
 );
 
 export const ClientManagement = lazy(() =>
-    import('../features/clients').then((module) => ({ default: module.ClientManagement })),
+    import('../features/clients/components/ClientManagement').then((module) => ({ default: module.ClientManagement })),
 );
 
 export const Documents = lazy(() =>
-    import('../features/documents').then((module) => ({ default: module.Documents })),
+    import('../features/documents/components/Documents').then((module) => ({ default: module.Documents })),
 );
 
 export const DocumentsDetail = lazy(() =>
-    import('../features/documents').then((module) => ({ default: module.DocumentsDetail })),
+    import('../features/documents/components/DocumentsDetail').then((module) => ({ default: module.DocumentsDetail })),
 );
 
 export const FormsPage = lazy(() =>
-    import('../features/forms').then((module) => ({ default: module.FormsPage })),
+    import('../features/forms/components/FormsPage').then((module) => ({ default: module.FormsPage })),
 );
 
 export const LawFirmPage = lazy(() =>
-    import('../features/law-firm').then((module) => ({ default: module.LawFirmPage })),
+    import('../features/law-firm/components/LawFirmPage').then((module) => ({ default: module.LawFirmPage })),
 );
 
 export const TransactionOversight = lazy(() =>
-    import('../features/oversight').then((module) => ({ default: module.TransactionOversight })),
+    import('../features/oversight/components/TransactionOversight').then((module) => ({ default: module.TransactionOversight })),
 );
 
 export const ReportsAnalytics = lazy(() =>
-    import('../features/reports').then((module) => ({ default: module.ReportsAnalytics })),
+    import('../features/reports/components/ReportsAnalytics').then((module) => ({ default: module.ReportsAnalytics })),
 );
 
 export const Help = lazy(() =>
-    import('../features/settings').then((module) => ({ default: module.Help })),
+    import('../features/settings/components/Help').then((module) => ({ default: module.Help })),
 );
 
 export const Profile = lazy(() =>
-    import('../features/settings').then((module) => ({ default: module.Profile })),
+    import('../features/settings/components/Profile').then((module) => ({ default: module.Profile })),
 );
 
 export const AdminLiveTracking = lazy(() =>
-    import('../features/tracking').then((module) => ({ default: module.AdminLiveTracking })),
+    import('../features/tracking/components/AdminLiveTracking').then((module) => ({ default: module.AdminLiveTracking })),
 );
 
 export const ExportList = lazy(() =>
-    import('../features/tracking').then((module) => ({ default: module.ExportList })),
+    import('../features/tracking/components/ExportList').then((module) => ({ default: module.ExportList })),
 );
 
 export const ImportList = lazy(() =>
-    import('../features/tracking').then((module) => ({ default: module.ImportList })),
+    import('../features/tracking/components/ImportList').then((module) => ({ default: module.ImportList })),
 );
 
 export const TrackingDashboard = lazy(() =>
-    import('../features/tracking').then((module) => ({ default: module.TrackingDashboard })),
+    import('../features/tracking/components/dashboard/TrackingDashboard').then((module) => ({ default: module.TrackingDashboard })),
 );
 
 export const TrackingDetails = lazy(() =>
-    import('../features/tracking').then((module) => ({ default: module.TrackingDetails })),
+    import('../features/tracking/components/TrackingDetails').then((module) => ({ default: module.TrackingDetails })),
 );
 
 export const UserManagement = lazy(() =>
-    import('../features/users').then((module) => ({ default: module.UserManagement })),
+    import('../features/users/components/UserManagement').then((module) => ({ default: module.UserManagement })),
 );
 
 export const LandingPage = lazy(() => import('../pages/LandingPage'));

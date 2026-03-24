@@ -1,10 +1,7 @@
-import { useOutletContext } from 'react-router-dom';
+import { CurrentDateTime } from '../../../components/CurrentDateTime';
 import { Icon } from '../../../components/Icon';
-import type { LayoutContext } from '../../tracking/types';
 
 export const LawFirmPage = () => {
-    const { dateTime } = useOutletContext<LayoutContext>();
-
     return (
         <div className="w-full p-8 pb-12 space-y-7">
             <div className="flex items-center justify-between gap-4">
@@ -12,10 +9,11 @@ export const LawFirmPage = () => {
                     <h1 className="text-4xl font-bold tracking-tight text-text-primary">Law Firm</h1>
                     <p className="text-base text-text-muted mt-1">Legal registry tools are being connected to the live backend workflow.</p>
                 </div>
-                <div className="text-right shrink-0">
-                    <p className="text-2xl font-bold tabular-nums text-text-primary">{dateTime.time}</p>
-                    <p className="text-sm text-text-muted">{dateTime.date}</p>
-                </div>
+                <CurrentDateTime
+                    className="text-right shrink-0"
+                    timeClassName="text-2xl font-bold tabular-nums text-text-primary"
+                    dateClassName="text-sm text-text-muted"
+                />
             </div>
 
             <div className="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden">

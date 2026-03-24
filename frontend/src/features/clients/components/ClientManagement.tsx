@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { CurrentDateTime } from '../../../components/CurrentDateTime';
 import { TransactionHistoryModal } from '../../oversight/components/TransactionHistoryModal';
-import type { LayoutContext } from '../../tracking/types';
 import { useClients, useClientTransactions, useCreateClient, useToggleClient, useUpdateClient } from '../hooks/useClients';
 import type { Client, CreateClientData, UpdateClientData } from '../types/client.types';
 import { ClientFormModal } from './ClientFormModal';
@@ -28,7 +27,6 @@ function TypeBadge({ type }: { type: string }) {
 }
 
 export const ClientManagement = () => {
-    const { dateTime } = useOutletContext<LayoutContext>();
     const [isFormModalOpen, setIsFormModalOpen] = useState(false);
     const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
     const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
@@ -92,10 +90,11 @@ export const ClientManagement = () => {
                     <h1 className="text-2xl font-bold text-text-primary tracking-tight">Client Management</h1>
                     <p className="text-xs text-text-muted mt-0.5">Manage clients, toggle status, and view transaction history</p>
                 </div>
-                <div className="text-right hidden sm:block">
-                    <p className="text-xl font-bold tabular-nums text-text-primary">{dateTime.time}</p>
-                    <p className="text-xs text-text-muted">{dateTime.date}</p>
-                </div>
+                <CurrentDateTime
+                    className="text-right hidden sm:block"
+                    timeClassName="text-xl font-bold tabular-nums text-text-primary"
+                    dateClassName="text-xs text-text-muted"
+                />
             </div>
 
             {/* Stat Cards */}

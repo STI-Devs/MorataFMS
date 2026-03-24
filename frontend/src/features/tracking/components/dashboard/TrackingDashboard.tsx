@@ -1,9 +1,11 @@
 import { useMemo } from 'react';
-import { useNavigate, useOutletContext } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { CurrentDateTime } from '../../../../components/CurrentDateTime';
 import { EmptyState } from '../../../../components/EmptyState';
 import { StatusBadge } from '../../../../components/StatusBadge';
+import { appRoutes } from '../../../../lib/appRoutes';
 import { useAllExportsData, useAllImportsData } from '../../hooks/useAllTransactionRecords';
-import type { ApiExportTransaction, ApiImportTransaction, ExportTransaction, ImportTransaction, LayoutContext } from '../../types';
+import type { ApiExportTransaction, ApiImportTransaction, ExportTransaction, ImportTransaction } from '../../types';
 import { mapExportTransaction, mapImportTransaction } from '../../utils/mappers';
 
 
@@ -16,7 +18,6 @@ const ColHeader = ({ children, className = '' }: { children: React.ReactNode; cl
 
 export const TrackingDashboard = () => {
     const navigate = useNavigate();
-    const { dateTime } = useOutletContext<LayoutContext>();
 
     const LIVE_PARAMS = { exclude_statuses: 'completed,cancelled' };
 
@@ -42,10 +43,11 @@ export const TrackingDashboard = () => {
                     <h1 className="text-3xl font-bold mb-1 text-text-primary">Live Tracking Overview</h1>
                     <p className="text-sm text-text-secondary">Real-time view of your assigned import and export transactions.</p>
                 </div>
-                <div className="text-right hidden sm:block shrink-0">
-                    <p className="text-2xl font-bold tabular-nums text-text-primary">{dateTime.time}</p>
-                    <p className="text-sm text-text-secondary">{dateTime.date}</p>
-                </div>
+                <CurrentDateTime
+                    className="text-right hidden sm:block shrink-0"
+                    timeClassName="text-2xl font-bold tabular-nums text-text-primary"
+                    dateClassName="text-sm text-text-secondary"
+                />
             </div>
 
             {/* Two panels side-by-side */}
@@ -98,7 +100,7 @@ export const TrackingDashboard = () => {
                                 imports.map((row, i) => (
                                     <div
                                         key={row.id}
-                                        onClick={() => navigate(`/tracking/${row.ref}`)}
+                                        onClick={() => navigate(appRoutes.trackingDetail.replace(':referenceId', encodeURIComponent(row.ref)))}
                                         className={`grid gap-2 px-4 py-3.5 items-center cursor-pointer hover:bg-hover/60 transition-colors border-b border-border/30 ${i % 2 !== 0 ? 'bg-surface-secondary/30' : ''}`}
                                         style={{ gridTemplateColumns: '32px 140px 130px 100px 284px 95px', width: 'max-content', minWidth: '100%' }}
                                     >
@@ -165,7 +167,7 @@ export const TrackingDashboard = () => {
                                 exports.map((row, i) => (
                                     <div
                                         key={row.id}
-                                        onClick={() => navigate(`/tracking/${row.ref}`)}
+                                        onClick={() => navigate(appRoutes.trackingDetail.replace(':referenceId', encodeURIComponent(row.ref)))}
                                         className={`grid gap-2 px-4 py-3.5 items-center cursor-pointer hover:bg-hover/60 transition-colors border-b border-border/30 ${i % 2 !== 0 ? 'bg-surface-secondary/30' : ''}`}
                                         style={{ gridTemplateColumns: '300px 130px 185px 95px 100px 150px', width: 'max-content', minWidth: '100%' }}
                                     >

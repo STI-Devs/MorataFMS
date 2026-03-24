@@ -1,11 +1,8 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { CurrentDateTime } from '../../../components/CurrentDateTime';
 import { Icon } from '../../../components/Icon';
 import type { ArchiveDocument, ArchiveYear, TransactionType } from '../../documents/types/document.types';
-
-
-import type { LayoutContext } from '../../tracking/types';
 import { useMyArchives } from '../hooks/useMyArchives';
 import type { DrillState, SortKey, ViewMode } from '../utils/archive.utils';
 import { FOLDER_LABEL, MONTH_NAMES } from '../utils/archive.utils';
@@ -20,7 +17,6 @@ import { EmptyState } from './ui/EmptyState';
 import { ViewToggle } from './ui/ViewToggle';
 
 export const EncoderArchivePage = () => {
-    const { dateTime } = useOutletContext<LayoutContext>();
     const queryClient = useQueryClient();
     const { data: archiveData = [], isLoading, isError } = useMyArchives();
 
@@ -150,10 +146,11 @@ export const EncoderArchivePage = () => {
                     <h1 className="text-4xl font-bold tracking-tight text-text-primary">My Archive</h1>
                     <p className="text-base text-text-muted mt-1">Your uploaded document history</p>
                 </div>
-                <div className="text-right shrink-0">
-                    <p className="text-2xl font-bold tabular-nums text-text-primary">{dateTime.time}</p>
-                    <p className="text-sm text-text-muted">{dateTime.date}</p>
-                </div>
+                <CurrentDateTime
+                    className="text-right shrink-0"
+                    timeClassName="text-2xl font-bold tabular-nums text-text-primary"
+                    dateClassName="text-sm text-text-muted"
+                />
             </div>
 
             {/* Stats cards row — encoder-specific */}

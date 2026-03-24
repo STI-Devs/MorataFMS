@@ -1,6 +1,7 @@
-﻿import type { ReactNode } from 'react';
-import { createContext, useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
+import { createContext, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { isAxiosError } from '../../../lib/apiErrors';
 import { authApi } from '../api/authApi';
 import type { AuthState, LoginCredentials, User } from '../types/auth.types';
 
@@ -12,7 +13,33 @@ interface AuthContextType extends AuthState {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Export the context so it can be used in custom hooks
+let restoreSessionPromise: Promise<User | null> | null = null;
+
+function syncRestoreSessionPromise(user: User | null): void {
+  restoreSessionPromise = Promise.resolve(user);
+}
+
+function restoreSession(): Promise<User | null> {
+  if (!restoreSessionPromise) {
+    restoreSessionPromise = authApi.getCurrentUser()
+      .then((user) => {
+        syncRestoreSessionPromise(user);
+        return user;
+      })
+      .catch((error: unknown) => {
+        if (isAxiosError(error) && [401, 419].includes(error.response?.status ?? 0)) {
+          syncRestoreSessionPromise(null);
+          return null;
+        }
+
+        restoreSessionPromise = null;
+        throw error;
+      });
+  }
+
+  return restoreSessionPromise;
+}
+
 export { AuthContext };
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -21,18 +48,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isAuthenticated: false,
     isLoading: true,
   });
+  const wasAuthenticatedRef = useRef(false);
 
-  // Listen for unauthorized events from axios interceptor
+  useEffect(() => {
+    wasAuthenticatedRef.current = authState.isAuthenticated;
+  }, [authState.isAuthenticated]);
+
   useEffect(() => {
     const handleUnauthorized = () => {
-      // Only show the toast if we actually had a user stored
-      if (localStorage.getItem('user')) {
+      if (wasAuthenticatedRef.current) {
         toast.error('You have been signed out. Please log in again to continue.', {
           duration: 6000,
         });
       }
-      
-      localStorage.removeItem('user');
+
+      syncRestoreSessionPromise(null);
       setAuthState({
         user: null,
         isAuthenticated: false,
@@ -41,49 +71,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     window.addEventListener('auth:unauthorized', handleUnauthorized as EventListener);
+
     return () => window.removeEventListener('auth:unauthorized', handleUnauthorized as EventListener);
   }, []);
 
-  // Verify session with backend on page load
   useEffect(() => {
-    const userStr = localStorage.getItem('user');
+    let isMounted = true;
 
-    if (userStr) {
-      // Verify the session is still valid by hitting the backend
-      authApi.getCurrentUser()
-        .then((response) => {
-          // Session is valid — use fresh user data from backend
-          // Handle both wrapped { data: User } and direct User response
-          const raw = response as unknown as Record<string, unknown>;
-          const userData = (raw.data ? raw.data : raw) as User;
-          localStorage.setItem('user', JSON.stringify(userData));
-          setAuthState({
-            user: userData,
-            isAuthenticated: true,
-            isLoading: false,
-          });
-        })
-        .catch(() => {
-          // Session expired — clear stale localStorage
-          // The 401 interceptor in axios.ts will handle the redirect
-          localStorage.removeItem('user');
-          setAuthState({
-            user: null,
-            isAuthenticated: false,
-            isLoading: false,
-          });
+    void restoreSession()
+      .then((user) => {
+        if (!isMounted) {
+          return;
+        }
+
+        setAuthState({
+          user,
+          isAuthenticated: !!user,
+          isLoading: false,
         });
-    } else {
-      setAuthState(prev => ({ ...prev, isLoading: false }));
-    }
+      })
+      .catch(() => {
+        if (!isMounted) {
+          return;
+        }
+
+        setAuthState({
+          user: null,
+          isAuthenticated: false,
+          isLoading: false,
+        });
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const login = async (credentials: LoginCredentials): Promise<User> => {
     try {
       const response = await authApi.login(credentials);
 
-      localStorage.setItem('user', JSON.stringify(response.user));
-
+      syncRestoreSessionPromise(response.user);
       setAuthState({
         user: response.user,
         isAuthenticated: true,
@@ -103,9 +131,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('Logout API call failed:', error);
     } finally {
-      // Clear local storage and state
-      localStorage.removeItem('user');
-
+      syncRestoreSessionPromise(null);
       setAuthState({
         user: null,
         isAuthenticated: false,
@@ -115,19 +141,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const setUser = (user: User | null) => {
-    if (user) {
-      localStorage.setItem('user', JSON.stringify(user));
-    } else {
-      localStorage.removeItem('user');
-    }
-
-    setAuthState(prev => ({
+    syncRestoreSessionPromise(user);
+    setAuthState((prev) => ({
       ...prev,
       user,
       isAuthenticated: !!user,
     }));
   };
-
 
   return (
     <AuthContext.Provider value={{ ...authState, login, logout, setUser }}>
@@ -135,4 +155,3 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     </AuthContext.Provider>
   );
 }
-
