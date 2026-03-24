@@ -12,6 +12,11 @@ import type {
  */
 export function mapImportTransaction(t: ApiImportTransaction): ImportTransaction {
     const statusMap: Record<string, string> = {
+        Pending: 'Pending',
+        'Vessel Arrived': 'In Transit',
+        Processing: 'In Transit',
+        Completed: 'Cleared',
+        Cancelled: 'Cancelled',
         pending: 'Pending',
         in_progress: 'In Transit',
         completed: 'Cleared',
@@ -44,6 +49,12 @@ export function mapImportTransaction(t: ApiImportTransaction): ImportTransaction
  */
 export function mapExportTransaction(t: ApiExportTransaction): ExportTransaction {
     const statusMap: Record<string, string> = {
+        Pending: 'Processing',
+        'In Transit': 'In Transit',
+        Departure: 'In Transit',
+        Processing: 'Processing',
+        Completed: 'Shipped',
+        Cancelled: 'Cancelled',
         pending: 'Processing',
         in_progress: 'In Transit',
         completed: 'Shipped',
