@@ -3,6 +3,8 @@
 namespace App\Http\Requests;
 
 use App\Models\Document;
+use App\Models\ExportTransaction;
+use App\Models\ImportTransaction;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -31,23 +33,28 @@ class StoreDocumentRequest extends FormRequest
             'type' => [
                 'required',
                 'string',
-                Rule::in(array_keys(Document::getTypeLabels())),
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if (! is_string($value) || ! Document::isAllowedTypeFor($this->input('documentable_type'), $value)) {
+                        $fail('Invalid document type selected.');
+                    }
+                },
             ],
             'documentable_type' => [
                 'required',
                 'string',
-                Rule::in(['App\Models\ImportTransaction', 'App\Models\ExportTransaction']),
+                Rule::in([ImportTransaction::class, ExportTransaction::class]),
             ],
             'documentable_id' => [
                 'required',
                 'integer',
                 function ($attribute, $value, $fail) {
                     $type = $this->input('documentable_type');
-                    if (!$type || !class_exists($type)) {
+                    if (! $type || ! class_exists($type)) {
                         $fail('Invalid documentable type.');
+
                         return;
                     }
-                    if (!$type::where('id', $value)->exists()) {
+                    if (! $type::where('id', $value)->exists()) {
                         $fail('The selected transaction does not exist.');
                     }
                 },

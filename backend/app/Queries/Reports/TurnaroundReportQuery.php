@@ -17,51 +17,72 @@ class TurnaroundReportQuery
         [$start, $end] = $this->periodBounds($year, $month);
 
         $importQuery = ImportTransaction::query()
-            ->where('is_archive', false)
-            ->where('status', ImportStatusWorkflow::completed())
-            ->where('created_at', '>=', $start)
-            ->where('created_at', '<', $end);
+            ->leftJoin('import_stages', 'import_stages.import_transaction_id', '=', 'import_transactions.id')
+            ->where('import_transactions.is_archive', false)
+            ->where('import_transactions.status', ImportStatusWorkflow::completed())
+            ->where('import_transactions.created_at', '>=', $start)
+            ->where('import_transactions.created_at', '<', $end);
 
         $exportQuery = ExportTransaction::query()
-            ->where('is_archive', false)
-            ->where('status', ExportStatusWorkflow::completed())
-            ->where('created_at', '>=', $start)
-            ->where('created_at', '<', $end);
+            ->leftJoin('export_stages', 'export_stages.export_transaction_id', '=', 'export_transactions.id')
+            ->where('export_transactions.is_archive', false)
+            ->where('export_transactions.status', ExportStatusWorkflow::completed())
+            ->where('export_transactions.created_at', '>=', $start)
+            ->where('export_transactions.created_at', '<', $end);
 
         return [
-            'imports' => $this->statsFor($importQuery),
-            'exports' => $this->statsFor($exportQuery),
+            'imports' => $this->statsFor(
+                $importQuery,
+                'import_transactions.created_at',
+                'COALESCE(import_stages.billing_completed_at, import_transactions.updated_at)'
+            ),
+            'exports' => $this->statsFor(
+                $exportQuery,
+                'export_transactions.created_at',
+                'COALESCE(export_stages.bl_completed_at, export_transactions.updated_at)'
+            ),
         ];
     }
 
-    private function statsFor(Builder $query): array
+    private function statsFor(Builder $query, string $createdAtColumn, string $completedAtExpression): array
     {
         $driver = DB::connection()->getDriverName();
 
         if (in_array($driver, ['mysql', 'mariadb'], true)) {
-            $stats = (clone $query)->selectRaw('
+            $dayDifference = "DATEDIFF($completedAtExpression, $createdAtColumn)";
+            $stats = (clone $query)->selectRaw("
                 COUNT(*) as completed_count,
-                ROUND(AVG(DATEDIFF(updated_at, created_at)), 1) as avg_days,
-                MIN(DATEDIFF(updated_at, created_at)) as min_days,
-                MAX(DATEDIFF(updated_at, created_at)) as max_days
-            ')->first();
+                ROUND(AVG($dayDifference), 1) as avg_days,
+                MIN($dayDifference) as min_days,
+                MAX($dayDifference) as max_days
+            ")->first();
 
             return $this->formatStats($stats);
         }
 
         if ($driver === 'sqlite') {
-            $stats = (clone $query)->selectRaw('
+            $dayDifference = "julianday(date($completedAtExpression)) - julianday(date($createdAtColumn))";
+            $stats = (clone $query)->selectRaw("
                 COUNT(*) as completed_count,
-                ROUND(AVG(julianday(date(updated_at)) - julianday(date(created_at))), 1) as avg_days,
-                MIN(CAST(julianday(date(updated_at)) - julianday(date(created_at)) AS INTEGER)) as min_days,
-                MAX(CAST(julianday(date(updated_at)) - julianday(date(created_at)) AS INTEGER)) as max_days
-            ')->first();
+                ROUND(AVG($dayDifference), 1) as avg_days,
+                MIN(CAST($dayDifference AS INTEGER)) as min_days,
+                MAX(CAST($dayDifference AS INTEGER)) as max_days
+            ")->first();
 
             return $this->formatStats($stats);
         }
 
-        $durations = (clone $query)->get(['created_at', 'updated_at'])
-            ->map(fn ($record) => $record->updated_at?->diffInDays($record->created_at))
+        $durations = (clone $query)
+            ->selectRaw($createdAtColumn.' as created_at, '.$completedAtExpression.' as completed_at')
+            ->get()
+            ->map(function ($record) {
+                if ($record->completed_at === null || $record->created_at === null) {
+                    return null;
+                }
+
+                return CarbonImmutable::parse($record->completed_at)
+                    ->diffInDays(CarbonImmutable::parse($record->created_at));
+            })
             ->filter(fn ($value) => $value !== null)
             ->values();
 

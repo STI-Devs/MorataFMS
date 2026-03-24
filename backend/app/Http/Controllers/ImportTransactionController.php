@@ -22,7 +22,9 @@ class ImportTransactionController extends Controller
     {
         $this->authorize('viewAny', ImportTransaction::class);
 
-        $query = ImportTransaction::with(['importer', 'originCountry', 'stages', 'assignedUser'])
+        $query = ImportTransaction::query()
+            ->visibleTo($request->user())
+            ->with(['importer', 'originCountry', 'stages', 'assignedUser'])
             ->withCount(['remarks as open_remarks_count' => fn ($q) => $q->where('is_resolved', false)])
             ->withCount('documents');
 
@@ -55,7 +57,10 @@ class ImportTransactionController extends Controller
             $query->where('selective_color', $color);
         }
 
-        $perPage = $request->input('per_page', 15);
+        $perPage = (int) $request->input('per_page', 15);
+        if ($perPage < 1) {
+            $perPage = 1;
+        }
         if ($perPage > 500) {
             $perPage = 500;
         }
@@ -116,7 +121,7 @@ class ImportTransactionController extends Controller
     {
         $this->authorize('viewAny', ImportTransaction::class);
 
-        $baseQuery = ImportTransaction::query();
+        $baseQuery = ImportTransaction::query()->visibleTo(request()->user());
 
         $counts = [
             'total' => (clone $baseQuery)->count(),

@@ -20,21 +20,44 @@ test('unauthenticated users cannot access document endpoints', function () {
     $response->assertStatus(401);
 });
 
-test('authenticated users can list documents', function () {
-    $user = User::factory()->create(['role' => 'encoder']);
-    $this->actingAs($user);
+test('admin can list documents', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $this->actingAs($admin);
 
     $response = $this->getJson('/api/documents');
-    $response->assertStatus(200);
+    $response->assertOk();
 });
 
-test('authenticated users can list finalized document transactions with pagination', function () {
+test('encoders can only list their own documents', function () {
+    $encoder = User::factory()->create(['role' => 'encoder']);
+    $otherEncoder = User::factory()->create(['role' => 'encoder']);
+    $ownedTransaction = ImportTransaction::factory()->create(['assigned_user_id' => $encoder->id]);
+    $otherTransaction = ImportTransaction::factory()->create(['assigned_user_id' => $otherEncoder->id]);
+
+    $ownedDocument = Document::factory()->create([
+        'documentable_type' => ImportTransaction::class,
+        'documentable_id' => $ownedTransaction->id,
+    ]);
+    Document::factory()->create([
+        'documentable_type' => ImportTransaction::class,
+        'documentable_id' => $otherTransaction->id,
+    ]);
+
+    $response = $this->actingAs($encoder)->getJson('/api/documents');
+
+    $response->assertOk()->assertJsonCount(1, 'data');
+    expect($response->json('data.0.id'))->toBe($ownedDocument->id);
+});
+
+test('encoders can only list their own finalized document transactions with pagination', function () {
     $user = User::factory()->create(['role' => 'encoder']);
+    $otherEncoder = User::factory()->create(['role' => 'encoder']);
 
     $importTransaction = ImportTransaction::factory()->create([
         'customs_ref_no' => 'IMP-DOC-001',
         'bl_no' => 'BL-IMP-DOC-001',
         'status' => 'Completed',
+        'assigned_user_id' => $user->id,
     ]);
     Document::factory()->count(2)->create([
         'documentable_type' => ImportTransaction::class,
@@ -44,12 +67,14 @@ test('authenticated users can list finalized document transactions with paginati
     ExportTransaction::factory()->create([
         'bl_no' => 'BL-EXP-DOC-001',
         'status' => 'Cancelled',
+        'assigned_user_id' => $otherEncoder->id,
     ]);
 
     ImportTransaction::factory()->create([
         'customs_ref_no' => 'IMP-PENDING-001',
         'bl_no' => 'BL-PENDING-001',
         'status' => 'Pending',
+        'assigned_user_id' => $otherEncoder->id,
     ]);
 
     $response = $this->actingAs($user)
@@ -67,9 +92,31 @@ test('authenticated users can list finalized document transactions with paginati
         ->assertJsonPath('data.0.documents_count', 2);
 });
 
+test('admin can list all finalized document transactions', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+
+    ImportTransaction::factory()->create([
+        'customs_ref_no' => 'IMP-ADMIN-001',
+        'bl_no' => 'BL-IMP-ADMIN-001',
+        'status' => 'Completed',
+    ]);
+    ExportTransaction::factory()->create([
+        'bl_no' => 'BL-EXP-ADMIN-001',
+        'status' => 'Cancelled',
+    ]);
+
+    $response = $this->actingAs($admin)
+        ->getJson('/api/documents/transactions?per_page=10');
+
+    $response->assertOk()
+        ->assertJsonPath('meta.total', 2)
+        ->assertJsonPath('counts.imports', 1)
+        ->assertJsonPath('counts.exports', 1);
+});
+
 test('encoder can upload a document to an import transaction', function () {
     $user = User::factory()->create(['role' => 'encoder']);
-    $import = ImportTransaction::factory()->create();
+    $import = ImportTransaction::factory()->create(['assigned_user_id' => $user->id]);
     $file = UploadedFile::fake()->create('invoice.pdf', 1024, 'application/pdf');
 
     $this->actingAs($user);
@@ -99,9 +146,25 @@ test('encoder can upload a document to an import transaction', function () {
     Storage::disk('s3')->assertExists($document->path);
 });
 
+test('encoder cannot upload a document to another encoders transaction', function () {
+    $encoder = User::factory()->create(['role' => 'encoder']);
+    $otherEncoder = User::factory()->create(['role' => 'encoder']);
+    $import = ImportTransaction::factory()->create(['assigned_user_id' => $otherEncoder->id]);
+    $file = UploadedFile::fake()->create('invoice.pdf', 1024, 'application/pdf');
+
+    $response = $this->actingAs($encoder)->postJson('/api/documents', [
+        'file' => $file,
+        'type' => 'boc',
+        'documentable_type' => ImportTransaction::class,
+        'documentable_id' => $import->id,
+    ]);
+
+    $response->assertForbidden();
+});
+
 test('file upload validates file type', function () {
     $user = User::factory()->create(['role' => 'encoder']);
-    $import = ImportTransaction::factory()->create();
+    $import = ImportTransaction::factory()->create(['assigned_user_id' => $user->id]);
     $file = UploadedFile::fake()->create('malware.exe', 100);
 
     $this->actingAs($user);
@@ -119,7 +182,7 @@ test('file upload validates file type', function () {
 
 test('file upload validates file size limit', function () {
     $user = User::factory()->create(['role' => 'encoder']);
-    $import = ImportTransaction::factory()->create();
+    $import = ImportTransaction::factory()->create(['assigned_user_id' => $user->id]);
     $file = UploadedFile::fake()->create('large.pdf', 11000, 'application/pdf'); // 11 MB
 
     $this->actingAs($user);
@@ -137,7 +200,7 @@ test('file upload validates file size limit', function () {
 
 test('file upload validates document type', function () {
     $user = User::factory()->create(['role' => 'encoder']);
-    $import = ImportTransaction::factory()->create();
+    $import = ImportTransaction::factory()->create(['assigned_user_id' => $user->id]);
     $file = UploadedFile::fake()->create('doc.pdf', 100, 'application/pdf');
 
     $this->actingAs($user);
@@ -172,8 +235,9 @@ test('file upload validates documentable_id exists', function () {
 
 test('documents can be filtered by transaction', function () {
     $user = User::factory()->create(['role' => 'encoder']);
-    $import1 = ImportTransaction::factory()->create();
-    $import2 = ImportTransaction::factory()->create();
+    $otherEncoder = User::factory()->create(['role' => 'encoder']);
+    $import1 = ImportTransaction::factory()->create(['assigned_user_id' => $user->id]);
+    $import2 = ImportTransaction::factory()->create(['assigned_user_id' => $otherEncoder->id]);
 
     // Create documents for both transactions
     Document::factory()->create([
@@ -198,7 +262,7 @@ test('documents can be filtered by transaction', function () {
 
 test('user can download their uploaded document', function () {
     $user = User::factory()->create(['role' => 'encoder']);
-    $import = ImportTransaction::factory()->create();
+    $import = ImportTransaction::factory()->create(['assigned_user_id' => $user->id]);
     $file = UploadedFile::fake()->create('invoice.pdf', 100, 'application/pdf');
 
     Storage::fake('s3');
@@ -220,10 +284,68 @@ test('user can download their uploaded document', function () {
     $response->assertHeader('content-disposition');
 });
 
+test('encoder cannot preview another encoders document', function () {
+    $encoder = User::factory()->create(['role' => 'encoder']);
+    $otherEncoder = User::factory()->create(['role' => 'encoder']);
+    $transaction = ImportTransaction::factory()->create(['assigned_user_id' => $otherEncoder->id]);
+    $document = Document::factory()->create([
+        'documentable_type' => ImportTransaction::class,
+        'documentable_id' => $transaction->id,
+        'uploaded_by' => $otherEncoder->id,
+    ]);
+
+    $this->actingAs($encoder)
+        ->getJson("/api/documents/{$document->id}/preview")
+        ->assertForbidden();
+});
+
+test('encoder cannot download another encoders document', function () {
+    $encoder = User::factory()->create(['role' => 'encoder']);
+    $otherEncoder = User::factory()->create(['role' => 'encoder']);
+    $transaction = ImportTransaction::factory()->create(['assigned_user_id' => $otherEncoder->id]);
+    $document = Document::factory()->create([
+        'documentable_type' => ImportTransaction::class,
+        'documentable_id' => $transaction->id,
+        'uploaded_by' => $otherEncoder->id,
+    ]);
+
+    $this->actingAs($encoder)
+        ->get("/api/documents/{$document->id}/download")
+        ->assertForbidden();
+});
+
+test('signed local stream can be opened after an authorized preview request', function () {
+    config()->set('filesystems.document_disk', 'local');
+    Storage::fake('local');
+
+    $encoder = User::factory()->create(['role' => 'encoder']);
+    $transaction = ImportTransaction::factory()->create(['assigned_user_id' => $encoder->id]);
+    $document = Document::factory()->create([
+        'documentable_type' => ImportTransaction::class,
+        'documentable_id' => $transaction->id,
+        'uploaded_by' => $encoder->id,
+        'path' => 'documents/test/restricted.pdf',
+    ]);
+
+    Storage::disk('local')->put($document->path, 'restricted');
+
+    $previewResponse = $this->actingAs($encoder)
+        ->getJson("/api/documents/{$document->id}/preview")
+        ->assertOk();
+
+    $signedUrl = $previewResponse->json('url');
+
+    app('auth')->forgetGuards();
+
+    $this
+        ->get($signedUrl)
+        ->assertOk();
+});
+
 test('admin can delete any document', function () {
     $encoder = User::factory()->create(['role' => 'encoder']);
     $admin = User::factory()->create(['role' => 'admin']);
-    $import = ImportTransaction::factory()->create();
+    $import = ImportTransaction::factory()->create(['assigned_user_id' => $encoder->id]);
 
     Storage::fake('s3');
 
@@ -255,7 +377,7 @@ test('admin can delete any document', function () {
 test('encoder cannot delete another users document', function () {
     $encoder1 = User::factory()->create(['role' => 'encoder']);
     $encoder2 = User::factory()->create(['role' => 'encoder']);
-    $import = ImportTransaction::factory()->create();
+    $import = ImportTransaction::factory()->create(['assigned_user_id' => $encoder1->id]);
 
     Storage::fake('s3');
 
@@ -279,7 +401,7 @@ test('encoder cannot delete another users document', function () {
 
 test('user can delete their own uploaded document', function () {
     $encoder = User::factory()->create(['role' => 'encoder']);
-    $import = ImportTransaction::factory()->create();
+    $import = ImportTransaction::factory()->create(['assigned_user_id' => $encoder->id]);
 
     Storage::fake('s3');
 
@@ -307,7 +429,7 @@ test('user can delete their own uploaded document', function () {
 
 test('encoder can upload a document with type others', function () {
     $user = User::factory()->create(['role' => 'encoder']);
-    $import = ImportTransaction::factory()->create();
+    $import = ImportTransaction::factory()->create(['assigned_user_id' => $user->id]);
     $file = UploadedFile::fake()->create('extra.pdf', 512, 'application/pdf');
 
     $this->actingAs($user);

@@ -11,7 +11,7 @@ class UpdateUserRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true; // Authorization handled by policy in controller
+        return true;
     }
 
     public function rules(): array

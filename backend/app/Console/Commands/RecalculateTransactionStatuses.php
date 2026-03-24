@@ -8,24 +8,26 @@ use Illuminate\Console\Command;
 
 class RecalculateTransactionStatuses extends Command
 {
-    protected $signature   = 'transactions:recalculate-statuses';
+    protected $signature = 'transactions:recalculate-statuses';
+
     protected $description = 'Backfill transaction statuses based on uploaded documents.';
 
     public function handle(): int
     {
-        $imports = ImportTransaction::with('documents', 'stages')->get();
-        $this->info("Recalculating {$imports->count()} import transaction(s)...");
-        foreach ($imports as $tx) {
+        $importsCount = ImportTransaction::count();
+        $this->info("Recalculating {$importsCount} import transaction(s)...");
+        foreach (ImportTransaction::with('documents', 'stages')->lazyById(200) as $tx) {
             $tx->recalculateStatus();
         }
 
-        $exports = ExportTransaction::with('documents', 'stages')->get();
-        $this->info("Recalculating {$exports->count()} export transaction(s)...");
-        foreach ($exports as $tx) {
+        $exportsCount = ExportTransaction::count();
+        $this->info("Recalculating {$exportsCount} export transaction(s)...");
+        foreach (ExportTransaction::with('documents', 'stages')->lazyById(200) as $tx) {
             $tx->recalculateStatus();
         }
 
         $this->info('Done!');
+
         return self::SUCCESS;
     }
 }

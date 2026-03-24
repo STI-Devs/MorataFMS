@@ -10,7 +10,56 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class Document extends Model
 {
-    use HasFactory, Auditable;
+    use Auditable, HasFactory;
+
+    /**
+     * @return list<string>
+     */
+    public static function importTypeKeys(): array
+    {
+        return [
+            'boc',
+            'ppa',
+            'do',
+            'port_charges',
+            'releasing',
+            'billing',
+            'others',
+        ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function exportTypeKeys(): array
+    {
+        return [
+            'boc',
+            'bl_generation',
+            'co',
+            'dccci',
+            'billing',
+            'others',
+        ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function allowedTypeKeysFor(?string $documentableType): array
+    {
+        return match ($documentableType) {
+            ImportTransaction::class => self::importTypeKeys(),
+            ExportTransaction::class => self::exportTypeKeys(),
+            default => [],
+        };
+    }
+
+    public static function isAllowedTypeFor(?string $documentableType, string $type): bool
+    {
+        return in_array($type, self::allowedTypeKeysFor($documentableType), true);
+    }
+
     /**
      * NOTE: 'documentable_type', 'documentable_id', and 'uploaded_by' are
      * intentionally excluded — they must be set by controller logic to prevent
@@ -40,15 +89,35 @@ class Document extends Model
         return $this->belongsTo(User::class, 'uploaded_by');
     }
 
+    public function scopeVisibleTo($query, User $user)
+    {
+        if (! $user->hasBrokerageAccess()) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->where(function ($documentQuery) use ($user) {
+            $documentQuery
+                ->whereHasMorph('documentable', [ImportTransaction::class], function ($transactionQuery) use ($user) {
+                    $transactionQuery->visibleTo($user);
+                })
+                ->orWhereHasMorph('documentable', [ExportTransaction::class], function ($transactionQuery) use ($user) {
+                    $transactionQuery->visibleTo($user);
+                });
+        });
+    }
+
     // Helper to get human-readable file size
     public function getFormattedSizeAttribute(): string
     {
         $bytes = $this->size_bytes;
-        if ($bytes < 1024)
-            return $bytes . ' B';
-        if ($bytes < 1048576)
-            return round($bytes / 1024, 2) . ' KB';
-        return round($bytes / 1048576, 2) . ' MB';
+        if ($bytes < 1024) {
+            return $bytes.' B';
+        }
+        if ($bytes < 1048576) {
+            return round($bytes / 1024, 2).' KB';
+        }
+
+        return round($bytes / 1048576, 2).' MB';
     }
 
     // Helper to generate S3 path for documents

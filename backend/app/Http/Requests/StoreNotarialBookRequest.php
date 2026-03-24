@@ -9,7 +9,7 @@ class StoreNotarialBookRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true; // Policy handles authorization
+        return true;
     }
 
     public function rules(): array

@@ -5,29 +5,37 @@ namespace App\Queries\Archives;
 use App\Models\ExportTransaction;
 use App\Models\ImportTransaction;
 use App\Models\User;
-use Illuminate\Support\Collection;
 
 class ArchiveIndexQuery
 {
     public function handle(User $user, bool $mine = false): array
     {
         $userId = $mine ? $user->id : null;
+        $archivesByYear = [];
 
-        $imports = ImportTransaction::where('is_archive', true)
+        foreach (ImportTransaction::where('is_archive', true)
             ->with([
                 'documents' => fn ($query) => $userId ? $query->where('uploaded_by', $userId) : $query,
                 'documents.uploadedBy',
                 'importer',
             ])
-            ->get()
-            ->when($userId, fn (Collection $transactions) => $transactions->filter(fn ($transaction) => $transaction->documents->isNotEmpty()))
-            ->map(fn (ImportTransaction $transaction) => [
-                'transaction_type' => 'import',
-                'year' => $transaction->arrival_date?->year ?? $transaction->created_at->year,
-                'month' => $transaction->arrival_date?->month ?? $transaction->created_at->month,
-                'bl_no' => $transaction->bl_no,
-                'client' => $transaction->importer?->name ?? 'Unknown',
-                'documents' => $transaction->documents->map(fn ($document) => [
+            ->lazyById(100) as $transaction) {
+            if ($userId && $transaction->documents->isEmpty()) {
+                continue;
+            }
+
+            $year = $transaction->arrival_date?->year ?? $transaction->created_at->year;
+            $entry = &$archivesByYear[$year];
+            $entry ??= [
+                'year' => (int) $year,
+                'imports' => 0,
+                'exports' => 0,
+                'documents' => [],
+            ];
+            $entry['imports']++;
+
+            foreach ($transaction->documents as $document) {
+                $entry['documents'][] = [
                     'id' => $document->id,
                     'type' => 'import',
                     'bl_no' => $transaction->bl_no,
@@ -45,25 +53,34 @@ class ArchiveIndexQuery
                         'id' => $document->uploadedBy->id,
                         'name' => $document->uploadedBy->name,
                     ] : null,
-                ]),
-            ]);
+                ];
+            }
+        }
 
-        $exports = ExportTransaction::where('is_archive', true)
+        foreach (ExportTransaction::where('is_archive', true)
             ->with([
                 'documents' => fn ($query) => $userId ? $query->where('uploaded_by', $userId) : $query,
                 'documents.uploadedBy',
                 'shipper',
                 'destinationCountry',
             ])
-            ->get()
-            ->when($userId, fn (Collection $transactions) => $transactions->filter(fn ($transaction) => $transaction->documents->isNotEmpty()))
-            ->map(fn (ExportTransaction $transaction) => [
-                'transaction_type' => 'export',
-                'year' => $transaction->export_date?->year ?? $transaction->created_at->year,
-                'month' => $transaction->export_date?->month ?? $transaction->created_at->month,
-                'bl_no' => $transaction->bl_no,
-                'client' => $transaction->shipper?->name ?? 'Unknown',
-                'documents' => $transaction->documents->map(fn ($document) => [
+            ->lazyById(100) as $transaction) {
+            if ($userId && $transaction->documents->isEmpty()) {
+                continue;
+            }
+
+            $year = $transaction->export_date?->year ?? $transaction->created_at->year;
+            $entry = &$archivesByYear[$year];
+            $entry ??= [
+                'year' => (int) $year,
+                'imports' => 0,
+                'exports' => 0,
+                'documents' => [],
+            ];
+            $entry['exports']++;
+
+            foreach ($transaction->documents as $document) {
+                $entry['documents'][] = [
                     'id' => $document->id,
                     'type' => 'export',
                     'bl_no' => $transaction->bl_no,
@@ -81,19 +98,12 @@ class ArchiveIndexQuery
                         'id' => $document->uploadedBy->id,
                         'name' => $document->uploadedBy->name,
                     ] : null,
-                ]),
-            ]);
+                ];
+            }
+        }
 
-        return $imports->merge($exports)
-            ->groupBy('year')
-            ->sortKeysDesc()
-            ->map(fn (Collection $items, $year) => [
-                'year' => (int) $year,
-                'imports' => $items->where('transaction_type', 'import')->count(),
-                'exports' => $items->where('transaction_type', 'export')->count(),
-                'documents' => $items->pluck('documents')->flatten(1)->values(),
-            ])
-            ->values()
-            ->all();
+        krsort($archivesByYear);
+
+        return array_values($archivesByYear);
     }
 }

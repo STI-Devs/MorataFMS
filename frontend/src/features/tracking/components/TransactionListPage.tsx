@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useOutletContext, useSearchParams } from 'react-router-dom';
 import { Icon } from '../../../components/Icon';
 import { Pagination } from '../../../components/Pagination';
@@ -85,13 +85,58 @@ export function TransactionListPage<T>({
     const data = useMemo(() => mapResponseData(response?.data ?? []), [response, mapResponseData]);
     const stats = statsQuery.data;
 
+    const updateSearchParams = (
+        updater: (params: URLSearchParams) => void,
+        options?: { replace?: boolean },
+    ) => {
+        setSearchParams(prev => {
+            const next = new URLSearchParams(prev);
+            updater(next);
+
+            return next;
+        }, options);
+    };
+
+    const resetPage = () => {
+        updateSearchParams(params => {
+            params.set('page', '1');
+        }, { replace: true });
+    };
+
     const setPage = (p: number) =>
-        setSearchParams(prev => { prev.set('page', String(p)); return prev; });
+        updateSearchParams(params => {
+            params.set('page', String(p));
+        });
 
     const setPerPage = (pp: number) =>
-        setSearchParams(prev => { prev.set('per_page', String(pp)); prev.set('page', '1'); return prev; });
+        updateSearchParams(params => {
+            params.set('per_page', String(pp));
+            params.set('page', '1');
+        });
 
-    const handleResetFilter = () => { setFilterType(''); setFilterValue(''); setOpenDropdown(null); };
+    const handleSearchChange = (value: string) => {
+        setSearchQuery(value);
+        resetPage();
+    };
+
+    const handleFilterTypeChange = (value: string) => {
+        setFilterType(value);
+        setOpenDropdown(null);
+        resetPage();
+    };
+
+    const handleFilterValueChange = (value: string) => {
+        setFilterValue(value);
+        setOpenDropdown(null);
+        resetPage();
+    };
+
+    const handleResetFilter = () => {
+        setFilterType('');
+        setFilterValue('');
+        setOpenDropdown(null);
+        resetPage();
+    };
 
     // Stats may arrive as strings from the API; normalize to numbers to avoid "1" + "0" => "10".
     const pendingCount = Number(stats?.pending ?? 0);
@@ -207,7 +252,7 @@ export function TransactionListPage<T>({
                                 type="text"
                                 placeholder={`Search ${type}s…`}
                                 value={searchQuery}
-                                onChange={e => setSearchQuery(e.target.value)}
+                                onChange={e => handleSearchChange(e.target.value)}
                                 className="w-full pl-9 pr-3 h-9 rounded-lg border border-border-strong bg-input-bg text-text-primary text-sm placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/60 transition-colors"
                             />
                         </div>
@@ -228,7 +273,7 @@ export function TransactionListPage<T>({
                                             <button
                                                 key={opt}
                                                 className="w-full text-left px-4 py-2 text-sm text-text-primary hover:bg-hover transition-colors"
-                                                onClick={() => { setFilterType(opt); setOpenDropdown(null); }}
+                                                onClick={() => handleFilterTypeChange(opt)}
                                             >
                                                 {opt}
                                             </button>
@@ -252,14 +297,14 @@ export function TransactionListPage<T>({
                                     <div className="absolute top-full left-0 mt-1 w-36 bg-surface border border-border-strong rounded-xl shadow-lg z-[100] overflow-hidden animate-dropdown-in">
                                         {type === 'import' && filterType === 'SC' && (
                                             ['Green', 'Yellow', 'Red'].map(opt => (
-                                                <button key={opt} className="w-full text-left px-4 py-2 text-sm text-text-primary hover:bg-hover transition-colors" onClick={() => { setFilterValue(opt); setOpenDropdown(null); }}>
+                                                <button key={opt} className="w-full text-left px-4 py-2 text-sm text-text-primary hover:bg-hover transition-colors" onClick={() => handleFilterValueChange(opt)}>
                                                     {opt}
                                                 </button>
                                             ))
                                         )}
                                         {((type === 'import' && filterType === 'Status') || type === 'export') && (
                                             ['pending', 'in_progress'].map(opt => (
-                                                <button key={opt} className="w-full text-left px-4 py-2 text-sm text-text-primary hover:bg-hover transition-colors capitalize" onClick={() => { setFilterValue(opt); setOpenDropdown(null); }}>
+                                                <button key={opt} className="w-full text-left px-4 py-2 text-sm text-text-primary hover:bg-hover transition-colors capitalize" onClick={() => handleFilterValueChange(opt)}>
                                                     {opt.replace('_', ' ')}
                                                 </button>
                                             ))

@@ -9,7 +9,7 @@ class AssignTransactionRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true; // Authorization handled in controller via $this->authorize()
+        return true;
     }
 
     public function rules(): array

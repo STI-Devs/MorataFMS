@@ -3,10 +3,13 @@
 namespace App\Actions\Transactions;
 
 use App\Enums\AuditEvent;
+use App\Enums\StageStatus;
 use App\Models\AuditLog;
 use App\Models\ExportTransaction;
 use App\Models\ImportTransaction;
 use App\Models\User;
+use App\Support\Transactions\ExportStatusWorkflow;
+use App\Support\Transactions\ImportStatusWorkflow;
 
 class OverrideTransactionStatus
 {
@@ -21,6 +24,7 @@ class OverrideTransactionStatus
 
         $transaction->status = $status;
         $transaction->save();
+        $this->syncCompletionStage($transaction, $actor, $status);
 
         AuditLog::record(
             event: AuditEvent::StatusChanged,
@@ -30,5 +34,37 @@ class OverrideTransactionStatus
             subjectId: $transaction->id,
             ipAddress: $ipAddress,
         );
+    }
+
+    private function syncCompletionStage(
+        ImportTransaction|ExportTransaction $transaction,
+        User $actor,
+        string $status,
+    ): void {
+        if ($transaction instanceof ImportTransaction && $status === ImportStatusWorkflow::completed()) {
+            $transaction->loadMissing('stages');
+
+            if ($transaction->stages && $transaction->stages->billing_completed_at === null) {
+                $transaction->stages->update([
+                    'billing_status' => StageStatus::Completed->value,
+                    'billing_completed_at' => now(),
+                    'billing_completed_by' => $actor->id,
+                ]);
+            }
+
+            return;
+        }
+
+        if ($transaction instanceof ExportTransaction && $status === ExportStatusWorkflow::completed()) {
+            $transaction->loadMissing('stages');
+
+            if ($transaction->stages && $transaction->stages->bl_completed_at === null) {
+                $transaction->stages->update([
+                    'bl_status' => StageStatus::Completed->value,
+                    'bl_completed_at' => now(),
+                    'bl_completed_by' => $actor->id,
+                ]);
+            }
+        }
     }
 }

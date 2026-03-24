@@ -3,7 +3,10 @@
 namespace App\Policies;
 
 use App\Models\Document;
+use App\Models\ExportTransaction;
+use App\Models\ImportTransaction;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Model;
 
 class DocumentPolicy
 {
@@ -12,8 +15,7 @@ class DocumentPolicy
      */
     public function viewAny(User $user): bool
     {
-        // All authenticated users can list documents
-        return true;
+        return $user->hasBrokerageAccess();
     }
 
     /**
@@ -21,17 +23,23 @@ class DocumentPolicy
      */
     public function view(User $user, Document $document): bool
     {
-        // All authenticated users can view/download documents
-        return true;
+        return $this->canAccessTransactionDocument($user, $document->documentable);
     }
 
     /**
      * Determine if the user can create documents.
      */
-    public function create(User $user): bool
+    public function create(User $user, ImportTransaction|ExportTransaction|null $documentable = null): bool
     {
-        // Encoder and above can upload documents
-        return $user->hasRoleAtLeast('encoder');
+        if (! $user->hasBrokerageAccess()) {
+            return false;
+        }
+
+        if ($documentable === null) {
+            return true;
+        }
+
+        return $this->canAccessTransactionDocument($user, $documentable);
     }
 
     /**
@@ -39,7 +47,26 @@ class DocumentPolicy
      */
     public function delete(User $user, Document $document): bool
     {
-        // Admin can delete any document, or the uploader can delete their own
-        return $user->isAdmin() || $document->uploaded_by === $user->id;
+        return $user->isAdmin()
+            || ($document->uploaded_by === $user->id && $this->canAccessTransactionDocument($user, $document->documentable));
+    }
+
+    private function canAccessTransactionDocument(
+        User $user,
+        ImportTransaction|ExportTransaction|Model|null $documentable,
+    ): bool {
+        if (! $documentable instanceof ImportTransaction && ! $documentable instanceof ExportTransaction) {
+            return false;
+        }
+
+        if ($user->isAdmin()) {
+            return true;
+        }
+
+        if (! $user->hasBrokerageAccess()) {
+            return false;
+        }
+
+        return $documentable->assigned_user_id === $user->id;
     }
 }

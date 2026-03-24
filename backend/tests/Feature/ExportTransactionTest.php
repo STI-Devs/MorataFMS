@@ -19,8 +19,8 @@ test('unauthenticated users cannot create export transactions', function () {
 
 // --- Index (List) ---
 
-test('authenticated users can list export transactions', function () {
-    $user = User::factory()->create();
+test('admin can list export transactions', function () {
+    $user = User::factory()->create(['role' => 'admin']);
     ExportTransaction::factory()->count(3)->create();
 
     $response = $this->actingAs($user)
@@ -34,10 +34,49 @@ test('authenticated users can list export transactions', function () {
         ]);
 });
 
+test('encoders can only list their own export transactions', function () {
+    $encoder = User::factory()->create(['role' => 'encoder']);
+    $otherEncoder = User::factory()->create(['role' => 'encoder']);
+
+    $ownedTransaction = ExportTransaction::factory()->create(['assigned_user_id' => $encoder->id]);
+    ExportTransaction::factory()->create(['assigned_user_id' => $otherEncoder->id]);
+
+    $response = $this->actingAs($encoder)
+        ->getJson('/api/export-transactions');
+
+    $response->assertOk()
+        ->assertJsonPath('meta.total', 1);
+
+    $data = $response->json('data');
+    expect($data)->toHaveCount(1);
+    expect($data[0]['id'])->toBe($ownedTransaction->id);
+});
+
+test('export stats are scoped to the authenticated encoder', function () {
+    $encoder = User::factory()->create(['role' => 'encoder']);
+    $otherEncoder = User::factory()->create(['role' => 'encoder']);
+
+    ExportTransaction::factory()->pending()->create(['assigned_user_id' => $encoder->id]);
+    ExportTransaction::factory()->completed()->create(['assigned_user_id' => $otherEncoder->id]);
+
+    $this->actingAs($encoder)
+        ->getJson('/api/export-transactions/stats')
+        ->assertOk()
+        ->assertJsonPath('data.total', 1)
+        ->assertJsonPath('data.pending', 1)
+        ->assertJsonPath('data.completed', 0);
+});
+
 test('export transactions can be searched by vessel name', function () {
-    $user = User::factory()->create();
-    ExportTransaction::factory()->create(['vessel' => 'MV Explorer']);
-    ExportTransaction::factory()->create(['vessel' => 'MV Atlantic']);
+    $user = User::factory()->create(['role' => 'encoder']);
+    ExportTransaction::factory()->create([
+        'vessel' => 'MV Explorer',
+        'assigned_user_id' => $user->id,
+    ]);
+    ExportTransaction::factory()->create([
+        'vessel' => 'MV Atlantic',
+        'assigned_user_id' => $user->id,
+    ]);
 
     $response = $this->actingAs($user)
         ->getJson('/api/export-transactions?search=Explorer');
@@ -49,9 +88,9 @@ test('export transactions can be searched by vessel name', function () {
 });
 
 test('export transactions can be filtered by status', function () {
-    $user = User::factory()->create();
-    ExportTransaction::factory()->pending()->count(2)->create();
-    ExportTransaction::factory()->completed()->create();
+    $user = User::factory()->create(['role' => 'encoder']);
+    ExportTransaction::factory()->pending()->count(2)->create(['assigned_user_id' => $user->id]);
+    ExportTransaction::factory()->completed()->create(['assigned_user_id' => $user->id]);
 
     $response = $this->actingAs($user)
         ->getJson('/api/export-transactions?status=Pending');

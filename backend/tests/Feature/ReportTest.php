@@ -161,23 +161,31 @@ test('client report excludes transactions outside the requested month', function
     expect($clients->get('March Exports')['exports'])->toBe(1);
 });
 
-test('turnaround report calculates completed durations on sqlite-compatible queries', function () {
+test('turnaround report uses stable stage completion timestamps for completed transactions', function () {
     $admin = User::factory()->create(['role' => 'admin']);
     $importer = Client::factory()->importer()->create();
     $shipper = Client::factory()->exporter()->create();
 
-    ImportTransaction::factory()->completed()->create([
+    $import = ImportTransaction::factory()->completed()->create([
         'importer_id' => $importer->id,
         'created_at' => '2026-03-01 09:00:00',
-        'updated_at' => '2026-03-06 09:00:00',
+        'updated_at' => '2026-03-20 09:00:00',
         'is_archive' => false,
     ]);
+    $import->stages()->update([
+        'billing_status' => 'completed',
+        'billing_completed_at' => '2026-03-06 09:00:00',
+    ]);
 
-    ExportTransaction::factory()->completed()->create([
+    $export = ExportTransaction::factory()->completed()->create([
         'shipper_id' => $shipper->id,
         'created_at' => '2026-03-10 09:00:00',
-        'updated_at' => '2026-03-13 09:00:00',
+        'updated_at' => '2026-03-30 09:00:00',
         'is_archive' => false,
+    ]);
+    $export->stages()->update([
+        'bl_status' => 'completed',
+        'bl_completed_at' => '2026-03-13 09:00:00',
     ]);
 
     $response = $this->actingAs($admin)
@@ -197,32 +205,48 @@ test('turnaround report excludes completed transactions outside the requested mo
     $importer = Client::factory()->importer()->create();
     $shipper = Client::factory()->exporter()->create();
 
-    ImportTransaction::factory()->completed()->create([
+    $marchImport = ImportTransaction::factory()->completed()->create([
         'importer_id' => $importer->id,
         'created_at' => '2026-03-31 23:59:59',
-        'updated_at' => '2026-04-05 09:00:00',
+        'updated_at' => '2026-04-10 09:00:00',
         'is_archive' => false,
     ]);
+    $marchImport->stages()->update([
+        'billing_status' => 'completed',
+        'billing_completed_at' => '2026-04-05 09:00:00',
+    ]);
 
-    ImportTransaction::factory()->completed()->create([
+    $aprilImport = ImportTransaction::factory()->completed()->create([
         'importer_id' => $importer->id,
         'created_at' => '2026-04-01 00:00:00',
-        'updated_at' => '2026-04-04 09:00:00',
+        'updated_at' => '2026-04-07 09:00:00',
         'is_archive' => false,
     ]);
+    $aprilImport->stages()->update([
+        'billing_status' => 'completed',
+        'billing_completed_at' => '2026-04-04 09:00:00',
+    ]);
 
-    ExportTransaction::factory()->completed()->create([
+    $marchExport = ExportTransaction::factory()->completed()->create([
         'shipper_id' => $shipper->id,
         'created_at' => '2026-03-01 00:00:00',
-        'updated_at' => '2026-03-04 09:00:00',
+        'updated_at' => '2026-03-09 09:00:00',
         'is_archive' => false,
     ]);
+    $marchExport->stages()->update([
+        'bl_status' => 'completed',
+        'bl_completed_at' => '2026-03-04 09:00:00',
+    ]);
 
-    ExportTransaction::factory()->completed()->create([
+    $februaryExport = ExportTransaction::factory()->completed()->create([
         'shipper_id' => $shipper->id,
         'created_at' => '2026-02-28 23:59:59',
-        'updated_at' => '2026-03-03 09:00:00',
+        'updated_at' => '2026-03-08 09:00:00',
         'is_archive' => false,
+    ]);
+    $februaryExport->stages()->update([
+        'bl_status' => 'completed',
+        'bl_completed_at' => '2026-03-03 09:00:00',
     ]);
 
     $response = $this->actingAs($admin)

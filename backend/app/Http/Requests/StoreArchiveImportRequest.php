@@ -5,6 +5,7 @@ namespace App\Http\Requests;
 use App\Enums\SelectiveColor;
 use App\Models\Document;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Enum;
 
 class StoreArchiveImportRequest extends FormRequest
@@ -47,7 +48,7 @@ class StoreArchiveImportRequest extends FormRequest
             'documents.*.stage' => [
                 'required_with:documents',
                 'string',
-                'in:'.implode(',', array_keys(Document::getTypeLabels())),
+                Rule::in(Document::importTypeKeys()),
             ],
         ];
     }

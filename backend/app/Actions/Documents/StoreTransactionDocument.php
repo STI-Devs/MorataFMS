@@ -8,6 +8,7 @@ use App\Models\ImportTransaction;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Throwable;
 
 class StoreTransactionDocument
 {
@@ -32,31 +33,37 @@ class StoreTransactionDocument
             $transactionDate->month,
         );
 
-        $document = DB::transaction(function () use ($file, $path, $transaction, $type, $uploadedBy) {
-            $stream = fopen($file->getRealPath(), 'r');
+        $stream = fopen($file->getRealPath(), 'r');
 
-            try {
-                Storage::disk($this->storageDisk())->writeStream($path, $stream);
-            } finally {
-                if (is_resource($stream)) {
-                    fclose($stream);
-                }
+        try {
+            Storage::disk($this->storageDisk())->writeStream($path, $stream);
+        } finally {
+            if (is_resource($stream)) {
+                fclose($stream);
             }
+        }
 
-            $document = new Document([
-                'type' => $type,
-                'filename' => $file->getClientOriginalName(),
-                'path' => $path,
-                'size_bytes' => $file->getSize(),
-                'version' => 1,
-            ]);
-            $document->documentable_type = get_class($transaction);
-            $document->documentable_id = $transaction->getKey();
-            $document->uploaded_by = $uploadedBy;
-            $document->save();
+        try {
+            $document = DB::transaction(function () use ($path, $file, $transaction, $type, $uploadedBy) {
+                $document = new Document([
+                    'type' => $type,
+                    'filename' => $file->getClientOriginalName(),
+                    'path' => $path,
+                    'size_bytes' => $file->getSize(),
+                    'version' => 1,
+                ]);
+                $document->documentable_type = get_class($transaction);
+                $document->documentable_id = $transaction->getKey();
+                $document->uploaded_by = $uploadedBy;
+                $document->save();
 
-            return $document;
-        });
+                return $document;
+            });
+        } catch (Throwable $exception) {
+            Storage::disk($this->storageDisk())->delete($path);
+
+            throw $exception;
+        }
 
         $document->load('uploadedBy');
 

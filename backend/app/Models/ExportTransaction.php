@@ -13,11 +13,8 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class ExportTransaction extends Model
 {
-    use HasFactory, Auditable;
-    /**
-     * NOTE: 'assigned_user_id' and 'status' are intentionally excluded.
-     * They are server-managed and set explicitly in controllers.
-     */
+    use Auditable, HasFactory;
+
     protected $fillable = [
         'shipper_id',
         'bl_no',
@@ -28,8 +25,8 @@ class ExportTransaction extends Model
 
     protected $casts = [
         'export_date' => 'date',
-        'is_archive'  => 'boolean',
-        'status'      => ExportStatus::class,
+        'is_archive' => 'boolean',
+        'status' => ExportStatus::class,
     ];
 
     // Relationships
@@ -79,11 +76,11 @@ class ExportTransaction extends Model
     {
         // Map of document type → ExportStage field name
         $stageMap = [
-            'boc'          => 'docs_prep',
+            'boc' => 'docs_prep',
             'bl_generation' => 'bl',
-            'co'           => 'co',
-            'dccci'        => 'cil',
-            'billing'      => 'bl', // billing reuses bl slot for the last stage
+            'co' => 'co',
+            'dccci' => 'cil',
+            'billing' => 'bl', // billing reuses bl slot for the last stage
         ];
 
         // Get all uploaded document types for this transaction
@@ -94,15 +91,15 @@ class ExportTransaction extends Model
         if ($stages) {
             $stageUpdates = [];
             foreach ($stageMap as $docType => $stageKey) {
-                $hasDoc           = in_array($docType, $docTypes);
+                $hasDoc = in_array($docType, $docTypes);
                 $completedAtField = "{$stageKey}_completed_at";
                 // Only override with 'completed' not back to 'pending' if already set by another docType
                 if ($hasDoc) {
                     $stageUpdates["{$stageKey}_status"] = StageStatus::Completed->value;
-                    $stageUpdates[$completedAtField]    = $stages->$completedAtField ?? now();
-                } elseif (!isset($stageUpdates["{$stageKey}_status"])) {
+                    $stageUpdates[$completedAtField] = $stages->$completedAtField ?? now();
+                } elseif (! isset($stageUpdates["{$stageKey}_status"])) {
                     $stageUpdates["{$stageKey}_status"] = StageStatus::Pending->value;
-                    $stageUpdates[$completedAtField]    = null;
+                    $stageUpdates[$completedAtField] = null;
                 }
             }
             $stages->update($stageUpdates);
@@ -148,12 +145,22 @@ class ExportTransaction extends Model
         return $query->where('status', ExportStatus::Completed->value);
     }
 
+    public function scopeVisibleTo($query, User $user)
+    {
+        if ($user->isAdmin()) {
+            return $query;
+        }
+
+        return $query->where('assigned_user_id', $user->id);
+    }
+
     // Helper to get current stage progress
     public function getProgressAttribute(): array
     {
         $stages = $this->stages;
-        if (!$stages)
+        if (! $stages) {
             return [];
+        }
 
         return [
             'docs_prep' => $stages->docs_prep_status,

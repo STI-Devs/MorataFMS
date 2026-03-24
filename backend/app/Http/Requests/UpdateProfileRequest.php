@@ -8,7 +8,7 @@ class UpdateProfileRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true; // Auth handled by middleware
+        return true;
     }
 
     public function rules(): array

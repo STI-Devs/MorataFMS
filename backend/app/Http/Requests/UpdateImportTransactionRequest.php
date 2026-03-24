@@ -10,7 +10,7 @@ class UpdateImportTransactionRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true; // Auth handled by middleware/policies in controller
+        return true;
     }
 
     public function rules(): array

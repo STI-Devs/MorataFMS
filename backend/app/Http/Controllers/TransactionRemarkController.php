@@ -89,7 +89,7 @@ class TransactionRemarkController extends Controller
 
         $remark->is_resolved = true;
         $remark->resolved_by = $user->id;
-        $remark->resolved_at = now();
+        $remark->setAttribute('resolved_at', now());
         $remark->save();
 
         $remark->load(['author:id,name,role', 'resolver:id,name', 'document:id,filename,type']);

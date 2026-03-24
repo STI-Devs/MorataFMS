@@ -29,8 +29,9 @@ const NavItem = ({ item, isActive, isSidebarDark, onNavigate }: NavItemProps) =>
                 : isSidebarDark ? 'text-gray-400' : 'text-gray-500'
                 }`}
             fill="none" stroke="currentColor" viewBox="0 0 24 24"
-            dangerouslySetInnerHTML={{ __html: item.icon.startsWith('<') ? item.icon : `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${item.icon}" />` }}
-        />
+        >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={item.icon} />
+        </svg>
         {item.label}
     </button>
 );

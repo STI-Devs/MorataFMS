@@ -8,7 +8,7 @@ class CancelTransactionRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true; // Authorization is handled in the controller via Policy
+        return true;
     }
 
     public function rules(): array

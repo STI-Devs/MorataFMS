@@ -12,7 +12,7 @@ class ExportTransactionPolicy
      */
     public function viewAny(User $user): bool
     {
-        return true;
+        return $user->hasBrokerageAccess();
     }
 
     /**
@@ -20,7 +20,7 @@ class ExportTransactionPolicy
      */
     public function create(User $user): bool
     {
-        return true;
+        return $user->hasBrokerageAccess();
     }
 
     /**
@@ -28,8 +28,8 @@ class ExportTransactionPolicy
      */
     public function update(User $user, ExportTransaction $transaction): bool
     {
-        return $user->id === $transaction->assigned_user_id
-            || $user->isAdmin();
+        return $user->isAdmin()
+            || ($user->hasBrokerageAccess() && $user->id === $transaction->assigned_user_id);
     }
 
     /**

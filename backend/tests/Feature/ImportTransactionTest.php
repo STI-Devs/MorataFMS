@@ -19,8 +19,8 @@ test('unauthenticated users cannot create import transactions', function () {
 
 // --- Index (List) ---
 
-test('authenticated users can list import transactions', function () {
-    $user = User::factory()->create();
+test('admin can list import transactions', function () {
+    $user = User::factory()->create(['role' => 'admin']);
     ImportTransaction::factory()->count(3)->create();
 
     $response = $this->actingAs($user)
@@ -34,10 +34,49 @@ test('authenticated users can list import transactions', function () {
         ]);
 });
 
+test('encoders can only list their own import transactions', function () {
+    $encoder = User::factory()->create(['role' => 'encoder']);
+    $otherEncoder = User::factory()->create(['role' => 'encoder']);
+
+    $ownedTransaction = ImportTransaction::factory()->create(['assigned_user_id' => $encoder->id]);
+    ImportTransaction::factory()->create(['assigned_user_id' => $otherEncoder->id]);
+
+    $response = $this->actingAs($encoder)
+        ->getJson('/api/import-transactions');
+
+    $response->assertOk()
+        ->assertJsonPath('meta.total', 1);
+
+    $data = $response->json('data');
+    expect($data)->toHaveCount(1);
+    expect($data[0]['id'])->toBe($ownedTransaction->id);
+});
+
+test('import stats are scoped to the authenticated encoder', function () {
+    $encoder = User::factory()->create(['role' => 'encoder']);
+    $otherEncoder = User::factory()->create(['role' => 'encoder']);
+
+    ImportTransaction::factory()->pending()->create(['assigned_user_id' => $encoder->id]);
+    ImportTransaction::factory()->completed()->create(['assigned_user_id' => $otherEncoder->id]);
+
+    $this->actingAs($encoder)
+        ->getJson('/api/import-transactions/stats')
+        ->assertOk()
+        ->assertJsonPath('data.total', 1)
+        ->assertJsonPath('data.pending', 1)
+        ->assertJsonPath('data.completed', 0);
+});
+
 test('import transactions can be searched by customs ref', function () {
-    $user = User::factory()->create();
-    $target = ImportTransaction::factory()->create(['customs_ref_no' => 'REF-SEARCH-001']);
-    ImportTransaction::factory()->create(['customs_ref_no' => 'REF-OTHER-999']);
+    $user = User::factory()->create(['role' => 'encoder']);
+    $target = ImportTransaction::factory()->create([
+        'customs_ref_no' => 'REF-SEARCH-001',
+        'assigned_user_id' => $user->id,
+    ]);
+    ImportTransaction::factory()->create([
+        'customs_ref_no' => 'REF-OTHER-999',
+        'assigned_user_id' => $user->id,
+    ]);
 
     $response = $this->actingAs($user)
         ->getJson('/api/import-transactions?search=SEARCH-001');
@@ -49,9 +88,9 @@ test('import transactions can be searched by customs ref', function () {
 });
 
 test('import transactions can be filtered by status', function () {
-    $user = User::factory()->create();
-    ImportTransaction::factory()->pending()->count(2)->create();
-    ImportTransaction::factory()->completed()->create();
+    $user = User::factory()->create(['role' => 'encoder']);
+    ImportTransaction::factory()->pending()->count(2)->create(['assigned_user_id' => $user->id]);
+    ImportTransaction::factory()->completed()->create(['assigned_user_id' => $user->id]);
 
     $response = $this->actingAs($user)
         ->getJson('/api/import-transactions?status=Pending');

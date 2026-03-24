@@ -3,26 +3,25 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Documents\StoreTransactionDocument;
-use App\Enums\ExportStatus;
-use App\Enums\ImportStatus;
 use App\Http\Requests\StoreDocumentRequest;
 use App\Http\Resources\DocumentResource;
 use App\Models\Document;
 use App\Models\ExportTransaction;
 use App\Models\ImportTransaction;
-use App\Support\Transactions\ExportStatusWorkflow;
-use App\Support\Transactions\ImportStatusWorkflow;
-use Illuminate\Filesystem\AwsS3V3Adapter;
+use App\Queries\Documents\DocumentTransactionIndexQuery;
+use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DocumentController extends Controller
 {
-    public function __construct(private StoreTransactionDocument $storeTransactionDocument) {}
+    public function __construct(
+        private StoreTransactionDocument $storeTransactionDocument,
+        private DocumentTransactionIndexQuery $documentTransactionIndexQuery,
+    ) {}
 
     /**
      * GET /api/documents
@@ -32,7 +31,9 @@ class DocumentController extends Controller
     {
         $this->authorize('viewAny', Document::class);
 
-        $query = Document::with('uploadedBy');
+        $query = Document::query()
+            ->visibleTo($request->user())
+            ->with('uploadedBy');
 
         // Filter by transaction type and ID
         if ($request->has('documentable_type') && $request->has('documentable_id')) {
@@ -53,137 +54,7 @@ class DocumentController extends Controller
     {
         $this->authorize('viewAny', Document::class);
 
-        $search = trim((string) $request->query('search', ''));
-        $type = $request->query('type');
-        $perPage = min(max((int) $request->input('per_page', 10), 1), 50);
-        $importFinalizedStatuses = [ImportStatusWorkflow::completed(), ImportStatus::Cancelled->value];
-        $exportFinalizedStatuses = [ExportStatusWorkflow::completed(), ExportStatus::Cancelled->value];
-
-        $importBaseQuery = ImportTransaction::query()
-            ->selectRaw("id, 'import' as type, created_at")
-            ->whereIn('status', $importFinalizedStatuses);
-
-        if ($search !== '') {
-            $importBaseQuery->where(function ($query) use ($search) {
-                $query->where('customs_ref_no', 'like', "%{$search}%")
-                    ->orWhere('bl_no', 'like', "%{$search}%")
-                    ->orWhereHas('importer', function ($importerQuery) use ($search) {
-                        $importerQuery->where('name', 'like', "%{$search}%");
-                    });
-            });
-        }
-
-        $exportBaseQuery = ExportTransaction::query()
-            ->selectRaw("id, 'export' as type, created_at")
-            ->whereIn('status', $exportFinalizedStatuses);
-
-        if ($search !== '') {
-            $exportBaseQuery->where(function ($query) use ($search) {
-                $query->where('bl_no', 'like', "%{$search}%")
-                    ->orWhere('vessel', 'like', "%{$search}%")
-                    ->orWhereHas('shipper', function ($shipperQuery) use ($search) {
-                        $shipperQuery->where('name', 'like', "%{$search}%");
-                    });
-            });
-        }
-
-        $importsCount = $type === 'export' ? 0 : (clone $importBaseQuery)->count();
-        $exportsCount = $type === 'import' ? 0 : (clone $exportBaseQuery)->count();
-        $cancelledImportsCount = $type === 'export'
-            ? 0
-            : (clone $importBaseQuery)->where('status', ImportStatus::Cancelled->value)->count();
-        $cancelledExportsCount = $type === 'import'
-            ? 0
-            : (clone $exportBaseQuery)->where('status', ExportStatus::Cancelled->value)->count();
-
-        $unionQuery = match ($type) {
-            'import' => $importBaseQuery->toBase(),
-            'export' => $exportBaseQuery->toBase(),
-            default => $importBaseQuery->toBase()->unionAll($exportBaseQuery->toBase()),
-        };
-
-        $paginator = DB::query()
-            ->fromSub($unionQuery, 'document_transactions')
-            ->orderByDesc('created_at')
-            ->paginate($perPage);
-
-        $items = collect($paginator->items());
-        $importIds = $items->where('type', 'import')->pluck('id');
-        $exportIds = $items->where('type', 'export')->pluck('id');
-
-        $imports = ImportTransaction::query()
-            ->with(['importer:id,name'])
-            ->withCount('documents')
-            ->whereIn('id', $importIds)
-            ->get()
-            ->keyBy('id');
-
-        $exports = ExportTransaction::query()
-            ->with(['shipper:id,name', 'destinationCountry:id,name'])
-            ->withCount('documents')
-            ->whereIn('id', $exportIds)
-            ->get()
-            ->keyBy('id');
-
-        $rows = $items->map(function ($item) use ($imports, $exports) {
-            if ($item->type === 'import') {
-                $transaction = $imports->get($item->id);
-
-                if (! $transaction) {
-                    return null;
-                }
-
-                return [
-                    'id' => $transaction->id,
-                    'type' => 'import',
-                    'ref' => $transaction->customs_ref_no,
-                    'bl_no' => $transaction->bl_no ?? '—',
-                    'client' => $transaction->importer?->name ?? '—',
-                    'date' => $transaction->arrival_date?->format('Y-m-d') ?? '—',
-                    'date_label' => 'Arrival',
-                    'port' => '—',
-                    'vessel' => '—',
-                    'status' => $transaction->status,
-                    'documents_count' => $transaction->documents_count ?? 0,
-                ];
-            }
-
-            $transaction = $exports->get($item->id);
-
-            if (! $transaction) {
-                return null;
-            }
-
-            return [
-                'id' => $transaction->id,
-                'type' => 'export',
-                'ref' => 'EXP-'.str_pad((string) $transaction->id, 4, '0', STR_PAD_LEFT),
-                'bl_no' => $transaction->bl_no ?? '—',
-                'client' => $transaction->shipper?->name ?? '—',
-                'date' => $transaction->created_at?->toDateString() ?? '—',
-                'date_label' => 'Export',
-                'port' => $transaction->destinationCountry?->name ?? '—',
-                'vessel' => $transaction->vessel ?? '—',
-                'status' => $transaction->status,
-                'documents_count' => $transaction->documents_count ?? 0,
-            ];
-        })->filter()->values();
-
-        return response()->json([
-            'data' => $rows,
-            'counts' => [
-                'completed' => ($importsCount + $exportsCount) - ($cancelledImportsCount + $cancelledExportsCount),
-                'imports' => $importsCount,
-                'exports' => $exportsCount,
-                'cancelled' => $cancelledImportsCount + $cancelledExportsCount,
-            ],
-            'meta' => [
-                'current_page' => $paginator->currentPage(),
-                'last_page' => $paginator->lastPage(),
-                'per_page' => $paginator->perPage(),
-                'total' => $paginator->total(),
-            ],
-        ]);
+        return response()->json($this->documentTransactionIndexQuery->handle($request));
     }
 
     /**
@@ -192,10 +63,9 @@ class DocumentController extends Controller
      */
     public function store(StoreDocumentRequest $request)
     {
-        $this->authorize('create', Document::class);
-
         $validated = $request->validated();
         $transaction = $this->resolveDocumentable($validated['documentable_type'], $validated['documentable_id']);
+        $this->authorize('create', [Document::class, $transaction]);
         $document = $this->storeTransactionDocument->handle(
             $transaction,
             $request->file('file'),
@@ -243,14 +113,11 @@ class DocumentController extends Controller
     {
         $this->authorize('view', $document);
 
-        $diskName = self::storageDisk();
+        $disk = self::documentDisk();
 
-        if ($diskName === 's3') {
-            /** @var AwsS3V3Adapter $disk */
-            $disk = Storage::disk($diskName);
+        if (self::storageDisk() === 's3') {
             $url = $disk->temporaryUrl($document->path, now()->addMinutes(5));
         } else {
-            // Local disk — generate a secure signed route that acts like a pre-signed URL
             $url = URL::temporarySignedRoute(
                 'documents.stream',
                 now()->addMinutes(5),
@@ -269,9 +136,7 @@ class DocumentController extends Controller
      */
     public function stream(Document $document)
     {
-        // Authorization is handled implicitly by the 'signed' middleware route protection.
-
-        $disk = Storage::disk(self::storageDisk());
+        $disk = self::documentDisk();
 
         if (! $disk->exists($document->path)) {
             abort(404, 'File not found on storage.');
@@ -304,6 +169,17 @@ class DocumentController extends Controller
     }
 
     /**
+     * @return FilesystemAdapter
+     */
+    private static function documentDisk()
+    {
+        /** @var FilesystemAdapter $disk */
+        $disk = Storage::disk(self::storageDisk());
+
+        return $disk;
+    }
+
+    /**
      * GET /api/documents/{document}/download
      * Stream the file from S3 with proper headers.
      */
@@ -311,7 +187,7 @@ class DocumentController extends Controller
     {
         $this->authorize('view', $document);
 
-        $disk = Storage::disk(self::storageDisk());
+        $disk = self::documentDisk();
 
         if (! $disk->exists($document->path)) {
             abort(404, 'File not found on storage.');
@@ -343,7 +219,7 @@ class DocumentController extends Controller
         $parent = $document->documentable;
 
         // delete() is a no-op if the file doesn't exist — no exists() check needed
-        Storage::disk(self::storageDisk())->delete($document->path);
+        self::documentDisk()->delete($document->path);
 
         $document->delete();
 

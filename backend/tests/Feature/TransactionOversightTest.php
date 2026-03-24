@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\AuditLog;
+use App\Models\ExportTransaction;
 use App\Models\ImportTransaction;
 use App\Models\User;
 
@@ -104,4 +105,50 @@ test('admin can override an import transaction status using the canonical status
         ->first();
 
     expect($log)->not->toBeNull();
+});
+
+test('overriding an import transaction to completed stamps the final stage timestamp', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $transaction = ImportTransaction::factory()->create([
+        'status' => 'Processing',
+    ]);
+
+    expect($transaction->stages)->not->toBeNull();
+    expect($transaction->stages->billing_completed_at)->toBeNull();
+
+    $this->actingAs($admin)
+        ->patchJson("/api/transactions/import/{$transaction->id}/status", [
+            'status' => 'Completed',
+        ])
+        ->assertOk()
+        ->assertJsonPath('status', 'Completed');
+
+    $transaction->refresh()->load('stages');
+
+    expect($transaction->stages->billing_status->value)->toBe('completed');
+    expect($transaction->stages->billing_completed_at)->not->toBeNull();
+    expect($transaction->stages->billing_completed_by)->toBe($admin->id);
+});
+
+test('overriding an export transaction to completed stamps the final stage timestamp', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $transaction = ExportTransaction::factory()->create([
+        'status' => 'Processing',
+    ]);
+
+    expect($transaction->stages)->not->toBeNull();
+    expect($transaction->stages->bl_completed_at)->toBeNull();
+
+    $this->actingAs($admin)
+        ->patchJson("/api/transactions/export/{$transaction->id}/status", [
+            'status' => 'Completed',
+        ])
+        ->assertOk()
+        ->assertJsonPath('status', 'Completed');
+
+    $transaction->refresh()->load('stages');
+
+    expect($transaction->stages->bl_status->value)->toBe('completed');
+    expect($transaction->stages->bl_completed_at)->not->toBeNull();
+    expect($transaction->stages->bl_completed_by)->toBe($admin->id);
 });

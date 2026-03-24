@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Models\Document;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreArchiveExportRequest extends FormRequest
 {
@@ -39,12 +40,12 @@ class StoreArchiveExportRequest extends FormRequest
                 'required_with:documents',
                 'file',
                 'max:10240',
-                'mimes:pdf,jpg,jpeg,png,docx,xlsx,csv'
+                'mimes:pdf,jpg,jpeg,png,docx,xlsx,csv',
             ],
             'documents.*.stage' => [
                 'required_with:documents',
                 'string',
-                'in:' . implode(',', array_keys(Document::getTypeLabels()))
+                Rule::in(Document::exportTypeKeys()),
             ],
         ];
     }

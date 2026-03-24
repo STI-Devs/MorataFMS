@@ -8,7 +8,7 @@ class UpdateExportTransactionRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true; // Auth handled by middleware/policies in controller
+        return true;
     }
 
     public function rules(): array
@@ -23,7 +23,7 @@ class UpdateExportTransactionRequest extends FormRequest
                 'min:4',
                 'max:50',
                 'regex:/^[A-Za-z0-9\-]+$/',
-                'unique:export_transactions,bl_no,' . $id,
+                'unique:export_transactions,bl_no,'.$id,
             ],
             'vessel' => ['required', 'string', 'min:2', 'max:100'],
             'destination_country_id' => ['required', 'integer', 'exists:countries,id'],

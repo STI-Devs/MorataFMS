@@ -11,13 +11,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+
 class ImportTransaction extends Model
 {
-    use HasFactory, Auditable;
-    /**
-     * NOTE: 'assigned_user_id' and 'status' are intentionally excluded.
-     * They are server-managed and set explicitly in controllers.
-     */
+    use Auditable, HasFactory;
+
     protected $fillable = [
         'customs_ref_no',
         'bl_no',
@@ -29,9 +27,9 @@ class ImportTransaction extends Model
     ];
 
     protected $casts = [
-        'arrival_date'    => 'date',
-        'is_archive'      => 'boolean',
-        'status'          => ImportStatus::class,
+        'arrival_date' => 'date',
+        'is_archive' => 'boolean',
+        'status' => ImportStatus::class,
         'selective_color' => SelectiveColor::class,
     ];
 
@@ -81,12 +79,12 @@ class ImportTransaction extends Model
     {
         // Map of document type → ImportStage field name
         $stageMap = [
-            'boc'          => 'boc',
-            'ppa'          => 'ppa',
-            'do'           => 'do',
+            'boc' => 'boc',
+            'ppa' => 'ppa',
+            'do' => 'do',
             'port_charges' => 'port_charges',
-            'releasing'    => 'releasing',
-            'billing'      => 'billing',
+            'releasing' => 'releasing',
+            'billing' => 'billing',
         ];
 
         // Get all uploaded document types for this transaction
@@ -97,10 +95,10 @@ class ImportTransaction extends Model
         if ($stages) {
             $stageUpdates = [];
             foreach ($stageMap as $docType => $stageKey) {
-                $hasDoc           = in_array($docType, $docTypes);
+                $hasDoc = in_array($docType, $docTypes);
                 $completedAtField = "{$stageKey}_completed_at";
                 $stageUpdates["{$stageKey}_status"] = $hasDoc ? StageStatus::Completed->value : StageStatus::Pending->value;
-                $stageUpdates[$completedAtField]    = $hasDoc ? ($stages->$completedAtField ?? now()) : null;
+                $stageUpdates[$completedAtField] = $hasDoc ? ($stages->$completedAtField ?? now()) : null;
             }
             $stages->update($stageUpdates);
         }
@@ -142,12 +140,22 @@ class ImportTransaction extends Model
         return $query->where('status', ImportStatus::Completed->value);
     }
 
+    public function scopeVisibleTo($query, User $user)
+    {
+        if ($user->isAdmin()) {
+            return $query;
+        }
+
+        return $query->where('assigned_user_id', $user->id);
+    }
+
     // Helper to get current stage progress
     public function getProgressAttribute(): array
     {
         $stages = $this->stages;
-        if (!$stages)
+        if (! $stages) {
             return [];
+        }
 
         return [
             'boc' => $stages->boc_status,

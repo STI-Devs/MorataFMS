@@ -21,7 +21,9 @@ class ExportTransactionController extends Controller
     {
         $this->authorize('viewAny', ExportTransaction::class);
 
-        $query = ExportTransaction::with(['shipper', 'stages', 'assignedUser', 'destinationCountry'])
+        $query = ExportTransaction::query()
+            ->visibleTo($request->user())
+            ->with(['shipper', 'stages', 'assignedUser', 'destinationCountry'])
             ->withCount(['remarks as open_remarks_count' => fn ($q) => $q->where('is_resolved', false)])
             ->withCount('documents');
 
@@ -54,7 +56,10 @@ class ExportTransactionController extends Controller
             $query->whereNotIn('status', ExportStatusWorkflow::normalizeList($exclude));
         }
 
-        $perPage = $request->input('per_page', 15);
+        $perPage = (int) $request->input('per_page', 15);
+        if ($perPage < 1) {
+            $perPage = 1;
+        }
         if ($perPage > 500) {
             $perPage = 500;
         }
@@ -107,20 +112,22 @@ class ExportTransactionController extends Controller
     {
         $this->authorize('viewAny', ExportTransaction::class);
 
-        $counts = ExportTransaction::selectRaw('
+        $counts = ExportTransaction::query()
+            ->visibleTo(request()->user())
+            ->selectRaw('
             COUNT(*) as total,
             SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as pending,
             SUM(CASE WHEN status IN (?,?,?) THEN 1 ELSE 0 END) as in_progress,
             SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as completed,
             SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as cancelled
         ', [
-            ExportStatus::Pending->value,
-            ExportStatus::InTransit->value,
-            ExportStatus::Departure->value,
-            ExportStatus::Processing->value,
-            ExportStatus::Completed->value,
-            ExportStatus::Cancelled->value,
-        ])->first();
+                ExportStatus::Pending->value,
+                ExportStatus::InTransit->value,
+                ExportStatus::Departure->value,
+                ExportStatus::Processing->value,
+                ExportStatus::Completed->value,
+                ExportStatus::Cancelled->value,
+            ])->first();
 
         return response()->json(['data' => $counts]);
     }

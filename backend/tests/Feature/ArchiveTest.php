@@ -300,11 +300,10 @@ test('document upload rejects invalid stage key', function () {
 });
 
 test('document upload accepts valid import stage keys', function () {
-    $user = User::factory()->create(['role' => 'encoder']);
+    $user = User::factory()->create(['role' => 'admin']);
     $transaction = ImportTransaction::factory()->create();
 
-    foreach (['boc', 'ppa', 'do', 'port_charges', 'releasing', 'billing'] as $stage) {
-        // Each valid import stage key must be accepted
+    foreach (['boc', 'ppa', 'do', 'port_charges', 'releasing', 'billing', 'others'] as $stage) {
         $this->actingAs($user)->postJson('/api/documents', [
             'file' => UploadedFile::fake()->create("doc-{$stage}.pdf", 100, 'application/pdf'),
             'type' => $stage,
@@ -315,18 +314,82 @@ test('document upload accepts valid import stage keys', function () {
 });
 
 test('document upload accepts valid export stage keys', function () {
-    $user = User::factory()->create(['role' => 'encoder']);
-    $transaction = ImportTransaction::factory()->create();
+    $user = User::factory()->create(['role' => 'admin']);
+    $transaction = ExportTransaction::factory()->create();
 
-    foreach (['bl_generation', 'co', 'dccci'] as $stage) {
-        // Each valid export stage key must be accepted
+    foreach (['boc', 'bl_generation', 'co', 'dccci', 'billing', 'others'] as $stage) {
         $this->actingAs($user)->postJson('/api/documents', [
             'file' => UploadedFile::fake()->create("doc-{$stage}.pdf", 100, 'application/pdf'),
             'type' => $stage,
-            'documentable_type' => 'App\Models\ImportTransaction',
+            'documentable_type' => ExportTransaction::class,
             'documentable_id' => $transaction->id,
         ])->assertCreated();
     }
+});
+
+test('document upload rejects export-only stage keys for import transactions', function () {
+    $user = User::factory()->create(['role' => 'admin']);
+    $transaction = ImportTransaction::factory()->create();
+
+    $this->actingAs($user)->postJson('/api/documents', [
+        'file' => UploadedFile::fake()->create('doc-bl-generation.pdf', 100, 'application/pdf'),
+        'type' => 'bl_generation',
+        'documentable_type' => ImportTransaction::class,
+        'documentable_id' => $transaction->id,
+    ])->assertUnprocessable()->assertJsonValidationErrors(['type']);
+});
+
+test('document upload rejects import-only stage keys for export transactions', function () {
+    $user = User::factory()->create(['role' => 'admin']);
+    $transaction = ExportTransaction::factory()->create();
+
+    $this->actingAs($user)->postJson('/api/documents', [
+        'file' => UploadedFile::fake()->create('doc-ppa.pdf', 100, 'application/pdf'),
+        'type' => 'ppa',
+        'documentable_type' => ExportTransaction::class,
+        'documentable_id' => $transaction->id,
+    ])->assertUnprocessable()->assertJsonValidationErrors(['type']);
+});
+
+test('archive import rejects export-only document stages', function () {
+    $user = User::factory()->create(['role' => 'admin']);
+    $client = Client::factory()->importer()->create();
+
+    $this->actingAs($user)
+        ->withHeader('Accept', 'application/json')
+        ->post('/api/archives/import', [
+            'bl_no' => 'BL-ARCH-INVALID-STAGE-IMP',
+            'selective_color' => 'green',
+            'importer_id' => $client->id,
+            'file_date' => '2023-06-15',
+            'documents' => [
+                [
+                    'file' => UploadedFile::fake()->create('bl-generation.pdf', 100, 'application/pdf'),
+                    'stage' => 'bl_generation',
+                ],
+            ],
+        ])->assertUnprocessable()->assertJsonValidationErrors(['documents.0.stage']);
+});
+
+test('archive export rejects import-only document stages', function () {
+    $user = User::factory()->create(['role' => 'admin']);
+    $client = Client::factory()->exporter()->create();
+    $country = Country::factory()->create();
+
+    $this->actingAs($user)
+        ->withHeader('Accept', 'application/json')
+        ->post('/api/archives/export', [
+            'bl_no' => 'BL-ARCH-INVALID-STAGE-EXP',
+            'shipper_id' => $client->id,
+            'destination_country_id' => $country->id,
+            'file_date' => '2024-03-20',
+            'documents' => [
+                [
+                    'file' => UploadedFile::fake()->create('ppa.pdf', 100, 'application/pdf'),
+                    'stage' => 'ppa',
+                ],
+            ],
+        ])->assertUnprocessable()->assertJsonValidationErrors(['documents.0.stage']);
 });
 
 // ─── Regular Encoding: Future Dates Still Allowed ─────────────────────────────
