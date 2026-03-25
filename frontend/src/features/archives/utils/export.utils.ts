@@ -1,5 +1,5 @@
 ﻿import type { ArchiveYear, TransactionType } from '../../documents/types/document.types';
-import { EXPORT_STAGES, IMPORT_STAGES } from '../../documents/types/document.types';
+import { EXPORT_STAGES, IMPORT_STAGES, REQUIRED_EXPORT_STAGES, REQUIRED_IMPORT_STAGES } from '../../documents/types/document.types';
 import { toTitleCase } from './archive.utils';
 
 const MONTH_NAMES_FULL = [
@@ -58,8 +58,8 @@ export const exportArchiveCSV = (archiveData: ArchiveYear[], filters: ExportFilt
         }
     }
 
-    const importStageKeys = IMPORT_STAGES.map(s => s.key) as string[];
-    const exportStageKeys = EXPORT_STAGES.map(s => s.key) as string[];
+    const importStageKeys = REQUIRED_IMPORT_STAGES.map(s => s.key) as string[];
+    const exportStageKeys = REQUIRED_EXPORT_STAGES.map(s => s.key) as string[];
     const allStageKeys = [...new Set([...importStageKeys, ...exportStageKeys])];
     const stageLabels = Object.fromEntries([
         ...IMPORT_STAGES.map(s => [s.key, s.label]),

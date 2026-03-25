@@ -1,5 +1,5 @@
 import type { ArchiveDocument, ArchiveYear, TransactionType } from '../../documents/types/document.types';
-import { EXPORT_STAGES, IMPORT_STAGES } from '../../documents/types/document.types';
+import { getRequiredArchiveStages } from '../../documents/types/document.types';
 import type { DrillState, SortKey, ViewMode } from '../utils/archive.utils';
 import { MONTH_NAMES, toTitleCase } from '../utils/archive.utils';
 
@@ -29,7 +29,7 @@ export const ArchivesDocumentView = ({ flatDocumentList, nav, setViewMode }: Arc
                 ))}
             </div>
             {flatDocumentList.map((r, idx) => {
-                const required = r.type === 'import' ? IMPORT_STAGES : EXPORT_STAGES;
+                const required = getRequiredArchiveStages(r.type);
                 const isComplete = required.every(s => r.stages.has(s.key));
                 const done = [...required].filter(s => r.stages.has(s.key)).length;
                 return (
@@ -129,7 +129,7 @@ export const BLFolderRow = ({ blNo, blDocs, drill, nav, COL, color }: BLFolderRo
     const firstDoc = blDocs[0];
     const uploadedKeys = new Set(blDocs.map(d => d.stage));
     const isImport = drill.type === 'import';
-    const stageList = isImport ? IMPORT_STAGES : EXPORT_STAGES;
+    const stageList = getRequiredArchiveStages(drill.type);
     const done = stageList.filter(s => uploadedKeys.has(s.key)).length;
     const isComplete = done === stageList.length;
     const tooltip = stageList.map(s => `${uploadedKeys.has(s.key) ? 'Γ£ô' : 'Γùï'} ${s.label}`).join('\n');

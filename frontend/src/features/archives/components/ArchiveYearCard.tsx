@@ -1,5 +1,5 @@
 ﻿import type { ArchiveYear, TransactionType } from '../../documents/types/document.types';
-import { EXPORT_STAGES, IMPORT_STAGES } from '../../documents/types/document.types';
+import { getRequiredArchiveStages } from '../../documents/types/document.types';
 
 // Must match the ColHeader template in ArchivesPage: '20px 1fr 100px 60px 100px 20px'
 export const YEAR_GRID = '20px 1fr 100px 60px 100px 20px';
@@ -23,7 +23,7 @@ const computeCompleteness = (archive: ArchiveYear): number => {
 
     let completeCount = 0;
     for (const { type, stages } of blGroups.values()) {
-        const required = type === 'import' ? IMPORT_STAGES : EXPORT_STAGES;
+        const required = getRequiredArchiveStages(type);
         const allPresent = required.every(s => stages.has(s.key));
         if (allPresent) completeCount++;
     }

@@ -1,11 +1,11 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { appRoutes } from '../../../lib/appRoutes';
+import { appRoutes } from '../../../../lib/appRoutes';
 import {
     makeDocumentTransactionRow,
     makeDocumentTransactionsResponse,
-} from '../../../test/fixtures/tracking';
-import { renderWithProviders } from '../../../test/renderWithProviders';
+} from '../../../../test/fixtures/tracking';
+import { renderWithProviders } from '../../../../test/renderWithProviders';
 import { Documents } from './Documents';
 
 const { mockUseDebounce, mockUseDocumentTransactions } = vi.hoisted(() => ({
@@ -13,15 +13,15 @@ const { mockUseDebounce, mockUseDocumentTransactions } = vi.hoisted(() => ({
     mockUseDocumentTransactions: vi.fn(),
 }));
 
-vi.mock('../../../hooks/useDebounce', () => ({
+vi.mock('../../../../hooks/useDebounce', () => ({
     useDebounce: mockUseDebounce,
 }));
 
-vi.mock('../hooks/useDocumentTransactions', () => ({
+vi.mock('../../hooks/useDocumentTransactions', () => ({
     useDocumentTransactions: mockUseDocumentTransactions,
 }));
 
-vi.mock('../../../components/CurrentDateTime', () => ({
+vi.mock('../../../../components/CurrentDateTime', () => ({
     CurrentDateTime: () => <div data-testid="current-date-time" />,
 }));
 
@@ -73,7 +73,9 @@ describe('Documents', () => {
             path: appRoutes.documents,
         });
 
-        expect(screen.getByText('Failed to load completed transactions. Please refresh the page.')).toBeInTheDocument();
+        expect(
+            screen.getByText('Failed to load completed transactions. Please refresh the page.'),
+        ).toBeInTheDocument();
     });
 
     it('shows the empty state for no completed transactions', () => {
@@ -104,7 +106,9 @@ describe('Documents', () => {
 
         expect(screen.getByText('No completed transactions yet')).toBeInTheDocument();
         expect(
-            screen.getByText('Completed import and export transactions will appear here once all stages are done.'),
+            screen.getByText(
+                'Completed import and export transactions will appear here once all stages are done.',
+            ),
         ).toBeInTheDocument();
     });
 

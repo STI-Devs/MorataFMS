@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../../auth/hooks/useAuth';
 import type { ArchiveDocument, ArchiveYear, TransactionType } from '../../documents/types/document.types';
-import { EXPORT_STAGES, IMPORT_STAGES } from '../../documents/types/document.types';
+import { getRequiredArchiveStages } from '../../documents/types/document.types';
 import type { DocStatusFilter, DrillState } from '../utils/archive.utils';
 import { FOLDER_COLOR, MONTH_NAMES, computeGlobalCompleteness, hasRoleAtLeast } from '../utils/archive.utils';
 import { UploadHistoryPanel } from './UploadHistoryPanel';
@@ -112,7 +112,7 @@ export const SubFolderRow = ({ groupKey, docs, yr, filterStatus, nav, openMenuKe
         if (!blMap.has(bk)) blMap.set(bk, new Set());
         blMap.get(bk)!.add(d.stage);
     }
-    const required = txType === 'import' ? IMPORT_STAGES : EXPORT_STAGES;
+    const required = getRequiredArchiveStages(txType);
     const completedBLs = [...blMap.values()].filter(s => required.every(r => s.has(r.key))).length;
     const folderPct = blMap.size === 0 ? 0 : Math.round((completedBLs / blMap.size) * 100);
 
@@ -215,7 +215,7 @@ const YearRow = ({ yr, isOpen, toggleYear, filterType, filterStatus, nav, openMe
 
     const incompleteSubCount = allGroups.filter(([k, docs]) => {
         const txType = k.split('|')[1] as TransactionType;
-        const req = txType === 'import' ? IMPORT_STAGES : EXPORT_STAGES;
+        const req = getRequiredArchiveStages(txType);
         const bm = new Map<string, Set<string>>();
         for (const d of docs) {
             const bk = d.bl_no || '(no BL)';

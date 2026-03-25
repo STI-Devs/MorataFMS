@@ -110,12 +110,12 @@ describe('auth route guards', () => {
                     <Route element={<GuestRoute />}>
                         <Route path={appRoutes.login} element={<div>Login page</div>} />
                     </Route>
-                    <Route path={appRoutes.transactions} element={<div>Transactions page</div>} />
+                    <Route path={appRoutes.dashboard} element={<div>Dashboard page</div>} />
                 </Routes>
             </MemoryRouter>,
         );
 
-        expect(screen.getByText('Transactions page')).toBeInTheDocument();
+        expect(screen.getByText('Dashboard page')).toBeInTheDocument();
     });
 
     it('renders guest content for unauthenticated users', () => {

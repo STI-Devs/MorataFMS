@@ -81,6 +81,107 @@ export interface DocumentTransactionListResponse {
     };
 }
 
+export type AdminReviewTypeFilter = TransactionType | 'all';
+export type AdminReviewStatusFilter = 'completed' | 'cancelled' | 'all';
+
+export interface AdminReviewQueueParams {
+    page?: number;
+    per_page?: number;
+    search?: string;
+    type?: AdminReviewTypeFilter;
+    status?: AdminReviewStatusFilter;
+}
+
+export interface AdminReviewQueueItem {
+    id: number;
+    type: TransactionType;
+    ref: string;
+    bl_number: string | null;
+    client: string | null;
+    assigned_user: string | null;
+    status: string;
+    finalized_date: string | null;
+    docs_count: number;
+    docs_total: number;
+    has_exceptions: boolean;
+}
+
+export interface AdminReviewQueueResponse {
+    data: AdminReviewQueueItem[];
+    meta: {
+        current_page: number;
+        last_page: number;
+        per_page: number;
+        total: number;
+    };
+}
+
+export interface AdminReviewDetailTransaction {
+    id: number;
+    type: TransactionType;
+    ref: string;
+    bl_number: string | null;
+    client: string | null;
+    assigned_user: string | null;
+    status: string;
+    finalized_date: string | null;
+}
+
+export interface AdminReviewDocumentFile {
+    id: number;
+    filename: string;
+    size: string;
+    uploaded_by: string | null;
+    uploaded_at: string | null;
+}
+
+export interface AdminReviewRequiredDocument {
+    type_key: string;
+    label: string;
+    uploaded: boolean;
+    file: AdminReviewDocumentFile | null;
+}
+
+export interface AdminReviewRemark {
+    id: number;
+    body: string;
+    author: string;
+    resolved: boolean;
+    created_at: string | null;
+}
+
+export interface AdminReviewSummary {
+    total_uploaded: number;
+    required_completed: number;
+    required_total: number;
+    missing_count: number;
+    flagged_count: number;
+    archive_ready: boolean;
+}
+
+export interface AdminReviewDetailResponse {
+    transaction: AdminReviewDetailTransaction;
+    required_documents: AdminReviewRequiredDocument[];
+    remarks: AdminReviewRemark[];
+    summary: AdminReviewSummary;
+}
+
+export interface AdminReviewStats {
+    completed_count: number;
+    cancelled_count: number;
+    missing_docs_count: number;
+    archive_ready_count: number;
+}
+
+export interface AdminReviewArchiveResponse {
+    message: string;
+    data: {
+        id: number;
+        type: TransactionType;
+        is_archive: boolean;
+    };
+}
+
 
 /** Per-stage file attachment used in the legacy upload form */
 export interface StageUpload {
@@ -118,6 +219,12 @@ export const EXPORT_STAGES = [
     { key: 'billing', label: 'Billing' },
     { key: 'others', label: 'Others' },
 ] as const;
+
+export const REQUIRED_IMPORT_STAGES = IMPORT_STAGES.filter((stage) => stage.key !== 'others');
+export const REQUIRED_EXPORT_STAGES = EXPORT_STAGES.filter((stage) => stage.key !== 'others');
+
+export const getRequiredArchiveStages = (type: TransactionType) =>
+    type === 'import' ? REQUIRED_IMPORT_STAGES : REQUIRED_EXPORT_STAGES;
 
 // Dynamic: 2015 → current year, newest first. Auto-expands each year without code changes.
 const _currentYear = new Date().getFullYear();

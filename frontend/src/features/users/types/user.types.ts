@@ -22,6 +22,7 @@ export interface CreateUserData {
     email: string;
     job_title?: string;
     password: string;
+    password_confirmation: string;
     role: UserRole;
 }
 

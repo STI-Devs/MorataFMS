@@ -4,6 +4,10 @@ export const AdminDashboard = lazy(() =>
     import('../features/admin-dashboard/components/AdminDashboard').then((module) => ({ default: module.AdminDashboard })),
 );
 
+export const AdminDocumentReview = lazy(() =>
+    import('../features/documents/components/admin-review/AdminDocumentReview').then((module) => ({ default: module.AdminDocumentReview })),
+);
+
 export const ArchivesPage = lazy(() =>
     import('../features/archives/components/ArchivesPage').then((module) => ({ default: module.ArchivesPage })),
 );
@@ -25,7 +29,7 @@ export const ClientManagement = lazy(() =>
 );
 
 export const Documents = lazy(() =>
-    import('../features/documents/components/Documents').then((module) => ({ default: module.Documents })),
+    import('../features/documents/components/document-list/Documents').then((module) => ({ default: module.Documents })),
 );
 
 export const DocumentsDetail = lazy(() =>

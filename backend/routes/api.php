@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdminDocumentReviewController;
 use App\Http\Controllers\ArchiveController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\ClientController;
@@ -104,5 +105,13 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
         Route::get('transactions/{type}/{id}/remarks', [TransactionRemarkController::class, 'index']);
         Route::post('transactions/{type}/{id}/remarks', [TransactionRemarkController::class, 'store']);
         Route::patch('remarks/{remark}/resolve', [TransactionRemarkController::class, 'resolve']);
+
+        // Admin document review
+        Route::prefix('admin/document-review')->group(function () {
+            Route::get('/', [AdminDocumentReviewController::class, 'index']);
+            Route::get('stats', [AdminDocumentReviewController::class, 'stats']);
+            Route::post('{type}/{id}/archive', [AdminDocumentReviewController::class, 'archive']);
+            Route::get('{type}/{id}', [AdminDocumentReviewController::class, 'show']);
+        });
     });
 });

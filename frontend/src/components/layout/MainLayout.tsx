@@ -110,7 +110,7 @@ export const MainLayout = () => {
     const switchModule = (moduleName: Module) => {
         setActiveModule(moduleName);
         localStorage.setItem('activeModule', moduleName);
-        navigate(moduleName === 'legal' ? appRoutes.lawFirm : (isAdmin ? appRoutes.transactions : appRoutes.tracking));
+        navigate(moduleName === 'legal' ? appRoutes.lawFirm : (isAdmin ? appRoutes.dashboard : appRoutes.tracking));
     };
 
     useEffect(() => {
@@ -179,7 +179,7 @@ export const MainLayout = () => {
             >
                 <div
                     className="flex items-center gap-2.5 px-2 mb-5 cursor-pointer"
-                    onClick={() => navigate(isAdmin ? appRoutes.transactions : appRoutes.tracking)}
+                    onClick={() => navigate(isAdmin ? appRoutes.dashboard : appRoutes.tracking)}
                 >
                     <img src="/logo.jpg" alt="F.M Morata Logo" className="w-7 h-7 rounded-full object-cover shrink-0" />
                     <div>

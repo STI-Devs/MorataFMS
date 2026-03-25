@@ -1,5 +1,8 @@
-import type { ArchiveYear, TransactionType } from '../../documents/types/document.types';
-import { EXPORT_STAGES, IMPORT_STAGES } from '../../documents/types/document.types';
+import {
+    getRequiredArchiveStages,
+    type ArchiveYear,
+    type TransactionType,
+} from '../../documents/types/document.types';
 
 export type DrillState =
     | { level: 'years' }
@@ -41,7 +44,7 @@ export const computeGlobalCompleteness = (archiveData: ArchiveYear[]): number =>
     if (blMap.size === 0) return 0;
     let complete = 0;
     for (const { type, stages } of blMap.values()) {
-        const required = type === 'import' ? IMPORT_STAGES : EXPORT_STAGES;
+        const required = getRequiredArchiveStages(type);
         if (required.every(s => stages.has(s.key))) complete++;
     }
     return Math.round((complete / blMap.size) * 100);
@@ -58,7 +61,7 @@ export const countIncompleteBLs = (archiveData: ArchiveYear[]): number => {
     }
     let incomplete = 0;
     for (const { type, stages } of blMap.values()) {
-        const required = type === 'import' ? IMPORT_STAGES : EXPORT_STAGES;
+        const required = getRequiredArchiveStages(type);
         if (!required.every(s => stages.has(s.key))) incomplete++;
     }
     return incomplete;

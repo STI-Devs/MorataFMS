@@ -1,0 +1,288 @@
+import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { renderWithProviders } from '../../../../test/renderWithProviders';
+import { AdminDocumentReview } from './AdminDocumentReview';
+
+const {
+    mockUseDebounce,
+    mockUseReviewQueue,
+    mockUseReviewDetail,
+    mockUseReviewStats,
+    mockUseArchiveReviewedTransaction,
+    mockHandlePreviewDoc,
+} = vi.hoisted(() => ({
+    mockUseDebounce: vi.fn(),
+    mockUseReviewQueue: vi.fn(),
+    mockUseReviewDetail: vi.fn(),
+    mockUseReviewStats: vi.fn(),
+    mockUseArchiveReviewedTransaction: vi.fn(),
+    mockHandlePreviewDoc: vi.fn(),
+}));
+
+vi.mock('../../../../hooks/useDebounce', () => ({
+    useDebounce: mockUseDebounce,
+}));
+
+vi.mock('../../hooks/useAdminReview', () => ({
+    useReviewQueue: mockUseReviewQueue,
+    useReviewDetail: mockUseReviewDetail,
+    useReviewStats: mockUseReviewStats,
+    useArchiveReviewedTransaction: mockUseArchiveReviewedTransaction,
+}));
+
+vi.mock('../../../tracking/hooks/useDocumentPreview', () => ({
+    useDocumentPreview: () => ({
+        handlePreviewDoc: mockHandlePreviewDoc,
+    }),
+}));
+
+vi.mock('../../../tracking/api/trackingApi', () => ({
+    trackingApi: {
+        downloadDocument: vi.fn(),
+    },
+}));
+
+vi.mock('../../../../components/CurrentDateTime', () => ({
+    CurrentDateTime: () => <div data-testid="current-date-time" />,
+}));
+
+const queueResponse = {
+    data: [
+        {
+            id: 1,
+            type: 'import' as const,
+            ref: 'IMP-0921',
+            bl_number: 'BL-98210344',
+            client: 'Global Tech Corp',
+            assigned_user: 'Sarah Velasco',
+            status: 'Completed',
+            finalized_date: '2026-03-20T14:30:00Z',
+            docs_count: 4,
+            docs_total: 6,
+            has_exceptions: true,
+        },
+    ],
+    meta: {
+        current_page: 1,
+        last_page: 1,
+        per_page: 10,
+        total: 1,
+    },
+};
+
+const detailResponse = {
+    transaction: {
+        id: 1,
+        type: 'import' as const,
+        ref: 'IMP-0921',
+        bl_number: 'BL-98210344',
+        client: 'Global Tech Corp',
+        assigned_user: 'Sarah Velasco',
+        status: 'Completed',
+        finalized_date: '2026-03-20T14:30:00Z',
+    },
+    required_documents: [
+        {
+            type_key: 'boc',
+            label: 'BOC Document Processing',
+            uploaded: true,
+            file: {
+                id: 101,
+                filename: 'boc_declaration.pdf',
+                size: '2.4 MB',
+                uploaded_by: 'Sarah Velasco',
+                uploaded_at: '2026-03-18T10:00:00Z',
+            },
+        },
+        {
+            type_key: 'ppa',
+            label: 'Payment for PPA Charges',
+            uploaded: false,
+            file: null,
+        },
+    ],
+    remarks: [
+        {
+            id: 1,
+            body: 'Missing final BL from carrier',
+            author: 'Admin User',
+            resolved: false,
+            created_at: '2026-03-19T08:00:00Z',
+        },
+    ],
+    summary: {
+        total_uploaded: 5,
+        required_completed: 4,
+        required_total: 6,
+        missing_count: 2,
+        flagged_count: 1,
+        archive_ready: false,
+    },
+};
+
+const readyDetailResponse = {
+    ...detailResponse,
+    summary: {
+        total_uploaded: 6,
+        required_completed: 6,
+        required_total: 6,
+        missing_count: 0,
+        flagged_count: 0,
+        archive_ready: true,
+    },
+};
+
+describe('AdminDocumentReview', () => {
+    beforeEach(() => {
+        mockUseDebounce.mockReset();
+        mockUseReviewQueue.mockReset();
+        mockUseReviewDetail.mockReset();
+        mockUseReviewStats.mockReset();
+        mockUseArchiveReviewedTransaction.mockReset();
+        mockHandlePreviewDoc.mockReset();
+
+        mockUseDebounce.mockImplementation((value: string) => value);
+        mockUseReviewStats.mockReturnValue({
+            data: {
+                completed_count: 24,
+                cancelled_count: 3,
+                missing_docs_count: 8,
+                archive_ready_count: 16,
+            },
+            isLoading: false,
+        });
+        mockUseReviewQueue.mockReturnValue({
+            data: queueResponse,
+            isLoading: false,
+            isError: false,
+            isFetching: false,
+            refetch: vi.fn(),
+        });
+        mockUseReviewDetail.mockImplementation((type: string | null, id: number | null) => ({
+            data: type === 'import' && id === 1 ? detailResponse : undefined,
+            isLoading: false,
+            isError: false,
+            refetch: vi.fn(),
+        }));
+        mockUseArchiveReviewedTransaction.mockReturnValue({
+            mutate: vi.fn(),
+            isPending: false,
+        });
+    });
+
+    it('renders queue data and loads detail when a transaction is selected', async () => {
+        renderWithProviders(<AdminDocumentReview />);
+
+        expect(screen.getByText('Admin Document Review')).toBeInTheDocument();
+        expect(screen.getByText('24')).toBeInTheDocument();
+        expect(screen.getByText('BL-98210344')).toBeInTheDocument();
+        expect(screen.getByText('Open Remarks')).toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole('button', { name: /BL-98210344/i }));
+
+        await waitFor(() => {
+            expect(screen.getByText('BOC Document Processing')).toBeInTheDocument();
+        });
+
+        expect(screen.getByText('Payment for PPA Charges')).toBeInTheDocument();
+        expect(screen.getByText('Missing final BL from carrier')).toBeInTheDocument();
+        expect(screen.getByText('Needs Review')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /move to archive/i })).toBeDisabled();
+    });
+
+    it('wires search and filter controls into the queue query params', async () => {
+        renderWithProviders(<AdminDocumentReview />);
+
+        fireEvent.change(screen.getByPlaceholderText('Search BL, ref, or client...'), {
+            target: { value: 'Acme' },
+        });
+
+        await waitFor(() => {
+            expect(mockUseReviewQueue).toHaveBeenLastCalledWith({
+                page: 1,
+                per_page: 10,
+                search: 'Acme',
+                type: 'all',
+                status: 'all',
+            });
+        });
+
+        fireEvent.change(screen.getByDisplayValue('All Types'), {
+            target: { value: 'export' },
+        });
+        fireEvent.change(screen.getByDisplayValue('All Finalized'), {
+            target: { value: 'cancelled' },
+        });
+
+        await waitFor(() => {
+            expect(mockUseReviewQueue).toHaveBeenLastCalledWith({
+                page: 1,
+                per_page: 10,
+                search: 'Acme',
+                type: 'export',
+                status: 'cancelled',
+            });
+        });
+    });
+
+    it('shows the empty state when no reviewable transactions are returned', () => {
+        mockUseReviewQueue.mockReturnValue({
+            data: {
+                data: [],
+                meta: {
+                    current_page: 1,
+                    last_page: 1,
+                    per_page: 10,
+                    total: 0,
+                },
+            },
+            isLoading: false,
+            isError: false,
+            isFetching: false,
+            refetch: vi.fn(),
+        });
+
+        renderWithProviders(<AdminDocumentReview />);
+
+        expect(screen.getByText('No files in review')).toBeInTheDocument();
+        expect(
+            screen.getByText('Finalized transactions will appear here once they need archive review.'),
+        ).toBeInTheDocument();
+    });
+
+    it('shows an active archive button for ready transactions and triggers the archive mutation', async () => {
+        const mutate = vi.fn();
+
+        mockUseReviewDetail.mockImplementation((type: string | null, id: number | null) => ({
+            data: type === 'import' && id === 1 ? readyDetailResponse : undefined,
+            isLoading: false,
+            isError: false,
+            refetch: vi.fn(),
+        }));
+        mockUseArchiveReviewedTransaction.mockReturnValue({
+            mutate,
+            isPending: false,
+        });
+
+        renderWithProviders(<AdminDocumentReview />);
+
+        fireEvent.click(screen.getByRole('button', { name: /BL-98210344/i }));
+
+        await waitFor(() => {
+            expect(screen.getByText('Ready for Archive')).toBeInTheDocument();
+        });
+
+        const archiveButton = screen.getByRole('button', { name: /move to archive/i });
+        expect(archiveButton).toBeEnabled();
+
+        fireEvent.click(archiveButton);
+
+        expect(mutate).toHaveBeenCalledWith(
+            { type: 'import', id: 1 },
+            expect.objectContaining({
+                onSuccess: expect.any(Function),
+                onError: expect.any(Function),
+            }),
+        );
+    });
+});

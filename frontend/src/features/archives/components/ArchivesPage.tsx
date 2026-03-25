@@ -4,7 +4,7 @@ import { CurrentDateTime } from '../../../components/CurrentDateTime';
 import { ConfirmationModal } from '../../../components/ConfirmationModal';
 import { Icon } from '../../../components/Icon';
 import type { ArchiveDocument, ArchiveYear, TransactionType } from '../../documents/types/document.types';
-import { EXPORT_STAGES, IMPORT_STAGES } from '../../documents/types/document.types';
+import { getRequiredArchiveStages } from '../../documents/types/document.types';
 import { trackingApi } from '../../tracking/api/trackingApi';
 import { useArchives } from '../hooks/useArchives';
 import type { DocStatusFilter, DrillState, SortKey, ViewMode } from '../utils/archive.utils';
@@ -103,7 +103,7 @@ export const ArchivesPage = () => {
             if (q && !r.blNo.toLowerCase().includes(q) && !r.client.toLowerCase().includes(q)) return false;
             if (filterYear !== 'all' && String(r.year) !== filterYear) return false;
             if (filterType !== 'all' && r.type !== filterType) return false;
-            const required = r.type === 'import' ? IMPORT_STAGES : EXPORT_STAGES;
+            const required = getRequiredArchiveStages(r.type);
             const isComplete = required.every(s => r.stages.has(s.key));
             if (filterStatus === 'complete' && !isComplete) return false;
             if (filterStatus === 'incomplete' && isComplete) return false;

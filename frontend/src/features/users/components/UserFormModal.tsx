@@ -25,6 +25,7 @@ export const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode }: UserFor
         email: '',
         job_title: '',
         password: '',
+        password_confirmation: '',
         role: 'encoder' as UserRole,
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -32,9 +33,23 @@ export const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode }: UserFor
 
     useEffect(() => {
         if (mode === 'edit' && user) {
-            setFormData({ name: user.name, email: user.email, job_title: user.job_title || '', password: '', role: user.role });
+            setFormData({
+                name: user.name,
+                email: user.email,
+                job_title: user.job_title || '',
+                password: '',
+                password_confirmation: '',
+                role: user.role,
+            });
         } else {
-            setFormData({ name: '', email: '', job_title: '', password: '', role: 'encoder' });
+            setFormData({
+                name: '',
+                email: '',
+                job_title: '',
+                password: '',
+                password_confirmation: '',
+                role: 'encoder',
+            });
         }
         setError('');
     }, [mode, user, isOpen]);
@@ -45,6 +60,13 @@ export const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode }: UserFor
         setIsSubmitting(true);
         try {
             if (mode === 'create') {
+                if (formData.password !== formData.password_confirmation) {
+                    setError('Password confirmation does not match.');
+                    setIsSubmitting(false);
+
+                    return;
+                }
+
                 await onSubmit({
                     ...formData,
                     job_title: formData.job_title.trim() || undefined,
@@ -87,8 +109,9 @@ export const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode }: UserFor
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                        <label className={labelCls}>Name</label>
+                        <label htmlFor="user-name" className={labelCls}>Name</label>
                         <input
+                            id="user-name"
                             type="text"
                             value={formData.name}
                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -99,8 +122,9 @@ export const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode }: UserFor
                     </div>
 
                     <div>
-                        <label className={labelCls}>Email</label>
+                        <label htmlFor="user-email" className={labelCls}>Email</label>
                         <input
+                            id="user-email"
                             type="email"
                             value={formData.email}
                             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -111,8 +135,9 @@ export const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode }: UserFor
                     </div>
 
                     <div>
-                        <label className={labelCls}>Job Title</label>
+                        <label htmlFor="user-job-title" className={labelCls}>Job Title</label>
                         <input
+                            id="user-job-title"
                             type="text"
                             value={formData.job_title}
                             onChange={(e) => setFormData({ ...formData, job_title: e.target.value })}
@@ -122,22 +147,39 @@ export const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode }: UserFor
                     </div>
 
                     {mode === 'create' && (
-                        <div>
-                            <label className={labelCls}>Password</label>
-                            <input
-                                type="password"
-                                value={formData.password}
-                                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                                required
-                                minLength={8}
-                                className={inputCls}
-                            />
-                        </div>
+                        <>
+                            <div>
+                                <label htmlFor="user-password" className={labelCls}>Password</label>
+                                <input
+                                    id="user-password"
+                                    type="password"
+                                    value={formData.password}
+                                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                    required
+                                    minLength={8}
+                                    className={inputCls}
+                                />
+                            </div>
+
+                            <div>
+                                <label htmlFor="user-password-confirmation" className={labelCls}>Confirm Password</label>
+                                <input
+                                    id="user-password-confirmation"
+                                    type="password"
+                                    value={formData.password_confirmation}
+                                    onChange={(e) => setFormData({ ...formData, password_confirmation: e.target.value })}
+                                    required
+                                    minLength={8}
+                                    className={inputCls}
+                                />
+                            </div>
+                        </>
                     )}
 
                     <div>
-                        <label className={labelCls}>Role</label>
+                        <label htmlFor="user-role" className={labelCls}>Role</label>
                         <select
+                            id="user-role"
                             value={formData.role}
                             onChange={(e) => setFormData({ ...formData, role: e.target.value as UserRole })}
                             required

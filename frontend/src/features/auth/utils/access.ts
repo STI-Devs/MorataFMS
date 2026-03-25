@@ -38,7 +38,7 @@ export function hasLegalAccess(user: AccessUser): boolean {
 
 export function getHomePath(user: AccessUser): string {
   if (!user) return appRoutes.login;
-  if (user.role === 'admin') return appRoutes.transactions;
+  if (user.role === 'admin') return appRoutes.dashboard;
   if (hasLegalAccess(user) && !hasBrokerageAccess(user)) return appRoutes.lawFirm;
 
   return appRoutes.tracking;

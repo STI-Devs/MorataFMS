@@ -7,6 +7,7 @@ import { AuthProvider, GuestRoute, ProtectedRoute } from './features/auth';
 import { appRoutes } from './lib/appRoutes';
 import {
   AdminDashboard,
+  AdminDocumentReview,
   AdminLiveTracking,
   ArchivesPage,
   AuditLogs,
@@ -79,6 +80,7 @@ function App() {
               {/* Admin-only brokerage routes */}
               <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
                 <Route path={appRoutes.dashboard} element={<AdminDashboard />} />
+                <Route path={appRoutes.adminDocumentReview} element={<AdminDocumentReview />} />
                 <Route path={appRoutes.users} element={<UserManagement />} />
                 <Route path={appRoutes.clients} element={<ClientManagement />} />
                 <Route path={appRoutes.transactions} element={<TransactionOversight />} />
