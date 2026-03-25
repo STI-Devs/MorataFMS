@@ -1,7 +1,5 @@
-# Environment files (CRITICAL - contains secrets!)
-.env
-.env.*
-!.env.example
+.pnpm-store
+.codex
 
 # Backend (Laravel)
 backend/vendor/
