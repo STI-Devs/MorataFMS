@@ -238,6 +238,44 @@ describe('TrackingDetails', () => {
         expect(screen.getByText('IMP-2026-001')).toBeInTheDocument();
     });
 
+    it('shows a finalized notice and lets the user open the documents detail route', async () => {
+        mockUseTransactionDetail.mockImplementation((referenceId: string | undefined, options?: { scope?: 'tracking' | 'record' }) => {
+            if (options?.scope === 'record') {
+                return {
+                    data: makeImportDetailResult({
+                        customs_ref_no: referenceId ?? 'IMP-2026-001',
+                        status: 'Completed',
+                    }),
+                    isLoading: false,
+                };
+            }
+
+            return { data: null, isLoading: false };
+        });
+        mockUseTransactionDocuments.mockReturnValue({ byStageIndex: {}, isLoading: false });
+
+        renderWithProviders(<TrackingDetails />, {
+            route: '/tracking/IMP-2026-001',
+            path: appRoutes.trackingDetail,
+            routes: [
+                {
+                    path: appRoutes.documentDetail,
+                    element: <div>Documents detail route</div>,
+                },
+            ],
+        });
+
+        expect(screen.getByText('Tracking Has Ended')).toBeInTheDocument();
+        expect(screen.getByText(/IMP-2026-001/)).toBeInTheDocument();
+        expect(screen.getByText(/is already/i)).toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole('button', { name: 'Open Documents' }));
+
+        await waitFor(() => {
+            expect(screen.getByText('Documents detail route')).toBeInTheDocument();
+        });
+    });
+
     it('derives the display status and stage progression from the available documents', () => {
         const detail = makeImportDetailResult({
             customs_ref_no: 'IMP-2026-002',
@@ -391,6 +429,69 @@ describe('TrackingDetails', () => {
         );
         expect(invalidateQueriesSpy).toHaveBeenCalledWith({
             queryKey: trackingKeys.detail('IMP-2026-001'),
+        });
+    });
+
+    it('keeps the stage page visible during the 15-second countdown and offers a documents shortcut', async () => {
+        let trackingDetail = makeImportDetailResult();
+        const uploadedDoc = makeApiDocument({ id: 709, type: 'billing', filename: 'billing.pdf' });
+        let isRefreshingAfterCompletion = false;
+
+        mockUploadDocument.mockImplementation(async () => {
+            trackingDetail = null as never;
+            isRefreshingAfterCompletion = true;
+            return uploadedDoc;
+        });
+        mockUseTransactionDetail.mockImplementation((_referenceId: string | undefined, options?: { scope?: 'tracking' | 'record' }) => {
+            if (options?.scope === 'record') {
+                return { data: null, isLoading: isRefreshingAfterCompletion };
+            }
+
+            return { data: trackingDetail, isLoading: isRefreshingAfterCompletion };
+        });
+        mockUseTransactionDocuments.mockImplementation(() => ({
+            byStageIndex: isRefreshingAfterCompletion ? {} : {
+                0: makeApiDocument({ id: 710, type: 'boc', filename: 'boc.pdf' }),
+                1: makeApiDocument({ id: 711, type: 'ppa', filename: 'ppa.pdf' }),
+                2: makeApiDocument({ id: 712, type: 'do', filename: 'do.pdf' }),
+                3: makeApiDocument({ id: 713, type: 'port_charges', filename: 'port-charges.pdf' }),
+                4: makeApiDocument({ id: 714, type: 'releasing', filename: 'releasing.pdf' }),
+            },
+            isLoading: isRefreshingAfterCompletion,
+        }));
+
+        renderWithProviders(<TrackingDetails />, {
+            route: '/tracking/IMP-2026-001',
+            path: appRoutes.trackingDetail,
+            routes: [
+                {
+                    path: appRoutes.documentDetail,
+                    element: <div>Documents detail route</div>,
+                },
+            ],
+        });
+
+        fireEvent.click(screen.getByText('Upload 5'));
+        fireEvent.click(screen.getByText('Confirm upload'));
+
+        await waitFor(() => {
+            expect(screen.getByText('All stages complete!')).toBeInTheDocument();
+        });
+
+        expect(screen.getByText('IMP-2026-001')).toBeInTheDocument();
+        expect(screen.getByText('Transaction info card')).toBeInTheDocument();
+        expect(screen.getByText('billing.pdf')).toBeInTheDocument();
+        expect(
+            screen.getByText((_, element) => element?.textContent === 'Returning to Import List in 15s…'),
+        ).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Open Documents' })).toBeInTheDocument();
+        expect(screen.queryByText('Tracking details skeleton')).not.toBeInTheDocument();
+        expect(screen.queryByText('Transaction Not Found')).not.toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole('button', { name: 'Open Documents' }));
+
+        await waitFor(() => {
+            expect(screen.getByText('Documents detail route')).toBeInTheDocument();
         });
     });
 

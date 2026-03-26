@@ -10,8 +10,10 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
 beforeEach(function () {
-    // Fake S3 to prevent actual AWS calls during tests
-    Storage::fake('s3');
+    $this->documentDisk = config('filesystems.document_disk', 's3');
+
+    // Fake the configured document disk to prevent actual storage calls during tests.
+    Storage::fake($this->documentDisk);
 });
 
 // ─── Authentication Guards ─────────────────────────────────────────────────────
@@ -137,6 +139,21 @@ test('archive import fails with duplicate bl_no', function () {
         'importer_id' => $client->id,
         'file_date' => '2024-01-10',
     ])->assertUnprocessable()->assertJsonValidationErrors(['bl_no']);
+});
+
+test('archive import fails with duplicate customs reference number', function () {
+    $user = User::factory()->create(['role' => 'encoder']);
+    $client = Client::factory()->importer()->create();
+
+    ImportTransaction::factory()->create(['customs_ref_no' => 'ARCH-DUPE-REF-001']);
+
+    $this->actingAs($user)->postJson('/api/archives/import', [
+        'customs_ref_no' => 'ARCH-DUPE-REF-001',
+        'bl_no' => 'BL-DUPE-ARCH-REF-001',
+        'selective_color' => 'green',
+        'importer_id' => $client->id,
+        'file_date' => '2024-01-10',
+    ])->assertUnprocessable()->assertJsonValidationErrors(['customs_ref_no']);
 });
 
 // ─── Export Archive: Past Date Enforcement ────────────────────────────────────
@@ -287,7 +304,7 @@ test('S3 path falls back to documentable_id when no BL number given', function (
 // ─── Document Type (Stage Key) Validation ────────────────────────────────────
 
 test('document upload rejects invalid stage key', function () {
-    Storage::fake('s3');
+    Storage::fake($this->documentDisk);
     $user = User::factory()->create(['role' => 'encoder']);
     $transaction = ImportTransaction::factory()->create();
 
@@ -590,7 +607,7 @@ test('archive listing only returns transactions with is_archive flag', function 
 });
 
 test('archive import stores uploaded archive documents', function () {
-    Storage::fake('s3');
+    Storage::fake($this->documentDisk);
 
     $user = User::factory()->create(['role' => 'admin']);
     $client = Client::factory()->importer()->create();
@@ -619,5 +636,5 @@ test('archive import stores uploaded archive documents', function () {
         ->first();
 
     expect($document)->not->toBeNull();
-    Storage::disk('s3')->assertExists($document->path);
+    Storage::disk($this->documentDisk)->assertExists($document->path);
 });

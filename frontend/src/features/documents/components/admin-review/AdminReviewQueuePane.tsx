@@ -1,7 +1,10 @@
+import { useState } from 'react';
 import { Icon } from '../../../../components/Icon';
+import type { EncoderUser } from '../../../oversight/types/transaction.types';
 import { Pagination } from '../../../../components/Pagination';
 import type {
     AdminReviewQueueItem,
+    AdminReviewReadinessFilter,
     AdminReviewQueueResponse,
     AdminReviewStatusFilter,
     AdminReviewTypeFilter,
@@ -9,6 +12,7 @@ import type {
 import { QueueSkeleton } from './AdminReviewShared';
 import {
     matchesSelection,
+    READINESS_TONES,
     reviewKey,
     STATUS_TONES,
     timeAgo,
@@ -25,16 +29,16 @@ const QueueItem = ({
     isSelected: boolean;
     onSelect: (transaction: Pick<AdminReviewQueueItem, 'id' | 'type'>) => void;
 }) => {
-    const isComplete = transaction.docs_count === transaction.docs_total;
     const statusTone = STATUS_TONES[transaction.status.toLowerCase()] ?? STATUS_TONES.completed;
     const typeTone = TYPE_TONES[transaction.type] ?? TYPE_TONES.import;
+    const readinessTone = READINESS_TONES[transaction.readiness];
 
     return (
         <button
             onClick={() => onSelect(transaction)}
-            className={`w-full border-b border-border p-4 text-left transition-colors ${
+            className={`w-full border-b border-border p-4 text-left transition-all ${
                 isSelected
-                    ? 'border-l-4 border-l-blue-500 bg-blue-500/10'
+                    ? 'border-l-4 border-l-blue-500 bg-blue-500/10 shadow-[inset_0_0_0_1px_rgba(59,130,246,0.16)]'
                     : 'border-l-4 border-l-transparent hover:bg-hover'
             }`}
         >
@@ -64,11 +68,16 @@ const QueueItem = ({
             </div>
 
             <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-                <span className={`inline-flex rounded-sm border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.2em] ${statusTone.text} ${statusTone.bg}`}>
-                    {transaction.status}
-                </span>
+                <div className="flex flex-wrap items-center gap-2">
+                    <span className={`inline-flex rounded-sm border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.2em] ${statusTone.text} ${statusTone.bg}`}>
+                        {transaction.status}
+                    </span>
+                    <span className={`inline-flex rounded-sm border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.2em] ${readinessTone.text} ${readinessTone.bg}`}>
+                        {readinessTone.label}
+                    </span>
+                </div>
                 <div className="flex items-center gap-2">
-                    <span className={`text-[11px] font-bold uppercase tracking-widest ${isComplete ? 'text-emerald-600' : 'text-amber-600'}`}>
+                    <span className={`text-[11px] font-bold uppercase tracking-widest ${transaction.archive_ready ? 'text-emerald-600' : 'text-amber-600'}`}>
                         {transaction.docs_count}/{transaction.docs_total} Docs
                     </span>
                     {transaction.has_exceptions ? (
@@ -87,6 +96,9 @@ export const AdminReviewQueuePane = ({
     searchQuery,
     typeFilter,
     statusFilter,
+    readinessFilter,
+    assignedUserIdFilter,
+    assignedUsers,
     debouncedSearch,
     selection,
     transactions,
@@ -97,6 +109,8 @@ export const AdminReviewQueuePane = ({
     onSearchChange,
     onTypeFilterChange,
     onStatusFilterChange,
+    onReadinessFilterChange,
+    onAssignedUserFilterChange,
     onRetry,
     onSelect,
     onPageChange,
@@ -105,6 +119,9 @@ export const AdminReviewQueuePane = ({
     searchQuery: string;
     typeFilter: AdminReviewTypeFilter;
     statusFilter: AdminReviewStatusFilter;
+    readinessFilter: AdminReviewReadinessFilter;
+    assignedUserIdFilter: number | 'all';
+    assignedUsers: EncoderUser[];
     debouncedSearch: string;
     selection: ReviewSelection | null;
     transactions: AdminReviewQueueItem[];
@@ -115,13 +132,20 @@ export const AdminReviewQueuePane = ({
     onSearchChange: (value: string) => void;
     onTypeFilterChange: (value: AdminReviewTypeFilter) => void;
     onStatusFilterChange: (value: AdminReviewStatusFilter) => void;
+    onReadinessFilterChange: (value: AdminReviewReadinessFilter) => void;
+    onAssignedUserFilterChange: (value: number | 'all') => void;
     onRetry: () => void;
     onSelect: (transaction: Pick<AdminReviewQueueItem, 'id' | 'type'>) => void;
     onPageChange: (page: number) => void;
     onPerPageChange: (perPage: number) => void;
-}) => (
+}) => {
+    const [showMoreFilters, setShowMoreFilters] = useState(false);
+    const hasActiveSecondaryFilters = readinessFilter !== 'all' || assignedUserIdFilter !== 'all';
+
+    return (
     <div className="flex w-full flex-col bg-surface lg:w-[40%] lg:border-r lg:border-border">
         <div className="flex-none border-b border-border p-4">
+            {/* Search */}
             <div className="relative">
                 <Icon name="search" className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
                 <input
@@ -132,7 +156,9 @@ export const AdminReviewQueuePane = ({
                     className="w-full rounded-md border border-border bg-background py-2 pl-9 pr-4 text-sm text-text-primary placeholder:text-text-muted focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
             </div>
-            <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+
+            {/* Primary filters — always visible */}
+            <div className="mt-3 flex gap-2">
                 <select
                     value={typeFilter}
                     onChange={(event) => onTypeFilterChange(event.target.value as AdminReviewTypeFilter)}
@@ -147,17 +173,76 @@ export const AdminReviewQueuePane = ({
                     onChange={(event) => onStatusFilterChange(event.target.value as AdminReviewStatusFilter)}
                     className="flex-1 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-text-primary focus:outline-none"
                 >
-                    <option value="all">All Finalized</option>
+                    <option value="all">All Statuses</option>
                     <option value="completed">Completed</option>
                     <option value="cancelled">Cancelled</option>
                 </select>
             </div>
+
+            {/* More filters toggle */}
+            <button
+                type="button"
+                onClick={() => setShowMoreFilters((prev) => !prev)}
+                className="mt-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-text-muted hover:text-text-secondary transition-colors"
+            >
+                <Icon
+                    name="chevron-down"
+                    className={`h-3 w-3 transition-transform ${showMoreFilters ? 'rotate-180' : ''}`}
+                />
+                More Filters
+                {hasActiveSecondaryFilters && (
+                    <span className="ml-1 h-1.5 w-1.5 rounded-full bg-blue-500" />
+                )}
+            </button>
+
+            {/* Secondary filters — collapsed by default */}
+            {showMoreFilters && (
+                <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                    <select
+                        value={readinessFilter}
+                        onChange={(event) => onReadinessFilterChange(event.target.value as AdminReviewReadinessFilter)}
+                        className="rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-text-primary focus:outline-none"
+                    >
+                        <option value="all">All Readiness</option>
+                        <option value="ready">Archive Ready</option>
+                        <option value="missing_docs">Missing Docs</option>
+                        <option value="flagged">Flagged</option>
+                    </select>
+                    <select
+                        value={assignedUserIdFilter === 'all' ? 'all' : String(assignedUserIdFilter)}
+                        onChange={(event) =>
+                            onAssignedUserFilterChange(
+                                event.target.value === 'all' ? 'all' : Number.parseInt(event.target.value, 10),
+                            )
+                        }
+                        className="rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-text-primary focus:outline-none"
+                    >
+                        <option value="all">All Encoders</option>
+                        {assignedUsers.map((user) => (
+                            <option key={user.id} value={user.id}>
+                                {user.name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            )}
+
             {isFetching && !isLoading ? (
                 <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-text-muted">
                     Refreshing queue...
                 </p>
             ) : null}
         </div>
+
+        {/* Pagination count above list — scannable before scrolling */}
+        {queueData?.meta && !isLoading ? (
+            <div className="flex-none border-b border-border px-4 py-2">
+                <p className="text-[11px] font-mono text-text-muted">
+                    Showing {transactions.length} of {queueData.meta.total} finalized files
+                    {isFetching && !isLoading ? ' · refreshing...' : ''}
+                </p>
+            </div>
+        ) : null}
 
         <div className="min-h-0 flex-1 overflow-y-auto">
             {isLoading && !queueData ? (
@@ -176,7 +261,7 @@ export const AdminReviewQueuePane = ({
                     </div>
                     <h3 className="mt-4 text-base font-bold text-text-primary">No files in review</h3>
                     <p className="mt-2 text-sm text-text-secondary">
-                        {debouncedSearch || typeFilter !== 'all' || statusFilter !== 'all'
+                        {debouncedSearch || typeFilter !== 'all' || statusFilter !== 'all' || readinessFilter !== 'all' || assignedUserIdFilter !== 'all'
                             ? 'No finalized transactions match the current filters.'
                             : 'Finalized transactions will appear here once they need archive review.'}
                     </p>
@@ -193,22 +278,17 @@ export const AdminReviewQueuePane = ({
             )}
         </div>
 
-        {queueData?.meta ? (
-            queueData.meta.last_page > 1 ? (
-                <div className="border-t border-border px-4">
-                    <Pagination
-                        currentPage={queueData.meta.current_page}
-                        totalPages={queueData.meta.last_page}
-                        perPage={queueData.meta.per_page}
-                        onPageChange={onPageChange}
-                        onPerPageChange={onPerPageChange}
-                    />
-                </div>
-            ) : (
-                <div className="border-t border-border px-4 py-3 text-xs text-text-muted">
-                    Showing {transactions.length} of {queueData.meta.total} finalized files
-                </div>
-            )
+        {queueData?.meta && queueData.meta.last_page > 1 ? (
+            <div className="border-t border-border px-4">
+                <Pagination
+                    currentPage={queueData.meta.current_page}
+                    totalPages={queueData.meta.last_page}
+                    perPage={queueData.meta.per_page}
+                    onPageChange={onPageChange}
+                    onPerPageChange={onPerPageChange}
+                />
+            </div>
         ) : null}
     </div>
-);
+    );
+};

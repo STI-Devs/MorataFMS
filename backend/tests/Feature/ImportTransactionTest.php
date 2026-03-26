@@ -4,6 +4,8 @@ use App\Models\Client;
 use App\Models\Country;
 use App\Models\ImportTransaction;
 use App\Models\User;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
 // --- Authentication Guard ---
 
@@ -125,6 +127,30 @@ test('completed import transactions are hidden from the tracking detail endpoint
     $this->actingAs($user)
         ->getJson('/api/tracking/TRACK-IMP-DONE')
         ->assertNotFound();
+});
+
+test('tracking detail endpoint prefers the active import transaction when duplicate references exist', function () {
+    $user = User::factory()->create(['role' => 'encoder']);
+
+    Schema::table('import_transactions', function (Blueprint $table) {
+        $table->dropUnique('import_transactions_customs_ref_no_unique');
+    });
+
+    ImportTransaction::factory()->completed()->create([
+        'customs_ref_no' => 'TRACK-DUP-001',
+        'assigned_user_id' => $user->id,
+    ]);
+
+    $activeTransaction = ImportTransaction::factory()->pending()->create([
+        'customs_ref_no' => 'TRACK-DUP-001',
+        'assigned_user_id' => $user->id,
+    ]);
+
+    $this->actingAs($user)
+        ->getJson('/api/tracking/TRACK-DUP-001')
+        ->assertOk()
+        ->assertJsonPath('data.transaction.id', $activeTransaction->id)
+        ->assertJsonPath('data.transaction.customs_ref_no', 'TRACK-DUP-001');
 });
 
 // --- Store (Create) ---
@@ -267,6 +293,27 @@ test('creating import transaction fails with non-existent origin country', funct
 
     $response->assertUnprocessable()
         ->assertJsonValidationErrors(['origin_country_id']);
+});
+
+test('creating import transaction fails with duplicate customs reference number', function () {
+    $user = User::factory()->create();
+    $client = Client::factory()->importer()->create();
+
+    ImportTransaction::factory()->create([
+        'customs_ref_no' => 'REF-DUP-001',
+    ]);
+
+    $response = $this->actingAs($user)
+        ->postJson('/api/import-transactions', [
+            'customs_ref_no' => 'REF-DUP-001',
+            'bl_no' => 'BL-UNIQUE-001',
+            'selective_color' => 'green',
+            'importer_id' => $client->id,
+            'arrival_date' => '2025-06-15',
+        ]);
+
+    $response->assertUnprocessable()
+        ->assertJsonValidationErrors(['customs_ref_no']);
 });
 
 // --- Security: Mass Assignment Protection ---
@@ -419,4 +466,29 @@ test('can update using same bl_no (unique validation ignores self)', function ()
         ]);
 
     $response->assertOk();
+});
+
+test('updating an import transaction fails when customs reference number belongs to another transaction', function () {
+    $user = User::factory()->create(['role' => 'encoder']);
+    $client = Client::factory()->importer()->create();
+    $existingTransaction = ImportTransaction::factory()->create([
+        'customs_ref_no' => 'REF-TAKEN-001',
+        'assigned_user_id' => $user->id,
+    ]);
+    $transactionToUpdate = ImportTransaction::factory()->create([
+        'customs_ref_no' => 'REF-UPDATE-002',
+        'assigned_user_id' => $user->id,
+    ]);
+
+    $response = $this->actingAs($user)
+        ->putJson("/api/import-transactions/{$transactionToUpdate->id}", [
+            'customs_ref_no' => $existingTransaction->customs_ref_no,
+            'bl_no' => $transactionToUpdate->bl_no,
+            'selective_color' => $transactionToUpdate->selective_color->value,
+            'importer_id' => $client->id,
+            'arrival_date' => $transactionToUpdate->arrival_date->format('Y-m-d'),
+        ]);
+
+    $response->assertUnprocessable()
+        ->assertJsonValidationErrors(['customs_ref_no']);
 });

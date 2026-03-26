@@ -18,7 +18,7 @@ describe('AdminDashboard', () => {
         expect(screen.getByText('Brokerage Dashboard')).toBeInTheDocument();
         expect(screen.getByText('Critical Operations')).toBeInTheDocument();
         expect(screen.getByText('Action Feed')).toBeInTheDocument();
-        expect(screen.getByText('Jump To')).toBeInTheDocument();
+        expect(screen.getByText('Quick Actions')).toBeInTheDocument();
         expect(screen.getByText('Active Workloads')).toBeInTheDocument();
 
         expect(screen.getByText('User Management')).toBeInTheDocument();
@@ -44,13 +44,13 @@ describe('AdminDashboard', () => {
             path: appRoutes.dashboard,
             routes: [
                 {
-                    path: appRoutes.documents,
+                    path: appRoutes.adminDocumentReview,
                     element: <div>Documents route</div>,
                 },
             ],
         });
 
-        fireEvent.click(screen.getByRole('button', { name: /documents/i }));
+        fireEvent.click(screen.getByRole('button', { name: /^Document Review$/i }));
 
         expect(screen.getByText('Documents route')).toBeInTheDocument();
     });

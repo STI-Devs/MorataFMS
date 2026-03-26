@@ -1,5 +1,6 @@
 import type { ApiDocument } from '../../../tracking/types';
 import type {
+    AdminReviewReadinessFilter,
     AdminReviewQueueItem,
     AdminReviewRequiredDocument,
     TransactionType,
@@ -13,6 +14,27 @@ export const STATUS_TONES: Record<string, { text: string; bg: string }> = {
 export const TYPE_TONES: Record<string, { text: string; bg: string }> = {
     import: { text: 'text-blue-600', bg: 'bg-blue-500/10 border-blue-500/20' },
     export: { text: 'text-amber-600', bg: 'bg-amber-500/10 border-amber-500/20' },
+};
+
+export const READINESS_TONES: Record<
+    Exclude<AdminReviewReadinessFilter, 'all'>,
+    { text: string; bg: string; label: string }
+> = {
+    ready: {
+        text: 'text-emerald-600',
+        bg: 'bg-emerald-500/10 border-emerald-500/20',
+        label: 'Archive Ready',
+    },
+    missing_docs: {
+        text: 'text-amber-600',
+        bg: 'bg-amber-500/10 border-amber-500/20',
+        label: 'Missing Docs',
+    },
+    flagged: {
+        text: 'text-red-600',
+        bg: 'bg-red-500/10 border-red-500/20',
+        label: 'Flagged',
+    },
 };
 
 export type ReviewSelection = {

@@ -15,6 +15,8 @@ export const adminReviewApi = {
                 ...params,
                 type: params?.type === 'all' ? undefined : params?.type,
                 status: params?.status === 'all' ? undefined : params?.status,
+                readiness: params?.readiness === 'all' ? undefined : params?.readiness,
+                assigned_user_id: params?.assigned_user_id,
             },
         });
 

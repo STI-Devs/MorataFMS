@@ -76,7 +76,7 @@ test('admin can list the paginated admin document review queue', function () {
     ]);
 
     $response = $this->actingAs($admin)
-        ->getJson('/api/admin/document-review?type=import&status=completed&search=Global&per_page=1')
+        ->getJson('/api/admin/document-review?type=import&status=completed&readiness=flagged&assigned_user_id='.$encoder->id.'&search=Global&per_page=1')
         ->assertOk();
 
     $response
@@ -90,11 +90,14 @@ test('admin can list the paginated admin document review queue', function () {
         ->assertJsonPath('data.0.bl_number', 'BL-98210344')
         ->assertJsonPath('data.0.client', 'Global Tech Corp')
         ->assertJsonPath('data.0.assigned_user', 'Sarah Velasco')
+        ->assertJsonPath('data.0.assigned_user_id', $encoder->id)
         ->assertJsonPath('data.0.status', 'Completed')
         ->assertJsonPath('data.0.finalized_date', $finalizedAt->format(DATE_ATOM))
         ->assertJsonPath('data.0.docs_count', 4)
         ->assertJsonPath('data.0.docs_total', count(requiredReviewTypes('import')))
-        ->assertJsonPath('data.0.has_exceptions', true);
+        ->assertJsonPath('data.0.has_exceptions', true)
+        ->assertJsonPath('data.0.archive_ready', false)
+        ->assertJsonPath('data.0.readiness', 'flagged');
 });
 
 test('admin can inspect the review detail for a finalized transaction', function () {
@@ -168,9 +171,15 @@ test('admin can inspect the review detail for a finalized transaction', function
         ->assertJsonPath('transaction.bl_number', 'BL-98210344')
         ->assertJsonPath('transaction.client', 'Global Tech Corp')
         ->assertJsonPath('transaction.assigned_user', 'Sarah Velasco')
+        ->assertJsonPath('transaction.assigned_user_id', $encoder->id)
         ->assertJsonPath('transaction.status', 'Completed')
         ->assertJsonPath('transaction.finalized_date', $finalizedAt->format(DATE_ATOM))
         ->assertJsonCount(count(requiredReviewTypes('import')), 'required_documents')
+        ->assertJsonCount(2, 'uploaded_documents')
+        ->assertJsonPath('uploaded_documents.0.type_key', 'others')
+        ->assertJsonPath('uploaded_documents.0.label', 'Other Documents')
+        ->assertJsonPath('uploaded_documents.1.type_key', 'boc')
+        ->assertJsonPath('uploaded_documents.1.filename', 'boc_declaration_ab12cd.pdf')
         ->assertJsonPath('required_documents.0.type_key', 'boc')
         ->assertJsonPath('required_documents.0.label', 'BOC Document Processing')
         ->assertJsonPath('required_documents.0.uploaded', true)
@@ -184,7 +193,8 @@ test('admin can inspect the review detail for a finalized transaction', function
         ->assertJsonPath('summary.required_total', count(requiredReviewTypes('import')))
         ->assertJsonPath('summary.missing_count', count(requiredReviewTypes('import')) - 1)
         ->assertJsonPath('summary.flagged_count', 1)
-        ->assertJsonPath('summary.archive_ready', false);
+        ->assertJsonPath('summary.archive_ready', false)
+        ->assertJsonPath('summary.readiness', 'flagged');
 
     expect(collect($response->json('required_documents'))->pluck('type_key')->all())
         ->not->toContain('others');

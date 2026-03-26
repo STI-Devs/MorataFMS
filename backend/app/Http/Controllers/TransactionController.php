@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Actions\Transactions\OverrideTransactionStatus;
 use App\Actions\Transactions\ReassignTransaction;
+use App\Enums\ImportStatus;
 use App\Http\Requests\AssignTransactionRequest;
 use App\Http\Requests\OverrideStatusRequest;
 use App\Http\Resources\ExportTransactionResource;
@@ -48,11 +49,14 @@ class TransactionController extends Controller
             ->withCount(['remarks as open_remarks_count' => fn ($query) => $query->where('is_resolved', false)])
             ->withCount('documents')
             ->where('customs_ref_no', $referenceId)
+            ->whereNotIn('status', [
+                ImportStatus::Completed->value,
+                ImportStatus::Cancelled->value,
+            ])
+            ->latest('id')
             ->first();
 
         if ($importTransaction) {
-            abort_if($importTransaction->status->isTerminal(), 404);
-
             return response()->json([
                 'data' => [
                     'type' => 'import',

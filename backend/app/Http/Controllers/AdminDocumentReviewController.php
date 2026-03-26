@@ -26,10 +26,12 @@ class AdminDocumentReviewController extends Controller
         $search = trim((string) $request->query('search', ''));
         $typeFilter = $this->normalizeTypeFilter($request->query('type'));
         $statusFilter = $this->normalizeStatusFilter($request->query('status'));
+        $readinessFilter = $this->normalizeReadinessFilter($request->query('readiness'));
+        $assignedUserId = $this->normalizeAssignedUserFilter($request->query('assigned_user_id'));
         $perPage = min(max((int) $request->query('per_page', 10), 1), 50);
 
-        $importBaseQuery = $this->buildImportQueueBaseQuery($search, $statusFilter);
-        $exportBaseQuery = $this->buildExportQueueBaseQuery($search, $statusFilter);
+        $importBaseQuery = $this->buildImportQueueBaseQuery($search, $statusFilter, $readinessFilter, $assignedUserId);
+        $exportBaseQuery = $this->buildExportQueueBaseQuery($search, $statusFilter, $readinessFilter, $assignedUserId);
 
         $unionQuery = match ($typeFilter) {
             'import' => $importBaseQuery->toBase(),
@@ -97,6 +99,20 @@ class AdminDocumentReviewController extends Controller
                 })
                 ->values()
                 ->all(),
+            'uploaded_documents' => $documents
+                ->map(function (Document $document) use ($labels): array {
+                    return [
+                        'id' => $document->id,
+                        'type_key' => $document->type,
+                        'label' => $labels[$document->type] ?? $document->type,
+                        'filename' => $document->filename,
+                        'size' => $document->formatted_size,
+                        'uploaded_by' => $document->uploadedBy?->name,
+                        'uploaded_at' => $this->formatDateTime($document->created_at),
+                    ];
+                })
+                ->values()
+                ->all(),
             'remarks' => $transaction->remarks
                 ->map(fn ($remark): array => [
                     'id' => $remark->id,
@@ -114,6 +130,7 @@ class AdminDocumentReviewController extends Controller
                 'missing_count' => max($requiredTotal - $requiredCompleted, 0),
                 'flagged_count' => $flaggedCount,
                 'archive_ready' => $requiredCompleted === $requiredTotal && $flaggedCount === 0,
+                'readiness' => $this->readinessFor($requiredCompleted === $requiredTotal, $flaggedCount > 0),
             ],
         ]);
     }
@@ -202,8 +219,12 @@ class AdminDocumentReviewController extends Controller
         ]);
     }
 
-    private function buildImportQueueBaseQuery(string $search, string $statusFilter): Builder
-    {
+    private function buildImportQueueBaseQuery(
+        string $search,
+        string $statusFilter,
+        string $readinessFilter,
+        ?int $assignedUserId,
+    ): Builder {
         $query = ImportTransaction::query()
             ->leftJoin('import_stages', 'import_stages.import_transaction_id', '=', 'import_transactions.id')
             ->selectRaw("
@@ -214,6 +235,10 @@ class AdminDocumentReviewController extends Controller
             ")
             ->where('import_transactions.is_archive', false)
             ->whereIn('import_transactions.status', $this->importStatusValues($statusFilter));
+
+        if ($assignedUserId !== null) {
+            $query->where('import_transactions.assigned_user_id', $assignedUserId);
+        }
 
         if ($search !== '') {
             $query->where(function (Builder $searchQuery) use ($search) {
@@ -226,11 +251,17 @@ class AdminDocumentReviewController extends Controller
             });
         }
 
+        $this->applyReadinessFilter($query, 'import', $readinessFilter);
+
         return $query;
     }
 
-    private function buildExportQueueBaseQuery(string $search, string $statusFilter): Builder
-    {
+    private function buildExportQueueBaseQuery(
+        string $search,
+        string $statusFilter,
+        string $readinessFilter,
+        ?int $assignedUserId,
+    ): Builder {
         $query = ExportTransaction::query()
             ->leftJoin('export_stages', 'export_stages.export_transaction_id', '=', 'export_transactions.id')
             ->selectRaw("
@@ -242,6 +273,10 @@ class AdminDocumentReviewController extends Controller
             ->where('export_transactions.is_archive', false)
             ->whereIn('export_transactions.status', $this->exportStatusValues($statusFilter));
 
+        if ($assignedUserId !== null) {
+            $query->where('export_transactions.assigned_user_id', $assignedUserId);
+        }
+
         if ($search !== '') {
             $query->where(function (Builder $searchQuery) use ($search) {
                 $searchQuery
@@ -252,6 +287,8 @@ class AdminDocumentReviewController extends Controller
                     });
             });
         }
+
+        $this->applyReadinessFilter($query, 'export', $readinessFilter);
 
         return $query;
     }
@@ -324,6 +361,10 @@ class AdminDocumentReviewController extends Controller
                 }
 
                 $requiredTypes = $this->requiredTypeKeysFor('import');
+                $hasExceptions = $this->hasUnresolvedRemarks($transaction->remarks);
+                $requiredCompleted = $this->countUploadedRequiredTypes($transaction->documents, $requiredTypes);
+                $archiveReady = $requiredCompleted === count($requiredTypes) && ! $hasExceptions;
+
                 $rows[] = [
                     'id' => $transaction->id,
                     'type' => 'import',
@@ -331,11 +372,14 @@ class AdminDocumentReviewController extends Controller
                     'bl_number' => $transaction->bl_no,
                     'client' => $transaction->importer?->name,
                     'assigned_user' => $transaction->assignedUser?->name,
+                    'assigned_user_id' => $transaction->assigned_user_id,
                     'status' => $transaction->status->value,
                     'finalized_date' => $this->formatDateTime($this->finalizedDateForImport($transaction)),
-                    'docs_count' => $this->countUploadedRequiredTypes($transaction->documents, $requiredTypes),
+                    'docs_count' => $requiredCompleted,
                     'docs_total' => count($requiredTypes),
-                    'has_exceptions' => $this->hasUnresolvedRemarks($transaction->remarks),
+                    'has_exceptions' => $hasExceptions,
+                    'archive_ready' => $archiveReady,
+                    'readiness' => $this->readinessFor($archiveReady, $hasExceptions),
                 ];
 
                 continue;
@@ -348,6 +392,10 @@ class AdminDocumentReviewController extends Controller
             }
 
             $requiredTypes = $this->requiredTypeKeysFor('export');
+            $hasExceptions = $this->hasUnresolvedRemarks($transaction->remarks);
+            $requiredCompleted = $this->countUploadedRequiredTypes($transaction->documents, $requiredTypes);
+            $archiveReady = $requiredCompleted === count($requiredTypes) && ! $hasExceptions;
+
             $rows[] = [
                 'id' => $transaction->id,
                 'type' => 'export',
@@ -355,11 +403,14 @@ class AdminDocumentReviewController extends Controller
                 'bl_number' => $transaction->bl_no,
                 'client' => $transaction->shipper?->name,
                 'assigned_user' => $transaction->assignedUser?->name,
+                'assigned_user_id' => $transaction->assigned_user_id,
                 'status' => $transaction->status->value,
                 'finalized_date' => $this->formatDateTime($this->finalizedDateForExport($transaction)),
-                'docs_count' => $this->countUploadedRequiredTypes($transaction->documents, $requiredTypes),
+                'docs_count' => $requiredCompleted,
                 'docs_total' => count($requiredTypes),
-                'has_exceptions' => $this->hasUnresolvedRemarks($transaction->remarks),
+                'has_exceptions' => $hasExceptions,
+                'archive_ready' => $archiveReady,
+                'readiness' => $this->readinessFor($archiveReady, $hasExceptions),
             ];
         }
 
@@ -379,6 +430,7 @@ class AdminDocumentReviewController extends Controller
                 ? $transaction->importer?->name
                 : $transaction->shipper?->name,
             'assigned_user' => $transaction->assignedUser?->name,
+            'assigned_user_id' => $transaction->assigned_user_id,
             'status' => $transaction->status->value,
             'finalized_date' => $this->formatDateTime(
                 $type === 'import'
@@ -501,6 +553,24 @@ class AdminDocumentReviewController extends Controller
         return in_array($normalized, ['completed', 'cancelled'], true) ? $normalized : 'all';
     }
 
+    private function normalizeReadinessFilter(mixed $value): string
+    {
+        $normalized = strtolower(trim((string) $value));
+
+        return in_array($normalized, ['ready', 'missing_docs', 'flagged'], true) ? $normalized : 'all';
+    }
+
+    private function normalizeAssignedUserFilter(mixed $value): ?int
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        $assignedUserId = (int) $value;
+
+        return $assignedUserId > 0 ? $assignedUserId : null;
+    }
+
     private function importStatusValues(string $statusFilter): array
     {
         return match ($statusFilter) {
@@ -532,6 +602,15 @@ class AdminDocumentReviewController extends Controller
     private function countUploadedRequiredTypes(Collection $documents, array $requiredTypes): int
     {
         return $documents->pluck('type')->filter()->unique()->intersect($requiredTypes)->count();
+    }
+
+    private function readinessFor(bool $archiveReady, bool $hasExceptions): string
+    {
+        if ($hasExceptions) {
+            return 'flagged';
+        }
+
+        return $archiveReady ? 'ready' : 'missing_docs';
     }
 
     private function hasUnresolvedRemarks(Collection $remarks): bool
@@ -570,6 +649,33 @@ class AdminDocumentReviewController extends Controller
                 $remarkQuery->where('is_resolved', false);
             })
             ->count();
+    }
+
+    private function applyReadinessFilter(Builder $query, string $type, string $readinessFilter): Builder
+    {
+        $requiredTypes = $this->requiredTypeKeysFor($type);
+
+        return match ($readinessFilter) {
+            'ready' => $this->applyRequiredDocumentsConstraint($query, $requiredTypes)
+                ->whereDoesntHave('remarks', function (Builder $remarkQuery) {
+                    $remarkQuery->where('is_resolved', false);
+                }),
+            'missing_docs' => $query
+                ->whereDoesntHave('remarks', function (Builder $remarkQuery) {
+                    $remarkQuery->where('is_resolved', false);
+                })
+                ->where(function (Builder $missingQuery) use ($requiredTypes) {
+                    foreach ($requiredTypes as $typeKey) {
+                        $missingQuery->orWhereDoesntHave('documents', function (Builder $documentQuery) use ($typeKey) {
+                            $documentQuery->where('type', $typeKey);
+                        });
+                    }
+                }),
+            'flagged' => $query->whereHas('remarks', function (Builder $remarkQuery) {
+                $remarkQuery->where('is_resolved', false);
+            }),
+            default => $query,
+        };
     }
 
     private function applyRequiredDocumentsConstraint(Builder $query, array $requiredTypes): Builder

@@ -83,6 +83,7 @@ export interface DocumentTransactionListResponse {
 
 export type AdminReviewTypeFilter = TransactionType | 'all';
 export type AdminReviewStatusFilter = 'completed' | 'cancelled' | 'all';
+export type AdminReviewReadinessFilter = 'ready' | 'missing_docs' | 'flagged' | 'all';
 
 export interface AdminReviewQueueParams {
     page?: number;
@@ -90,6 +91,8 @@ export interface AdminReviewQueueParams {
     search?: string;
     type?: AdminReviewTypeFilter;
     status?: AdminReviewStatusFilter;
+    readiness?: AdminReviewReadinessFilter;
+    assigned_user_id?: number;
 }
 
 export interface AdminReviewQueueItem {
@@ -99,11 +102,14 @@ export interface AdminReviewQueueItem {
     bl_number: string | null;
     client: string | null;
     assigned_user: string | null;
+    assigned_user_id: number | null;
     status: string;
     finalized_date: string | null;
     docs_count: number;
     docs_total: number;
     has_exceptions: boolean;
+    archive_ready: boolean;
+    readiness: Exclude<AdminReviewReadinessFilter, 'all'>;
 }
 
 export interface AdminReviewQueueResponse {
@@ -123,6 +129,7 @@ export interface AdminReviewDetailTransaction {
     bl_number: string | null;
     client: string | null;
     assigned_user: string | null;
+    assigned_user_id: number | null;
     status: string;
     finalized_date: string | null;
 }
@@ -142,6 +149,16 @@ export interface AdminReviewRequiredDocument {
     file: AdminReviewDocumentFile | null;
 }
 
+export interface AdminReviewUploadedDocument {
+    id: number;
+    type_key: string;
+    label: string;
+    filename: string;
+    size: string;
+    uploaded_by: string | null;
+    uploaded_at: string | null;
+}
+
 export interface AdminReviewRemark {
     id: number;
     body: string;
@@ -157,11 +174,13 @@ export interface AdminReviewSummary {
     missing_count: number;
     flagged_count: number;
     archive_ready: boolean;
+    readiness: Exclude<AdminReviewReadinessFilter, 'all'>;
 }
 
 export interface AdminReviewDetailResponse {
     transaction: AdminReviewDetailTransaction;
     required_documents: AdminReviewRequiredDocument[];
+    uploaded_documents: AdminReviewUploadedDocument[];
     remarks: AdminReviewRemark[];
     summary: AdminReviewSummary;
 }

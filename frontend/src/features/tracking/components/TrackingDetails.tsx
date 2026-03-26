@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Icon } from '../../../components/Icon';
 import { FilePreviewModal } from '../../../components/modals/FilePreviewModal';
 import { UploadModal } from '../../../components/modals/UploadModal';
+import { appRoutes } from '../../../lib/appRoutes';
 import { trackingApi } from '../api/trackingApi';
 import type { ApiDocument, DocumentableType, ExportTransaction, ImportTransaction } from '../types';
 import { useTransactionDetail } from '../hooks/useTransactionDetail';
@@ -11,6 +12,7 @@ import { useDocumentPreview } from '../hooks/useDocumentPreview';
 import { useQueryClient } from '@tanstack/react-query';
 import { trackingKeys } from '../utils/queryKeys';
 import { EXPORT_STAGES, IMPORT_STAGES, getStageStatusFromDoc, getStatusStyle, getImportDisplayStatus, getExportDisplayStatus } from '../utils/stageUtils';
+import type { TransactionDetailResult } from '../utils/transactionDetail';
 import { TrackingDetailsSkeleton } from './TrackingDetailsSkeleton';
 import { TrackingHeader } from './TrackingHeader';
 import { TransactionInfoCard } from './TransactionInfoCard';
@@ -18,6 +20,15 @@ import { StageRow } from './StageRow';
 import EditTransactionModal from './EditTransactionModal';
 import { RemarkViewerModal } from './RemarkViewerModal';
 
+type CompletionRedirectTarget = {
+    label: 'Import' | 'Export';
+    route: string;
+};
+
+type CompletionSnapshot = {
+    txDetail: TransactionDetailResult;
+    stageDocuments: Record<number, ApiDocument>;
+};
 
 export const TrackingDetails = () => {
     const navigate       = useNavigate();
@@ -25,8 +36,28 @@ export const TrackingDetails = () => {
     const queryClient    = useQueryClient();
     const addDocToCache  = useAddDocumentToCache();
 
+    // ── UI state ───────────────────────────────────────────────────────
+    const [isEditModalOpen,    setIsEditModalOpen]    = useState(false);
+    const [isRemarkModalOpen,  setIsRemarkModalOpen]  = useState(false);
+    const [isUploadOpen,       setIsUploadOpen]       = useState(false);
+    const [selectedStageIndex, setSelectedStageIndex] = useState<number | null>(null);
+    const [uploadingStage,     setUploadingStage]     = useState<number | null>(null);
+    const [deletingDocId,      setDeletingDocId]      = useState<number | null>(null);
+    const [replacingDoc,       setReplacingDoc]       = useState<ApiDocument | null>(null);
+    const [uploadError,        setUploadError]        = useState<string | null>(null);
+    const [completionCountdown, setCompletionCountdown] = useState<number | null>(null);
+    const [completionRedirectTarget, setCompletionRedirectTarget] = useState<CompletionRedirectTarget | null>(null);
+    const [completionSnapshot, setCompletionSnapshot] = useState<CompletionSnapshot | null>(null);
+    const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
     // ── Data fetching ──────────────────────────────────────────────────
     const { data: txDetail, isLoading: txLoading } = useTransactionDetail(referenceId);
+    const hasCompletionSnapshot = completionCountdown !== null && completionSnapshot !== null;
+    const shouldResolveRecordFallback = !!referenceId && !txLoading && !txDetail && !hasCompletionSnapshot;
+    const { data: recordDetail, isLoading: recordLoading } = useTransactionDetail(referenceId, {
+        scope: 'record',
+        enabled: shouldResolveRecordFallback,
+    });
 
     const stages      = txDetail?.isImport ? IMPORT_STAGES : EXPORT_STAGES;
     const docableType: DocumentableType | undefined = txDetail
@@ -40,17 +71,27 @@ export const TrackingDetails = () => {
         stages,
     );
 
-    // ── UI state ───────────────────────────────────────────────────────
-    const [isEditModalOpen,    setIsEditModalOpen]    = useState(false);
-    const [isRemarkModalOpen,  setIsRemarkModalOpen]  = useState(false);
-    const [isUploadOpen,       setIsUploadOpen]       = useState(false);
-    const [selectedStageIndex, setSelectedStageIndex] = useState<number | null>(null);
-    const [uploadingStage,     setUploadingStage]     = useState<number | null>(null);
-    const [deletingDocId,      setDeletingDocId]      = useState<number | null>(null);
-    const [replacingDoc,       setReplacingDoc]       = useState<ApiDocument | null>(null);
-    const [uploadError,        setUploadError]        = useState<string | null>(null);
-
     const { previewFile, setPreviewFile, handlePreviewDoc } = useDocumentPreview();
+    const finalizedStatus = recordDetail?.raw.status;
+    const finalizedStatusKey = finalizedStatus?.toLowerCase();
+    const shouldShowFinalizedNotice = finalizedStatusKey === 'completed' || finalizedStatusKey === 'cancelled';
+    const displayTxDetail = hasCompletionSnapshot ? completionSnapshot.txDetail : txDetail;
+    const displayStages = displayTxDetail?.isImport ? IMPORT_STAGES : EXPORT_STAGES;
+    const displayStageDocuments = hasCompletionSnapshot ? completionSnapshot.stageDocuments : stageDocuments;
+
+    // ── Completion countdown effect ─────────────────────────────────────
+    useEffect(() => {
+        if (completionCountdown === null || !completionRedirectTarget) return;
+        if (completionCountdown <= 0) {
+            if (countdownRef.current) clearInterval(countdownRef.current);
+            navigate(completionRedirectTarget.route);
+            return;
+        }
+        countdownRef.current = setInterval(() => {
+            setCompletionCountdown(prev => (prev !== null ? prev - 1 : null));
+        }, 1000);
+        return () => { if (countdownRef.current) clearInterval(countdownRef.current); };
+    }, [completionCountdown, completionRedirectTarget, navigate]);
 
     // ── Handlers ───────────────────────────────────────────────────────
     const handleStageUploadClick = (index: number) => {
@@ -113,6 +154,27 @@ export const TrackingDetails = () => {
             // Refresh transaction so status badge reflects backend recalculation
             queryClient.invalidateQueries({ queryKey: trackingKeys.detail(referenceId) });
 
+            // Check if this upload completed the final stage — trigger countdown
+            const nextStageDocuments = {
+                ...stageDocuments,
+                [selectedStageIndex]: doc,
+            };
+            const uploadedTypes = new Set(Object.values(nextStageDocuments).map(document => document.type));
+            uploadedTypes.add(doc.type);
+            const allComplete = stages.every(stage => uploadedTypes.has(stage.type));
+            if (allComplete) {
+                setCompletionSnapshot({
+                    txDetail,
+                    stageDocuments: nextStageDocuments,
+                });
+                setCompletionRedirectTarget(
+                    txDetail.isImport
+                        ? { label: 'Import', route: appRoutes.imports }
+                        : { label: 'Export', route: appRoutes.exports },
+                );
+                setCompletionCountdown(15);
+            }
+
             setIsUploadOpen(false);
             setReplacingDoc(null);
         } catch (err: unknown) {
@@ -124,9 +186,39 @@ export const TrackingDetails = () => {
     };
 
     // ── Loading / error gates ──────────────────────────────────────────
-    if (txLoading || docsLoading) return <TrackingDetailsSkeleton />;
+    if ((txLoading || recordLoading || docsLoading) && !hasCompletionSnapshot) return <TrackingDetailsSkeleton />;
 
-    if (!txDetail) {
+    if (shouldShowFinalizedNotice && referenceId && completionCountdown === null) {
+        return (
+            <div className="text-center py-16 max-w-xl mx-auto">
+                <Icon name="file-text" className="w-12 h-12 text-text-muted mx-auto mb-4" />
+                <h3 className="text-lg font-bold text-text-primary">Tracking Has Ended</h3>
+                <p className="text-text-secondary mt-1">
+                    Transaction <span className="font-bold">{referenceId}</span> is already
+                    <span className="font-bold"> {finalizedStatus ?? 'finalized'}</span>.
+                </p>
+                <p className="text-text-secondary mt-2 mb-6">
+                    Live tracking is only available for active transactions. Review the finalized file in Documents.
+                </p>
+                <div className="flex items-center justify-center gap-3">
+                    <button
+                        onClick={() => navigate(appRoutes.documentDetail.replace(':ref', encodeURIComponent(referenceId)))}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors"
+                    >
+                        Open Documents
+                    </button>
+                    <button
+                        onClick={() => navigate(-1)}
+                        className="px-4 py-2 bg-surface-secondary text-text-primary rounded-xl font-bold hover:bg-hover transition-colors border border-border"
+                    >
+                        Go Back
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    if (!displayTxDetail) {
         return (
             <div className="text-center py-16">
                 <Icon name="alert-circle" className="w-12 h-12 text-text-muted mx-auto mb-4" />
@@ -145,11 +237,11 @@ export const TrackingDetails = () => {
     }
 
     // ── Derived values ─────────────────────────────────────────────────
-    const { mapped: transaction, isImport } = txDetail;
+    const { mapped: transaction, isImport } = displayTxDetail;
 
     // Derive the badge label from uploaded doc types — instant reactivity,
     // and matches exactly what the backend saves after the enum migration.
-    const uploadedDocTypes = Object.values(stageDocuments).map(d => d.type);
+    const uploadedDocTypes = Object.values(displayStageDocuments).map(d => d.type);
     const displayStatus    = isImport
         ? getImportDisplayStatus(uploadedDocTypes)
         : getExportDisplayStatus(uploadedDocTypes);
@@ -157,9 +249,9 @@ export const TrackingDetails = () => {
     const s = getStatusStyle(displayStatus);
 
     // Derive stage statuses from document presence (document-driven, not status-string-driven)
-    const firstEmptyIdx  = stages.findIndex((_, i) => !stageDocuments[i]);
-    const stageStatuses  = stages.map((_, i) =>
-        getStageStatusFromDoc(!!stageDocuments[i], i === firstEmptyIdx),
+    const firstEmptyIdx  = displayStages.findIndex((_, i) => !displayStageDocuments[i]);
+    const stageStatuses  = displayStages.map((_, i) =>
+        getStageStatusFromDoc(!!displayStageDocuments[i], i === firstEmptyIdx),
     );
     const activeIndex    = stageStatuses.findIndex(s => s === 'active');
     const importTx       = isImport  ? (transaction as ImportTransaction)  : null;
@@ -182,7 +274,7 @@ export const TrackingDetails = () => {
                 isImport={isImport}
                 importTx={importTx}
                 exportTx={exportTx}
-                stages={stages}
+                stages={displayStages}
                 stageStatuses={stageStatuses}
                 statusColor={s.color}
             />
@@ -196,16 +288,16 @@ export const TrackingDetails = () => {
                     </span>
                 </div>
                 <div className="divide-y divide-border/60">
-                    {stages.map((stage, i) => (
+                    {displayStages.map((stage, i) => (
                         <StageRow
                             key={i}
                             stage={stage}
                             index={i}
-                            isLast={i === stages.length - 1}
+                            isLast={i === displayStages.length - 1}
                             stageStatus={stageStatuses[i]}
-                            doc={stageDocuments[i]}
+                            doc={displayStageDocuments[i]}
                             isUploading={uploadingStage === i}
-                            isDeleting={deletingDocId === stageDocuments[i]?.id}
+                            isDeleting={deletingDocId === displayStageDocuments[i]?.id}
                             activeIndex={activeIndex}
                             onUploadClick={handleStageUploadClick}
                             onPreviewDoc={handlePreviewDoc}
@@ -216,12 +308,39 @@ export const TrackingDetails = () => {
                 </div>
             </div>
 
+            {/* ── Completion Banner ─────────────────────────────────── */}
+            {completionCountdown !== null && (
+                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-md px-4">
+                    <div className="flex items-center gap-4 bg-emerald-950 border border-emerald-500/40 rounded-2xl px-5 py-4 shadow-2xl shadow-emerald-900/40">
+                        <div className="shrink-0 w-10 h-10 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center">
+                            <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+                            </svg>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold text-emerald-300">All stages complete!</p>
+                            <p className="text-xs text-emerald-400/70 mt-0.5">
+                                Returning to {completionRedirectTarget?.label ?? (txDetail?.isImport ? 'Import' : 'Export')} List in{' '}
+                                <span className="font-bold text-emerald-300">{completionCountdown}s</span>
+                                …
+                            </p>
+                        </div>
+                        <button
+                            onClick={() => navigate(appRoutes.documentDetail.replace(':ref', encodeURIComponent(transaction.ref)))}
+                            className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/10 transition-colors"
+                        >
+                            Open Documents
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* ── Modals ────────────────────────────────────────────── */}
             <UploadModal
                 isOpen={isUploadOpen}
                 onClose={() => { setIsUploadOpen(false); setUploadError(null); }}
                 onUpload={handleUpload}
-                title={selectedStageIndex !== null ? stages[selectedStageIndex].title : ''}
+                title={selectedStageIndex !== null ? displayStages[selectedStageIndex].title : ''}
                 isLoading={uploadingStage !== null}
                 errorMessage={uploadError ?? undefined}
             />
@@ -233,7 +352,7 @@ export const TrackingDetails = () => {
                 fileName={previewFile?.name ?? ''}
                 onDownload={previewFile ? () => {
                     // find the doc matching the current preview name and download it
-                    const allDocs = Object.values(stageDocuments).flat();
+                    const allDocs = Object.values(displayStageDocuments).flat();
                     const doc = allDocs.find(d => d.filename === previewFile.name);
                     if (doc) trackingApi.downloadDocument(doc.id, doc.filename);
                 } : undefined}
@@ -246,7 +365,7 @@ export const TrackingDetails = () => {
                     queryClient.invalidateQueries({ queryKey: trackingKeys.detail(referenceId) });
                 }}
                 type={isImport ? 'import' : 'export'}
-                transaction={txDetail.raw ?? null}
+                transaction={displayTxDetail.raw ?? null}
             />
 
             {isRemarkModalOpen && (

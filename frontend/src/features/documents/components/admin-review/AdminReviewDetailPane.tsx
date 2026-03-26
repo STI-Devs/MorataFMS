@@ -1,12 +1,13 @@
 import { Icon } from '../../../../components/Icon';
 import type {
     AdminReviewDetailResponse,
+    AdminReviewUploadedDocument,
     AdminReviewQueueItem,
     AdminReviewRemark,
     AdminReviewRequiredDocument,
 } from '../../types/document.types';
 import { DetailSkeleton, DocumentMeta, SummaryCard } from './AdminReviewShared';
-import { STATUS_TONES, timeAgo, TYPE_TONES } from './adminReview.utils';
+import { READINESS_TONES, STATUS_TONES, timeAgo, TYPE_TONES } from './adminReview.utils';
 
 const RequiredDocumentsSection = ({
     requiredDocuments,
@@ -141,6 +142,99 @@ const RemarksSection = ({ remarks }: { remarks: AdminReviewRemark[] }) => {
     );
 };
 
+const UploadedDocumentsSection = ({
+    documents,
+    onPreview,
+    onDownload,
+}: {
+    documents: AdminReviewUploadedDocument[];
+    onPreview: (document: AdminReviewRequiredDocument) => void;
+    onDownload: (document: AdminReviewRequiredDocument) => void;
+}) => (
+    <section>
+        <div className="mb-4 flex items-center gap-3">
+            <div className="h-4 w-1 rounded-full bg-emerald-500" />
+            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-text-secondary">
+                Uploaded Documents
+            </h3>
+        </div>
+
+        {documents.length === 0 ? (
+            <div className="rounded-lg border border-border bg-surface p-6 text-sm text-text-secondary">
+                No uploaded documents are attached to this finalized transaction yet.
+            </div>
+        ) : (
+            <div className="overflow-hidden rounded-lg border border-border bg-surface">
+                {documents.map((document, index) => (
+                    <div
+                        key={document.id}
+                        className={`flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between ${
+                            index !== documents.length - 1 ? 'border-b border-border' : ''
+                        }`}
+                    >
+                        <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                                <p className="truncate text-sm font-semibold text-text-primary">{document.filename}</p>
+                                <span className="rounded-sm border border-border bg-background px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                                    {document.label}
+                                </span>
+                            </div>
+                            <p className="mt-1 text-xs text-text-secondary">
+                                {document.size}
+                                {document.uploaded_by ? ` · Uploaded by ${document.uploaded_by}` : ''}
+                                {document.uploaded_at ? ` · ${timeAgo(document.uploaded_at)}` : ''}
+                            </p>
+                        </div>
+
+                        <div className="flex shrink-0 items-center gap-2">
+                            <button
+                                onClick={() =>
+                                    onPreview({
+                                        type_key: document.type_key,
+                                        label: document.label,
+                                        uploaded: true,
+                                        file: {
+                                            id: document.id,
+                                            filename: document.filename,
+                                            size: document.size,
+                                            uploaded_by: document.uploaded_by,
+                                            uploaded_at: document.uploaded_at,
+                                        },
+                                    })
+                                }
+                                className="rounded p-2 text-text-secondary transition-colors hover:bg-hover hover:text-text-primary"
+                                title="Preview"
+                            >
+                                <Icon name="eye" className="h-4 w-4" />
+                            </button>
+                            <button
+                                onClick={() =>
+                                    onDownload({
+                                        type_key: document.type_key,
+                                        label: document.label,
+                                        uploaded: true,
+                                        file: {
+                                            id: document.id,
+                                            filename: document.filename,
+                                            size: document.size,
+                                            uploaded_by: document.uploaded_by,
+                                            uploaded_at: document.uploaded_at,
+                                        },
+                                    })
+                                }
+                                className="rounded p-2 text-text-secondary transition-colors hover:bg-hover hover:text-text-primary"
+                                title="Download"
+                            >
+                                <Icon name="download" className="h-4 w-4" />
+                            </button>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        )}
+    </section>
+);
+
 export const AdminReviewDetailPane = ({
     selectedTransaction,
     detailData,
@@ -152,6 +246,7 @@ export const AdminReviewDetailPane = ({
     onArchive,
     onPreview,
     onDownload,
+    onOpenTransaction,
 }: {
     selectedTransaction: AdminReviewQueueItem | null;
     detailData: AdminReviewDetailResponse | undefined;
@@ -163,6 +258,7 @@ export const AdminReviewDetailPane = ({
     onArchive: () => void;
     onPreview: (document: AdminReviewRequiredDocument) => void;
     onDownload: (document: AdminReviewRequiredDocument) => void;
+    onOpenTransaction: () => void;
 }) => {
     if (!selectedTransaction) {
         return (
@@ -197,9 +293,11 @@ export const AdminReviewDetailPane = ({
     const summary = detailData.summary;
     const requiredDocuments = detailData.required_documents;
     const remarks = detailData.remarks;
+    const uploadedDocuments = detailData.uploaded_documents;
     const hasMissingDocs = summary.missing_count > 0;
     const hasExceptions = summary.flagged_count > 0;
     const isArchiveReady = summary.archive_ready;
+    const readinessTone = READINESS_TONES[summary.readiness];
 
     return (
         <div className="flex min-h-0 flex-1 flex-col">
@@ -226,6 +324,9 @@ export const AdminReviewDetailPane = ({
                         <span className={`rounded-sm border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.2em] ${(STATUS_TONES[detailData.transaction.status.toLowerCase()] ?? STATUS_TONES.completed).text} ${(STATUS_TONES[detailData.transaction.status.toLowerCase()] ?? STATUS_TONES.completed).bg}`}>
                             {detailData.transaction.status}
                         </span>
+                        <span className={`rounded-sm border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.2em] ${readinessTone.text} ${readinessTone.bg}`}>
+                            {readinessTone.label}
+                        </span>
                         <span className="rounded-sm border border-border bg-background px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.2em] text-text-muted">
                             Finalized {timeAgo(detailData.transaction.finalized_date)}
                         </span>
@@ -235,7 +336,7 @@ export const AdminReviewDetailPane = ({
                 <div className="rounded-lg border border-border bg-background px-4 py-3 xl:min-w-[14rem]">
                     <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-text-muted">Archive Status</p>
                     <p className={`mt-2 text-lg font-bold ${isArchiveReady ? 'text-emerald-600' : 'text-amber-600'}`}>
-                        {isArchiveReady ? 'Ready for Archive' : 'Needs Review'}
+                        {readinessTone.label}
                     </p>
                     <p className="mt-1 text-xs text-text-secondary">
                         {isArchiveReady
@@ -258,6 +359,14 @@ export const AdminReviewDetailPane = ({
                     {archiveError ? (
                         <p className="mt-2 text-xs font-medium text-red-500">{archiveError}</p>
                     ) : null}
+                    <button
+                        type="button"
+                        onClick={onOpenTransaction}
+                        className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-md border border-border bg-surface px-3 py-2 text-sm font-semibold text-text-secondary transition-colors hover:bg-hover hover:text-text-primary"
+                    >
+                        <Icon name="file-text" className="h-4 w-4" />
+                        View Finalized Record
+                    </button>
                 </div>
             </div>
 
@@ -296,6 +405,12 @@ export const AdminReviewDetailPane = ({
 
                 <RequiredDocumentsSection
                     requiredDocuments={requiredDocuments}
+                    onPreview={onPreview}
+                    onDownload={onDownload}
+                />
+
+                <UploadedDocumentsSection
+                    documents={uploadedDocuments}
                     onPreview={onPreview}
                     onDownload={onDownload}
                 />

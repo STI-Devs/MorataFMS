@@ -68,6 +68,7 @@ export const navigationItems: {
 
 export const adminBrokerageGuardPaths = [
     appRoutes.dashboard,
+    appRoutes.adminDocumentReview,
     appRoutes.transactions,
     appRoutes.users,
     appRoutes.clients,

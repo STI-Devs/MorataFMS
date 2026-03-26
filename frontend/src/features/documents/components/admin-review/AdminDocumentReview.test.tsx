@@ -9,6 +9,7 @@ const {
     mockUseReviewDetail,
     mockUseReviewStats,
     mockUseArchiveReviewedTransaction,
+    mockUseEncoders,
     mockHandlePreviewDoc,
 } = vi.hoisted(() => ({
     mockUseDebounce: vi.fn(),
@@ -16,6 +17,7 @@ const {
     mockUseReviewDetail: vi.fn(),
     mockUseReviewStats: vi.fn(),
     mockUseArchiveReviewedTransaction: vi.fn(),
+    mockUseEncoders: vi.fn(),
     mockHandlePreviewDoc: vi.fn(),
 }));
 
@@ -28,6 +30,10 @@ vi.mock('../../hooks/useAdminReview', () => ({
     useReviewDetail: mockUseReviewDetail,
     useReviewStats: mockUseReviewStats,
     useArchiveReviewedTransaction: mockUseArchiveReviewedTransaction,
+}));
+
+vi.mock('../../../oversight/hooks/useTransactions', () => ({
+    useEncoders: mockUseEncoders,
 }));
 
 vi.mock('../../../tracking/hooks/useDocumentPreview', () => ({
@@ -55,11 +61,14 @@ const queueResponse = {
             bl_number: 'BL-98210344',
             client: 'Global Tech Corp',
             assigned_user: 'Sarah Velasco',
+            assigned_user_id: 7,
             status: 'Completed',
             finalized_date: '2026-03-20T14:30:00Z',
             docs_count: 4,
             docs_total: 6,
             has_exceptions: true,
+            archive_ready: false,
+            readiness: 'flagged' as const,
         },
     ],
     meta: {
@@ -78,6 +87,7 @@ const detailResponse = {
         bl_number: 'BL-98210344',
         client: 'Global Tech Corp',
         assigned_user: 'Sarah Velasco',
+        assigned_user_id: 7,
         status: 'Completed',
         finalized_date: '2026-03-20T14:30:00Z',
     },
@@ -101,6 +111,26 @@ const detailResponse = {
             file: null,
         },
     ],
+    uploaded_documents: [
+        {
+            id: 101,
+            type_key: 'boc',
+            label: 'BOC Document Processing',
+            filename: 'boc_declaration.pdf',
+            size: '2.4 MB',
+            uploaded_by: 'Sarah Velasco',
+            uploaded_at: '2026-03-18T10:00:00Z',
+        },
+        {
+            id: 102,
+            type_key: 'others',
+            label: 'Other Documents',
+            filename: 'supporting_note.pdf',
+            size: '820 KB',
+            uploaded_by: 'Sarah Velasco',
+            uploaded_at: '2026-03-19T11:30:00Z',
+        },
+    ],
     remarks: [
         {
             id: 1,
@@ -117,6 +147,7 @@ const detailResponse = {
         missing_count: 2,
         flagged_count: 1,
         archive_ready: false,
+        readiness: 'flagged' as const,
     },
 };
 
@@ -129,6 +160,7 @@ const readyDetailResponse = {
         missing_count: 0,
         flagged_count: 0,
         archive_ready: true,
+        readiness: 'ready' as const,
     },
 };
 
@@ -139,6 +171,7 @@ describe('AdminDocumentReview', () => {
         mockUseReviewDetail.mockReset();
         mockUseReviewStats.mockReset();
         mockUseArchiveReviewedTransaction.mockReset();
+        mockUseEncoders.mockReset();
         mockHandlePreviewDoc.mockReset();
 
         mockUseDebounce.mockImplementation((value: string) => value);
@@ -168,6 +201,13 @@ describe('AdminDocumentReview', () => {
             mutate: vi.fn(),
             isPending: false,
         });
+        mockUseEncoders.mockReturnValue({
+            data: [
+                { id: 7, name: 'Sarah Velasco', email: 'sarah@example.com', role: 'encoder' },
+                { id: 8, name: 'Mike Tan', email: 'mike@example.com', role: 'encoder' },
+                { id: 9, name: 'Admin User', email: 'admin@example.com', role: 'admin' },
+            ],
+        });
     });
 
     it('renders queue data and loads detail when a transaction is selected', async () => {
@@ -181,17 +221,21 @@ describe('AdminDocumentReview', () => {
         fireEvent.click(screen.getByRole('button', { name: /BL-98210344/i }));
 
         await waitFor(() => {
-            expect(screen.getByText('BOC Document Processing')).toBeInTheDocument();
+            expect(screen.getAllByText('BOC Document Processing').length).toBeGreaterThan(0);
         });
 
         expect(screen.getByText('Payment for PPA Charges')).toBeInTheDocument();
+        expect(screen.getByText('Uploaded Documents')).toBeInTheDocument();
+        expect(screen.getByText('supporting_note.pdf')).toBeInTheDocument();
         expect(screen.getByText('Missing final BL from carrier')).toBeInTheDocument();
-        expect(screen.getByText('Needs Review')).toBeInTheDocument();
+        expect(screen.getAllByText('Flagged').length).toBeGreaterThan(0);
         expect(screen.getByRole('button', { name: /move to archive/i })).toBeDisabled();
     });
 
     it('wires search and filter controls into the queue query params', async () => {
         renderWithProviders(<AdminDocumentReview />);
+
+        expect(screen.queryByRole('option', { name: 'Admin User' })).not.toBeInTheDocument();
 
         fireEvent.change(screen.getByPlaceholderText('Search BL, ref, or client...'), {
             target: { value: 'Acme' },
@@ -204,14 +248,25 @@ describe('AdminDocumentReview', () => {
                 search: 'Acme',
                 type: 'all',
                 status: 'all',
+                readiness: 'all',
+                assigned_user_id: undefined,
             });
         });
 
         fireEvent.change(screen.getByDisplayValue('All Types'), {
             target: { value: 'export' },
         });
-        fireEvent.change(screen.getByDisplayValue('All Finalized'), {
+        fireEvent.change(screen.getByDisplayValue('All Statuses'), {
             target: { value: 'cancelled' },
+        });
+
+        fireEvent.click(screen.getByRole('button', { name: /more filters/i }));
+
+        fireEvent.change(screen.getByDisplayValue('All Readiness'), {
+            target: { value: 'flagged' },
+        });
+        fireEvent.change(screen.getByDisplayValue('All Encoders'), {
+            target: { value: '7' },
         });
 
         await waitFor(() => {
@@ -221,6 +276,8 @@ describe('AdminDocumentReview', () => {
                 search: 'Acme',
                 type: 'export',
                 status: 'cancelled',
+                readiness: 'flagged',
+                assigned_user_id: 7,
             });
         });
     });
@@ -269,7 +326,7 @@ describe('AdminDocumentReview', () => {
         fireEvent.click(screen.getByRole('button', { name: /BL-98210344/i }));
 
         await waitFor(() => {
-            expect(screen.getByText('Ready for Archive')).toBeInTheDocument();
+            expect(screen.getAllByText('Archive Ready').length).toBeGreaterThan(0);
         });
 
         const archiveButton = screen.getByRole('button', { name: /move to archive/i });

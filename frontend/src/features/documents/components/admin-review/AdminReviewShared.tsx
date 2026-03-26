@@ -12,10 +12,13 @@ export const KpiMetric = ({
     tone?: 'neutral' | 'warning' | 'success';
     isLoading?: boolean;
 }) => {
+    // Tone colors only fire when value is meaningful (> 0).
+    // A zero warning or zero success is noise, not signal.
+    const isZero = value === 0 || value === '0' || value === '—';
     const tones = {
         neutral: 'text-text-primary',
-        warning: 'text-amber-500',
-        success: 'text-emerald-500',
+        warning: isZero ? 'text-text-primary' : 'text-amber-500',
+        success: isZero ? 'text-text-primary' : 'text-emerald-500',
     };
 
     return (

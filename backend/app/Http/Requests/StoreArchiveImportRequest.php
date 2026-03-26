@@ -19,14 +19,20 @@ class StoreArchiveImportRequest extends FormRequest
     {
         return [
             // Transaction fields
-            'customs_ref_no' => ['nullable', 'string', 'max:50', 'regex:/^[A-Za-z0-9\-\/]+$/'],
+            'customs_ref_no' => [
+                'nullable',
+                'string',
+                'max:50',
+                'regex:/^[A-Za-z0-9\-\/]+$/',
+                Rule::unique('import_transactions', 'customs_ref_no'),
+            ],
             'bl_no' => [
                 'required',
                 'string',
                 'min:4',
                 'max:50',
                 'regex:/^[A-Za-z0-9\-]+$/',
-                'unique:import_transactions,bl_no',
+                Rule::unique('import_transactions', 'bl_no'),
             ],
             'selective_color' => ['required', new Enum(SelectiveColor::class)],
             'importer_id' => ['required', 'integer', 'exists:clients,id'],
@@ -57,6 +63,7 @@ class StoreArchiveImportRequest extends FormRequest
     {
         return [
             'customs_ref_no.regex' => 'Customs Ref No. may only contain letters, numbers, hyphens, and slashes.',
+            'customs_ref_no.unique' => 'This Customs Reference No. already exists. Tracking references must be unique.',
             'bl_no.required' => 'Bill of Lading number is required.',
             'bl_no.min' => 'Bill of Lading number must be at least 4 characters.',
             'bl_no.regex' => 'Bill of Lading number may only contain letters, numbers, and hyphens.',

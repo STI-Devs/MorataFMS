@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Enums\SelectiveColor;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Enum;
 
 class UpdateImportTransactionRequest extends FormRequest
@@ -18,14 +19,20 @@ class UpdateImportTransactionRequest extends FormRequest
         $id = $this->route('import_transaction')->id ?? null;
 
         return [
-            'customs_ref_no' => ['required', 'string', 'max:50', 'regex:/^[A-Za-z0-9\-\/]+$/'],
+            'customs_ref_no' => [
+                'required',
+                'string',
+                'max:50',
+                'regex:/^[A-Za-z0-9\-\/]+$/',
+                Rule::unique('import_transactions', 'customs_ref_no')->ignore($id),
+            ],
             'bl_no' => [
                 'required',
                 'string',
                 'min:4',
                 'max:50',
                 'regex:/^[A-Za-z0-9\-]+$/',
-                'unique:import_transactions,bl_no,'.$id,
+                Rule::unique('import_transactions', 'bl_no')->ignore($id),
             ],
             'selective_color' => ['required', new Enum(SelectiveColor::class)],
             'importer_id' => ['required', 'integer', 'exists:clients,id'],
@@ -39,6 +46,7 @@ class UpdateImportTransactionRequest extends FormRequest
         return [
             'customs_ref_no.required' => 'Customs Reference No. is required.',
             'customs_ref_no.regex' => 'Customs Ref No. may only contain letters, numbers, hyphens, and slashes.',
+            'customs_ref_no.unique' => 'This Customs Reference No. already exists. Tracking references must be unique.',
             'bl_no.required' => 'Bill of Lading number is required.',
             'bl_no.min' => 'Bill of Lading must be at least 4 characters.',
             'bl_no.regex' => 'Bill of Lading may only contain letters, numbers, and hyphens.',

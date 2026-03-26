@@ -8,6 +8,7 @@ import {
 
 interface UseTransactionDetailOptions {
     scope?: 'tracking' | 'record';
+    enabled?: boolean;
 }
 
 /**
@@ -17,7 +18,7 @@ interface UseTransactionDetailOptions {
  */
 export const useTransactionDetail = (
     referenceId: string | undefined,
-    { scope = 'tracking' }: UseTransactionDetailOptions = {},
+    { scope = 'tracking', enabled = true }: UseTransactionDetailOptions = {},
 ) =>
     useQuery<TransactionDetailResult | null>({
         queryKey: trackingKeys.detail(referenceId, scope),
@@ -26,6 +27,6 @@ export const useTransactionDetail = (
                 ? fetchTrackingTransactionDetail(referenceId!)
                 : fetchRecordTransactionDetail(referenceId!)
         ),
-        enabled:  !!referenceId,
+        enabled:  enabled && !!referenceId,
         staleTime: 1000 * 60 * 2,
     });

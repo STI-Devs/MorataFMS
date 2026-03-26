@@ -1,8 +1,11 @@
 import { startTransition, useDeferredValue, useState } from 'react';
+import { generatePath, useNavigate } from 'react-router-dom';
 import { CurrentDateTime } from '../../../../components/CurrentDateTime';
 import { useDebounce } from '../../../../hooks/useDebounce';
 import { trackingApi } from '../../../tracking/api/trackingApi';
 import { useDocumentPreview } from '../../../tracking/hooks/useDocumentPreview';
+import { appRoutes } from '../../../../lib/appRoutes';
+import { useEncoders } from '../../../oversight/hooks/useTransactions';
 import {
     useArchiveReviewedTransaction,
     useReviewDetail,
@@ -11,6 +14,7 @@ import {
 } from '../../hooks/useAdminReview';
 import type {
     AdminReviewQueueItem,
+    AdminReviewReadinessFilter,
     AdminReviewRequiredDocument,
     AdminReviewStatusFilter,
     AdminReviewTypeFilter,
@@ -26,11 +30,14 @@ import {
 } from './adminReview.utils';
 
 export const AdminDocumentReview = () => {
+    const navigate = useNavigate();
     const [selectedReview, setSelectedReview] = useState<ReviewSelection | null>(null);
     const [archiveError, setArchiveError] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [typeFilter, setTypeFilter] = useState<AdminReviewTypeFilter>('all');
     const [statusFilter, setStatusFilter] = useState<AdminReviewStatusFilter>('all');
+    const [readinessFilter, setReadinessFilter] = useState<AdminReviewReadinessFilter>('all');
+    const [assignedUserIdFilter, setAssignedUserIdFilter] = useState<number | 'all'>('all');
     const [page, setPage] = useState(1);
     const [perPage, setPerPage] = useState(10);
 
@@ -38,6 +45,8 @@ export const AdminDocumentReview = () => {
     const debouncedSearch = useDebounce(deferredSearchQuery, 300);
     const { handlePreviewDoc } = useDocumentPreview();
     const archiveMutation = useArchiveReviewedTransaction();
+    const encodersQuery = useEncoders();
+    const encoderOptions = (encodersQuery.data ?? []).filter((user) => user.role === 'encoder');
 
     const queueQuery = useReviewQueue({
         page,
@@ -45,6 +54,8 @@ export const AdminDocumentReview = () => {
         search: debouncedSearch || undefined,
         type: typeFilter,
         status: statusFilter,
+        readiness: readinessFilter,
+        assigned_user_id: assignedUserIdFilter === 'all' ? undefined : assignedUserIdFilter,
     });
     const statsQuery = useReviewStats();
 
@@ -80,6 +91,22 @@ export const AdminDocumentReview = () => {
         resetArchiveState();
         startTransition(() => {
             setStatusFilter(value);
+            setPage(1);
+        });
+    };
+
+    const handleReadinessFilterChange = (value: AdminReviewReadinessFilter) => {
+        resetArchiveState();
+        startTransition(() => {
+            setReadinessFilter(value);
+            setPage(1);
+        });
+    };
+
+    const handleAssignedUserFilterChange = (value: number | 'all') => {
+        resetArchiveState();
+        startTransition(() => {
+            setAssignedUserIdFilter(value);
             setPage(1);
         });
     };
@@ -190,6 +217,9 @@ export const AdminDocumentReview = () => {
                     searchQuery={searchQuery}
                     typeFilter={typeFilter}
                     statusFilter={statusFilter}
+                    readinessFilter={readinessFilter}
+                    assignedUserIdFilter={assignedUserIdFilter}
+                    assignedUsers={encoderOptions}
                     debouncedSearch={debouncedSearch}
                     selection={selectedReview}
                     transactions={transactions}
@@ -200,6 +230,8 @@ export const AdminDocumentReview = () => {
                     onSearchChange={handleSearchChange}
                     onTypeFilterChange={handleTypeFilterChange}
                     onStatusFilterChange={handleStatusFilterChange}
+                    onReadinessFilterChange={handleReadinessFilterChange}
+                    onAssignedUserFilterChange={handleAssignedUserFilterChange}
                     onRetry={() => {
                         void queueQuery.refetch();
                     }}
@@ -234,6 +266,17 @@ export const AdminDocumentReview = () => {
                         }}
                         onDownload={(document) => {
                             void handleDownload(document);
+                        }}
+                        onOpenTransaction={() => {
+                            if (!selectedTransaction) {
+                                return;
+                            }
+
+                            navigate(
+                                generatePath(appRoutes.documentDetail, {
+                                    ref: selectedTransaction.ref,
+                                }),
+                            );
                         }}
                     />
                 </div>

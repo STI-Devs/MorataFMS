@@ -58,16 +58,16 @@ const kpiCards: KpiCard[] = [
         helper: 'Outbound shipments in motion',
     },
     {
-        label: 'Delayed Ships',
+        label: 'Delayed Shipments',
         value: '3',
         tone: 'danger',
         helper: 'Escalations needing admin action',
     },
     {
-        label: 'Missing Docs',
+        label: 'Missing Final Docs',
         value: '6',
         tone: 'warning',
-        helper: 'Final files still incomplete',
+        helper: 'Finalized files still incomplete',
     },
 ];
 
@@ -85,10 +85,10 @@ const criticalOperations: CriticalItem[] = [
         id: 2,
         ref: 'EXP-1044',
         status: 'missing',
-        title: 'Final BL still missing',
-        detail: 'Shipment is marked ready for review but the final BL is not uploaded.',
+        title: 'Final BL still missing — blocked for archive',
+        detail: 'Shipment is completed but the final BL is not uploaded. Open Document Review.',
         age: '4h ago',
-        path: appRoutes.documents,
+        path: appRoutes.adminDocumentReview,
     },
     {
         id: 3,
@@ -97,7 +97,7 @@ const criticalOperations: CriticalItem[] = [
         title: 'Cancelled transaction waiting for admin review',
         detail: 'Client cancellation logged. Files need verification before archive handoff.',
         age: '1d ago',
-        path: appRoutes.documents,
+        path: appRoutes.adminDocumentReview,
     },
 ];
 
@@ -161,16 +161,28 @@ const brokerageWorkloads: WorkloadItem[] = [
 
 const quickActions: QuickAction[] = [
     {
-        label: 'Documents',
-        path: appRoutes.documents,
-        icon: 'archive',
+        label: 'Document Review',
+        path: appRoutes.adminDocumentReview,
+        icon: 'file-text',
         accent: '#0a84ff',
+    },
+    {
+        label: 'Transaction Oversight',
+        path: appRoutes.transactions,
+        icon: 'archive',
+        accent: '#30d158',
     },
     {
         label: 'Live Tracking',
         path: appRoutes.liveTracking,
         icon: 'clock',
         accent: '#64d2ff',
+    },
+    {
+        label: 'Reports & Analytics',
+        path: appRoutes.reports,
+        icon: 'flag',
+        accent: '#ff9f0a',
     },
     {
         label: 'User Management',
@@ -183,24 +195,6 @@ const quickActions: QuickAction[] = [
         path: appRoutes.clients,
         icon: 'truck',
         accent: '#30d158',
-    },
-    {
-        label: 'Transaction Oversight',
-        path: appRoutes.transactions,
-        icon: 'file-text',
-        accent: '#30d158',
-    },
-    {
-        label: 'Reports & Analytics',
-        path: appRoutes.reports,
-        icon: 'flag',
-        accent: '#ff9f0a',
-    },
-    {
-        label: 'Audit Logs',
-        path: appRoutes.auditLogs,
-        icon: 'lock',
-        accent: '#ff453a',
     },
 ];
 
@@ -235,6 +229,13 @@ const SectionHeading = ({ label, accentClass }: { label: string; accentClass: st
     <div className="mb-4 flex items-center gap-3">
         <div className={`h-5 w-1 rounded-full ${accentClass}`} />
         <h2 className="text-sm font-bold uppercase tracking-[0.22em] text-text-secondary">{label}</h2>
+    </div>
+);
+
+const EmptyState = ({ title, body }: { title: string; body: string }) => (
+    <div className="px-6 py-10 text-center">
+        <p className="text-sm font-semibold text-text-primary">{title}</p>
+        <p className="mt-1 text-sm text-text-secondary">{body}</p>
     </div>
 );
 
@@ -282,10 +283,10 @@ export const AdminDashboard = () => {
                         <SectionHeading label="Critical Operations" accentClass="bg-red-500" />
                         <div className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
                             {criticalOperations.length === 0 ? (
-                                <div className="px-6 py-12 text-center">
-                                    <p className="text-sm font-semibold text-text-primary">No critical brokerage issues right now.</p>
-                                    <p className="mt-2 text-sm text-text-secondary">High-risk shipments and missing final documents will appear here.</p>
-                                </div>
+                                <EmptyState
+                                    title="All clear — no critical issues."
+                                    body="Stuck shipments, missing archive documents, and flagged exceptions will appear here."
+                                />
                             ) : (
                                 criticalOperations.map((item, index) => (
                                     <button
@@ -320,10 +321,10 @@ export const AdminDashboard = () => {
                         <SectionHeading label="Action Feed" accentClass="bg-blue-500" />
                         <div className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
                             {actionFeed.length === 0 ? (
-                                <div className="px-6 py-12 text-center">
-                                    <p className="text-sm font-semibold text-text-primary">No admin activity recorded yet.</p>
-                                    <p className="mt-2 text-sm text-text-secondary">Status overrides, reassignment actions, and document alerts will show here.</p>
-                                </div>
+                                <EmptyState
+                                    title="No admin activity recorded yet."
+                                    body="Status overrides, reassignments, and document alerts will show here."
+                                />
                             ) : (
                                 actionFeed.map((item, index) => (
                                     <div
@@ -352,7 +353,7 @@ export const AdminDashboard = () => {
 
                 <aside className="space-y-8">
                     <section>
-                        <SectionHeading label="Jump To" accentClass="bg-blue-500" />
+                        <SectionHeading label="Quick Actions" accentClass="bg-blue-500" />
                         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-2">
                             {quickActions.map((action) => (
                                 <button
