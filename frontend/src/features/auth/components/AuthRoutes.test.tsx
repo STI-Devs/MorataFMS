@@ -1,15 +1,26 @@
 import { render, screen } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { appRoutes } from '../../../lib/appRoutes';
 import { GuestRoute } from './GuestRoute';
 import { ProtectedRoute } from './ProtectedRoute';
+import { useAuth } from '../hooks/useAuth';
 
 const mockUseAuth = vi.fn();
 
 vi.mock('../hooks/useAuth', () => ({
     useAuth: () => mockUseAuth(),
 }));
+
+function DocumentsIndexRoute() {
+    const { user } = useAuth();
+
+    if (user?.role === 'admin') {
+        return <Navigate to={appRoutes.adminDocumentReview} replace />;
+    }
+
+    return <div>Encoder documents page</div>;
+}
 
 const adminUser = {
     role: 'admin' as const,
@@ -95,6 +106,62 @@ describe('auth route guards', () => {
         );
 
         expect(screen.getByText('Tracking page')).toBeInTheDocument();
+    });
+
+    it('redirects admins away from the encoder documents list to admin document review', () => {
+        mockUseAuth.mockReturnValue({
+            isAuthenticated: true,
+            isLoading: false,
+            user: adminUser,
+        });
+
+        render(
+            <MemoryRouter initialEntries={[appRoutes.documents]}>
+                <Routes>
+                    <Route element={<ProtectedRoute allowedRoles={['encoder', 'admin', 'paralegal']} />}>
+                        <Route element={<ProtectedRoute allowedRoles={['encoder', 'admin']} />}>
+                            <Route path={appRoutes.documents} element={<DocumentsIndexRoute />} />
+                        </Route>
+                        <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+                            <Route
+                                path={appRoutes.adminDocumentReview}
+                                element={<div>Admin document review</div>}
+                            />
+                        </Route>
+                    </Route>
+                </Routes>
+            </MemoryRouter>,
+        );
+
+        expect(screen.getByText('Admin document review')).toBeInTheDocument();
+    });
+
+    it('still renders the documents list for encoders', () => {
+        mockUseAuth.mockReturnValue({
+            isAuthenticated: true,
+            isLoading: false,
+            user: encoderUser,
+        });
+
+        render(
+            <MemoryRouter initialEntries={[appRoutes.documents]}>
+                <Routes>
+                    <Route element={<ProtectedRoute allowedRoles={['encoder', 'admin', 'paralegal']} />}>
+                        <Route element={<ProtectedRoute allowedRoles={['encoder', 'admin']} />}>
+                            <Route path={appRoutes.documents} element={<DocumentsIndexRoute />} />
+                        </Route>
+                        <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+                            <Route
+                                path={appRoutes.adminDocumentReview}
+                                element={<div>Admin document review</div>}
+                            />
+                        </Route>
+                    </Route>
+                </Routes>
+            </MemoryRouter>,
+        );
+
+        expect(screen.getByText('Encoder documents page')).toBeInTheDocument();
     });
 
     it('redirects authenticated guests away from the login page', () => {

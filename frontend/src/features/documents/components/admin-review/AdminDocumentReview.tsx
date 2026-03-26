@@ -276,6 +276,12 @@ export const AdminDocumentReview = () => {
                                 generatePath(appRoutes.documentDetail, {
                                     ref: selectedTransaction.ref,
                                 }),
+                                {
+                                    state: {
+                                        backTo: appRoutes.adminDocumentReview,
+                                        backLabel: 'Back to Admin Review',
+                                    },
+                                },
                             );
                         }}
                     />

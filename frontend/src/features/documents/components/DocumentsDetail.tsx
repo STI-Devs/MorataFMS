@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { CurrentDateTime } from '../../../components/CurrentDateTime';
 import { Icon } from '../../../components/Icon';
 import { FilePreviewModal } from '../../../components/modals/FilePreviewModal';
 import { UploadModal } from '../../../components/modals/UploadModal';
+import { useAuth } from '../../auth';
 import { appRoutes } from '../../../lib/appRoutes';
 import { getStatusStyle } from '../../../lib/statusStyles';
 import { trackingApi } from '../../tracking/api/trackingApi';
@@ -29,6 +30,11 @@ interface TransactionDoc {
     uploader: { name: string; initials: string; avatarColor: string };
     size: string;
 }
+
+type DocumentDetailLocationState = {
+    backLabel?: string;
+    backTo?: string;
+};
 
 
 const TYPE_CONFIG = {
@@ -130,7 +136,9 @@ function FileTypeIcon({ type }: { type: DocFileType }) {
 
 export const DocumentsDetail = () => {
     const { ref } = useParams<{ ref: string }>();
+    const location = useLocation();
     const navigate = useNavigate();
+    const { user } = useAuth();
 
     const [isUploadOpen, setIsUploadOpen]         = useState(false);
     const [uploadError, setUploadError]           = useState<string | undefined>();
@@ -182,16 +190,20 @@ export const DocumentsDetail = () => {
     const displayDate   = rawImport?.arrival_date ?? rawExport?.created_at.slice(0, 10) ?? '—';
     const displayStatus = txDetail?.mapped.status ?? '—';
     const displayType   = isImport ? 'import' : 'export';
+    const locationState = location.state as DocumentDetailLocationState | null;
+    const backTarget = locationState?.backTo ?? appRoutes.documents;
+    const backLabel = locationState?.backLabel ?? 'Back to Documents';
+    const canUpload = user?.role === 'encoder';
 
     const backButton = (
         <button
-            onClick={() => navigate(appRoutes.documents)}
+            onClick={() => navigate(backTarget)}
             className="flex items-center gap-2 text-sm font-semibold text-text-secondary hover:text-text-primary transition-colors group"
         >
             <svg className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
             </svg>
-            Back to Documents
+            {backLabel}
         </button>
     );
 
@@ -300,16 +312,18 @@ export const DocumentsDetail = () => {
                             {docsLoading ? 'Loading…' : `${documents.length} Document${documents.length !== 1 ? 's' : ''}`}
                         </span>
                     </div>
-                    <button
-                        type="button"
-                        onClick={() => { setUploadError(undefined); setIsUploadOpen(true); }}
-                        className="flex items-center gap-1.5 px-3 h-8 rounded-lg text-xs font-bold text-white transition-all hover:opacity-90 bg-gradient-to-r from-blue-600 to-indigo-600"
-                    >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-                        </svg>
-                        Upload
-                    </button>
+                    {canUpload ? (
+                        <button
+                            type="button"
+                            onClick={() => { setUploadError(undefined); setIsUploadOpen(true); }}
+                            className="flex items-center gap-1.5 px-3 h-8 rounded-lg text-xs font-bold text-white transition-all hover:opacity-90 bg-gradient-to-r from-blue-600 to-indigo-600"
+                        >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                            </svg>
+                            Upload
+                        </button>
+                    ) : null}
                 </div>
 
                 {/* Table header */}
@@ -388,14 +402,16 @@ export const DocumentsDetail = () => {
             </div>
 
             {/* Upload modal */}
-            <UploadModal
-                isOpen={isUploadOpen}
-                onClose={() => setIsUploadOpen(false)}
-                title={displayRef}
-                onUpload={handleUpload}
-                isLoading={isUploading}
-                errorMessage={uploadError}
-            />
+            {canUpload ? (
+                <UploadModal
+                    isOpen={isUploadOpen}
+                    onClose={() => setIsUploadOpen(false)}
+                    title={displayRef}
+                    onUpload={handleUpload}
+                    isLoading={isUploading}
+                    errorMessage={uploadError}
+                />
+            ) : null}
 
             {/* File preview modal */}
             <FilePreviewModal

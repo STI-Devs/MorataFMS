@@ -3,7 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ThemeProvider } from './context/ThemeContext';
-import { AuthProvider, GuestRoute, ProtectedRoute } from './features/auth';
+import { AuthProvider, GuestRoute, ProtectedRoute, useAuth } from './features/auth';
 import { appRoutes } from './lib/appRoutes';
 import {
   AdminDashboard,
@@ -41,6 +41,16 @@ const RootFallback = () => (
     </div>
 );
 
+function DocumentsIndexRoute() {
+  const { user } = useAuth();
+
+  if (user?.role === 'admin') {
+    return <Navigate to={appRoutes.adminDocumentReview} replace />;
+  }
+
+  return <Documents />;
+}
+
 function App() {
   return (
     <ThemeProvider>
@@ -72,8 +82,12 @@ function App() {
                 <Route path={appRoutes.imports} element={<ImportList />} />
                 <Route path={appRoutes.exports} element={<ExportList />} />
                 <Route path={appRoutes.exportAlias} element={<ExportList />} />
-                <Route path={appRoutes.documents} element={<Documents />} />
+                <Route path={appRoutes.documents} element={<DocumentsIndexRoute />} />
                 <Route path={appRoutes.documentDetail} element={<DocumentsDetail />} />
+              </Route>
+
+              {/* Encoder-only brokerage routes */}
+              <Route element={<ProtectedRoute allowedRoles={['encoder']} />}>
                 <Route path={appRoutes.myArchive} element={<EncoderArchivePage />} />
               </Route>
 
