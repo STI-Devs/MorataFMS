@@ -7,6 +7,7 @@ use App\Enums\ImportStatus;
 use App\Models\Document;
 use App\Models\ExportTransaction;
 use App\Models\ImportTransaction;
+use App\Support\Transactions\TransactionSyncBroadcaster;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -16,6 +17,8 @@ use Illuminate\Support\Facades\DB;
 
 class AdminDocumentReviewController extends Controller
 {
+    public function __construct(private TransactionSyncBroadcaster $transactionSyncBroadcaster) {}
+
     /**
      * GET /api/admin/document-review
      */
@@ -208,6 +211,7 @@ class AdminDocumentReviewController extends Controller
         $transaction->forceFill([
             'is_archive' => true,
         ])->save();
+        $this->transactionSyncBroadcaster->transactionChanged($transaction, $request->user(), 'archived');
 
         return response()->json([
             'message' => 'Transaction archived successfully.',

@@ -311,7 +311,10 @@ export const MainLayout = () => {
                 </div>
             </aside>
 
-            <main className={`flex-1 overflow-y-auto p-6 relative flex flex-col ${isDetailsPage ? 'ml-64' : ''} ${isContentDark ? 'bg-[#111111]' : 'bg-white'}`}>
+            <main
+                id="main-content"
+                className={`relative flex flex-1 flex-col overflow-x-hidden overflow-y-auto p-6 ${isDetailsPage ? 'ml-64' : ''} ${isContentDark ? 'bg-[#111111]' : 'bg-white'}`}
+            >
                 <div className="max-w-7xl w-full mx-auto flex-1 flex flex-col min-h-0">
                     <Suspense fallback={<PageFallback />}>
                         <Outlet context={{ user }} />

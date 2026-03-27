@@ -9,6 +9,7 @@ use App\Http\Requests\StoreArchiveImportRequest;
 use App\Http\Resources\ExportTransactionResource;
 use App\Http\Resources\ImportTransactionResource;
 use App\Queries\Archives\ArchiveIndexQuery;
+use App\Support\Transactions\TransactionSyncBroadcaster;
 use Illuminate\Http\JsonResponse;
 
 /**
@@ -29,6 +30,7 @@ class ArchiveController extends Controller
         private CreateArchiveImport $createArchiveImport,
         private CreateArchiveExport $createArchiveExport,
         private ArchiveIndexQuery $archiveIndexQuery,
+        private TransactionSyncBroadcaster $transactionSyncBroadcaster,
     ) {}
 
     /**
@@ -68,6 +70,7 @@ class ArchiveController extends Controller
             $request->validated(),
             $request->user(),
         );
+        $this->transactionSyncBroadcaster->transactionChanged($transaction, $request->user(), 'archive_created');
 
         return (new ImportTransactionResource($transaction))
             ->response()
@@ -89,6 +92,7 @@ class ArchiveController extends Controller
             $request->validated(),
             $request->user(),
         );
+        $this->transactionSyncBroadcaster->transactionChanged($transaction, $request->user(), 'archive_created');
 
         return (new ExportTransactionResource($transaction))
             ->response()

@@ -21,15 +21,14 @@ return [
 
     'allowed_origins' => [env('FRONTEND_URL')],
 
-//     'allowed_origins' => [
-//     'http://localhost:3000',
-//     'http://localhost:3001',
-// ],
-
+    //     'allowed_origins' => [
+    //     'http://localhost:3000',
+    //     'http://localhost:3001',
+    // ],
 
     'allowed_origins_patterns' => [],
 
-    'allowed_headers' => ['Content-Type', 'X-Requested-With', 'X-XSRF-TOKEN', 'Accept'],
+    'allowed_headers' => ['Content-Type', 'X-Requested-With', 'X-XSRF-TOKEN', 'X-Socket-Id', 'Accept'],
 
     'exposed_headers' => [],
 

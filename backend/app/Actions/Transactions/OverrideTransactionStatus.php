@@ -10,6 +10,7 @@ use App\Models\ImportTransaction;
 use App\Models\User;
 use App\Support\Transactions\ExportStatusWorkflow;
 use App\Support\Transactions\ImportStatusWorkflow;
+use Illuminate\Support\Facades\DB;
 
 class OverrideTransactionStatus
 {
@@ -22,18 +23,27 @@ class OverrideTransactionStatus
         $subjectType = $transaction instanceof ImportTransaction ? 'import' : 'export';
         $oldStatus = $transaction->status;
 
-        $transaction->status = $status;
-        $transaction->save();
-        $this->syncCompletionStage($transaction, $actor, $status);
+        DB::transaction(function () use (
+            $transaction,
+            $status,
+            $actor,
+            $subjectType,
+            $oldStatus,
+            $ipAddress,
+        ): void {
+            $transaction->status = $status;
+            $transaction->save();
+            $this->syncCompletionStage($transaction, $actor, $status);
 
-        AuditLog::record(
-            event: AuditEvent::StatusChanged,
-            description: "{$actor->name} changed {$subjectType} #{$transaction->id} (BL: {$transaction->bl_no}) status from {$oldStatus->value} to {$transaction->status->value}.",
-            userId: $actor->id,
-            subjectType: $subjectType,
-            subjectId: $transaction->id,
-            ipAddress: $ipAddress,
-        );
+            AuditLog::record(
+                event: AuditEvent::StatusChanged,
+                description: "{$actor->name} changed {$subjectType} #{$transaction->id} (BL: {$transaction->bl_no}) status from {$oldStatus->value} to {$transaction->status->value}.",
+                userId: $actor->id,
+                subjectType: $subjectType,
+                subjectId: $transaction->id,
+                ipAddress: $ipAddress,
+            );
+        });
     }
 
     private function syncCompletionStage(

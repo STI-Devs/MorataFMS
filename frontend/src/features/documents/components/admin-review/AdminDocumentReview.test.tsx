@@ -48,6 +48,10 @@ vi.mock('../../../tracking/api/trackingApi', () => ({
     },
 }));
 
+vi.mock('../../../../hooks/useTransactionSyncSubscription', () => ({
+    useTransactionSyncSubscription: vi.fn(),
+}));
+
 vi.mock('../../../../components/CurrentDateTime', () => ({
     CurrentDateTime: () => <div data-testid="current-date-time" />,
 }));
@@ -215,8 +219,9 @@ describe('AdminDocumentReview', () => {
 
         expect(screen.getByText('Admin Document Review')).toBeInTheDocument();
         expect(screen.getByText('24')).toBeInTheDocument();
+        expect(screen.getByTestId('admin-review-kpi-strip')).toBeInTheDocument();
+        expect(screen.getByTestId('admin-review-workspace')).toBeInTheDocument();
         expect(screen.getByText('BL-98210344')).toBeInTheDocument();
-        expect(screen.getByText('Open Remarks')).toBeInTheDocument();
 
         fireEvent.click(screen.getByRole('button', { name: /BL-98210344/i }));
 
@@ -224,12 +229,30 @@ describe('AdminDocumentReview', () => {
             expect(screen.getAllByText('BOC Document Processing').length).toBeGreaterThan(0);
         });
 
+        expect(screen.getByText('Document Checklist')).toBeInTheDocument();
+        expect(screen.getByText('Remarks & Exceptions')).toBeInTheDocument();
         expect(screen.getByText('Payment for PPA Charges')).toBeInTheDocument();
-        expect(screen.getByText('Uploaded Documents')).toBeInTheDocument();
+        expect(screen.getByText('Additional Uploads')).toBeInTheDocument();
         expect(screen.getByText('supporting_note.pdf')).toBeInTheDocument();
         expect(screen.getByText('Missing final BL from carrier')).toBeInTheDocument();
         expect(screen.getAllByText('Flagged').length).toBeGreaterThan(0);
         expect(screen.getByRole('button', { name: /move to archive/i })).toBeDisabled();
+    });
+
+    it('keeps the queue pane roomier while tightening the detail header side panel', async () => {
+        renderWithProviders(<AdminDocumentReview />);
+
+        expect(screen.getByTestId('admin-review-queue-pane')).toHaveClass(
+            'lg:w-[38%]',
+            'lg:min-w-[22rem]',
+            'lg:max-w-[30rem]',
+        );
+
+        fireEvent.click(screen.getByRole('button', { name: /BL-98210344/i }));
+
+        await waitFor(() => {
+            expect(screen.getByTestId('admin-review-detail-header')).toBeInTheDocument();
+        });
     });
 
     it('wires search and filter controls into the queue query params', async () => {
@@ -259,8 +282,6 @@ describe('AdminDocumentReview', () => {
         fireEvent.change(screen.getByDisplayValue('All Statuses'), {
             target: { value: 'cancelled' },
         });
-
-        fireEvent.click(screen.getByRole('button', { name: /more filters/i }));
 
         fireEvent.change(screen.getByDisplayValue('All Readiness'), {
             target: { value: 'flagged' },

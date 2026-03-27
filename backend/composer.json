@@ -12,9 +12,11 @@
         "php": "^8.2",
         "dedoc/scramble": "^0.13.15",
         "laravel/framework": "^12.0",
+        "laravel/reverb": "*",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.10.1",
-        "league/flysystem-aws-s3-v3": "^3.31"
+        "league/flysystem-aws-s3-v3": "^3.31",
+        "pusher/pusher-php-server": "*"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

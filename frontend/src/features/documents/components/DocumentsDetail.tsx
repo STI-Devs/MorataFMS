@@ -4,6 +4,7 @@ import { CurrentDateTime } from '../../../components/CurrentDateTime';
 import { Icon } from '../../../components/Icon';
 import { FilePreviewModal } from '../../../components/modals/FilePreviewModal';
 import { UploadModal } from '../../../components/modals/UploadModal';
+import { useTransactionSyncSubscription } from '../../../hooks/useTransactionSyncSubscription';
 import { useAuth } from '../../auth';
 import { appRoutes } from '../../../lib/appRoutes';
 import { getStatusStyle } from '../../../lib/statusStyles';
@@ -194,6 +195,13 @@ export const DocumentsDetail = () => {
     const backTarget = locationState?.backTo ?? appRoutes.documents;
     const backLabel = locationState?.backLabel ?? 'Back to Documents';
     const canUpload = user?.role === 'encoder';
+
+    useTransactionSyncSubscription({
+        type: txDetail ? (txDetail.isImport ? 'import' : 'export') : null,
+        id: txDetail?.raw.id ?? null,
+        reference: ref,
+        enabled: !!txDetail && !!ref,
+    });
 
     const backButton = (
         <button

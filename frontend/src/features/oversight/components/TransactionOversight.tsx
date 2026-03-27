@@ -15,6 +15,9 @@ import { TransactionDetailDrawer } from './TransactionDetailDrawer';
 type TypeFilter = 'all' | 'import' | 'export';
 type StatusFilter = 'all' | 'pending' | 'in_progress' | 'completed' | 'cancelled';
 
+/** Statuses that lock reassign + status-override actions. */
+const TERMINAL_STATUSES = new Set(['completed', 'cancelled']);
+
 
 const STATUS_CFG: Record<string, { color: string; bg: string }> = {
     completed: { color: '#30d158', bg: 'rgba(48,209,88,0.13)' },
@@ -252,20 +255,24 @@ export const TransactionOversight = () => {
                                                 {/* Actions */}
                                                 <td className="px-5 py-3.5">
                                                     <div className="flex gap-1.5">
-                                                        <button
-                                                            onClick={(e) => { e.stopPropagation(); setReassignTarget(t); }}
-                                                            className="p-1.5 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-md transition-colors"
-                                                            title="Reassign Encoder"
-                                                        >
-                                                            <Icon name="user" className="w-4 h-4" />
-                                                        </button>
-                                                        <button
-                                                            onClick={(e) => { e.stopPropagation(); setStatusTarget(t); }}
-                                                            className="p-1.5 text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/30 rounded-md transition-colors"
-                                                            title="Override Status"
-                                                        >
-                                                            <Icon name="alert-circle" className="w-4 h-4" />
-                                                        </button>
+                                                        {!TERMINAL_STATUSES.has(t.status.toLowerCase()) && (
+                                                            <>
+                                                                <button
+                                                                    onClick={(e) => { e.stopPropagation(); setReassignTarget(t); }}
+                                                                    className="p-1.5 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-md transition-colors"
+                                                                    title="Reassign Encoder"
+                                                                >
+                                                                    <Icon name="user" className="w-4 h-4" />
+                                                                </button>
+                                                                <button
+                                                                    onClick={(e) => { e.stopPropagation(); setStatusTarget(t); }}
+                                                                    className="p-1.5 text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/30 rounded-md transition-colors"
+                                                                    title="Override Status"
+                                                                >
+                                                                    <Icon name="alert-circle" className="w-4 h-4" />
+                                                                </button>
+                                                            </>
+                                                        )}
                                                         <button
                                                             onClick={(e) => { e.stopPropagation(); setRemarkTarget(t); }}
                                                             className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md transition-colors"

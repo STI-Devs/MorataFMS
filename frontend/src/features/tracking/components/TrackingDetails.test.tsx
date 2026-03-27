@@ -50,6 +50,10 @@ vi.mock('../api/trackingApi', () => ({
     },
 }));
 
+vi.mock('../../../hooks/useTransactionSyncSubscription', () => ({
+    useTransactionSyncSubscription: vi.fn(),
+}));
+
 vi.mock('./TrackingDetailsSkeleton', () => ({
     TrackingDetailsSkeleton: () => <div>Tracking details skeleton</div>,
 }));

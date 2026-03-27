@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTransactionSyncSubscription } from '../../../hooks/useTransactionSyncSubscription';
 import { useTheme } from '../../../context/ThemeContext';
 import { useCreateRemark, useDocuments, useRemarks, useResolveRemark } from '../hooks/useRemarks';
 import type { CreateRemarkData } from '../types/remark.types';
@@ -40,6 +41,12 @@ export const RemarkModal = ({ isOpen, onClose, transactionType, transactionId, t
     const { data: documentsData } = useDocuments(transactionType, transactionId, isOpen);
     const createRemark = useCreateRemark();
     const resolveRemark = useResolveRemark(transactionType, transactionId);
+
+    useTransactionSyncSubscription({
+        type: transactionType,
+        id: transactionId,
+        enabled: isOpen && transactionId !== null,
+    });
 
 
     if (!isOpen || transactionId === null) return null;

@@ -9,6 +9,7 @@ use App\Models\Document;
 use App\Models\ExportTransaction;
 use App\Models\ImportTransaction;
 use App\Queries\Documents\DocumentTransactionIndexQuery;
+use App\Support\Transactions\TransactionSyncBroadcaster;
 use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,6 +22,7 @@ class DocumentController extends Controller
     public function __construct(
         private StoreTransactionDocument $storeTransactionDocument,
         private DocumentTransactionIndexQuery $documentTransactionIndexQuery,
+        private TransactionSyncBroadcaster $transactionSyncBroadcaster,
     ) {}
 
     /**
@@ -77,6 +79,9 @@ class DocumentController extends Controller
         $parent = $document->documentable;
         if ($parent && method_exists($parent, 'recalculateStatus')) {
             $parent->recalculateStatus();
+        }
+        if ($parent instanceof ImportTransaction || $parent instanceof ExportTransaction) {
+            $this->transactionSyncBroadcaster->transactionChanged($parent, $request->user(), 'document_uploaded');
         }
 
         return (new DocumentResource($document))
@@ -211,7 +216,7 @@ class DocumentController extends Controller
      * DELETE /api/documents/{document}
      * Delete the file from S3 and the database record.
      */
-    public function destroy(Document $document)
+    public function destroy(Request $request, Document $document)
     {
         $this->authorize('delete', $document);
 
@@ -226,6 +231,9 @@ class DocumentController extends Controller
         // Recalculate after deletion so status rolls back if needed
         if ($parent && method_exists($parent, 'recalculateStatus')) {
             $parent->recalculateStatus();
+        }
+        if ($parent instanceof ImportTransaction || $parent instanceof ExportTransaction) {
+            $this->transactionSyncBroadcaster->transactionChanged($parent, $request->user(), 'document_deleted');
         }
 
         return response()->noContent();

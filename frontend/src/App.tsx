@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ThemeProvider } from './context/ThemeContext';
+import { TransactionSyncProvider } from './context/TransactionSyncContext';
 import { AuthProvider, GuestRoute, ProtectedRoute, useAuth } from './features/auth';
 import { appRoutes } from './lib/appRoutes';
 import {
@@ -55,10 +56,11 @@ function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <Toaster richColors position="top-right" />
-        <ErrorBoundary>
-          <Suspense fallback={<RootFallback />}>
-            <Routes>
+        <TransactionSyncProvider>
+          <Toaster richColors position="top-right" />
+          <ErrorBoundary>
+            <Suspense fallback={<RootFallback />}>
+              <Routes>
           {/* Public landing page */}
           <Route path={appRoutes.landing} element={<LandingPage />} />
 
@@ -122,9 +124,10 @@ function App() {
 
           {/* 404 */}
           <Route path="*" element={<NotFoundPage />} />
-        </Routes>
-          </Suspense>
-        </ErrorBoundary>
+              </Routes>
+            </Suspense>
+          </ErrorBoundary>
+        </TransactionSyncProvider>
       </AuthProvider>
     </ThemeProvider>
   );

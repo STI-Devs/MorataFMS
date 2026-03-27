@@ -10,10 +10,13 @@ use App\Http\Requests\UpdateImportTransactionRequest;
 use App\Http\Resources\ImportTransactionResource;
 use App\Models\ImportTransaction;
 use App\Support\Transactions\ImportStatusWorkflow;
+use App\Support\Transactions\TransactionSyncBroadcaster;
 use Illuminate\Http\Request;
 
 class ImportTransactionController extends Controller
 {
+    public function __construct(private TransactionSyncBroadcaster $transactionSyncBroadcaster) {}
+
     /**
      * GET /api/import-transactions
      * Paginated list with optional search and filter.
@@ -84,6 +87,7 @@ class ImportTransactionController extends Controller
         $transaction->save();
 
         $transaction->load(['importer', 'originCountry', 'stages', 'assignedUser']);
+        $this->transactionSyncBroadcaster->transactionChanged($transaction, $request->user(), 'created');
 
         return (new ImportTransactionResource($transaction))
             ->response()
@@ -109,6 +113,7 @@ class ImportTransactionController extends Controller
         $import_transaction->update($data);
 
         $import_transaction->load(['importer', 'originCountry', 'stages', 'assignedUser']);
+        $this->transactionSyncBroadcaster->transactionChanged($import_transaction, $request->user(), 'updated');
 
         return new ImportTransactionResource($import_transaction);
     }
@@ -153,6 +158,7 @@ class ImportTransactionController extends Controller
         $import_transaction->save();
 
         $import_transaction->load(['importer', 'originCountry', 'stages', 'assignedUser']);
+        $this->transactionSyncBroadcaster->transactionChanged($import_transaction, $request->user(), 'cancelled');
 
         return new ImportTransactionResource($import_transaction);
     }

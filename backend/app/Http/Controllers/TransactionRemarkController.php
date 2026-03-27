@@ -8,12 +8,16 @@ use App\Http\Resources\TransactionRemarkResource;
 use App\Models\ExportTransaction;
 use App\Models\ImportTransaction;
 use App\Models\TransactionRemark;
+use App\Support\Transactions\TransactionSyncBroadcaster;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class TransactionRemarkController extends Controller
 {
-    public function __construct(private CreateTransactionRemark $createTransactionRemark) {}
+    public function __construct(
+        private CreateTransactionRemark $createTransactionRemark,
+        private TransactionSyncBroadcaster $transactionSyncBroadcaster,
+    ) {}
 
     /**
      * Resolve the transaction model from the polymorphic {type}/{id} route.
@@ -63,6 +67,7 @@ class TransactionRemarkController extends Controller
             $request->validated(),
             $request->user(),
         );
+        $this->transactionSyncBroadcaster->remarkChanged($transaction, $request->user(), 'remark_created');
 
         return TransactionRemarkResource::make($remark)
             ->response()
@@ -93,6 +98,7 @@ class TransactionRemarkController extends Controller
         $remark->save();
 
         $remark->load(['author:id,name,role', 'resolver:id,name', 'document:id,filename,type']);
+        $this->transactionSyncBroadcaster->remarkChanged($transaction, $user, 'remark_resolved');
 
         return response()->json([
             'message' => 'Remark resolved.',

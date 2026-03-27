@@ -1,10 +1,11 @@
 import { startTransition, useDeferredValue, useState } from 'react';
-import { generatePath, useNavigate } from 'react-router-dom';
+
 import { CurrentDateTime } from '../../../../components/CurrentDateTime';
+import { useTransactionSyncSubscription } from '../../../../hooks/useTransactionSyncSubscription';
 import { useDebounce } from '../../../../hooks/useDebounce';
 import { trackingApi } from '../../../tracking/api/trackingApi';
 import { useDocumentPreview } from '../../../tracking/hooks/useDocumentPreview';
-import { appRoutes } from '../../../../lib/appRoutes';
+
 import { useEncoders } from '../../../oversight/hooks/useTransactions';
 import {
     useArchiveReviewedTransaction,
@@ -30,7 +31,7 @@ import {
 } from './adminReview.utils';
 
 export const AdminDocumentReview = () => {
-    const navigate = useNavigate();
+
     const [selectedReview, setSelectedReview] = useState<ReviewSelection | null>(null);
     const [archiveError, setArchiveError] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
@@ -66,6 +67,13 @@ export const AdminDocumentReview = () => {
         selectedTransaction?.type ?? null,
         selectedTransaction?.id ?? null,
     );
+
+    useTransactionSyncSubscription({
+        type: selectedTransaction?.type ?? null,
+        id: selectedTransaction?.id ?? null,
+        reference: selectedTransaction?.ref ?? null,
+        enabled: selectedTransaction !== null,
+    });
 
     const resetArchiveState = () => {
         setArchiveError(null);
@@ -165,29 +173,29 @@ export const AdminDocumentReview = () => {
     };
 
     return (
-        <div className="flex h-full flex-col -m-6">
-            <header className="flex-none border-b border-border bg-background px-6 py-6">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="absolute inset-0 flex flex-col bg-background overflow-hidden">
+            <header className="flex-none px-6 pt-3 pb-2">
+                <div className="flex items-center justify-between gap-4">
                     <div>
-                        <p className="text-xs font-bold uppercase tracking-[0.28em] text-text-muted">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-text-muted">
                             Audit & Compliance
                         </p>
-                        <h1 className="mt-2 text-3xl font-bold tracking-tight text-text-primary">
+                        <h1 className="mt-1 text-2xl font-bold tracking-tight text-text-primary">
                             Admin Document Review
                         </h1>
-                        <p className="mt-2 text-sm text-text-secondary">
-                            Verify finalized import and export files before they move into the archive.
-                        </p>
                     </div>
                     <CurrentDateTime
-                        className="text-left sm:text-right"
-                        timeClassName="text-xl font-mono font-bold tracking-tight text-text-primary"
-                        dateClassName="mt-1 text-[11px] font-mono uppercase tracking-[0.2em] text-text-secondary"
+                        className="text-right"
+                        timeClassName="text-base font-mono font-bold tracking-tight text-text-primary"
+                        dateClassName="mt-0.5 text-[10px] font-mono uppercase tracking-[0.2em] text-text-secondary"
                     />
                 </div>
             </header>
 
-            <div className="grid flex-none grid-cols-2 border-b border-border md:grid-cols-4">
+            <div
+                className="grid flex-none grid-cols-2 gap-3 px-6 pb-3 md:grid-cols-4"
+                data-testid="admin-review-kpi-strip"
+            >
                 <KpiMetric
                     title="Completed Files"
                     value={statsQuery.data?.completed_count ?? '—'}
@@ -212,79 +220,67 @@ export const AdminDocumentReview = () => {
                 />
             </div>
 
-            <main className="flex min-h-0 flex-1 flex-col bg-background text-text-primary lg:flex-row">
-                <AdminReviewQueuePane
-                    searchQuery={searchQuery}
-                    typeFilter={typeFilter}
-                    statusFilter={statusFilter}
-                    readinessFilter={readinessFilter}
-                    assignedUserIdFilter={assignedUserIdFilter}
-                    assignedUsers={encoderOptions}
-                    debouncedSearch={debouncedSearch}
-                    selection={selectedReview}
-                    transactions={transactions}
-                    queueData={queueQuery.data}
-                    isLoading={queueQuery.isLoading}
-                    isError={queueQuery.isError}
-                    isFetching={queueQuery.isFetching}
-                    onSearchChange={handleSearchChange}
-                    onTypeFilterChange={handleTypeFilterChange}
-                    onStatusFilterChange={handleStatusFilterChange}
-                    onReadinessFilterChange={handleReadinessFilterChange}
-                    onAssignedUserFilterChange={handleAssignedUserFilterChange}
-                    onRetry={() => {
-                        void queueQuery.refetch();
-                    }}
-                    onSelect={handleSelectTransaction}
-                    onPageChange={(nextPage) => {
-                        startTransition(() => {
-                            setPage(nextPage);
-                        });
-                    }}
-                    onPerPageChange={(nextPerPage) => {
-                        startTransition(() => {
-                            setPerPage(nextPerPage);
-                            setPage(1);
-                        });
-                    }}
-                />
-
-                <div className="flex min-h-[28rem] flex-1 flex-col bg-background">
-                    <AdminReviewDetailPane
-                        selectedTransaction={selectedTransaction}
-                        detailData={detailQuery.data}
-                        archiveError={archiveError}
-                        isDetailLoading={detailQuery.isLoading}
-                        isDetailError={detailQuery.isError}
-                        isArchiving={archiveMutation.isPending}
+            <main className="min-h-0 flex-1 px-6 pb-6 text-text-primary">
+                <div className="flex h-full min-h-0 flex-col gap-4 lg:flex-row">
+                    <AdminReviewQueuePane
+                        searchQuery={searchQuery}
+                        typeFilter={typeFilter}
+                        statusFilter={statusFilter}
+                        readinessFilter={readinessFilter}
+                        assignedUserIdFilter={assignedUserIdFilter}
+                        assignedUsers={encoderOptions}
+                        debouncedSearch={debouncedSearch}
+                        selection={selectedReview}
+                        transactions={transactions}
+                        queueData={queueQuery.data}
+                        isLoading={queueQuery.isLoading}
+                        isError={queueQuery.isError}
+                        isFetching={queueQuery.isFetching}
+                        onSearchChange={handleSearchChange}
+                        onTypeFilterChange={handleTypeFilterChange}
+                        onStatusFilterChange={handleStatusFilterChange}
+                        onReadinessFilterChange={handleReadinessFilterChange}
+                        onAssignedUserFilterChange={handleAssignedUserFilterChange}
                         onRetry={() => {
-                            void detailQuery.refetch();
+                            void queueQuery.refetch();
                         }}
-                        onArchive={handleArchive}
-                        onPreview={(document) => {
-                            void handlePreview(document);
+                        onSelect={handleSelectTransaction}
+                        onPageChange={(nextPage) => {
+                            startTransition(() => {
+                                setPage(nextPage);
+                            });
                         }}
-                        onDownload={(document) => {
-                            void handleDownload(document);
-                        }}
-                        onOpenTransaction={() => {
-                            if (!selectedTransaction) {
-                                return;
-                            }
-
-                            navigate(
-                                generatePath(appRoutes.documentDetail, {
-                                    ref: selectedTransaction.ref,
-                                }),
-                                {
-                                    state: {
-                                        backTo: appRoutes.adminDocumentReview,
-                                        backLabel: 'Back to Admin Review',
-                                    },
-                                },
-                            );
+                        onPerPageChange={(nextPerPage) => {
+                            startTransition(() => {
+                                setPerPage(nextPerPage);
+                                setPage(1);
+                            });
                         }}
                     />
+
+                    <div
+                        className="flex h-full min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-sm"
+                        data-testid="admin-review-workspace"
+                    >
+                        <AdminReviewDetailPane
+                            selectedTransaction={selectedTransaction}
+                            detailData={detailQuery.data}
+                            archiveError={archiveError}
+                            isDetailLoading={detailQuery.isLoading}
+                            isDetailError={detailQuery.isError}
+                            isArchiving={archiveMutation.isPending}
+                            onRetry={() => {
+                                void detailQuery.refetch();
+                            }}
+                            onArchive={handleArchive}
+                            onPreview={(document) => {
+                                void handlePreview(document);
+                            }}
+                            onDownload={(document) => {
+                                void handleDownload(document);
+                            }}
+                        />
+                    </div>
                 </div>
             </main>
         </div>

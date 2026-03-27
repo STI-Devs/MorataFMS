@@ -9,10 +9,13 @@ use App\Http\Requests\UpdateExportTransactionRequest;
 use App\Http\Resources\ExportTransactionResource;
 use App\Models\ExportTransaction;
 use App\Support\Transactions\ExportStatusWorkflow;
+use App\Support\Transactions\TransactionSyncBroadcaster;
 use Illuminate\Http\Request;
 
 class ExportTransactionController extends Controller
 {
+    public function __construct(private TransactionSyncBroadcaster $transactionSyncBroadcaster) {}
+
     /**
      * GET /api/export-transactions
      * Paginated list with optional search and filter.
@@ -83,6 +86,7 @@ class ExportTransactionController extends Controller
         $transaction->save();
 
         $transaction->load(['shipper', 'stages', 'assignedUser', 'destinationCountry']);
+        $this->transactionSyncBroadcaster->transactionChanged($transaction, $request->user(), 'created');
 
         return (new ExportTransactionResource($transaction))
             ->response()
@@ -100,6 +104,7 @@ class ExportTransactionController extends Controller
         $export_transaction->update($request->validated());
 
         $export_transaction->load(['shipper', 'stages', 'assignedUser', 'destinationCountry']);
+        $this->transactionSyncBroadcaster->transactionChanged($export_transaction, $request->user(), 'updated');
 
         return new ExportTransactionResource($export_transaction);
     }
@@ -151,6 +156,7 @@ class ExportTransactionController extends Controller
         $export_transaction->save();
 
         $export_transaction->load(['shipper', 'stages', 'assignedUser', 'destinationCountry']);
+        $this->transactionSyncBroadcaster->transactionChanged($export_transaction, $request->user(), 'cancelled');
 
         return new ExportTransactionResource($export_transaction);
     }

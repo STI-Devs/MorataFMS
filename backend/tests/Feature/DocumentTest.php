@@ -8,8 +8,9 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
 beforeEach(function () {
-    // Fake the S3 disk to prevent actual AWS calls
-    Storage::fake('s3');
+    $this->documentDisk = config('filesystems.document_disk', 's3');
+
+    Storage::fake($this->documentDisk);
 });
 
 test('unauthenticated users cannot access document endpoints', function () {
@@ -143,7 +144,7 @@ test('encoder can upload a document to an import transaction', function () {
 
     // Verify file was stored in S3
     $document = Document::latest()->first();
-    Storage::disk('s3')->assertExists($document->path);
+    Storage::disk($this->documentDisk)->assertExists($document->path);
 });
 
 test('encoder can upload additional documents to a completed transaction', function () {
@@ -289,7 +290,7 @@ test('user can download their uploaded document', function () {
     $import = ImportTransaction::factory()->create(['assigned_user_id' => $user->id]);
     $file = UploadedFile::fake()->create('invoice.pdf', 100, 'application/pdf');
 
-    Storage::fake('s3');
+    Storage::fake($this->documentDisk);
 
     // Upload document
     $this->actingAs($user);
@@ -371,7 +372,7 @@ test('admin can delete any document', function () {
     $admin = User::factory()->create(['role' => 'admin']);
     $import = ImportTransaction::factory()->create(['assigned_user_id' => $encoder->id]);
 
-    Storage::fake('s3');
+    Storage::fake($this->documentDisk);
 
     // Encoder uploads document
     $this->actingAs($encoder);
@@ -395,7 +396,7 @@ test('admin can delete any document', function () {
     $this->assertDatabaseMissing('documents', ['id' => $documentId]);
 
     // Verify S3 deletion
-    Storage::disk('s3')->assertMissing($document->path);
+    Storage::disk($this->documentDisk)->assertMissing($document->path);
 });
 
 test('encoder cannot delete another users document', function () {
@@ -403,7 +404,7 @@ test('encoder cannot delete another users document', function () {
     $encoder2 = User::factory()->create(['role' => 'encoder']);
     $import = ImportTransaction::factory()->create(['assigned_user_id' => $encoder1->id]);
 
-    Storage::fake('s3');
+    Storage::fake($this->documentDisk);
 
     // Encoder 1 uploads document
     $this->actingAs($encoder1);
@@ -427,7 +428,7 @@ test('user can delete their own uploaded document', function () {
     $encoder = User::factory()->create(['role' => 'encoder']);
     $import = ImportTransaction::factory()->create(['assigned_user_id' => $encoder->id]);
 
-    Storage::fake('s3');
+    Storage::fake($this->documentDisk);
 
     // Upload document
     $this->actingAs($encoder);
@@ -448,7 +449,7 @@ test('user can delete their own uploaded document', function () {
 
     // Verify deletion
     $this->assertDatabaseMissing('documents', ['id' => $documentId]);
-    Storage::disk('s3')->assertMissing($document->path);
+    Storage::disk($this->documentDisk)->assertMissing($document->path);
 });
 
 test('encoder can upload a document with type others', function () {

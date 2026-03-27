@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Icon } from '../../../components/Icon';
 import { FilePreviewModal } from '../../../components/modals/FilePreviewModal';
+import { useTransactionSyncSubscription } from '../../../hooks/useTransactionSyncSubscription';
 import { trackingApi } from '../../tracking/api/trackingApi';
 import { useDocumentPreview } from '../../tracking/hooks/useDocumentPreview';
 import { useCreateRemark, useDocuments, useRemarks, useResolveRemark } from '../hooks/useRemarks';
@@ -42,6 +43,13 @@ export const TransactionDetailDrawer = ({ transaction, onClose }: Props) => {
     const isOpen = !!transaction;
     const type = transaction?.type ?? 'import';
     const id = transaction?.id ?? null;
+
+    useTransactionSyncSubscription({
+        type: transaction?.type ?? null,
+        id,
+        reference: transaction?.reference_no ?? null,
+        enabled: isOpen && id !== null,
+    });
 
     // Data — use oversight's useDocuments which takes 'import'|'export' directly
     const { data: docsResult, isLoading: docsLoading } = useDocuments(type, id, isOpen);

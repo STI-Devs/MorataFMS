@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Icon } from '../../../../components/Icon';
 import type { EncoderUser } from '../../../oversight/types/transaction.types';
 import { Pagination } from '../../../../components/Pagination';
@@ -12,9 +11,7 @@ import type {
 import { QueueSkeleton } from './AdminReviewShared';
 import {
     matchesSelection,
-    READINESS_TONES,
     reviewKey,
-    STATUS_TONES,
     timeAgo,
     TYPE_TONES,
     type ReviewSelection,
@@ -29,63 +26,50 @@ const QueueItem = ({
     isSelected: boolean;
     onSelect: (transaction: Pick<AdminReviewQueueItem, 'id' | 'type'>) => void;
 }) => {
-    const statusTone = STATUS_TONES[transaction.status.toLowerCase()] ?? STATUS_TONES.completed;
     const typeTone = TYPE_TONES[transaction.type] ?? TYPE_TONES.import;
-    const readinessTone = READINESS_TONES[transaction.readiness];
 
     return (
         <button
             onClick={() => onSelect(transaction)}
-            className={`w-full border-b border-border p-4 text-left transition-all ${
+            className={`w-full border-b border-border text-left transition-all ${
                 isSelected
-                    ? 'border-l-4 border-l-blue-500 bg-blue-500/10 shadow-[inset_0_0_0_1px_rgba(59,130,246,0.16)]'
-                    : 'border-l-4 border-l-transparent hover:bg-hover'
+                    ? 'border-l-[3px] border-l-blue-500 bg-blue-500/10'
+                    : 'border-l-[3px] border-l-transparent hover:bg-hover'
             }`}
         >
-            <div className="mb-1 flex items-center justify-between gap-3">
-                <span className={`font-mono font-bold tracking-tight ${isSelected ? 'text-blue-500' : 'text-text-primary'}`}>
-                    {transaction.bl_number ?? transaction.ref}
-                </span>
-                <span className="text-[10px] uppercase font-mono tracking-widest text-text-muted">
-                    {timeAgo(transaction.finalized_date)}
-                </span>
-            </div>
-
-            <div className="flex items-center gap-2">
-                <p className="truncate text-sm font-semibold text-text-secondary">
-                    {transaction.client ?? 'Unknown client'}
-                </p>
-                <span className="border-l border-border pl-2 text-[10px] font-mono text-text-muted">
-                    {transaction.ref}
-                </span>
-            </div>
-
-            <div className="mt-2 flex items-center justify-between gap-3 text-xs text-text-muted">
-                <span>{transaction.assigned_user ?? 'Unassigned'}</span>
-                <span className={`inline-flex items-center gap-1 rounded-sm border px-2 py-0.5 font-bold uppercase tracking-[0.16em] ${typeTone.text} ${typeTone.bg}`}>
-                    {transaction.type}
-                </span>
-            </div>
-
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-                <div className="flex flex-wrap items-center gap-2">
-                    <span className={`inline-flex rounded-sm border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.2em] ${statusTone.text} ${statusTone.bg}`}>
-                        {transaction.status}
+            <div className="px-4 py-3">
+                {/* Row 1: BL Number + Time */}
+                <div className="flex items-baseline justify-between gap-3">
+                    <span className={`font-mono text-sm font-bold tracking-tight leading-tight ${isSelected ? 'text-blue-500' : 'text-text-primary'}`}>
+                        {transaction.bl_number ?? transaction.ref}
                     </span>
-                    <span className={`inline-flex rounded-sm border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.2em] ${readinessTone.text} ${readinessTone.bg}`}>
-                        {readinessTone.label}
+                    <span className="shrink-0 text-[10px] uppercase font-mono tracking-widest text-text-muted">
+                        {timeAgo(transaction.finalized_date)}
                     </span>
                 </div>
-                <div className="flex items-center gap-2">
-                    <span className={`text-[11px] font-bold uppercase tracking-widest ${transaction.archive_ready ? 'text-emerald-600' : 'text-amber-600'}`}>
-                        {transaction.docs_count}/{transaction.docs_total} Docs
-                    </span>
-                    {transaction.has_exceptions ? (
-                        <span className="inline-flex items-center gap-1 rounded-sm border border-red-500/20 bg-red-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-red-600">
-                            <Icon name="flag" className="h-3 w-3" />
-                            Open Remarks
+
+                {/* Row 2: Client + Ref + User — merged into one compact line */}
+                <p className="mt-1 truncate text-xs text-text-muted">
+                    <span className="font-medium text-text-secondary">{transaction.client ?? 'Unknown client'}</span>
+                    {' · '}{transaction.ref}{transaction.assigned_user ? ` · ${transaction.assigned_user}` : ''}
+                </p>
+
+                {/* Row 3: Type badge only — readiness already visible in detail pane */}
+                <div className="mt-2 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5">
+                        <span className={`inline-flex rounded border px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] ${typeTone.text} ${typeTone.bg}`}>
+                            {transaction.type}
                         </span>
-                    ) : null}
+                        {transaction.has_exceptions ? (
+                            <span className="inline-flex items-center gap-1 rounded border border-red-500/20 bg-red-500/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-red-600">
+                                <Icon name="flag" className="h-2.5 w-2.5" />
+                                Remarks
+                            </span>
+                        ) : null}
+                    </div>
+                    <span className={`text-[11px] font-semibold tabular-nums ${transaction.archive_ready ? 'text-emerald-600' : 'text-amber-600'}`}>
+                        {transaction.docs_count}/{transaction.docs_total}
+                    </span>
                 </div>
             </div>
         </button>
@@ -139,30 +123,30 @@ export const AdminReviewQueuePane = ({
     onPageChange: (page: number) => void;
     onPerPageChange: (perPage: number) => void;
 }) => {
-    const [showMoreFilters, setShowMoreFilters] = useState(false);
-    const hasActiveSecondaryFilters = readinessFilter !== 'all' || assignedUserIdFilter !== 'all';
-
     return (
-    <div className="flex w-full flex-col bg-surface lg:w-[40%] lg:border-r lg:border-border">
-        <div className="flex-none border-b border-border p-4">
+    <div
+        className="flex h-full w-full min-h-0 flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-sm lg:w-[38%] lg:min-w-[22rem] lg:max-w-[30rem]"
+        data-testid="admin-review-queue-pane"
+    >
+        <div className="flex-none border-b border-border px-4 py-3">
             {/* Search */}
             <div className="relative">
-                <Icon name="search" className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+                <Icon name="search" className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-muted" />
                 <input
                     type="text"
                     placeholder="Search BL, ref, or client..."
                     value={searchQuery}
                     onChange={(event) => onSearchChange(event.target.value)}
-                    className="w-full rounded-md border border-border bg-background py-2 pl-9 pr-4 text-sm text-text-primary placeholder:text-text-muted focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-sm text-text-primary placeholder:text-text-muted focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
             </div>
 
-            {/* Primary filters — always visible */}
-            <div className="mt-3 flex gap-2">
+            {/* All filters — always visible in 2×2 grid */}
+            <div className="mt-2.5 grid grid-cols-2 gap-2">
                 <select
                     value={typeFilter}
                     onChange={(event) => onTypeFilterChange(event.target.value as AdminReviewTypeFilter)}
-                    className="flex-1 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-text-primary focus:outline-none"
+                    className="rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-text-primary focus:outline-none"
                 >
                     <option value="all">All Types</option>
                     <option value="import">Import</option>
@@ -171,72 +155,45 @@ export const AdminReviewQueuePane = ({
                 <select
                     value={statusFilter}
                     onChange={(event) => onStatusFilterChange(event.target.value as AdminReviewStatusFilter)}
-                    className="flex-1 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-text-primary focus:outline-none"
+                    className="rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-text-primary focus:outline-none"
                 >
                     <option value="all">All Statuses</option>
                     <option value="completed">Completed</option>
                     <option value="cancelled">Cancelled</option>
                 </select>
+                <select
+                    value={readinessFilter}
+                    onChange={(event) => onReadinessFilterChange(event.target.value as AdminReviewReadinessFilter)}
+                    className="rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-text-primary focus:outline-none"
+                >
+                    <option value="all">All Readiness</option>
+                    <option value="ready">Archive Ready</option>
+                    <option value="missing_docs">Missing Docs</option>
+                    <option value="flagged">Flagged</option>
+                </select>
+                <select
+                    value={assignedUserIdFilter === 'all' ? 'all' : String(assignedUserIdFilter)}
+                    onChange={(event) =>
+                        onAssignedUserFilterChange(
+                            event.target.value === 'all' ? 'all' : Number.parseInt(event.target.value, 10),
+                        )
+                    }
+                    className="rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-text-primary focus:outline-none"
+                >
+                    <option value="all">All Encoders</option>
+                    {assignedUsers.map((user) => (
+                        <option key={user.id} value={user.id}>
+                            {user.name}
+                        </option>
+                    ))}
+                </select>
             </div>
-
-            {/* More filters toggle */}
-            <button
-                type="button"
-                onClick={() => setShowMoreFilters((prev) => !prev)}
-                className="mt-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-text-muted hover:text-text-secondary transition-colors"
-            >
-                <Icon
-                    name="chevron-down"
-                    className={`h-3 w-3 transition-transform ${showMoreFilters ? 'rotate-180' : ''}`}
-                />
-                More Filters
-                {hasActiveSecondaryFilters && (
-                    <span className="ml-1 h-1.5 w-1.5 rounded-full bg-blue-500" />
-                )}
-            </button>
-
-            {/* Secondary filters — collapsed by default */}
-            {showMoreFilters && (
-                <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                    <select
-                        value={readinessFilter}
-                        onChange={(event) => onReadinessFilterChange(event.target.value as AdminReviewReadinessFilter)}
-                        className="rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-text-primary focus:outline-none"
-                    >
-                        <option value="all">All Readiness</option>
-                        <option value="ready">Archive Ready</option>
-                        <option value="missing_docs">Missing Docs</option>
-                        <option value="flagged">Flagged</option>
-                    </select>
-                    <select
-                        value={assignedUserIdFilter === 'all' ? 'all' : String(assignedUserIdFilter)}
-                        onChange={(event) =>
-                            onAssignedUserFilterChange(
-                                event.target.value === 'all' ? 'all' : Number.parseInt(event.target.value, 10),
-                            )
-                        }
-                        className="rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-text-primary focus:outline-none"
-                    >
-                        <option value="all">All Encoders</option>
-                        {assignedUsers.map((user) => (
-                            <option key={user.id} value={user.id}>
-                                {user.name}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-            )}
-
-            {isFetching && !isLoading ? (
-                <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-text-muted">
-                    Refreshing queue...
-                </p>
-            ) : null}
         </div>
+
 
         {/* Pagination count above list — scannable before scrolling */}
         {queueData?.meta && !isLoading ? (
-            <div className="flex-none border-b border-border px-4 py-2">
+            <div className="flex-none border-b border-border px-5 py-3.5 sm:px-6">
                 <p className="text-[11px] font-mono text-text-muted">
                     Showing {transactions.length} of {queueData.meta.total} finalized files
                     {isFetching && !isLoading ? ' · refreshing...' : ''}
@@ -248,18 +205,18 @@ export const AdminReviewQueuePane = ({
             {isLoading && !queueData ? (
                 <QueueSkeleton />
             ) : isError ? (
-                <div className="p-8 text-center">
+                <div className="p-10 text-center">
                     <p className="text-sm font-medium text-red-500">Failed to load the review queue.</p>
                     <button onClick={onRetry} className="mt-3 text-xs font-semibold text-blue-500 hover:underline">
                         Retry
                     </button>
                 </div>
             ) : transactions.length === 0 ? (
-                <div className="p-8 text-center">
-                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-border bg-background text-text-muted">
-                        <Icon name="file-text" className="h-5 w-5" />
+                <div className="p-10 text-center">
+                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-border bg-background text-text-muted">
+                        <Icon name="file-text" className="h-6 w-6" />
                     </div>
-                    <h3 className="mt-4 text-base font-bold text-text-primary">No files in review</h3>
+                    <h3 className="mt-5 text-base font-bold text-text-primary">No files in review</h3>
                     <p className="mt-2 text-sm text-text-secondary">
                         {debouncedSearch || typeFilter !== 'all' || statusFilter !== 'all' || readinessFilter !== 'all' || assignedUserIdFilter !== 'all'
                             ? 'No finalized transactions match the current filters.'
@@ -279,7 +236,7 @@ export const AdminReviewQueuePane = ({
         </div>
 
         {queueData?.meta && queueData.meta.last_page > 1 ? (
-            <div className="border-t border-border px-4">
+            <div className="border-t border-border px-5 sm:px-6">
                 <Pagination
                     currentPage={queueData.meta.current_page}
                     totalPages={queueData.meta.last_page}

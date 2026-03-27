@@ -42,14 +42,16 @@ export const TrackingHeader = ({
                 <div className="flex items-center gap-2 shrink-0">
                     <button
                         onClick={onRemarksClick}
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-text-secondary border border-border-strong rounded-lg hover:bg-hover hover:text-text-primary transition-colors relative"
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-text-secondary border border-border-strong rounded-lg hover:bg-hover hover:text-text-primary transition-colors"
                     >
                         <Icon name="flag" className="w-3.5 h-3.5" />
                         Remarks
                         {transaction.open_remarks_count > 0 && (
-                            <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center px-1 border-2 border-surface shrink-0">
-                                {transaction.open_remarks_count}
-                            </span>
+                            <span
+                                aria-hidden="true"
+                                data-testid="tracking-header-remark-dot"
+                                className="ml-0.5 inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-red-500 shadow-[0_0_0_3px_rgba(239,68,68,0.12)]"
+                            />
                         )}
                     </button>
                     <button

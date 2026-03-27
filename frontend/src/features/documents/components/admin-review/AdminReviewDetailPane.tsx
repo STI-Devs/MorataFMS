@@ -6,10 +6,71 @@ import type {
     AdminReviewRemark,
     AdminReviewRequiredDocument,
 } from '../../types/document.types';
-import { DetailSkeleton, DocumentMeta, SummaryCard } from './AdminReviewShared';
-import { READINESS_TONES, STATUS_TONES, timeAgo, TYPE_TONES } from './adminReview.utils';
+import { DetailSkeleton } from './AdminReviewShared';
+import { STATUS_TONES, timeAgo } from './adminReview.utils';
 
-const RequiredDocumentsSection = ({
+// ---------------------------------------------------------------------------
+// Small primitives
+// ---------------------------------------------------------------------------
+
+const SectionHeading = ({
+    accentClassName,
+    title,
+    meta,
+}: {
+    accentClassName: string;
+    title: string;
+    meta?: string;
+}) => (
+    <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+            <div className={`h-3.5 w-1 rounded-full ${accentClassName}`} />
+            <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] text-text-secondary">{title}</h3>
+        </div>
+        {meta ? <p className="text-[11px] font-mono text-text-muted">{meta}</p> : null}
+    </div>
+);
+
+const DocumentActions = ({
+    document,
+    onPreview,
+    onDownload,
+}: {
+    document: AdminReviewRequiredDocument;
+    onPreview: (document: AdminReviewRequiredDocument) => void;
+    onDownload: (document: AdminReviewRequiredDocument) => void;
+}) =>
+    document.file ? (
+        <div className="flex shrink-0 items-center gap-1.5">
+            <button
+                onClick={() => onPreview(document)}
+                className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-text-secondary transition-colors hover:bg-hover hover:text-text-primary"
+                title="Preview"
+            >
+                <Icon name="eye" className="h-3.5 w-3.5" />
+                Preview
+            </button>
+            <button
+                onClick={() => onDownload(document)}
+                className="inline-flex items-center rounded-md border border-border px-2.5 py-1.5 text-text-secondary transition-colors hover:bg-hover hover:text-text-primary"
+                title="Download"
+            >
+                <Icon name="download" className="h-3.5 w-3.5" />
+            </button>
+        </div>
+    ) : (
+        <span className="rounded-md border border-red-500/20 bg-red-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-red-600">
+            Missing
+        </span>
+    );
+
+// ---------------------------------------------------------------------------
+// Sections — all live in the scrollable body
+// ---------------------------------------------------------------------------
+
+// ReadinessCard replaced with inline strip — see scrollable body usage
+
+const DocumentChecklistSection = ({
     requiredDocuments,
     onPreview,
     onDownload,
@@ -19,130 +80,69 @@ const RequiredDocumentsSection = ({
     onDownload: (document: AdminReviewRequiredDocument) => void;
 }) => (
     <section>
-        <div className="mb-4 flex items-center gap-3">
-            <div className="h-4 w-1 rounded-full bg-blue-500" />
-            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-text-secondary">
-                Required Documents
-            </h3>
-        </div>
-
-        <div className="overflow-hidden rounded-lg border border-border bg-surface">
-            {requiredDocuments.map((document, index) => (
+        <SectionHeading
+            accentClassName="bg-blue-500"
+            title="Document Checklist"
+            meta={`${requiredDocuments.filter((d) => d.uploaded).length}/${requiredDocuments.length} slots filled`}
+        />
+        <div className="overflow-hidden rounded-xl border border-border bg-surface divide-y divide-border">
+            {requiredDocuments.map((document) => (
                 <div
                     key={document.type_key}
-                    className={`flex flex-col justify-between gap-4 p-4 sm:flex-row sm:items-center ${
-                        index !== requiredDocuments.length - 1 ? 'border-b border-border' : ''
-                    } ${!document.uploaded ? 'bg-red-500/5' : ''}`}
+                    className={`flex items-center justify-between gap-3 px-4 py-3 ${
+                        document.uploaded ? '' : 'bg-red-500/5'
+                    }`}
                 >
-                    <div className="flex min-w-0 items-start gap-3">
-                        {document.uploaded ? (
-                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-emerald-500/10 text-emerald-500">
-                                <Icon name="check-circle" className="h-4 w-4" />
-                            </div>
-                        ) : (
-                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-red-500/10 text-red-500">
-                                <Icon name="x" className="h-4 w-4" />
-                            </div>
-                        )}
-
+                    {/* Status icon + label */}
+                    <div className="flex min-w-0 items-center gap-3">
+                        <div
+                            className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${
+                                document.uploaded ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'
+                            }`}
+                        >
+                            <Icon name={document.uploaded ? 'check-circle' : 'x'} className="h-3.5 w-3.5" />
+                        </div>
                         <div className="min-w-0">
-                            <div className="flex flex-wrap items-center gap-2">
-                                <p className="text-sm font-semibold text-text-primary">{document.label}</p>
-                                <span className="rounded-sm border border-border bg-background px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                            <div className="flex items-center gap-1.5">
+                                <p className="truncate text-sm font-semibold text-text-primary" title={document.label}>{document.label}</p>
+                                <span className="shrink-0 rounded border border-border bg-background px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em] text-text-muted" title={document.type_key}>
                                     {document.type_key}
                                 </span>
                             </div>
                             {document.file ? (
-                                <DocumentMeta file={document.file} />
+                                <div className="mt-0.5 space-y-0.5">
+                                    <p className="truncate text-[11px] font-medium text-text-secondary" title={document.file.filename}>{document.file.filename}</p>
+                                    <p className="truncate text-[11px] text-text-muted">
+                                        {document.file.size}{document.file.uploaded_by ? ` · ${document.file.uploaded_by}` : ''}
+                                    </p>
+                                </div>
                             ) : (
-                                <p className="mt-1 text-xs text-red-500">No uploaded file found for this required slot.</p>
+                                <p className="mt-0.5 text-[11px] text-red-500">No file uploaded.</p>
                             )}
                         </div>
                     </div>
-
-                    <div className="flex shrink-0 items-center gap-2">
-                        {document.file ? (
-                            <>
-                                <button
-                                    onClick={() => onPreview(document)}
-                                    className="rounded p-2 text-text-secondary transition-colors hover:bg-hover hover:text-text-primary"
-                                    title="Preview"
-                                >
-                                    <Icon name="eye" className="h-4 w-4" />
-                                </button>
-                                <button
-                                    onClick={() => onDownload(document)}
-                                    className="rounded p-2 text-text-secondary transition-colors hover:bg-hover hover:text-text-primary"
-                                    title="Download"
-                                >
-                                    <Icon name="download" className="h-4 w-4" />
-                                </button>
-                            </>
-                        ) : (
-                            <span className="rounded-md border border-red-500/20 bg-red-500/10 px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-red-500">
-                                Missing
-                            </span>
-                        )}
-                    </div>
+                    {/* Actions */}
+                    <DocumentActions document={document} onPreview={onPreview} onDownload={onDownload} />
                 </div>
             ))}
         </div>
     </section>
 );
 
-const RemarksSection = ({ remarks }: { remarks: AdminReviewRemark[] }) => {
-    const openRemarks = remarks.filter((remark) => !remark.resolved);
-    const resolvedRemarks = remarks.filter((remark) => remark.resolved);
+const toRequiredDocument = (document: AdminReviewUploadedDocument): AdminReviewRequiredDocument => ({
+    type_key: document.type_key,
+    label: document.label,
+    uploaded: true,
+    file: {
+        id: document.id,
+        filename: document.filename,
+        size: document.size,
+        uploaded_by: document.uploaded_by,
+        uploaded_at: document.uploaded_at,
+    },
+});
 
-    return (
-        <section>
-            <div className="mb-4 flex items-center gap-3">
-                <div className="h-4 w-1 rounded-full bg-red-500" />
-                <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-text-secondary">
-                    Remarks & Exceptions
-                </h3>
-            </div>
-
-            {remarks.length === 0 ? (
-                <div className="rounded-lg border border-border bg-surface p-6 text-sm text-text-secondary">
-                    No remarks have been recorded for this transaction.
-                </div>
-            ) : (
-                <div className="space-y-3">
-                    {openRemarks.map((remark) => (
-                        <div key={remark.id} className="rounded-lg border border-red-500/15 bg-red-500/5 p-4">
-                            <div className="flex flex-wrap items-center gap-2">
-                                <span className="rounded-sm border border-red-500/20 bg-red-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-red-600">
-                                    Open
-                                </span>
-                                <span className="text-xs text-text-muted">
-                                    {remark.author} · {timeAgo(remark.created_at)}
-                                </span>
-                            </div>
-                            <p className="mt-2 text-sm leading-relaxed text-text-primary">{remark.body}</p>
-                        </div>
-                    ))}
-
-                    {resolvedRemarks.map((remark) => (
-                        <div key={remark.id} className="rounded-lg border border-border bg-surface p-4 opacity-70">
-                            <div className="flex flex-wrap items-center gap-2">
-                                <span className="rounded-sm border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-600">
-                                    Resolved
-                                </span>
-                                <span className="text-xs text-text-muted">
-                                    {remark.author} · {timeAgo(remark.created_at)}
-                                </span>
-                            </div>
-                            <p className="mt-2 text-sm leading-relaxed text-text-secondary">{remark.body}</p>
-                        </div>
-                    ))}
-                </div>
-            )}
-        </section>
-    );
-};
-
-const UploadedDocumentsSection = ({
+const AdditionalUploadsSection = ({
     documents,
     onPreview,
     onDownload,
@@ -150,32 +150,28 @@ const UploadedDocumentsSection = ({
     documents: AdminReviewUploadedDocument[];
     onPreview: (document: AdminReviewRequiredDocument) => void;
     onDownload: (document: AdminReviewRequiredDocument) => void;
-}) => (
-    <section>
-        <div className="mb-4 flex items-center gap-3">
-            <div className="h-4 w-1 rounded-full bg-emerald-500" />
-            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-text-secondary">
-                Uploaded Documents
-            </h3>
-        </div>
+}) => {
+    if (documents.length === 0) return null;
 
-        {documents.length === 0 ? (
-            <div className="rounded-lg border border-border bg-surface p-6 text-sm text-text-secondary">
-                No uploaded documents are attached to this finalized transaction yet.
-            </div>
-        ) : (
-            <div className="overflow-hidden rounded-lg border border-border bg-surface">
+    return (
+        <section>
+            <SectionHeading
+                accentClassName="bg-emerald-500"
+                title="Additional Uploads"
+                meta={`${documents.length} file${documents.length === 1 ? '' : 's'}`}
+            />
+            <div className="overflow-hidden rounded-xl border border-border bg-surface">
                 {documents.map((document, index) => (
                     <div
                         key={document.id}
-                        className={`flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between ${
+                        className={`flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between ${
                             index !== documents.length - 1 ? 'border-b border-border' : ''
                         }`}
                     >
                         <div className="min-w-0">
                             <div className="flex flex-wrap items-center gap-2">
                                 <p className="truncate text-sm font-semibold text-text-primary">{document.filename}</p>
-                                <span className="rounded-sm border border-border bg-background px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">
+                                <span className="rounded border border-border bg-background px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-text-muted">
                                     {document.label}
                                 </span>
                             </div>
@@ -185,55 +181,68 @@ const UploadedDocumentsSection = ({
                                 {document.uploaded_at ? ` · ${timeAgo(document.uploaded_at)}` : ''}
                             </p>
                         </div>
-
-                        <div className="flex shrink-0 items-center gap-2">
-                            <button
-                                onClick={() =>
-                                    onPreview({
-                                        type_key: document.type_key,
-                                        label: document.label,
-                                        uploaded: true,
-                                        file: {
-                                            id: document.id,
-                                            filename: document.filename,
-                                            size: document.size,
-                                            uploaded_by: document.uploaded_by,
-                                            uploaded_at: document.uploaded_at,
-                                        },
-                                    })
-                                }
-                                className="rounded p-2 text-text-secondary transition-colors hover:bg-hover hover:text-text-primary"
-                                title="Preview"
-                            >
-                                <Icon name="eye" className="h-4 w-4" />
-                            </button>
-                            <button
-                                onClick={() =>
-                                    onDownload({
-                                        type_key: document.type_key,
-                                        label: document.label,
-                                        uploaded: true,
-                                        file: {
-                                            id: document.id,
-                                            filename: document.filename,
-                                            size: document.size,
-                                            uploaded_by: document.uploaded_by,
-                                            uploaded_at: document.uploaded_at,
-                                        },
-                                    })
-                                }
-                                className="rounded p-2 text-text-secondary transition-colors hover:bg-hover hover:text-text-primary"
-                                title="Download"
-                            >
-                                <Icon name="download" className="h-4 w-4" />
-                            </button>
-                        </div>
+                        <DocumentActions
+                            document={toRequiredDocument(document)}
+                            onPreview={onPreview}
+                            onDownload={onDownload}
+                        />
                     </div>
                 ))}
             </div>
-        )}
-    </section>
-);
+        </section>
+    );
+};
+
+const RemarksSection = ({ remarks }: { remarks: AdminReviewRemark[] }) => {
+    const openRemarks = remarks.filter((r) => !r.resolved);
+    const resolvedRemarks = remarks.filter((r) => r.resolved);
+
+    return (
+        <section>
+            <SectionHeading
+                accentClassName="bg-red-500"
+                title="Remarks & Exceptions"
+                meta={`${openRemarks.length} open`}
+            />
+            {remarks.length === 0 ? (
+                <p className="text-[11px] italic text-text-muted">No remarks recorded for this transaction.</p>
+            ) : (
+                <div className="space-y-2.5">
+                    {openRemarks.map((remark) => (
+                        <div key={remark.id} className="rounded-xl border border-red-500/15 bg-red-500/5 px-5 py-4">
+                            <div className="flex flex-wrap items-center gap-2.5">
+                                <span className="rounded border border-red-500/20 bg-red-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-red-600">
+                                    Open
+                                </span>
+                                <span className="text-xs text-text-muted">
+                                    {remark.author} · {timeAgo(remark.created_at)}
+                                </span>
+                            </div>
+                            <p className="mt-2.5 text-sm leading-relaxed text-text-primary">{remark.body}</p>
+                        </div>
+                    ))}
+                    {resolvedRemarks.map((remark) => (
+                        <div key={remark.id} className="rounded-xl border border-border bg-surface px-5 py-4 opacity-70">
+                            <div className="flex flex-wrap items-center gap-2.5">
+                                <span className="rounded border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-emerald-600">
+                                    Resolved
+                                </span>
+                                <span className="text-xs text-text-muted">
+                                    {remark.author} · {timeAgo(remark.created_at)}
+                                </span>
+                            </div>
+                            <p className="mt-2.5 text-sm leading-relaxed text-text-secondary">{remark.body}</p>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </section>
+    );
+};
+
+// ---------------------------------------------------------------------------
+// Main export
+// ---------------------------------------------------------------------------
 
 export const AdminReviewDetailPane = ({
     selectedTransaction,
@@ -246,7 +255,6 @@ export const AdminReviewDetailPane = ({
     onArchive,
     onPreview,
     onDownload,
-    onOpenTransaction,
 }: {
     selectedTransaction: AdminReviewQueueItem | null;
     detailData: AdminReviewDetailResponse | undefined;
@@ -258,30 +266,26 @@ export const AdminReviewDetailPane = ({
     onArchive: () => void;
     onPreview: (document: AdminReviewRequiredDocument) => void;
     onDownload: (document: AdminReviewRequiredDocument) => void;
-    onOpenTransaction: () => void;
 }) => {
     if (!selectedTransaction) {
         return (
-            <div className="flex flex-1 flex-col items-center justify-center p-8 text-center">
+            <div className="flex flex-1 flex-col items-center justify-center p-12 text-center">
                 <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-border bg-surface text-text-muted">
-                    <Icon name="file-text" className="h-6 w-6" />
+                    <Icon name="file-text" className="h-7 w-7" />
                 </div>
-                <h3 className="text-lg font-bold text-text-primary">Document Audit Panel</h3>
-                <p className="mt-2 max-w-md text-sm text-text-secondary">
-                    Select a finalized transaction from the queue to inspect uploaded documents, missing requirements,
-                    and open compliance remarks.
+                <h3 className="text-base font-bold text-text-primary">Document Audit Panel</h3>
+                <p className="mt-2 max-w-xs text-sm leading-relaxed text-text-secondary">
+                    Select a transaction from the queue to inspect its documents, requirements, and compliance remarks.
                 </p>
             </div>
         );
     }
 
-    if (isDetailLoading) {
-        return <DetailSkeleton />;
-    }
+    if (isDetailLoading) return <DetailSkeleton />;
 
     if (isDetailError || !detailData) {
         return (
-            <div className="flex flex-1 flex-col items-center justify-center p-8 text-center">
+            <div className="flex flex-1 flex-col items-center justify-center p-12 text-center">
                 <p className="text-sm font-medium text-red-500">Failed to load the transaction audit detail.</p>
                 <button onClick={onRetry} className="mt-3 text-xs font-semibold text-blue-500 hover:underline">
                     Retry
@@ -291,131 +295,105 @@ export const AdminReviewDetailPane = ({
     }
 
     const summary = detailData.summary;
-    const requiredDocuments = detailData.required_documents;
-    const remarks = detailData.remarks;
-    const uploadedDocuments = detailData.uploaded_documents;
-    const hasMissingDocs = summary.missing_count > 0;
-    const hasExceptions = summary.flagged_count > 0;
     const isArchiveReady = summary.archive_ready;
-    const readinessTone = READINESS_TONES[summary.readiness];
+
+    const requiredFileIds = new Set(
+        detailData.required_documents
+            .map((d) => d.file?.id)
+            .filter((id): id is number => typeof id === 'number'),
+    );
+    const additionalUploads = detailData.uploaded_documents.filter((d) => !requiredFileIds.has(d.id));
 
     return (
         <div className="flex min-h-0 flex-1 flex-col">
-            <div className="flex flex-col gap-4 border-b border-border bg-surface p-6 xl:flex-row xl:items-start xl:justify-between">
-                <div>
-                    <h2 className="text-2xl font-mono font-bold tracking-tight text-text-primary">
-                        {detailData.transaction.bl_number ?? detailData.transaction.ref}
-                    </h2>
-                    <div className="mt-1 flex flex-wrap items-center gap-2">
-                        <p className="text-sm font-medium text-text-secondary">
-                            {detailData.transaction.client ?? 'Unknown client'}
-                        </p>
-                        <span className="border-l border-border pl-2 text-xs font-mono text-text-muted">
-                            {detailData.transaction.ref}
-                        </span>
-                        <span className="border-l border-border pl-2 text-xs text-text-muted">
-                            {detailData.transaction.assigned_user ?? 'Unassigned'}
-                        </span>
+            {/*
+             * ┌─────────────────────────────────────────────────────────┐
+             * │  COMPACT FIXED HEADER — identity + action bar only      │
+             * │  Target: ≈ 100–115px tall. Nothing more lives here.     │
+             * └─────────────────────────────────────────────────────────┘
+             */}
+            <div
+                className="flex-none border-b border-border bg-surface px-5 py-4 xl:px-6"
+                data-testid="admin-review-detail-header"
+            >
+                {/* Row 1 — identity + actions pinned right */}
+                <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                        <h2 className="truncate font-mono text-xl font-bold tracking-tight text-text-primary">
+                            {detailData.transaction.bl_number ?? detailData.transaction.ref}
+                        </h2>
+                        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5">
+                            <p className="text-sm font-medium text-text-secondary">
+                                {detailData.transaction.client ?? 'Unknown client'}
+                            </p>
+                            <span className="font-mono text-xs text-text-muted">{detailData.transaction.ref}</span>
+                            <span className="text-xs text-text-muted">
+                                {detailData.transaction.assigned_user ?? 'Unassigned'}
+                            </span>
+                        </div>
                     </div>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                        <span className={`rounded-sm border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.2em] ${TYPE_TONES[detailData.transaction.type].text} ${TYPE_TONES[detailData.transaction.type].bg}`}>
-                            {detailData.transaction.type}
-                        </span>
-                        <span className={`rounded-sm border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.2em] ${(STATUS_TONES[detailData.transaction.status.toLowerCase()] ?? STATUS_TONES.completed).text} ${(STATUS_TONES[detailData.transaction.status.toLowerCase()] ?? STATUS_TONES.completed).bg}`}>
-                            {detailData.transaction.status}
-                        </span>
-                        <span className={`rounded-sm border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.2em] ${readinessTone.text} ${readinessTone.bg}`}>
-                            {readinessTone.label}
-                        </span>
-                        <span className="rounded-sm border border-border bg-background px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.2em] text-text-muted">
-                            Finalized {timeAgo(detailData.transaction.finalized_date)}
-                        </span>
+
+                    {/* Archive action — only action unique to this review pane */}
+                    <div className="flex shrink-0 items-center">
+                        <button
+                            type="button"
+                            onClick={onArchive}
+                            disabled={!isArchiveReady || isArchiving}
+                            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-colors ${
+                                isArchiveReady
+                                    ? 'bg-emerald-600 text-white hover:bg-emerald-700 disabled:bg-emerald-500/70'
+                                    : 'cursor-not-allowed border border-border bg-surface text-text-muted'
+                            }`}
+                        >
+                            <Icon name="archive" className="h-3.5 w-3.5" />
+                            {isArchiving ? 'Archiving…' : 'Move to Archive'}
+                        </button>
                     </div>
                 </div>
 
-                <div className="rounded-lg border border-border bg-background px-4 py-3 xl:min-w-[14rem]">
-                    <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-text-muted">Archive Status</p>
-                    <p className={`mt-2 text-lg font-bold ${isArchiveReady ? 'text-emerald-600' : 'text-amber-600'}`}>
-                        {readinessTone.label}
-                    </p>
-                    <p className="mt-1 text-xs text-text-secondary">
-                        {isArchiveReady
-                            ? 'All required document slots are filled and no open remarks remain.'
-                            : 'Resolve missing documents and open remarks before archiving.'}
-                    </p>
-                    <button
-                        type="button"
-                        onClick={onArchive}
-                        disabled={!isArchiveReady || isArchiving}
-                        className={`mt-4 inline-flex w-full items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-semibold transition-colors ${
-                            isArchiveReady
-                                ? 'bg-emerald-600 text-white hover:bg-emerald-700 disabled:bg-emerald-500/70'
-                                : 'cursor-not-allowed border border-border bg-surface text-text-muted'
-                        }`}
-                    >
-                        <Icon name="archive" className="h-4 w-4" />
-                        {isArchiving ? 'Archiving...' : 'Move to Archive'}
-                    </button>
-                    {archiveError ? (
-                        <p className="mt-2 text-xs font-medium text-red-500">{archiveError}</p>
-                    ) : null}
-                    <button
-                        type="button"
-                        onClick={onOpenTransaction}
-                        className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-md border border-border bg-surface px-3 py-2 text-sm font-semibold text-text-secondary transition-colors hover:bg-hover hover:text-text-primary"
-                    >
-                        <Icon name="file-text" className="h-4 w-4" />
-                        View Finalized Record
-                    </button>
+                {/* Row 2 — status + finalized only (type & readiness already shown in queue selection) */}
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                    <span className={`rounded border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.18em] ${(STATUS_TONES[detailData.transaction.status.toLowerCase()] ?? STATUS_TONES.completed).text} ${(STATUS_TONES[detailData.transaction.status.toLowerCase()] ?? STATUS_TONES.completed).bg}`}>
+                        {detailData.transaction.status}
+                    </span>
+                    <span className="rounded border border-border bg-background px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.18em] text-text-muted">
+                        Finalized {timeAgo(detailData.transaction.finalized_date)}
+                    </span>
                 </div>
+
+                {archiveError ? (
+                    <p className="mt-2 text-xs font-medium text-red-500">{archiveError}</p>
+                ) : null}
             </div>
 
-            <div className="min-h-0 flex-1 space-y-8 overflow-y-auto p-6">
-                <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
-                    <SummaryCard label="Uploaded Files" value={summary.total_uploaded} />
-                    <SummaryCard label="Required Done" value={summary.required_completed} />
-                    <SummaryCard label="Required Total" value={summary.required_total} />
-                    <SummaryCard label="Missing Docs" value={summary.missing_count} />
-                    <SummaryCard label="Open Remarks" value={summary.flagged_count} />
+            {/*
+             * ┌─────────────────────────────────────────────────────────┐
+             * │  SCROLLABLE BODY — everything else lives here           │
+             * └─────────────────────────────────────────────────────────┘
+             */}
+            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 xl:px-6 xl:py-6">
+                <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
+                    {/* Left column — document checklist (full width when no remarks/extras) */}
+                    <div className="min-w-0 flex-1">
+                        <DocumentChecklistSection
+                            requiredDocuments={detailData.required_documents}
+                            onPreview={onPreview}
+                            onDownload={onDownload}
+                        />
+                    </div>
+
+                    {/* Right column — only renders when there is content to show */}
+                    {(detailData.remarks.length > 0 || additionalUploads.length > 0) && (
+                        <div className="lg:w-72 lg:shrink-0 space-y-5">
+                            <RemarksSection remarks={detailData.remarks} />
+                            <AdditionalUploadsSection
+                                documents={additionalUploads}
+                                onPreview={onPreview}
+                                onDownload={onDownload}
+                            />
+                        </div>
+                    )}
                 </div>
-
-                {hasMissingDocs ? (
-                    <div className="flex gap-3 rounded-lg border border-amber-500/20 bg-amber-500/10 p-4">
-                        <Icon name="alert-circle" className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
-                        <div>
-                            <p className="text-sm font-bold text-amber-600">Missing Required Documents</p>
-                            <p className="mt-1 text-sm text-amber-700/80">
-                                This file is not archive-ready until every required document slot has at least one upload.
-                            </p>
-                        </div>
-                    </div>
-                ) : null}
-
-                {hasExceptions ? (
-                    <div className="flex gap-3 rounded-lg border border-red-500/20 bg-red-500/10 p-4">
-                        <Icon name="flag" className="mt-0.5 h-5 w-5 shrink-0 text-red-500" />
-                        <div>
-                            <p className="text-sm font-bold text-red-600">Open Compliance Remarks</p>
-                            <p className="mt-1 text-sm text-red-700/80">
-                                Outstanding remarks still need resolution before the transaction can be archived.
-                            </p>
-                        </div>
-                    </div>
-                ) : null}
-
-                <RequiredDocumentsSection
-                    requiredDocuments={requiredDocuments}
-                    onPreview={onPreview}
-                    onDownload={onDownload}
-                />
-
-                <UploadedDocumentsSection
-                    documents={uploadedDocuments}
-                    onPreview={onPreview}
-                    onDownload={onDownload}
-                />
-
-                <RemarksSection remarks={remarks} />
             </div>
         </div>
     );

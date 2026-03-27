@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Icon } from '../../../components/Icon';
 import { FilePreviewModal } from '../../../components/modals/FilePreviewModal';
 import { UploadModal } from '../../../components/modals/UploadModal';
+import { useTransactionSyncSubscription } from '../../../hooks/useTransactionSyncSubscription';
 import { appRoutes } from '../../../lib/appRoutes';
 import { trackingApi } from '../api/trackingApi';
 import type { ApiDocument, DocumentableType, ExportTransaction, ImportTransaction } from '../types';
@@ -78,6 +79,13 @@ export const TrackingDetails = () => {
     const displayTxDetail = hasCompletionSnapshot ? completionSnapshot.txDetail : txDetail;
     const displayStages = displayTxDetail?.isImport ? IMPORT_STAGES : EXPORT_STAGES;
     const displayStageDocuments = hasCompletionSnapshot ? completionSnapshot.stageDocuments : stageDocuments;
+
+    useTransactionSyncSubscription({
+        type: txDetail ? (txDetail.isImport ? 'import' : 'export') : null,
+        id: txDetail?.raw.id ?? null,
+        reference: referenceId,
+        enabled: !!txDetail && !!referenceId,
+    });
 
     // ── Completion countdown effect ─────────────────────────────────────
     useEffect(() => {

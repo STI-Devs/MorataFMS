@@ -13,6 +13,7 @@ use App\Models\ExportTransaction;
 use App\Models\ImportTransaction;
 use App\Models\User;
 use App\Queries\Transactions\TransactionOversightIndexQuery;
+use App\Support\Transactions\TransactionSyncBroadcaster;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -22,6 +23,7 @@ class TransactionController extends Controller
         private TransactionOversightIndexQuery $transactionOversightIndexQuery,
         private ReassignTransaction $reassignTransaction,
         private OverrideTransactionStatus $overrideTransactionStatus,
+        private TransactionSyncBroadcaster $transactionSyncBroadcaster,
     ) {}
 
     /**
@@ -112,11 +114,18 @@ class TransactionController extends Controller
         $this->authorize('transactions.reassign');
 
         $validated = $request->validated();
+        $previousAssignedUserId = $importTransaction->assigned_user_id;
         $this->reassignTransaction->handle(
             $importTransaction,
             $request->user(),
             $validated['assigned_user_id'],
             $request->ip(),
+        );
+        $this->transactionSyncBroadcaster->transactionChanged(
+            $importTransaction,
+            $request->user(),
+            'reassigned',
+            $previousAssignedUserId,
         );
 
         return response()->json([
@@ -134,11 +143,18 @@ class TransactionController extends Controller
         $this->authorize('transactions.reassign');
 
         $validated = $request->validated();
+        $previousAssignedUserId = $exportTransaction->assigned_user_id;
         $this->reassignTransaction->handle(
             $exportTransaction,
             $request->user(),
             $validated['assigned_user_id'],
             $request->ip(),
+        );
+        $this->transactionSyncBroadcaster->transactionChanged(
+            $exportTransaction,
+            $request->user(),
+            'reassigned',
+            $previousAssignedUserId,
         );
 
         return response()->json([
@@ -162,6 +178,11 @@ class TransactionController extends Controller
             $validated['status'],
             $request->ip(),
         );
+        $this->transactionSyncBroadcaster->transactionChanged(
+            $importTransaction,
+            $request->user(),
+            'status_changed',
+        );
 
         return response()->json([
             'message' => 'Status updated successfully.',
@@ -182,6 +203,11 @@ class TransactionController extends Controller
             $request->user(),
             $validated['status'],
             $request->ip(),
+        );
+        $this->transactionSyncBroadcaster->transactionChanged(
+            $exportTransaction,
+            $request->user(),
+            'status_changed',
         );
 
         return response()->json([

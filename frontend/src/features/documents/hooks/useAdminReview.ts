@@ -9,7 +9,7 @@ import type {
     TransactionType,
 } from '../types/document.types';
 
-const adminReviewKeys = {
+export const adminReviewKeys = {
     all: ['admin-document-review'] as const,
     queue: (params?: AdminReviewQueueParams) =>
         ['admin-document-review', 'queue', params] as const,

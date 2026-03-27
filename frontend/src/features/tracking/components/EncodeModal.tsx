@@ -1,5 +1,6 @@
 ﻿import { useEffect, useState } from 'react';
 import { Icon } from '../../../components/Icon';
+import { getApiError } from '../../../lib/apiErrors';
 import { useClients } from '../hooks/useClients';
 import { useCountries } from '../hooks/useCountries';
 import type { CreateExportPayload, CreateImportPayload } from '../types';
@@ -24,6 +25,13 @@ const selectCls = `${inputCls} appearance-none cursor-pointer`;
 
 export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type, onSave }) => {
     const isImport = type === 'import';
+    const blscFieldId = `${type}-blsc`;
+    const refFieldId = `${type}-customs-ref`;
+    const clientFieldId = `${type}-client`;
+    const blFieldId = `${type}-bill-of-lading`;
+    const vesselFieldId = `${type}-vessel`;
+    const destinationCountryFieldId = `${type}-destination-country`;
+    const arrivalDateFieldId = `${type}-arrival-date`;
 
     const [ref, setRef] = useState('');
     const [bl, setBl] = useState('');
@@ -84,7 +92,7 @@ export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type,
             }
             onClose();
         } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : 'Failed to save transaction. Please try again.');
+            setError(getApiError(err, 'save transaction'));
         } finally {
             setSubmitting(false);
         }
@@ -135,9 +143,15 @@ export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type,
                         {/* BLSC — import only */}
                         {isImport && (
                             <div className="space-y-2 md:col-span-2">
-                                <label className={labelCls}>BLSC (Selective Color)</label>
+                                <label htmlFor={blscFieldId} className={labelCls}>BLSC (Selective Color)</label>
                                 <div className="relative">
-                                    <select required value={blsc} className={selectCls} onChange={e => setBlsc(e.target.value)}>
+                                    <select
+                                        id={blscFieldId}
+                                        required
+                                        value={blsc}
+                                        className={selectCls}
+                                        onChange={e => setBlsc(e.target.value)}
+                                    >
                                         <option value="">Select Color</option>
                                         <option value="green">Green</option>
                                         <option value="yellow">Yellow</option>
@@ -151,8 +165,9 @@ export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type,
                         {/* Customs Ref No. — import only */}
                         {isImport && (
                             <div className="space-y-2">
-                                <label className={labelCls}>Customs Ref No.</label>
+                                <label htmlFor={refFieldId} className={labelCls}>Customs Ref No.</label>
                                 <input
+                                    id={refFieldId}
                                     required
                                     type="text"
                                     value={ref}
@@ -165,9 +180,10 @@ export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type,
 
                         {/* Importer / Shipper */}
                         <div className="space-y-2">
-                            <label className={labelCls}>{isImport ? 'Importer' : 'Shipper'}</label>
+                            <label htmlFor={clientFieldId} className={labelCls}>{isImport ? 'Importer' : 'Shipper'}</label>
                             <div className="relative">
                                 <select
+                                    id={clientFieldId}
                                     required
                                     value={clientId}
                                     className={selectCls}
@@ -187,8 +203,9 @@ export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type,
 
                         {/* Bill of Lading */}
                         <div className="space-y-2">
-                            <label className={labelCls}>Bill of Lading</label>
+                            <label htmlFor={blFieldId} className={labelCls}>Bill of Lading</label>
                             <input
+                                id={blFieldId}
                                 required
                                 type="text"
                                 value={bl}
@@ -201,8 +218,9 @@ export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type,
                         {/* Vessel — export only */}
                         {!isImport && (
                             <div className="space-y-2">
-                                <label className={labelCls}>Vessel</label>
+                                <label htmlFor={vesselFieldId} className={labelCls}>Vessel</label>
                                 <input
+                                    id={vesselFieldId}
                                     required
                                     type="text"
                                     value={vessel}
@@ -216,9 +234,10 @@ export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type,
                         {/* Port of Destination — export only */}
                         {!isImport && (
                             <div className="space-y-2 md:col-span-2">
-                                <label className={labelCls}>Port of Destination</label>
+                                <label htmlFor={destinationCountryFieldId} className={labelCls}>Port of Destination</label>
                                 <div className="relative">
                                     <select
+                                        id={destinationCountryFieldId}
                                         required
                                         value={destinationCountryId}
                                         className={selectCls}
@@ -240,8 +259,9 @@ export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type,
                         {/* Arrival Date — import only */}
                         {isImport && (
                             <div className="space-y-2 md:col-span-2">
-                                <label className={labelCls}>Arrival Date</label>
+                                <label htmlFor={arrivalDateFieldId} className={labelCls}>Arrival Date</label>
                                 <input
+                                    id={arrivalDateFieldId}
                                     required
                                     type="date"
                                     value={arrivalDate}
