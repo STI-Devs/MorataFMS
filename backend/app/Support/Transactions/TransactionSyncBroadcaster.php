@@ -18,6 +18,10 @@ class TransactionSyncBroadcaster
         string $eventType,
         ?int $previousAssignedUserId = null,
     ): void {
+        if (! config('transactions.realtime_enabled')) {
+            return;
+        }
+
         event(
             (new TransactionChanged(
                 channels: $this->channelsFor($transaction, $previousAssignedUserId),
@@ -31,6 +35,10 @@ class TransactionSyncBroadcaster
         User $actor,
         string $eventType,
     ): void {
+        if (! config('transactions.realtime_enabled')) {
+            return;
+        }
+
         event(
             (new TransactionRemarkChanged(
                 channels: $this->channelsFor($transaction),

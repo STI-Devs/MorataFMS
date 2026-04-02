@@ -2,6 +2,7 @@ import type Echo from 'laravel-echo';
 import LaravelEcho from 'laravel-echo';
 import Pusher from 'pusher-js';
 import api from '../axios';
+import { isTransactionSyncEnabled } from './transactionSync';
 
 declare global {
     interface Window {
@@ -64,7 +65,7 @@ function createEchoInstance(): Echo<'reverb'> {
 }
 
 export function getEcho(): Echo<'reverb'> | null {
-    if (typeof window === 'undefined' || !import.meta.env.VITE_REVERB_APP_KEY) {
+    if (typeof window === 'undefined' || !isTransactionSyncEnabled()) {
         return null;
     }
 

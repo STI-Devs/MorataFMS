@@ -9,6 +9,7 @@ use App\Models\TransactionRemark;
 use App\Models\User;
 use Illuminate\Broadcasting\Broadcasters\Broadcaster;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
+use Illuminate\Contracts\Broadcasting\ShouldRescue;
 use Illuminate\Contracts\Events\ShouldDispatchAfterCommit;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Broadcast;
@@ -38,6 +39,7 @@ function requiredBroadcastReviewTypes(string $type): array
 
 beforeEach(function () {
     Storage::fake(config('filesystems.document_disk', 's3'));
+    config()->set('transactions.realtime_enabled', true);
 });
 
 test('cors allows the socket id header used by realtime sync requests', function () {
@@ -60,11 +62,32 @@ test('transaction sync events broadcast immediately after commit without a queue
 
     expect(new TransactionChanged($channels, $payload))
         ->toBeInstanceOf(ShouldBroadcastNow::class)
+        ->toBeInstanceOf(ShouldRescue::class)
         ->toBeInstanceOf(ShouldDispatchAfterCommit::class);
 
     expect(new TransactionRemarkChanged($channels, $payload))
         ->toBeInstanceOf(ShouldBroadcastNow::class)
+        ->toBeInstanceOf(ShouldRescue::class)
         ->toBeInstanceOf(ShouldDispatchAfterCommit::class);
+});
+
+test('transaction sync broadcaster skips dispatching when realtime is disabled', function () {
+    config()->set('transactions.realtime_enabled', false);
+
+    $admin = User::factory()->create(['role' => 'admin']);
+    $encoder = User::factory()->create(['role' => 'encoder']);
+    $transaction = ImportTransaction::factory()->create([
+        'assigned_user_id' => $encoder->id,
+    ]);
+
+    Event::fake([TransactionRemarkChanged::class]);
+
+    $this->actingAs($admin)->postJson("/api/transactions/import/{$transaction->id}/remarks", [
+        'severity' => 'warning',
+        'message' => 'Realtime disabled check.',
+    ])->assertCreated();
+
+    Event::assertNotDispatched(TransactionRemarkChanged::class);
 });
 
 test('registered broadcast channel callbacks authorize admins and restrict encoders to their own transaction scope', function () {

@@ -31,6 +31,11 @@ const STAT_RELEVANT_EVENT_TYPES = new Set([
 
 const ARCHIVE_RELEVANT_EVENT_TYPES = new Set(['archived', 'archive_created']);
 
+export function isTransactionSyncEnabled(): boolean {
+    return import.meta.env.VITE_TRANSACTION_SYNC_ENABLED !== 'false'
+        && Boolean(import.meta.env.VITE_REVERB_APP_KEY);
+}
+
 export function getUserTransactionChannelName(userId: number): string {
     return `transactions.user.${userId}`;
 }

@@ -7,6 +7,7 @@ import {
     getActiveTransactionInvalidationKeys,
     getTransactionChannelName,
     getTransactionSyncToastMessage,
+    isTransactionSyncEnabled,
     shouldShowTransactionSyncToast,
     TRANSACTION_CHANGED_EVENT,
     TRANSACTION_REMARK_CHANGED_EVENT,
@@ -51,6 +52,7 @@ export function useTransactionSyncSubscription({
         if (
             !enabled ||
             isLoading ||
+            !isTransactionSyncEnabled() ||
             !isAuthenticated ||
             !user ||
             !type ||

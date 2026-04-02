@@ -91,6 +91,8 @@ function SubscriptionProbe() {
 
 describe('useTransactionSyncSubscription', () => {
     beforeEach(() => {
+        vi.stubEnv('VITE_REVERB_APP_KEY', 'test-reverb-key');
+        vi.stubEnv('VITE_TRANSACTION_SYNC_ENABLED', 'true');
         channelRegistry.clear();
         mockAcquirePrivateChannel.mockClear();
         mockReleasePrivateChannel.mockClear();
@@ -106,6 +108,7 @@ describe('useTransactionSyncSubscription', () => {
     });
 
     afterEach(() => {
+        vi.unstubAllEnvs();
         vi.restoreAllMocks();
     });
 
@@ -188,5 +191,13 @@ describe('useTransactionSyncSubscription', () => {
         });
 
         expect(toast.info).toHaveBeenCalledWith('This transaction was reassigned.');
+    });
+
+    it('does not subscribe when transaction sync is disabled', () => {
+        vi.stubEnv('VITE_TRANSACTION_SYNC_ENABLED', 'false');
+
+        renderWithProviders(<SubscriptionProbe />);
+
+        expect(mockAcquirePrivateChannel).not.toHaveBeenCalled();
     });
 });

@@ -2,6 +2,8 @@ import { CurrentDateTime } from '../../../components/CurrentDateTime';
 import { Icon, type IconName } from '../../../components/Icon';
 import { appRoutes } from '../../../lib/appRoutes';
 import { useNavigate } from 'react-router-dom';
+import { useAdminDashboard } from '../hooks/useAdminDashboard';
+import type { AdminDashboardCriticalItem, AdminDashboardDestination } from '../types/adminDashboard.types';
 
 type KpiCard = {
     label: string;
@@ -10,154 +12,12 @@ type KpiCard = {
     helper: string;
 };
 
-type CriticalItem = {
-    id: number;
-    ref: string;
-    status: 'stuck' | 'missing' | 'review';
-    title: string;
-    detail: string;
-    age: string;
-    path: string;
-};
-
-type FeedItem = {
-    id: number;
-    age: string;
-    actor: string;
-    action: string;
-    target: string;
-    detail: string;
-};
-
-type WorkloadItem = {
-    id: number;
-    name: string;
-    role: string;
-    active: number;
-    overdue: number;
-};
-
 type QuickAction = {
     label: string;
     path: string;
     icon: IconName;
     accent: string;
 };
-
-const kpiCards: KpiCard[] = [
-    {
-        label: 'Active Imports',
-        value: '18',
-        tone: 'neutral',
-        helper: 'Brokerage files still in progress',
-    },
-    {
-        label: 'Active Exports',
-        value: '11',
-        tone: 'neutral',
-        helper: 'Outbound shipments in motion',
-    },
-    {
-        label: 'Delayed Shipments',
-        value: '3',
-        tone: 'danger',
-        helper: 'Escalations needing admin action',
-    },
-    {
-        label: 'Missing Final Docs',
-        value: '6',
-        tone: 'warning',
-        helper: 'Finalized files still incomplete',
-    },
-];
-
-const criticalOperations: CriticalItem[] = [
-    {
-        id: 1,
-        ref: 'IMP-0921',
-        status: 'stuck',
-        title: 'Releasing delayed at customs hold',
-        detail: 'Assigned to Sarah Velasco. No movement in the last 2 hours.',
-        age: '2h ago',
-        path: appRoutes.transactions,
-    },
-    {
-        id: 2,
-        ref: 'EXP-1044',
-        status: 'missing',
-        title: 'Final BL still missing — blocked for archive',
-        detail: 'Shipment is completed but the final BL is not uploaded. Open Document Review.',
-        age: '4h ago',
-        path: appRoutes.adminDocumentReview,
-    },
-    {
-        id: 3,
-        ref: 'IMP-0918',
-        status: 'review',
-        title: 'Cancelled transaction waiting for admin review',
-        detail: 'Client cancellation logged. Files need verification before archive handoff.',
-        age: '1d ago',
-        path: appRoutes.adminDocumentReview,
-    },
-];
-
-const actionFeed: FeedItem[] = [
-    {
-        id: 1,
-        age: '10 mins ago',
-        actor: 'Admin',
-        action: 'Status Override',
-        target: 'IMP-0901',
-        detail: 'Moved the shipment to Completed after manual review.',
-    },
-    {
-        id: 2,
-        age: '1h ago',
-        actor: 'Admin',
-        action: 'Reassignment',
-        target: 'EXP-1042',
-        detail: 'Transferred the case from Mike Tan to Sarah Velasco.',
-    },
-    {
-        id: 3,
-        age: '3h ago',
-        actor: 'System',
-        action: 'Document Alert',
-        target: 'EXP-1038',
-        detail: 'CO uploaded without the matching BL attachment.',
-    },
-];
-
-const brokerageWorkloads: WorkloadItem[] = [
-    {
-        id: 1,
-        name: 'Sarah Velasco',
-        role: 'Senior Encoder',
-        active: 12,
-        overdue: 2,
-    },
-    {
-        id: 2,
-        name: 'Mike Tan',
-        role: 'Encoder',
-        active: 9,
-        overdue: 1,
-    },
-    {
-        id: 3,
-        name: 'Jane Dela Cruz',
-        role: 'Encoder',
-        active: 7,
-        overdue: 0,
-    },
-    {
-        id: 4,
-        name: 'Paolo Reyes',
-        role: 'Encoder',
-        active: 5,
-        overdue: 0,
-    },
-];
 
 const quickActions: QuickAction[] = [
     {
@@ -213,16 +73,21 @@ const toneStyles: Record<KpiCard['tone'], { value: string; dot: string }> = {
     },
 };
 
-const statusBadgeStyles: Record<CriticalItem['status'], string> = {
+const statusBadgeStyles: Record<AdminDashboardCriticalItem['status'], string> = {
     stuck: 'border-red-500/20 bg-red-500/10 text-red-500',
     missing: 'border-amber-500/20 bg-amber-500/10 text-amber-500',
     review: 'border-border bg-surface-secondary text-text-secondary',
 };
 
-const statusLabels: Record<CriticalItem['status'], string> = {
+const statusLabels: Record<AdminDashboardCriticalItem['status'], string> = {
     stuck: 'Stuck',
     missing: 'Missing',
     review: 'Review',
+};
+
+const dashboardDestinationPaths: Record<AdminDashboardDestination, string> = {
+    transactions: appRoutes.transactions,
+    admin_document_review: appRoutes.adminDocumentReview,
 };
 
 const SectionHeading = ({ label, accentClass }: { label: string; accentClass: string }) => (
@@ -239,8 +104,98 @@ const EmptyState = ({ title, body }: { title: string; body: string }) => (
     </div>
 );
 
+const actionLeadIn = (action: string): string => {
+    if (action === 'Document Alert') {
+        return 'raised';
+    }
+
+    if (action === 'Encoder Reassigned' || action === 'Status Override') {
+        return 'performed';
+    }
+
+    return 'recorded';
+};
+
 export const AdminDashboard = () => {
     const navigate = useNavigate();
+    const dashboardQuery = useAdminDashboard();
+    const dashboard = dashboardQuery.data;
+
+    const kpiCards: KpiCard[] = [
+        {
+            label: 'Active Imports',
+            value: dashboardQuery.isLoading ? '—' : String(dashboard?.kpis.active_imports ?? 0),
+            tone: 'neutral',
+            helper: 'Brokerage files still in progress',
+        },
+        {
+            label: 'Active Exports',
+            value: dashboardQuery.isLoading ? '—' : String(dashboard?.kpis.active_exports ?? 0),
+            tone: 'neutral',
+            helper: 'Outbound shipments in motion',
+        },
+        {
+            label: 'Delayed Shipments',
+            value: dashboardQuery.isLoading ? '—' : String(dashboard?.kpis.delayed_shipments ?? 0),
+            tone: 'danger',
+            helper: 'No updates for 48 hours or more',
+        },
+        {
+            label: 'Missing Final Docs',
+            value: dashboardQuery.isLoading ? '—' : String(dashboard?.kpis.missing_final_docs ?? 0),
+            tone: 'warning',
+            helper: 'Finalized files still incomplete',
+        },
+    ];
+
+    const criticalOperations = dashboard?.critical_operations ?? [];
+    const actionFeed = dashboard?.action_feed ?? [];
+    const brokerageWorkloads = dashboard?.workloads ?? [];
+
+    const criticalEmptyState = dashboardQuery.isLoading
+        ? {
+            title: 'Loading critical operations...',
+            body: 'Stuck shipments, missing archive documents, and flagged exceptions will appear here.',
+        }
+        : dashboardQuery.isError
+            ? {
+                title: 'Unable to load critical operations.',
+                body: 'Refresh the page to retry the admin dashboard request.',
+            }
+            : {
+                title: 'All clear — no critical issues.',
+                body: 'Stuck shipments, missing archive documents, and flagged exceptions will appear here.',
+            };
+
+    const actionFeedEmptyState = dashboardQuery.isLoading
+        ? {
+            title: 'Loading recent activity...',
+            body: 'Status overrides, reassignments, and document alerts will show here.',
+        }
+        : dashboardQuery.isError
+            ? {
+                title: 'Unable to load recent activity.',
+                body: 'Refresh the page to retry the admin dashboard request.',
+            }
+            : {
+                title: 'No admin activity recorded yet.',
+                body: 'Status overrides, reassignments, and document alerts will show here.',
+            };
+
+    const workloadEmptyState = dashboardQuery.isLoading
+        ? {
+            title: 'Loading workload distribution...',
+            body: 'Encoder workloads will appear here once the dashboard data is ready.',
+        }
+        : dashboardQuery.isError
+            ? {
+                title: 'Unable to load encoder workloads.',
+                body: 'Refresh the page to retry the admin dashboard request.',
+            }
+            : {
+                title: 'No encoder workloads yet.',
+                body: 'Active brokerage assignments will appear here.',
+            };
 
     return (
         <div className="space-y-8 px-6 py-6">
@@ -284,15 +239,15 @@ export const AdminDashboard = () => {
                         <div className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
                             {criticalOperations.length === 0 ? (
                                 <EmptyState
-                                    title="All clear — no critical issues."
-                                    body="Stuck shipments, missing archive documents, and flagged exceptions will appear here."
+                                    title={criticalEmptyState.title}
+                                    body={criticalEmptyState.body}
                                 />
                             ) : (
                                 criticalOperations.map((item, index) => (
                                     <button
                                         key={item.id}
                                         type="button"
-                                        onClick={() => navigate(item.path)}
+                                        onClick={() => navigate(dashboardDestinationPaths[item.destination])}
                                         className={`flex w-full items-start gap-4 px-5 py-5 text-left transition-colors hover:bg-hover ${
                                             index !== criticalOperations.length - 1 ? 'border-b border-border' : ''
                                         }`}
@@ -322,8 +277,8 @@ export const AdminDashboard = () => {
                         <div className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
                             {actionFeed.length === 0 ? (
                                 <EmptyState
-                                    title="No admin activity recorded yet."
-                                    body="Status overrides, reassignments, and document alerts will show here."
+                                    title={actionFeedEmptyState.title}
+                                    body={actionFeedEmptyState.body}
                                 />
                             ) : (
                                 actionFeed.map((item, index) => (
@@ -337,7 +292,7 @@ export const AdminDashboard = () => {
                                         <div>
                                             <p className="text-sm leading-6 text-text-secondary">
                                                 <span className="font-semibold text-text-primary">{item.actor}</span>{' '}
-                                                executed{' '}
+                                                {actionLeadIn(item.action)}{' '}
                                                 <span className="font-semibold text-blue-500">{item.action}</span>{' '}
                                                 on{' '}
                                                 <span className="font-semibold text-text-primary">{item.target}</span>
@@ -383,7 +338,12 @@ export const AdminDashboard = () => {
                     <section>
                         <SectionHeading label="Active Workloads" accentClass="bg-emerald-500" />
                         <div className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
-                            {brokerageWorkloads.map((person, index) => (
+                            {brokerageWorkloads.length === 0 ? (
+                                <EmptyState
+                                    title={workloadEmptyState.title}
+                                    body={workloadEmptyState.body}
+                                />
+                            ) : brokerageWorkloads.map((person, index) => (
                                 <div
                                     key={person.id}
                                     className={`flex items-center justify-between gap-4 px-5 py-4 ${

@@ -76,6 +76,8 @@ vi.mock('../lib/realtime/echo', () => ({
 
 describe('TransactionSyncProvider', () => {
     beforeEach(() => {
+        vi.stubEnv('VITE_REVERB_APP_KEY', 'test-reverb-key');
+        vi.stubEnv('VITE_TRANSACTION_SYNC_ENABLED', 'true');
         channelRegistry.clear();
         mockAcquirePrivateChannel.mockClear();
         mockDisconnectEcho.mockClear();
@@ -91,6 +93,7 @@ describe('TransactionSyncProvider', () => {
     });
 
     afterEach(() => {
+        vi.unstubAllEnvs();
         vi.restoreAllMocks();
     });
 
@@ -153,5 +156,18 @@ describe('TransactionSyncProvider', () => {
         expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['admin-document-review'] });
         expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['archives'] });
         expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['my-archives'] });
+    });
+
+    it('disconnects and avoids subscribing when transaction sync is disabled', () => {
+        vi.stubEnv('VITE_TRANSACTION_SYNC_ENABLED', 'false');
+
+        renderWithProviders(
+            <TransactionSyncProvider>
+                <div>provider test</div>
+            </TransactionSyncProvider>,
+        );
+
+        expect(mockDisconnectEcho).toHaveBeenCalled();
+        expect(mockAcquirePrivateChannel).not.toHaveBeenCalled();
     });
 });

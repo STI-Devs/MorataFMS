@@ -4,6 +4,7 @@ import { useAuth } from '../features/auth';
 import { acquirePrivateChannel, disconnectEcho, releasePrivateChannel } from '../lib/realtime/echo';
 import {
     getListInvalidationKeys,
+    isTransactionSyncEnabled,
     getUserTransactionChannelName,
     TRANSACTION_CHANGED_EVENT,
     TRANSACTION_REMARK_CHANGED_EVENT,
@@ -27,6 +28,12 @@ export function TransactionSyncProvider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         if (isLoading) {
+            return;
+        }
+
+        if (!isTransactionSyncEnabled()) {
+            disconnectEcho();
+
             return;
         }
 

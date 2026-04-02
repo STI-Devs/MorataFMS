@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\AdminDocumentReviewController;
 use App\Http\Controllers\ArchiveController;
 use App\Http\Controllers\AuditLogController;
@@ -92,6 +93,9 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
         Route::get('reports/monthly', [ReportController::class, 'monthly']);
         Route::get('reports/clients', [ReportController::class, 'clients']);
         Route::get('reports/turnaround', [ReportController::class, 'turnaround']);
+
+        // Admin dashboard
+        Route::get('admin/dashboard', [AdminDashboardController::class, 'show']);
 
         // Transaction oversight (admin)
         Route::get('transactions', [TransactionController::class, 'index']);
