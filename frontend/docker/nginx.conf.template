@@ -6,6 +6,14 @@ server {
     root /usr/share/nginx/html;
     index index.html;
 
+    location /api/ {
+        return 404;
+    }
+
+    location /sanctum/ {
+        return 404;
+    }
+
     location /assets/ {
         expires 1y;
         add_header Cache-Control "public, immutable";
@@ -16,4 +24,3 @@ server {
         try_files $uri $uri/ /index.html;
     }
 }
-

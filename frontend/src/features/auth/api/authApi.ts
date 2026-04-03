@@ -1,6 +1,20 @@
 import api from '../../../lib/axios';
 import type { AuthResponse, LoginCredentials, User } from '../types/auth.types';
 
+function isUserPayload(value: unknown): value is User {
+    if (!value || typeof value !== 'object') {
+        return false;
+    }
+
+    const candidate = value as Partial<User>;
+
+    return (
+        typeof candidate.id === 'number'
+        && typeof candidate.email === 'string'
+        && typeof candidate.role === 'string'
+    );
+}
+
 export const authApi = {
     // Get CSRF cookie (required before login)
     async getCsrfCookie(): Promise<void> {
@@ -27,7 +41,13 @@ export const authApi = {
     // Get current user
     async getCurrentUser(): Promise<User> {
         const response = await api.get<{ data: User } | User>(`/api/user`);
-        return (response.data as { data: User }).data ?? (response.data as User);
+        const payload = (response.data as { data?: unknown }).data ?? response.data;
+
+        if (!isUserPayload(payload)) {
+            throw new Error('Invalid current user payload.');
+        }
+
+        return payload;
     },
 
     // Update profile (name, job title, and/or password)
