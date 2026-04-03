@@ -1,0 +1,11 @@
+node_modules
+dist
+coverage
+.env
+.env.local
+.env.*.local
+.agents
+.vscode
+npm-debug.log*
+pnpm-debug.log*
+
