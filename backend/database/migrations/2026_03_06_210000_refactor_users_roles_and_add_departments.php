@@ -12,7 +12,7 @@ return new class extends Migration
         // Step 1: Convert enum to string for flexibility, map old roles to new ones
         Schema::table('users', function (Blueprint $table) {
             $table->string('role_new', 50)->default('encoder')->after('email');
-            $table->json('departments')->default(json_encode(['brokerage']))->after('role_new');
+            $table->json('departments')->nullable()->after('role_new');
         });
 
         // Step 2: Migrate existing role data

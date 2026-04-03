@@ -3,6 +3,8 @@
 namespace Database\Factories;
 
 use App\Models\User;
+use Faker\Factory as FakerFactory;
+use Faker\Generator;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -17,6 +19,8 @@ class UserFactory extends Factory
      */
     protected static ?string $password;
 
+    protected static ?Generator $stableFaker = null;
+
     /**
      * Define the model's default state.
      *
@@ -24,14 +28,21 @@ class UserFactory extends Factory
      */
     public function definition(): array
     {
+        $faker = static::faker();
+
         return [
-            'name' => fake()->name(),
-            'email' => fake()->unique()->safeEmail(),
-            'job_title' => fake()->randomElement(['Administrator', 'Lawyer', 'Paralegal', 'Encoder']),
+            'name' => $faker->name(),
+            'email' => $faker->unique()->safeEmail(),
+            'job_title' => $faker->randomElement(['Administrator', 'Lawyer', 'Paralegal', 'Encoder']),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
         ];
+    }
+
+    protected static function faker(): Generator
+    {
+        return static::$stableFaker ??= FakerFactory::create(config('app.faker_locale'));
     }
 
     /**

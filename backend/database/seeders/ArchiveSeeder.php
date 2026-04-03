@@ -2,6 +2,8 @@
 
 namespace Database\Seeders;
 
+use App\Enums\ExportStatus;
+use App\Enums\ImportStatus;
 use App\Models\Client;
 use App\Models\Country;
 use App\Models\Document;
@@ -48,7 +50,9 @@ class ArchiveSeeder extends Seeder
     ];
 
     private const IMPORT_STAGES = ['boc', 'ppa', 'do', 'port_charges', 'releasing', 'billing'];
+
     private const EXPORT_STAGES = ['docs_prep', 'co', 'cil', 'bl'];
+
     private const SELECTIVE_COLORS = ['green', 'green', 'green', 'green', 'yellow', 'yellow', 'red'];
 
     // Real vessel names that dock at PH ports
@@ -119,21 +123,21 @@ class ArchiveSeeder extends Seeder
 
     // Realistic document filenames per stage
     private const IMPORT_DOC_NAMES = [
-        'boc'          => ['BOC_Entry_Form.pdf', 'Commercial_Invoice.pdf', 'Packing_List.pdf'],
-        'ppa'          => ['PPA_Charges_Receipt.pdf', 'PPA_Assessment.pdf'],
-        'do'           => ['Delivery_Order.pdf', 'DO_Request_Form.pdf'],
+        'boc' => ['BOC_Entry_Form.pdf', 'Commercial_Invoice.pdf', 'Packing_List.pdf'],
+        'ppa' => ['PPA_Charges_Receipt.pdf', 'PPA_Assessment.pdf'],
+        'do' => ['Delivery_Order.pdf', 'DO_Request_Form.pdf'],
         'port_charges' => ['Port_Charges_Statement.pdf', 'Arrastre_Wharfage.pdf'],
-        'releasing'    => ['Gate_Pass.pdf', 'Release_Certificate.pdf'],
-        'billing'      => ['Billing_Statement.pdf', 'Liquidation_Report.pdf'],
-        'others'       => ['Miscellaneous_Docs.pdf', 'Additional_Notes.pdf', 'Correspondence_Letter.pdf', 'Supporting_Docs.pdf'],
+        'releasing' => ['Gate_Pass.pdf', 'Release_Certificate.pdf'],
+        'billing' => ['Billing_Statement.pdf', 'Liquidation_Report.pdf'],
+        'others' => ['Miscellaneous_Docs.pdf', 'Additional_Notes.pdf', 'Correspondence_Letter.pdf', 'Supporting_Docs.pdf'],
     ];
 
     private const EXPORT_DOC_NAMES = [
         'docs_prep' => ['Export_Declaration.pdf', 'Commercial_Invoice.pdf', 'Packing_List.pdf'],
-        'co'        => ['Certificate_of_Origin.pdf', 'CO_Application.pdf'],
-        'cil'       => ['DCCCI_Certificate.pdf', 'CIL_Inspection_Report.pdf'],
-        'bl'        => ['Bill_of_Lading_Final.pdf', 'BL_Draft.pdf'],
-        'others'    => ['Miscellaneous_Docs.pdf', 'Additional_Notes.pdf', 'Correspondence_Letter.pdf', 'Supporting_Docs.pdf'],
+        'co' => ['Certificate_of_Origin.pdf', 'CO_Application.pdf'],
+        'cil' => ['DCCCI_Certificate.pdf', 'CIL_Inspection_Report.pdf'],
+        'bl' => ['Bill_of_Lading_Final.pdf', 'BL_Draft.pdf'],
+        'others' => ['Miscellaneous_Docs.pdf', 'Additional_Notes.pdf', 'Correspondence_Letter.pdf', 'Supporting_Docs.pdf'],
     ];
 
     /**
@@ -226,8 +230,9 @@ class ArchiveSeeder extends Seeder
     public function run(): void
     {
         $admin = User::where('email', 'admin@morata.com')->first();
-        if (!$admin) {
+        if (! $admin) {
             $this->command->error('Admin user not found. Run DatabaseSeeder first.');
+
             return;
         }
 
@@ -275,13 +280,13 @@ class ArchiveSeeder extends Seeder
                 $date = sprintf('%04d-%02d-%02d', $year, $month, $day);
 
                 $blPrefix = self::IMPORT_BL_PREFIXES[array_rand(self::IMPORT_BL_PREFIXES)];
-                $blNo = $blPrefix . rand(100000000, 999999999);
+                $blNo = $blPrefix.rand(100000000, 999999999);
                 $color = self::SELECTIVE_COLORS[array_rand(self::SELECTIVE_COLORS)];
                 $originName = self::ORIGIN_COUNTRY_NAMES[array_rand(self::ORIGIN_COUNTRY_NAMES)];
 
                 $txn = ImportTransaction::withoutAuditing(function () use ($blNo, $color, $importerIds, $originCountries, $originName, $date, $admin) {
-                    $txn = new ImportTransaction();
-                    $txn->customs_ref_no = 'ARCH-' . $date . '-' . strtoupper(substr(uniqid(), -6));
+                    $txn = new ImportTransaction;
+                    $txn->customs_ref_no = 'ARCH-'.$date.'-'.strtoupper(substr(uniqid(), -6));
                     $txn->bl_no = $blNo;
                     $txn->selective_color = $color;
                     $txn->importer_id = $importerIds[array_rand($importerIds)];
@@ -289,8 +294,9 @@ class ArchiveSeeder extends Seeder
                     $txn->arrival_date = $date;
                     $txn->is_archive = true;
                     $txn->assigned_user_id = $admin->id;
-                    $txn->status = 'completed';
+                    $txn->status = ImportStatus::Completed;
                     $txn->save();
+
                     return $txn;
                 });
 
@@ -304,7 +310,7 @@ class ArchiveSeeder extends Seeder
                 $docCount += $this->seedDocuments($txn, 'import', $stages, self::IMPORT_DOC_NAMES, $blNo, $year, $month, $admin->id);
 
                 // Mark completed stages on the stage record ('others' is doc-only, no DB stage columns)
-                $this->completeImportStages($txn, array_filter($stages, fn($s) => $s !== 'others'), $admin->id, $date);
+                $this->completeImportStages($txn, array_filter($stages, fn ($s) => $s !== 'others'), $admin->id, $date);
 
                 $importCount++;
             }
@@ -315,12 +321,12 @@ class ArchiveSeeder extends Seeder
                 $date = sprintf('%04d-%02d-%02d', $year, $month, $day);
 
                 $blPrefix = self::EXPORT_BL_PREFIXES[array_rand(self::EXPORT_BL_PREFIXES)];
-                $blNo = $blPrefix . rand(100000000, 999999999);
+                $blNo = $blPrefix.rand(100000000, 999999999);
                 $destName = self::DESTINATION_COUNTRY_NAMES[array_rand(self::DESTINATION_COUNTRY_NAMES)];
                 $vessel = self::VESSELS[array_rand(self::VESSELS)];
 
                 $txn = ExportTransaction::withoutAuditing(function () use ($blNo, $vessel, $exporterIds, $destCountries, $destName, $date, $admin) {
-                    $txn = new ExportTransaction();
+                    $txn = new ExportTransaction;
                     $txn->bl_no = $blNo;
                     $txn->vessel = $vessel;
                     $txn->shipper_id = $exporterIds[array_rand($exporterIds)];
@@ -328,8 +334,9 @@ class ArchiveSeeder extends Seeder
                     $txn->export_date = $date;
                     $txn->is_archive = true;
                     $txn->assigned_user_id = $admin->id;
-                    $txn->status = 'completed';
+                    $txn->status = ExportStatus::Completed;
                     $txn->save();
+
                     return $txn;
                 });
 
@@ -343,7 +350,7 @@ class ArchiveSeeder extends Seeder
                 $docCount += $this->seedDocuments($txn, 'export', $stages, self::EXPORT_DOC_NAMES, $blNo, $year, $month, $admin->id);
 
                 // Mark completed stages ('others' is doc-only, no DB stage columns)
-                $this->completeExportStages($txn, array_filter($stages, fn($s) => $s !== 'others'), $admin->id, $date);
+                $this->completeExportStages($txn, array_filter($stages, fn ($s) => $s !== 'others'), $admin->id, $date);
 
                 $exportCount++;
             }
@@ -356,39 +363,41 @@ class ArchiveSeeder extends Seeder
         // Adds ~20 BLs attributed to encoder@morata.com so the My Archive
         // page has realistic data to display right after seeding.
         $encoder = User::where('email', 'encoder@morata.com')->first();
-        if (!$encoder) {
+        if (! $encoder) {
             $this->command->warn('⚠  encoder@morata.com not found — skipping encoder archive seed. Run TestUserSeeder first.');
+
             return;
         }
 
         $encImportCount = 0;
         $encExportCount = 0;
-        $encDocCount    = 0;
+        $encDocCount = 0;
 
         foreach ($this->getEncoderDistribution() as [$year, $month, $impQty, $expQty]) {
 
             // --- Encoder Imports ---
             for ($i = 0; $i < $impQty; $i++) {
-                $day  = rand(1, 28);
+                $day = rand(1, 28);
                 $date = sprintf('%04d-%02d-%02d', $year, $month, $day);
 
                 $blPrefix = self::IMPORT_BL_PREFIXES[array_rand(self::IMPORT_BL_PREFIXES)];
-                $blNo     = $blPrefix . rand(100000000, 999999999);
-                $color    = self::SELECTIVE_COLORS[array_rand(self::SELECTIVE_COLORS)];
+                $blNo = $blPrefix.rand(100000000, 999999999);
+                $color = self::SELECTIVE_COLORS[array_rand(self::SELECTIVE_COLORS)];
                 $originName = self::ORIGIN_COUNTRY_NAMES[array_rand(self::ORIGIN_COUNTRY_NAMES)];
 
                 $txn = ImportTransaction::withoutAuditing(function () use ($blNo, $color, $importerIds, $originCountries, $originName, $date, $encoder) {
-                    $txn = new ImportTransaction();
-                    $txn->customs_ref_no  = 'ARCH-' . $date . '-' . strtoupper(substr(uniqid(), -6));
-                    $txn->bl_no           = $blNo;
+                    $txn = new ImportTransaction;
+                    $txn->customs_ref_no = 'ARCH-'.$date.'-'.strtoupper(substr(uniqid(), -6));
+                    $txn->bl_no = $blNo;
                     $txn->selective_color = $color;
-                    $txn->importer_id     = $importerIds[array_rand($importerIds)];
+                    $txn->importer_id = $importerIds[array_rand($importerIds)];
                     $txn->origin_country_id = $originCountries[$originName] ?? null;
-                    $txn->arrival_date    = $date;
-                    $txn->is_archive      = true;
+                    $txn->arrival_date = $date;
+                    $txn->is_archive = true;
                     $txn->assigned_user_id = $encoder->id;
-                    $txn->status          = 'completed';
+                    $txn->status = ImportStatus::Completed;
                     $txn->save();
+
                     return $txn;
                 });
 
@@ -401,25 +410,26 @@ class ArchiveSeeder extends Seeder
 
             // --- Encoder Exports ---
             for ($i = 0; $i < $expQty; $i++) {
-                $day  = rand(1, 28);
+                $day = rand(1, 28);
                 $date = sprintf('%04d-%02d-%02d', $year, $month, $day);
 
                 $blPrefix = self::EXPORT_BL_PREFIXES[array_rand(self::EXPORT_BL_PREFIXES)];
-                $blNo     = $blPrefix . rand(100000000, 999999999);
+                $blNo = $blPrefix.rand(100000000, 999999999);
                 $destName = self::DESTINATION_COUNTRY_NAMES[array_rand(self::DESTINATION_COUNTRY_NAMES)];
-                $vessel   = self::VESSELS[array_rand(self::VESSELS)];
+                $vessel = self::VESSELS[array_rand(self::VESSELS)];
 
                 $txn = ExportTransaction::withoutAuditing(function () use ($blNo, $vessel, $exporterIds, $destCountries, $destName, $date, $encoder) {
-                    $txn = new ExportTransaction();
-                    $txn->bl_no                  = $blNo;
-                    $txn->vessel                 = $vessel;
-                    $txn->shipper_id             = $exporterIds[array_rand($exporterIds)];
+                    $txn = new ExportTransaction;
+                    $txn->bl_no = $blNo;
+                    $txn->vessel = $vessel;
+                    $txn->shipper_id = $exporterIds[array_rand($exporterIds)];
                     $txn->destination_country_id = $destCountries[$destName] ?? null;
-                    $txn->export_date            = $date;
-                    $txn->is_archive             = true;
-                    $txn->assigned_user_id       = $encoder->id;
-                    $txn->status                 = 'completed';
+                    $txn->export_date = $date;
+                    $txn->is_archive = true;
+                    $txn->assigned_user_id = $encoder->id;
+                    $txn->status = ExportStatus::Completed;
                     $txn->save();
+
                     return $txn;
                 });
 
@@ -485,7 +495,7 @@ class ArchiveSeeder extends Seeder
             );
 
             Document::withoutAuditing(function () use ($stage, $filename, $path, $txn, $uploaderId) {
-                $doc = new Document();
+                $doc = new Document;
                 $doc->type = $stage;
                 $doc->filename = $filename;
                 $doc->path = $path;
@@ -499,6 +509,7 @@ class ArchiveSeeder extends Seeder
 
             $count++;
         }
+
         return $count;
     }
 
@@ -508,13 +519,14 @@ class ArchiveSeeder extends Seeder
     private function completeImportStages(ImportTransaction $txn, array $stages, int $userId, string $date): void
     {
         $stageRecord = $txn->stages;
-        if (!$stageRecord)
+        if (! $stageRecord) {
             return;
+        }
 
         foreach ($stages as $stage) {
-            $stageRecord->{$stage . '_status'} = 'completed';
-            $stageRecord->{$stage . '_completed_at'} = $date;
-            $stageRecord->{$stage . '_completed_by'} = $userId;
+            $stageRecord->{$stage.'_status'} = 'completed';
+            $stageRecord->{$stage.'_completed_at'} = $date;
+            $stageRecord->{$stage.'_completed_by'} = $userId;
         }
         $stageRecord->save();
     }
@@ -525,13 +537,14 @@ class ArchiveSeeder extends Seeder
     private function completeExportStages(ExportTransaction $txn, array $stages, int $userId, string $date): void
     {
         $stageRecord = $txn->stages;
-        if (!$stageRecord)
+        if (! $stageRecord) {
             return;
+        }
 
         foreach ($stages as $stage) {
-            $stageRecord->{$stage . '_status'} = 'completed';
-            $stageRecord->{$stage . '_completed_at'} = $date;
-            $stageRecord->{$stage . '_completed_by'} = $userId;
+            $stageRecord->{$stage.'_status'} = 'completed';
+            $stageRecord->{$stage.'_completed_at'} = $date;
+            $stageRecord->{$stage.'_completed_by'} = $userId;
         }
         $stageRecord->save();
     }

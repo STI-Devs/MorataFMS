@@ -1,0 +1,60 @@
+name: Backend CI
+
+on:
+  pull_request:
+    paths:
+      - "backend/**"
+      - "docker-compose.yml"
+      - "railway.toml"
+      - ".dockerignore"
+      - ".github/workflows/backend-ci.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "backend/**"
+      - "docker-compose.yml"
+      - "railway.toml"
+      - ".dockerignore"
+      - ".github/workflows/backend-ci.yml"
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          extensions: bcmath, curl, dom, intl, mbstring, pdo_mysql, pdo_sqlite, simplexml, sqlite3, xml
+          coverage: none
+
+      - name: Install Composer dependencies
+        working-directory: backend
+        run: |
+          mkdir -p bootstrap/cache storage/framework/cache storage/framework/sessions storage/framework/testing storage/framework/views storage/logs
+          cp .env.example .env
+          composer install --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Prepare test environment
+        working-directory: backend
+        run: |
+          php artisan key:generate --ansi
+
+      - name: Run backend tests
+        working-directory: backend
+        run: php artisan test --compact
+
+      - name: Validate Docker Compose configuration
+        run: docker compose config
+
+      - name: Build backend image
+        run: docker build -f backend/Dockerfile -t morata-backend:test .

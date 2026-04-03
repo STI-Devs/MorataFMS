@@ -1,0 +1,15 @@
+.env
+.env.docker
+.env.production
+.env.staging
+vendor
+node_modules
+storage/logs
+storage/framework/cache
+storage/framework/sessions
+storage/framework/testing
+storage/framework/views
+bootstrap/cache
+.phpunit.cache
+.phpunit.result.cache
+
