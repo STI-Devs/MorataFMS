@@ -82,10 +82,6 @@ RUN rm -f /etc/nginx/sites-enabled/default /etc/nginx/conf.d/default.conf \
         '' \
         'envsubst '"'"'${PORT}'"'"' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf' \
         '' \
-        'if [ "${1:-}" = "supervisord" ] && [ "${APP_ENV:-local}" = "production" ]; then' \
-        '    php artisan optimize' \
-        'fi' \
-        '' \
         'exec "$@"' \
         > /usr/local/bin/entrypoint \
     && chmod +x /usr/local/bin/entrypoint

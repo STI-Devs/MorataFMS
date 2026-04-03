@@ -24,9 +24,4 @@ chown -R www-data:www-data /var/www/html/bootstrap/cache /var/www/html/storage /
 
 envsubst '${PORT}' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf
 
-if [ "${1:-}" = "supervisord" ] && [ "${APP_ENV:-local}" = "production" ]; then
-    php artisan optimize
-fi
-
 exec "$@"
-
