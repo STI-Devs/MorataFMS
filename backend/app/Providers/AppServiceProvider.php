@@ -45,7 +45,7 @@ class AppServiceProvider extends ServiceProvider
         Scramble::afterOpenApiGenerated(function (OpenApi $openApi) {
             $openApi->secure(
                 SecurityScheme::http('bearer')
-                    ->setDescription("### How to get a Test Token\n1. Open your terminal in the backend directory.\n2. Run `php artisan tinker`.\n3. Paste: `App\Models\User::first()->createToken('swagger-test')->plainTextToken;`\n4. Copy the long string output (e.g., `1|abc...`) and paste it here.")
+                    ->setDescription("### Temporary Frontend Auth Mode\nThe deployed frontend currently uses bearer tokens because Railway-provided domains cannot reliably support Sanctum's cookie SPA flow.\n\nSwitch this back to cookie auth once a purchased shared-root domain is available.\n\n### How to get a Test Token\n1. Call `POST /api/auth/login` with a valid email and password.\n2. Copy the returned `token` value (for example, `1|abc...`).\n3. Paste it here as `Bearer <token>`.")
             );
         });
 

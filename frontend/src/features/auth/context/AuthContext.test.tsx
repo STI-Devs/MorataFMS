@@ -1,8 +1,9 @@
-import { render, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthProvider } from './AuthContext';
 import { useAuth } from '../hooks/useAuth';
 import type { User } from '../types/auth.types';
+import { clearAuthToken, getAuthToken, setAuthToken } from '../utils/tokenStorage';
 
 const { mockGetCurrentUser, mockLogin, mockLogout } = vi.hoisted(() => ({
     mockGetCurrentUser: vi.fn(),
@@ -11,6 +12,12 @@ const { mockGetCurrentUser, mockLogin, mockLogout } = vi.hoisted(() => ({
 }));
 
 vi.mock('../api/authApi', () => ({
+    InvalidCurrentUserPayloadError: class InvalidCurrentUserPayloadError extends Error {
+        public constructor(message = 'Invalid current user payload.') {
+            super(message);
+            this.name = 'InvalidCurrentUserPayloadError';
+        }
+    },
     authApi: {
         getCurrentUser: mockGetCurrentUser,
         login: mockLogin,
@@ -48,19 +55,52 @@ const authenticatedUser: User = {
 };
 
 function AuthProbe() {
-    const { isLoading, isAuthenticated, user } = useAuth();
+    const { isLoading, isAuthenticated, login, logout, user } = useAuth();
 
     return (
         <div>
             <span data-testid="loading">{String(isLoading)}</span>
             <span data-testid="authenticated">{String(isAuthenticated)}</span>
             <span data-testid="name">{user?.name ?? 'none'}</span>
+            <button
+                type="button"
+                onClick={() => void login({ email: authenticatedUser.email, password: 'password' })}
+            >
+                Login
+            </button>
+            <button type="button" onClick={() => void logout()}>
+                Logout
+            </button>
         </div>
     );
 }
 
 describe('AuthProvider', () => {
-    it('restores the authenticated user from the backend session on mount', async () => {
+    beforeEach(() => {
+        mockGetCurrentUser.mockReset();
+        mockLogin.mockReset();
+        mockLogout.mockReset();
+        clearAuthToken();
+    });
+
+    it('does not call the backend when no bearer token is stored', async () => {
+        render(
+            <AuthProvider>
+                <AuthProbe />
+            </AuthProvider>,
+        );
+
+        await waitFor(() => {
+            expect(screen.getByTestId('loading')).toHaveTextContent('false');
+        });
+
+        expect(mockGetCurrentUser).not.toHaveBeenCalled();
+        expect(screen.getByTestId('authenticated')).toHaveTextContent('false');
+        expect(screen.getByTestId('name')).toHaveTextContent('none');
+    });
+
+    it('restores the authenticated user from the backend when a bearer token exists', async () => {
+        setAuthToken('frontend-session-token');
         mockGetCurrentUser.mockResolvedValue(authenticatedUser);
 
         render(
@@ -76,5 +116,82 @@ describe('AuthProvider', () => {
         expect(mockGetCurrentUser).toHaveBeenCalledTimes(1);
         expect(screen.getByTestId('authenticated')).toHaveTextContent('true');
         expect(screen.getByTestId('name')).toHaveTextContent(authenticatedUser.name);
+    });
+
+    it('clears an invalid stored token during auth bootstrap', async () => {
+        setAuthToken('stale-token');
+        mockGetCurrentUser.mockRejectedValue(
+            Object.assign(new Error('Invalid current user payload.'), {
+                name: 'InvalidCurrentUserPayloadError',
+            }),
+        );
+
+        render(
+            <AuthProvider>
+                <AuthProbe />
+            </AuthProvider>,
+        );
+
+        await waitFor(() => {
+            expect(screen.getByTestId('loading')).toHaveTextContent('false');
+        });
+
+        expect(getAuthToken()).toBeNull();
+        expect(screen.getByTestId('authenticated')).toHaveTextContent('false');
+    });
+
+    it('stores the bearer token after login', async () => {
+        mockLogin.mockResolvedValue({
+            token: 'frontend-session-token',
+            user: authenticatedUser,
+        });
+
+        render(
+            <AuthProvider>
+                <AuthProbe />
+            </AuthProvider>,
+        );
+
+        await waitFor(() => {
+            expect(screen.getByTestId('loading')).toHaveTextContent('false');
+        });
+
+        fireEvent.click(screen.getByText('Login'));
+
+        await waitFor(() => {
+            expect(screen.getByTestId('authenticated')).toHaveTextContent('true');
+        });
+
+        expect(getAuthToken()).toBe('frontend-session-token');
+        expect(screen.getByTestId('name')).toHaveTextContent(authenticatedUser.name);
+    });
+
+    it('clears the stored token when logout fails', async () => {
+        const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+        setAuthToken('frontend-session-token');
+        mockGetCurrentUser.mockResolvedValue(authenticatedUser);
+        mockLogout.mockRejectedValue(new Error('Network failure'));
+
+        render(
+            <AuthProvider>
+                <AuthProbe />
+            </AuthProvider>,
+        );
+
+        await waitFor(() => {
+            expect(screen.getByTestId('authenticated')).toHaveTextContent('true');
+        });
+
+        fireEvent.click(screen.getByText('Logout'));
+
+        await waitFor(() => {
+            expect(screen.getByTestId('authenticated')).toHaveTextContent('false');
+        });
+
+        expect(getAuthToken()).toBeNull();
+        expect(screen.getByTestId('name')).toHaveTextContent('none');
+
+        consoleErrorSpy.mockRestore();
     });
 });

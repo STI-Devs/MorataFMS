@@ -1,6 +1,13 @@
 import api from '../../../lib/axios';
 import type { AuthResponse, LoginCredentials, User } from '../types/auth.types';
 
+export class InvalidCurrentUserPayloadError extends Error {
+    public constructor(message = 'Invalid current user payload.') {
+        super(message);
+        this.name = 'InvalidCurrentUserPayloadError';
+    }
+}
+
 function isUserPayload(value: unknown): value is User {
     if (!value || typeof value !== 'object') {
         return false;
@@ -15,45 +22,50 @@ function isUserPayload(value: unknown): value is User {
     );
 }
 
+function unwrapUserPayload(payload: unknown, error: Error): User {
+    if (!isUserPayload(payload)) {
+        throw error;
+    }
+
+    return payload;
+}
+
 export const authApi = {
-    // Get CSRF cookie (required before login)
-    async getCsrfCookie(): Promise<void> {
-        await api.get('/sanctum/csrf-cookie');
-    },
-
-    // Login user
     async login(credentials: LoginCredentials): Promise<AuthResponse> {
-        await this.getCsrfCookie();
-
-        const response = await api.post<{ user: { data: User } }>(
+        const response = await api.post<{ token: string; user: { data: User } | User }>(
             `/api/auth/login`,
             credentials
         );
-        // UserResource wraps in { data: ... } — unwrap so AuthContext gets a plain User
-        return { user: response.data.user.data ?? response.data.user as unknown as User };
+
+        if (typeof response.data.token !== 'string' || response.data.token.length === 0) {
+            throw new Error('Invalid login payload.');
+        }
+
+        return {
+            token: response.data.token,
+            user: unwrapUserPayload(
+                (response.data.user as { data?: unknown }).data ?? response.data.user,
+                new Error('Invalid login payload.'),
+            ),
+        };
     },
 
-    // Logout user
     async logout(): Promise<void> {
         await api.post(`/api/auth/logout`);
     },
 
-    // Get current user
     async getCurrentUser(): Promise<User> {
         const response = await api.get<{ data: User } | User>(`/api/user`);
         const payload = (response.data as { data?: unknown }).data ?? response.data;
 
-        if (!isUserPayload(payload)) {
-            throw new Error('Invalid current user payload.');
-        }
-
-        return payload;
+        return unwrapUserPayload(payload, new InvalidCurrentUserPayloadError());
     },
 
-    // Update profile (name, job title, and/or password)
     async updateProfile(payload: { name?: string; job_title?: string | null; password?: string; password_confirmation?: string }): Promise<User> {
-        // Typically returns UserResource — unwrap { data: User } if present
         const response = await api.put<{ data: User } | User>(`/api/user/profile`, payload);
-        return (response.data as { data: User }).data ?? (response.data as User);
+        return unwrapUserPayload(
+            (response.data as { data?: unknown }).data ?? response.data,
+            new Error('Invalid profile payload.'),
+        );
     },
 };

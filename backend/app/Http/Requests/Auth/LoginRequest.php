@@ -2,9 +2,11 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Models\User;
 use Illuminate\Auth\Events\Lockout;
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -22,7 +24,7 @@ class LoginRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
@@ -35,13 +37,17 @@ class LoginRequest extends FormRequest
     /**
      * Attempt to authenticate the request's credentials.
      *
-     * @throws \Illuminate\Validation\ValidationException
+     * @throws ValidationException
      */
-    public function authenticate(): void
+    public function authenticate(): User
     {
         $this->ensureIsNotRateLimited();
 
-        if (!Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
+        $user = User::query()
+            ->where('email', $this->string('email')->toString())
+            ->first();
+
+        if (! $user || ! Hash::check($this->string('password')->toString(), $user->password)) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
@@ -50,8 +56,7 @@ class LoginRequest extends FormRequest
         }
 
         // Block deactivated accounts even if credentials are valid.
-        if (!Auth::user()->is_active) {
-            Auth::logout();
+        if (! $user->is_active) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
@@ -60,16 +65,18 @@ class LoginRequest extends FormRequest
         }
 
         RateLimiter::clear($this->throttleKey());
+
+        return $user;
     }
 
     /**
      * Ensure the login request is not rate limited.
      *
-     * @throws \Illuminate\Validation\ValidationException
+     * @throws ValidationException
      */
     public function ensureIsNotRateLimited(): void
     {
-        if (!RateLimiter::tooManyAttempts($this->throttleKey(), 5)) {
+        if (! RateLimiter::tooManyAttempts($this->throttleKey(), 5)) {
             return;
         }
 
@@ -90,6 +97,6 @@ class LoginRequest extends FormRequest
      */
     public function throttleKey(): string
     {
-        return Str::transliterate(Str::lower($this->input('email')) . '|' . $this->ip());
+        return Str::transliterate(Str::lower($this->input('email')).'|'.$this->ip());
     }
 }

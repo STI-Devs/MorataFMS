@@ -2,8 +2,9 @@ import type { ReactNode } from 'react';
 import { createContext, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { isAxiosError } from '../../../lib/apiErrors';
-import { authApi } from '../api/authApi';
+import { authApi, InvalidCurrentUserPayloadError } from '../api/authApi';
 import type { AuthState, LoginCredentials, User } from '../types/auth.types';
+import { clearAuthToken, getAuthToken, setAuthToken } from '../utils/tokenStorage';
 
 interface AuthContextType extends AuthState {
   login: (credentials: LoginCredentials) => Promise<User>;
@@ -14,25 +15,41 @@ interface AuthContextType extends AuthState {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 let restoreSessionPromise: Promise<User | null> | null = null;
+let restoreSessionToken: string | null = null;
 
-function syncRestoreSessionPromise(user: User | null): void {
+function syncRestoreSessionPromise(user: User | null, token: string | null): void {
+  restoreSessionToken = token;
   restoreSessionPromise = Promise.resolve(user);
 }
 
 function restoreSession(): Promise<User | null> {
-  if (!restoreSessionPromise) {
+  const token = getAuthToken();
+
+  if (!token) {
+    syncRestoreSessionPromise(null, null);
+    return restoreSessionPromise ?? Promise.resolve(null);
+  }
+
+  if (!restoreSessionPromise || restoreSessionToken !== token) {
+    restoreSessionToken = token;
     restoreSessionPromise = authApi.getCurrentUser()
       .then((user) => {
-        syncRestoreSessionPromise(user);
+        syncRestoreSessionPromise(user, token);
         return user;
       })
       .catch((error: unknown) => {
-        if (isAxiosError(error) && [401, 419].includes(error.response?.status ?? 0)) {
-          syncRestoreSessionPromise(null);
+        if (
+          error instanceof InvalidCurrentUserPayloadError
+          || (error instanceof Error && error.name === 'InvalidCurrentUserPayloadError')
+          || (isAxiosError(error) && error.response?.status === 401)
+        ) {
+          clearAuthToken();
+          syncRestoreSessionPromise(null, null);
           return null;
         }
 
         restoreSessionPromise = null;
+        restoreSessionToken = null;
         throw error;
       });
   }
@@ -62,7 +79,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
       }
 
-      syncRestoreSessionPromise(null);
+      clearAuthToken();
+      syncRestoreSessionPromise(null, null);
       setAuthState({
         user: null,
         isAuthenticated: false,
@@ -111,7 +129,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const response = await authApi.login(credentials);
 
-      syncRestoreSessionPromise(response.user);
+      setAuthToken(response.token);
+      syncRestoreSessionPromise(response.user, response.token);
       setAuthState({
         user: response.user,
         isAuthenticated: true,
@@ -131,7 +150,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('Logout API call failed:', error);
     } finally {
-      syncRestoreSessionPromise(null);
+      clearAuthToken();
+      syncRestoreSessionPromise(null, null);
       setAuthState({
         user: null,
         isAuthenticated: false,
@@ -141,7 +161,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const setUser = (user: User | null) => {
-    syncRestoreSessionPromise(user);
+    syncRestoreSessionPromise(user, getAuthToken());
     setAuthState((prev) => ({
       ...prev,
       user,

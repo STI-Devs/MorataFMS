@@ -16,10 +16,10 @@ export interface User {
 export interface LoginCredentials {
     email: string;
     password: string;
-    rememberMe?: boolean;
 }
 
 export interface AuthResponse {
+    token: string;
     user: User;
 }
 

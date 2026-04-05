@@ -1,4 +1,5 @@
-﻿import axios from 'axios';
+import axios, { AxiosHeaders } from 'axios';
+import { getAuthToken } from '../features/auth/utils/tokenStorage';
 
 const api = axios.create({
     baseURL: import.meta.env.VITE_API_URL,
@@ -6,32 +7,41 @@ const api = axios.create({
         'Accept': 'application/json',
         'Content-Type': 'application/json',
     },
-    withCredentials: true,
-    withXSRFToken: true
 });
 
-// Global 401 interceptor: redirect to login on session expiry
+api.interceptors.request.use((config) => {
+    const headers = AxiosHeaders.from(config.headers);
+    const token = getAuthToken();
+
+    if (token) {
+        headers.set('Authorization', `Bearer ${token}`);
+    } else {
+        headers.delete('Authorization');
+    }
+
+    config.headers = headers;
+
+    return config;
+});
+
+// Global 401 interceptor: redirect to login on expired bearer token.
 api.interceptors.response.use(
     (response) => response,
     (error) => {
         const status = error.response?.status;
         const message: string = error.response?.data?.message ?? '';
-
-        // 401 = Sanctum session expired/invalid ("Unauthenticated.")
-        // 419 = CSRF token mismatch (Page Expired)
-        // Guard: only act on genuine auth failures, not misused 401s from custom code
         const isSessionExpired =
-            (status === 401 && message.toLowerCase().includes('unauthenticated')) ||
-            status === 419;
+            status === 401 && message.toLowerCase().includes('unauthenticated');
 
         if (isSessionExpired) {
             const url = error.config?.url || '';
-            const isAuthRoute = url.includes('/auth/') || url.includes('/sanctum/');
+            const isAuthRoute = url.includes('/auth/');
 
             if (!isAuthRoute) {
                 window.dispatchEvent(new CustomEvent('auth:unauthorized'));
             }
         }
+
         return Promise.reject(error);
     }
 );

@@ -21,10 +21,18 @@ test('forms export flow relies on browser print instead of html2pdf', () => {
     assert.match(formsPage, /Print \/ Save as PDF/);
 });
 
-test('auth bootstrap restores the server session without localStorage caching', () => {
+test('auth bootstrap uses temporary bearer tokens instead of the old cookie flow', () => {
     const authContext = read('src/features/auth/context/AuthContext.tsx');
-    assert.match(authContext, /authApi\.getCurrentUser\(\)/);
+    const authApi = read('src/features/auth/api/authApi.ts');
+    const tokenStorage = read('src/features/auth/utils/tokenStorage.ts');
+    const axiosClient = read('src/lib/axios.ts');
+
+    assert.match(authContext, /getAuthToken/);
+    assert.match(tokenStorage, /sessionStorage/);
     assert.doesNotMatch(authContext, /localStorage/);
+    assert.doesNotMatch(authApi, /sanctum\/csrf-cookie/);
+    assert.doesNotMatch(axiosClient, /withCredentials/);
+    assert.doesNotMatch(axiosClient, /withXSRFToken/);
 });
 
 test('document preview does not leak signed URLs to Google Docs Viewer', () => {
