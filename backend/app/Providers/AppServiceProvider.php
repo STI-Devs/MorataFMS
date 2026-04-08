@@ -30,6 +30,10 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->bootRateLimiters();
 
+        Gate::define('viewApiDocs', function (?User $user = null): bool {
+            return config('app.api_docs_enabled') && (bool) $user?->isAdmin();
+        });
+
         Gate::define('transactions.viewOversight', function (User $user): bool {
             return $user->isAdmin();
         });
@@ -85,6 +89,10 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('api-documents', function (Request $request) {
             return Limit::perMinute(60)->by('api-documents:'.$this->rateLimitKey($request));
+        });
+
+        RateLimiter::for('public-documents', function (Request $request) {
+            return Limit::perMinute(20)->by('public-documents:'.$request->ip());
         });
 
         RateLimiter::for('archive-uploads', function (Request $request) {

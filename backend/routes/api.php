@@ -27,7 +27,7 @@ Route::prefix('auth')->group(function () {
 // Document management (protected by signed URLs for preview/download)
 Route::get('documents/{document}/stream', [DocumentController::class, 'stream'])
     ->name('documents.stream')
-    ->middleware(['signed', 'throttle:api-documents']);
+    ->middleware(['signed', 'throttle:public-documents']);
 
 Route::middleware(['auth:sanctum', 'throttle:api-general'])->group(function () {
 

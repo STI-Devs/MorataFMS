@@ -3,9 +3,13 @@
 use App\Http\Middleware\EnsureEmailIsVerified;
 use App\Http\Middleware\MaxRequestSize;
 use App\Http\Middleware\SecurityHeaders;
+use App\Http\Middleware\ThrottlePublicSurface;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -25,6 +29,8 @@ return Application::configure(basePath: dirname(__DIR__))
             MaxRequestSize::class,
         ]);
 
+        $middleware->append(ThrottlePublicSurface::class);
+
         // Global: attach security headers to every response
         $middleware->append(SecurityHeaders::class);
 
@@ -35,5 +41,31 @@ return Application::configure(basePath: dirname(__DIR__))
         //
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $shouldRenderJsonForApiRequest = static function (Request $request): bool {
+            return $request->is('api/*') || $request->is('sanctum/*');
+        };
+
+        $exceptions->shouldRenderJsonWhen(function (Request $request, Throwable $exception) use ($shouldRenderJsonForApiRequest): bool {
+            return $shouldRenderJsonForApiRequest($request) || $request->expectsJson();
+        });
+
+        $exceptions->render(function (MethodNotAllowedHttpException $exception, Request $request) use ($shouldRenderJsonForApiRequest) {
+            if (! $shouldRenderJsonForApiRequest($request)) {
+                return null;
+            }
+
+            return response()->json([
+                'message' => 'Method not allowed.',
+            ], 405);
+        });
+
+        $exceptions->render(function (NotFoundHttpException $exception, Request $request) use ($shouldRenderJsonForApiRequest) {
+            if (! $shouldRenderJsonForApiRequest($request)) {
+                return null;
+            }
+
+            return response()->json([
+                'message' => 'Not found.',
+            ], 404);
+        });
     })->create();
