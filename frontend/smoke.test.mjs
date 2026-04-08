@@ -21,18 +21,18 @@ test('forms export flow relies on browser print instead of html2pdf', () => {
     assert.match(formsPage, /Print \/ Save as PDF/);
 });
 
-test('auth bootstrap uses temporary bearer tokens instead of the old cookie flow', () => {
+test('auth bootstrap uses Sanctum cookie auth instead of bearer tokens', () => {
     const authContext = read('src/features/auth/context/AuthContext.tsx');
     const authApi = read('src/features/auth/api/authApi.ts');
-    const tokenStorage = read('src/features/auth/utils/tokenStorage.ts');
     const axiosClient = read('src/lib/axios.ts');
 
-    assert.match(authContext, /getAuthToken/);
-    assert.match(tokenStorage, /sessionStorage/);
+    assert.equal(existsSync(join(rootDir, 'src/features/auth/utils/tokenStorage.ts')), false);
+    assert.match(authApi, /sanctum\/csrf-cookie/);
+    assert.match(axiosClient, /withCredentials/);
+    assert.match(axiosClient, /withXSRFToken/);
     assert.doesNotMatch(authContext, /localStorage/);
-    assert.doesNotMatch(authApi, /sanctum\/csrf-cookie/);
-    assert.doesNotMatch(axiosClient, /withCredentials/);
-    assert.doesNotMatch(axiosClient, /withXSRFToken/);
+    assert.doesNotMatch(authContext, /getAuthToken/);
+    assert.doesNotMatch(authContext, /sessionStorage/);
 });
 
 test('document preview does not leak signed URLs to Google Docs Viewer', () => {

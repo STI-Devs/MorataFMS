@@ -175,7 +175,7 @@ protected function isAccessible(User $user, ?string $path = null): bool
 ## Authentication & Authorization
 
 - Use Laravel's built-in authentication and authorization features (gates, policies, Sanctum, etc.).
-- Temporary production note: this app currently uses Sanctum bearer tokens for the deployed frontend because Railway `*.up.railway.app` domains break the intended cookie-based SPA flow. When a purchased shared-root domain is available, revert to Sanctum cookie auth for the first-party SPA.
+- Production note: this app uses Sanctum cookie-based SPA auth for the deployed first-party frontend on the shared `fmmcbs.com` root domain.
 
 ## URL Generation
 

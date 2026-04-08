@@ -52,7 +52,7 @@ If backend and frontend drift, the backend API contract is the source of truth f
 These conventions are final unless intentionally changed across the stack:
 
 - auth roles are only `encoder`, `paralegal`, and `admin`
-- the current deployed split frontend/backend setup uses temporary Sanctum bearer-token auth; the intended long-term target is Sanctum cookie-based SPA auth once a purchased shared-root domain exists
+- the current deployed split frontend/backend setup uses Sanctum cookie-based SPA auth on the shared `fmmcbs.com` root domain
 - `job_title` is display metadata, not an authorization role
 - the frontend should consume backend `role`, `departments`, and `permissions` rather than infer access ad hoc
 - backend contract changes must update frontend types, API helpers, hooks, and affected UI in the same workstream
@@ -97,6 +97,6 @@ Keep this root file concise. Detailed implementation rules belong in scoped file
 
 Use these when you need context:
 
-- `AUTH_ARCHITECTURE.md` for the current temporary bearer-token mode and the future cookie-auth rollback plan
+- `AUTH_ARCHITECTURE.md` for the current Sanctum cookie-auth deployment model
 - `backend/AGENTS.md` for Laravel-specific rules
 - `frontend/AGENTS.md` for React-specific rules

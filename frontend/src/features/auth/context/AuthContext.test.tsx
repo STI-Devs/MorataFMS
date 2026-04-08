@@ -1,9 +1,8 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { AuthProvider } from './AuthContext';
+import { AuthProvider, resetAuthProviderStateForTests } from './AuthContext';
 import { useAuth } from '../hooks/useAuth';
 import type { User } from '../types/auth.types';
-import { clearAuthToken, getAuthToken, setAuthToken } from '../utils/tokenStorage';
 
 const { mockGetCurrentUser, mockLogin, mockLogout } = vi.hoisted(() => ({
     mockGetCurrentUser: vi.fn(),
@@ -80,27 +79,10 @@ describe('AuthProvider', () => {
         mockGetCurrentUser.mockReset();
         mockLogin.mockReset();
         mockLogout.mockReset();
-        clearAuthToken();
+        resetAuthProviderStateForTests();
     });
 
-    it('does not call the backend when no bearer token is stored', async () => {
-        render(
-            <AuthProvider>
-                <AuthProbe />
-            </AuthProvider>,
-        );
-
-        await waitFor(() => {
-            expect(screen.getByTestId('loading')).toHaveTextContent('false');
-        });
-
-        expect(mockGetCurrentUser).not.toHaveBeenCalled();
-        expect(screen.getByTestId('authenticated')).toHaveTextContent('false');
-        expect(screen.getByTestId('name')).toHaveTextContent('none');
-    });
-
-    it('restores the authenticated user from the backend when a bearer token exists', async () => {
-        setAuthToken('frontend-session-token');
+    it('restores the authenticated user from the backend during auth bootstrap', async () => {
         mockGetCurrentUser.mockResolvedValue(authenticatedUser);
 
         render(
@@ -118,8 +100,29 @@ describe('AuthProvider', () => {
         expect(screen.getByTestId('name')).toHaveTextContent(authenticatedUser.name);
     });
 
-    it('clears an invalid stored token during auth bootstrap', async () => {
-        setAuthToken('stale-token');
+    it('treats unauthenticated bootstrap responses as a guest session', async () => {
+        mockGetCurrentUser.mockRejectedValue({
+            response: {
+                status: 401,
+            },
+        });
+
+        render(
+            <AuthProvider>
+                <AuthProbe />
+            </AuthProvider>,
+        );
+
+        await waitFor(() => {
+            expect(screen.getByTestId('loading')).toHaveTextContent('false');
+        });
+
+        expect(mockGetCurrentUser).toHaveBeenCalledTimes(1);
+        expect(screen.getByTestId('authenticated')).toHaveTextContent('false');
+        expect(screen.getByTestId('name')).toHaveTextContent('none');
+    });
+
+    it('treats invalid current user payloads as a guest session', async () => {
         mockGetCurrentUser.mockRejectedValue(
             Object.assign(new Error('Invalid current user payload.'), {
                 name: 'InvalidCurrentUserPayloadError',
@@ -136,13 +139,12 @@ describe('AuthProvider', () => {
             expect(screen.getByTestId('loading')).toHaveTextContent('false');
         });
 
-        expect(getAuthToken()).toBeNull();
         expect(screen.getByTestId('authenticated')).toHaveTextContent('false');
     });
 
-    it('stores the bearer token after login', async () => {
+    it('sets the authenticated user after a successful login', async () => {
+        mockGetCurrentUser.mockResolvedValue(null);
         mockLogin.mockResolvedValue({
-            token: 'frontend-session-token',
             user: authenticatedUser,
         });
 
@@ -162,14 +164,12 @@ describe('AuthProvider', () => {
             expect(screen.getByTestId('authenticated')).toHaveTextContent('true');
         });
 
-        expect(getAuthToken()).toBe('frontend-session-token');
         expect(screen.getByTestId('name')).toHaveTextContent(authenticatedUser.name);
     });
 
-    it('clears the stored token when logout fails', async () => {
+    it('clears auth state when logout fails', async () => {
         const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
 
-        setAuthToken('frontend-session-token');
         mockGetCurrentUser.mockResolvedValue(authenticatedUser);
         mockLogout.mockRejectedValue(new Error('Network failure'));
 
@@ -189,7 +189,6 @@ describe('AuthProvider', () => {
             expect(screen.getByTestId('authenticated')).toHaveTextContent('false');
         });
 
-        expect(getAuthToken()).toBeNull();
         expect(screen.getByTestId('name')).toHaveTextContent('none');
 
         consoleErrorSpy.mockRestore();

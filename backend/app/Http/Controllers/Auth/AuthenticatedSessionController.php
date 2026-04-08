@@ -8,32 +8,31 @@ use App\Http\Resources\UserResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Auth;
 
 class AuthenticatedSessionController extends Controller
 {
     /**
-     * Handle an incoming authentication request using a temporary bearer token.
-     *
-     * This is a deployment workaround for Railway's public-suffix domains.
-     * Revert to Sanctum's cookie-based SPA auth after a shared custom domain is available.
+     * Handle an incoming authentication request using the session guard.
      */
     public function store(LoginRequest $request): JsonResponse
     {
-        $user = $request->authenticate();
-        $token = $user->createToken('frontend-session', ['*']);
+        $request->authenticate();
+        $request->session()->regenerate();
 
         return response()->json([
-            'token' => $token->plainTextToken,
-            'user' => new UserResource($user),
+            'user' => new UserResource($request->user()),
         ]);
     }
 
     /**
-     * Revoke the current bearer token for the active frontend session.
+     * Destroy an authenticated session.
      */
     public function destroy(Request $request): Response
     {
-        $request->user()?->currentAccessToken()?->delete();
+        Auth::guard('web')->logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
 
         return response()->noContent();
     }

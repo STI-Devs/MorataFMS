@@ -92,7 +92,7 @@ Rules:
 - `job_title` is display/business metadata, not authorization.
 - Frontend access decisions must use backend-provided `role`, `departments`, and `permissions`.
 - Prefer `src/features/auth/utils/access.ts` helpers over ad hoc role checks scattered in components.
-- Temporary production note: the deployed app currently uses bearer tokens stored in `sessionStorage` because Railway `*.up.railway.app` domains break the intended Sanctum cookie SPA flow. When a purchased shared-root domain is available, revert the frontend back to first-party Sanctum cookie auth.
+- Production note: the deployed app uses first-party Sanctum cookie-based SPA auth on the shared `fmmcbs.com` root domain. Do not reintroduce frontend token storage for the first-party web app.
 
 If a new permission-sensitive feature is added:
 

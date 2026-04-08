@@ -31,18 +31,19 @@ function unwrapUserPayload(payload: unknown, error: Error): User {
 }
 
 export const authApi = {
+    async getCsrfCookie(): Promise<void> {
+        await api.get('/sanctum/csrf-cookie');
+    },
+
     async login(credentials: LoginCredentials): Promise<AuthResponse> {
-        const response = await api.post<{ token: string; user: { data: User } | User }>(
+        await this.getCsrfCookie();
+
+        const response = await api.post<{ user: { data: User } | User }>(
             `/api/auth/login`,
             credentials
         );
 
-        if (typeof response.data.token !== 'string' || response.data.token.length === 0) {
-            throw new Error('Invalid login payload.');
-        }
-
         return {
-            token: response.data.token,
             user: unwrapUserPayload(
                 (response.data.user as { data?: unknown }).data ?? response.data.user,
                 new Error('Invalid login payload.'),
