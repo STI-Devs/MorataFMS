@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { AuthProvider, resetAuthProviderStateForTests } from './AuthContext';
+import { AuthProvider } from './AuthContext';
+import { resetAuthProviderStateForTests } from './authProviderState';
 import { useAuth } from '../hooks/useAuth';
 import type { User } from '../types/auth.types';
 

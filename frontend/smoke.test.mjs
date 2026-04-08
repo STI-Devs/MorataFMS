@@ -35,6 +35,15 @@ test('auth bootstrap uses Sanctum cookie auth instead of bearer tokens', () => {
     assert.doesNotMatch(authContext, /sessionStorage/);
 });
 
+test('login flow supports optional Cloudflare Turnstile protection', () => {
+    const loginForm = read('src/features/auth/components/LoginForm.tsx');
+    const envExample = read('.env.example');
+
+    assert.match(loginForm, /turnstile_token/);
+    assert.match(loginForm, /VITE_TURNSTILE_SITE_KEY/);
+    assert.match(envExample, /VITE_TURNSTILE_SITE_KEY=/);
+});
+
 test('document preview does not leak signed URLs to Google Docs Viewer', () => {
     const previewHook = read('src/features/tracking/hooks/useDocumentPreview.ts');
     assert.doesNotMatch(previewHook, /docs\.google/);

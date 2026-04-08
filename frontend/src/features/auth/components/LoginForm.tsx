@@ -1,29 +1,53 @@
-import { useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getLoginError } from '../../../lib/apiErrors';
 import { useAuth } from "../hooks/useAuth";
 import { getHomePath } from "../utils/access";
+import { TurnstileWidget } from "./TurnstileWidget";
 
 export const LoginForm = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [turnstileResetCounter, setTurnstileResetCounter] = useState(0);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const { login } = useAuth();
   const navigate = useNavigate();
+  const turnstileSiteKey = useMemo(
+    () => import.meta.env.VITE_TURNSTILE_SITE_KEY?.trim() ?? "",
+    [],
+  );
+  const isTurnstileEnabled = turnstileSiteKey.length > 0;
+  const handleTurnstileTokenChange = useCallback((token: string | null) => {
+    setTurnstileToken(token);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (isTurnstileEnabled && !turnstileToken) {
+      setError("Complete the security check and try again.");
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
 
     try {
-      const user = await login({ email, password });
+      const user = await login({
+        email,
+        password,
+        turnstile_token: turnstileToken ?? undefined,
+      });
       navigate(getHomePath(user));
     } catch (err: unknown) {
       console.error("Login failed:", err);
+      if (isTurnstileEnabled) {
+        setTurnstileToken(null);
+        setTurnstileResetCounter((count) => count + 1);
+      }
       setError(getLoginError(err));
     } finally {
       setIsLoading(false);
@@ -75,6 +99,16 @@ export const LoginForm = () => {
           </button>
         </div>
 
+        {isTurnstileEnabled && (
+          <div className="pt-2">
+            <TurnstileWidget
+              onTokenChange={handleTurnstileTokenChange}
+              resetCounter={turnstileResetCounter}
+              siteKey={turnstileSiteKey}
+            />
+          </div>
+        )}
+
         {/* Error Message */}
         {error && (
           <div className="text-red-400 text-[10px] text-center py-1 tracking-widest uppercase">
@@ -85,7 +119,7 @@ export const LoginForm = () => {
         {/* Submit Button */}
         <button
           type="submit"
-          disabled={isLoading}
+          disabled={isLoading || (isTurnstileEnabled && !turnstileToken)}
           className="w-full border border-white/30 text-white py-3 font-black hover:bg-white hover:text-black transition-all text-xs tracking-[0.3em] uppercase disabled:opacity-50 disabled:cursor-not-allowed mt-2"
         >
           {isLoading ? "SIGNING IN..." : "LOGIN"}

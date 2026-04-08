@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Resources\UserResource;
+use App\Support\Security\TurnstileVerifier;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -15,9 +16,9 @@ class AuthenticatedSessionController extends Controller
     /**
      * Handle an incoming authentication request using the session guard.
      */
-    public function store(LoginRequest $request): JsonResponse
+    public function store(LoginRequest $request, TurnstileVerifier $turnstileVerifier): JsonResponse
     {
-        $request->authenticate();
+        $request->authenticate($turnstileVerifier);
         $request->session()->regenerate();
 
         return response()->json([

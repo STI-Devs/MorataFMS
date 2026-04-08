@@ -2,12 +2,14 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Support\Security\TurnstileVerifier;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class LoginRequest extends FormRequest
@@ -30,6 +32,10 @@ class LoginRequest extends FormRequest
         return [
             'email' => ['required', 'string', 'email'],
             'password' => ['required', 'string'],
+            'turnstile_token' => [
+                Rule::requiredIf($this->turnstileEnabled()),
+                'string',
+            ],
         ];
     }
 
@@ -38,9 +44,10 @@ class LoginRequest extends FormRequest
      *
      * @throws ValidationException
      */
-    public function authenticate(): void
+    public function authenticate(TurnstileVerifier $turnstileVerifier): void
     {
         $this->ensureIsNotRateLimited();
+        $this->ensureTurnstileIsValid($turnstileVerifier);
 
         if (! Auth::attempt($this->only('email', 'password'))) {
             RateLimiter::hit($this->throttleKey());
@@ -61,6 +68,30 @@ class LoginRequest extends FormRequest
         }
 
         RateLimiter::clear($this->throttleKey());
+    }
+
+    /**
+     * Ensure Turnstile has been completed and verified when the protection is enabled.
+     *
+     * @throws ValidationException
+     */
+    public function ensureTurnstileIsValid(TurnstileVerifier $turnstileVerifier): void
+    {
+        if (! $turnstileVerifier->enabled()) {
+            return;
+        }
+
+        $token = $this->input('turnstile_token');
+
+        if ($turnstileVerifier->verify(is_string($token) ? $token : null, (string) $this->ip())) {
+            return;
+        }
+
+        RateLimiter::hit($this->throttleKey());
+
+        throw ValidationException::withMessages([
+            'turnstile_token' => 'Complete the security check and try again.',
+        ]);
     }
 
     /**
@@ -92,5 +123,11 @@ class LoginRequest extends FormRequest
     public function throttleKey(): string
     {
         return Str::transliterate(Str::lower($this->input('email')).'|'.$this->ip());
+    }
+
+    private function turnstileEnabled(): bool
+    {
+        return (bool) config('services.turnstile.enabled')
+            && filled(config('services.turnstile.secret_key'));
     }
 }

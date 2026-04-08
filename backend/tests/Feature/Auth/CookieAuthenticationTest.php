@@ -2,6 +2,7 @@
 
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
 
 function frontendHeaders(): array
 {
@@ -123,4 +124,95 @@ test('login rejects deactivated users', function () {
     $response->assertJsonValidationErrors(['email']);
     $response->assertJsonPath('errors.email.0', 'Your account has been deactivated. Please contact an administrator.');
     $this->assertGuest();
+});
+
+test('login requires a turnstile token when turnstile protection is enabled', function () {
+    config([
+        'services.turnstile.enabled' => true,
+        'services.turnstile.secret_key' => 'secret',
+    ]);
+
+    $user = User::factory()->create([
+        'email' => 'admin@example.com',
+        'password' => bcrypt('password'),
+    ]);
+
+    $response = $this
+        ->withHeaders(frontendHeaders())
+        ->postJson('/api/auth/login', [
+            'email' => $user->email,
+            'password' => 'password',
+        ])
+        ->assertStatus(422);
+
+    $response->assertJsonValidationErrors(['turnstile_token']);
+    $response->assertJsonPath('errors.turnstile_token.0', 'The turnstile token field is required.');
+    Http::assertNothingSent();
+});
+
+test('login rejects invalid turnstile verification responses', function () {
+    config([
+        'services.turnstile.enabled' => true,
+        'services.turnstile.secret_key' => 'secret',
+    ]);
+
+    Http::fake([
+        'https://challenges.cloudflare.com/turnstile/v0/siteverify' => Http::response([
+            'success' => false,
+        ]),
+    ]);
+
+    $user = User::factory()->create([
+        'email' => 'admin@example.com',
+        'password' => bcrypt('password'),
+    ]);
+
+    $response = $this
+        ->withHeaders(frontendHeaders())
+        ->postJson('/api/auth/login', [
+            'email' => $user->email,
+            'password' => 'password',
+            'turnstile_token' => 'invalid-token',
+        ])
+        ->assertStatus(422);
+
+    $response->assertJsonValidationErrors(['turnstile_token']);
+    $response->assertJsonPath('errors.turnstile_token.0', 'Complete the security check and try again.');
+    $this->assertGuest();
+});
+
+test('login succeeds when turnstile verification passes', function () {
+    config([
+        'services.turnstile.enabled' => true,
+        'services.turnstile.secret_key' => 'secret',
+    ]);
+
+    Http::fake([
+        'https://challenges.cloudflare.com/turnstile/v0/siteverify' => Http::response([
+            'success' => true,
+        ]),
+    ]);
+
+    $user = User::factory()->create([
+        'email' => 'admin@example.com',
+        'password' => bcrypt('password'),
+        'role' => 'admin',
+    ]);
+
+    $response = $this
+        ->withHeaders(frontendHeaders())
+        ->postJson('/api/auth/login', [
+            'email' => $user->email,
+            'password' => 'password',
+            'turnstile_token' => 'valid-token',
+        ])
+        ->assertOk();
+
+    $response->assertJsonPath('user.email', $user->email);
+    Http::assertSent(function ($request) {
+        return $request->url() === 'https://challenges.cloudflare.com/turnstile/v0/siteverify'
+            && $request['response'] === 'valid-token'
+            && $request['secret'] === 'secret'
+            && is_string($request['remoteip']);
+    });
 });

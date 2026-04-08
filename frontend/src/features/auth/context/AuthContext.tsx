@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react';
 import { createContext, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { isAxiosError } from '../../../lib/apiErrors';
-import { authApi, InvalidCurrentUserPayloadError } from '../api/authApi';
+import { authApi } from '../api/authApi';
+import { restoreSession, syncRestoreSessionPromise } from './authProviderState';
 import type { AuthState, LoginCredentials, User } from '../types/auth.types';
 
 interface AuthContextType extends AuthState {
@@ -13,42 +13,7 @@ interface AuthContextType extends AuthState {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-let restoreSessionPromise: Promise<User | null> | null = null;
-
-function syncRestoreSessionPromise(user: User | null): void {
-  restoreSessionPromise = Promise.resolve(user);
-}
-
-function restoreSession(): Promise<User | null> {
-  if (!restoreSessionPromise) {
-    restoreSessionPromise = authApi.getCurrentUser()
-      .then((user) => {
-        syncRestoreSessionPromise(user);
-        return user;
-      })
-      .catch((error: unknown) => {
-        if (
-          error instanceof InvalidCurrentUserPayloadError
-          || (error instanceof Error && error.name === 'InvalidCurrentUserPayloadError')
-          || (isAxiosError(error) && [401, 419].includes(error.response?.status ?? 0))
-        ) {
-          syncRestoreSessionPromise(null);
-          return null;
-        }
-
-        restoreSessionPromise = null;
-        throw error;
-      });
-  }
-
-  return restoreSessionPromise;
-}
-
 export { AuthContext };
-
-export function resetAuthProviderStateForTests(): void {
-  restoreSessionPromise = null;
-}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [authState, setAuthState] = useState<AuthState>({
