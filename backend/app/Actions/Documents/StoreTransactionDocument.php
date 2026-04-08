@@ -5,22 +5,26 @@ namespace App\Actions\Documents;
 use App\Models\Document;
 use App\Models\ExportTransaction;
 use App\Models\ImportTransaction;
+use App\Support\Documents\DocumentObjectTagger;
+use Carbon\CarbonInterface;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use RuntimeException;
 use Throwable;
 
 class StoreTransactionDocument
 {
+    public function __construct(private DocumentObjectTagger $documentObjectTagger) {}
+
     public function handle(
         ImportTransaction|ExportTransaction $transaction,
         UploadedFile $file,
         string $type,
         int $uploadedBy,
     ): Document {
-        $transactionDate = $transaction instanceof ImportTransaction
-            ? ($transaction->arrival_date ?? $transaction->created_at ?? now())
-            : ($transaction->export_date ?? $transaction->created_at ?? now());
+        $storageDisk = $this->storageDisk();
+        $storageDate = $this->storageDateFor($transaction);
 
         $path = Document::generateS3Path(
             get_class($transaction),
@@ -28,19 +32,27 @@ class StoreTransactionDocument
             $type,
             $file->getClientOriginalName(),
             $transaction->bl_no ?? '',
-            $transactionDate->year,
-            (bool) ($transaction->is_archive ?? false),
-            $transactionDate->month,
+            $storageDate->year,
+            $storageDate->month,
         );
 
         $stream = fopen($file->getRealPath(), 'r');
+        $wasStored = false;
 
         try {
-            Storage::disk($this->storageDisk())->writeStream($path, $stream);
+            $wasStored = Storage::disk($storageDisk)->writeStream(
+                $path,
+                $stream,
+                $this->documentObjectTagger->uploadOptionsFor($transaction),
+            );
         } finally {
             if (is_resource($stream)) {
                 fclose($stream);
             }
+        }
+
+        if (! $wasStored) {
+            throw new RuntimeException("Unable to write document to the [{$storageDisk}] disk.");
         }
 
         try {
@@ -60,12 +72,13 @@ class StoreTransactionDocument
                 return $document;
             });
         } catch (Throwable $exception) {
-            Storage::disk($this->storageDisk())->delete($path);
+            Storage::disk($storageDisk)->delete($path);
 
             throw $exception;
         }
 
         $document->load('uploadedBy');
+        $this->documentObjectTagger->syncDocument($document, $transaction);
 
         return $document;
     }
@@ -73,5 +86,21 @@ class StoreTransactionDocument
     private function storageDisk(): string
     {
         return config('filesystems.document_disk', 's3');
+    }
+
+    private function storageDateFor(ImportTransaction|ExportTransaction $transaction): CarbonInterface
+    {
+        if ((bool) ($transaction->is_archive ?? false)) {
+            return $this->archiveDateFor($transaction);
+        }
+
+        return now();
+    }
+
+    private function archiveDateFor(ImportTransaction|ExportTransaction $transaction): CarbonInterface
+    {
+        return $transaction instanceof ImportTransaction
+            ? ($transaction->arrival_date ?? $transaction->created_at ?? now())
+            : ($transaction->export_date ?? $transaction->created_at ?? now());
     }
 }

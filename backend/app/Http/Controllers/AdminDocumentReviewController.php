@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ArchiveOrigin;
 use App\Enums\ExportStatus;
 use App\Enums\ImportStatus;
 use App\Models\Document;
 use App\Models\ExportTransaction;
 use App\Models\ImportTransaction;
+use App\Support\Documents\DocumentObjectTagger;
 use App\Support\Transactions\TransactionSyncBroadcaster;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Builder;
@@ -17,7 +19,10 @@ use Illuminate\Support\Facades\DB;
 
 class AdminDocumentReviewController extends Controller
 {
-    public function __construct(private TransactionSyncBroadcaster $transactionSyncBroadcaster) {}
+    public function __construct(
+        private TransactionSyncBroadcaster $transactionSyncBroadcaster,
+        private DocumentObjectTagger $documentObjectTagger,
+    ) {}
 
     /**
      * GET /api/admin/document-review
@@ -210,7 +215,12 @@ class AdminDocumentReviewController extends Controller
 
         $transaction->forceFill([
             'is_archive' => true,
+            'archived_at' => now(),
+            'archived_by' => $request->user()->id,
+            'archive_origin' => ArchiveOrigin::ArchivedFromLive,
         ])->save();
+        $transaction->load('documents');
+        $this->documentObjectTagger->syncTransactionDocuments($transaction);
         $this->transactionSyncBroadcaster->transactionChanged($transaction, $request->user(), 'archived');
 
         return response()->json([
@@ -219,6 +229,9 @@ class AdminDocumentReviewController extends Controller
                 'id' => $transaction->id,
                 'type' => $type,
                 'is_archive' => true,
+                'archived_at' => $this->formatDateTime($transaction->archived_at),
+                'archived_by_id' => $transaction->archived_by,
+                'archive_origin' => $transaction->archive_origin?->value,
             ],
         ]);
     }

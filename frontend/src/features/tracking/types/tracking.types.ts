@@ -69,6 +69,10 @@ export interface ApiImportTransaction {
     origin_country?: { id: number; name: string; code: string };
     assigned_user?: { id: number; name: string };
     status: string;
+    is_archive?: boolean;
+    archived_at?: string | null;
+    archived_by_id?: number | null;
+    archive_origin?: 'direct_archive_upload' | 'archived_from_live' | null;
     notes: string | null;
     stages?: {
         boc: string;
@@ -91,6 +95,10 @@ export interface ApiExportTransaction {
     destination_country?: { id: number; name: string; code: string };
     assigned_user?: { id: number; name: string };
     status: string;
+    is_archive?: boolean;
+    archived_at?: string | null;
+    archived_by_id?: number | null;
+    archive_origin?: 'direct_archive_upload' | 'archived_from_live' | null;
     notes: string | null;
     stages?: {
         docs_prep: string;

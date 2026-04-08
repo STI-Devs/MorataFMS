@@ -24,7 +24,7 @@ class DocumentFactory extends Factory
             'documentable_id' => ImportTransaction::factory(),
             'type' => $faker->randomElement(array_keys(Document::getTypeLabels())),
             'filename' => $faker->word().'.pdf',
-            'path' => 'documents/test/'.$faker->uuid().'.pdf',
+            'path' => 'transaction-documents/test/'.$faker->uuid().'.pdf',
             'size_bytes' => $faker->numberBetween(1024, 5242880), // 1KB to 5MB
             'version' => 1,
             'uploaded_by' => User::factory(),

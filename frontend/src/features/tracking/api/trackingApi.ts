@@ -187,8 +187,19 @@ export const trackingApi = {
         customs_ref_no?: string;
         origin_country_id?: number;
         notes?: string;
+        documents?: Array<{
+            file: File;
+            stage: string;
+        }>;
     }): Promise<ApiImportTransaction> => {
-        const response = await api.post('/api/archives/import', data);
+        const hasDocuments = (data.documents?.length ?? 0) > 0;
+
+        const response = hasDocuments
+            ? await api.post('/api/archives/import', buildArchiveFormData(data), {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            })
+            : await api.post('/api/archives/import', data);
+
         return response.data.data;
     },
 
@@ -199,8 +210,19 @@ export const trackingApi = {
         file_date: string;          // YYYY-MM-DD, must be <= today (enforced by backend)
         vessel?: string;
         notes?: string;
+        documents?: Array<{
+            file: File;
+            stage: string;
+        }>;
     }): Promise<ApiExportTransaction> => {
-        const response = await api.post('/api/archives/export', data);
+        const hasDocuments = (data.documents?.length ?? 0) > 0;
+
+        const response = hasDocuments
+            ? await api.post('/api/archives/export', buildArchiveFormData(data), {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            })
+            : await api.post('/api/archives/export', data);
+
         return response.data.data;
     },
 
@@ -260,3 +282,38 @@ export const trackingApi = {
         return data.url;
     },
 };
+
+function buildArchiveFormData(data: Record<string, unknown>): FormData {
+    const formData = new FormData();
+
+    Object.entries(data).forEach(([key, value]) => {
+        if (value === undefined || value === null) {
+            return;
+        }
+
+        if (key === 'documents' && Array.isArray(value)) {
+            value.forEach((document, index) => {
+                if (!document || typeof document !== 'object') {
+                    return;
+                }
+
+                const file = 'file' in document ? document.file : null;
+                const stage = 'stage' in document ? document.stage : null;
+
+                if (file instanceof File) {
+                    formData.append(`documents[${index}][file]`, file);
+                }
+
+                if (typeof stage === 'string' && stage !== '') {
+                    formData.append(`documents[${index}][stage]`, stage);
+                }
+            });
+
+            return;
+        }
+
+        formData.append(key, String(value));
+    });
+
+    return formData;
+}

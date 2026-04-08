@@ -5,12 +5,17 @@ use App\Models\ExportTransaction;
 use App\Models\ImportTransaction;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 
 beforeEach(function () {
     $this->documentDisk = config('filesystems.document_disk', 's3');
 
     Storage::fake($this->documentDisk);
+});
+
+afterEach(function () {
+    Carbon::setTestNow();
 });
 
 test('unauthenticated users cannot access document endpoints', function () {
@@ -115,6 +120,40 @@ test('admin can list all finalized document transactions', function () {
         ->assertJsonPath('counts.exports', 1);
 });
 
+test('s3 disk throws upload exceptions while app debug is enabled', function () {
+    $originalAppDebug = getenv('APP_DEBUG');
+    $originalEnvAppDebug = $_ENV['APP_DEBUG'] ?? null;
+    $originalServerAppDebug = $_SERVER['APP_DEBUG'] ?? null;
+
+    putenv('APP_DEBUG=true');
+    $_ENV['APP_DEBUG'] = 'true';
+    $_SERVER['APP_DEBUG'] = 'true';
+
+    try {
+        $filesystems = require base_path('config/filesystems.php');
+
+        expect($filesystems['disks']['s3']['throw'])->toBeTrue();
+    } finally {
+        if ($originalAppDebug === false) {
+            putenv('APP_DEBUG');
+        } else {
+            putenv("APP_DEBUG={$originalAppDebug}");
+        }
+
+        if ($originalEnvAppDebug === null) {
+            unset($_ENV['APP_DEBUG']);
+        } else {
+            $_ENV['APP_DEBUG'] = $originalEnvAppDebug;
+        }
+
+        if ($originalServerAppDebug === null) {
+            unset($_SERVER['APP_DEBUG']);
+        } else {
+            $_SERVER['APP_DEBUG'] = $originalServerAppDebug;
+        }
+    }
+});
+
 test('encoder can upload a document to an import transaction', function () {
     $user = User::factory()->create(['role' => 'encoder']);
     $import = ImportTransaction::factory()->create(['assigned_user_id' => $user->id]);
@@ -145,6 +184,32 @@ test('encoder can upload a document to an import transaction', function () {
     // Verify file was stored in S3
     $document = Document::latest()->first();
     Storage::disk($this->documentDisk)->assertExists($document->path);
+});
+
+test('document upload stops when the configured disk write fails', function () {
+    config()->set('filesystems.document_disk', 's3');
+
+    $user = User::factory()->create(['role' => 'encoder']);
+    $import = ImportTransaction::factory()->create(['assigned_user_id' => $user->id]);
+
+    $disk = Mockery::mock();
+    $disk->shouldReceive('writeStream')->once()->andReturnFalse();
+
+    Storage::shouldReceive('disk')
+        ->twice()
+        ->with('s3')
+        ->andReturn($disk);
+
+    $this->withoutExceptionHandling();
+
+    expect(fn () => $this->actingAs($user)->postJson('/api/documents', [
+        'file' => UploadedFile::fake()->create('invoice.pdf', 1024, 'application/pdf'),
+        'type' => 'boc',
+        'documentable_type' => ImportTransaction::class,
+        'documentable_id' => $import->id,
+    ]))->toThrow(RuntimeException::class, 'Unable to write document to the [s3] disk.');
+
+    $this->assertDatabaseCount('documents', 0);
 });
 
 test('encoder can upload additional documents to a completed transaction', function () {
@@ -349,7 +414,7 @@ test('signed local stream can be opened after an authorized preview request', fu
         'documentable_type' => ImportTransaction::class,
         'documentable_id' => $transaction->id,
         'uploaded_by' => $encoder->id,
-        'path' => 'documents/test/restricted.pdf',
+        'path' => 'transaction-documents/test/restricted.pdf',
     ]);
 
     Storage::disk('local')->put($document->path, 'restricted');
@@ -473,6 +538,28 @@ test('encoder can upload a document with type others', function () {
     ]);
 });
 
+test('live document uploads use the current upload month in S3 paths', function () {
+    Carbon::setTestNow('2026-04-06 04:39:14');
+
+    $user = User::factory()->create(['role' => 'encoder']);
+    $import = ImportTransaction::factory()->create([
+        'assigned_user_id' => $user->id,
+        'arrival_date' => '2026-03-28',
+        'bl_no' => 'BL-LIVE-UPLOAD-001',
+    ]);
+
+    $this->actingAs($user)->postJson('/api/documents', [
+        'file' => UploadedFile::fake()->create('invoice.pdf', 1024, 'application/pdf'),
+        'type' => 'boc',
+        'documentable_type' => ImportTransaction::class,
+        'documentable_id' => $import->id,
+    ])->assertCreated();
+
+    $document = Document::latest()->first();
+
+    expect($document?->path)->toStartWith('transaction-documents/imports/2026/month-04-April/BL-LIVE-UPLOAD-001/');
+});
+
 test('document generates correct S3 path', function () {
     $year = now()->year;
     $monthPad = str_pad(now()->month, 2, '0', STR_PAD_LEFT);
@@ -486,7 +573,7 @@ test('document generates correct S3 path', function () {
         'my-invoice.pdf'
     );
 
-    expect($path)->toContain("documents/imports/{$year}/{$monthPad}-{$monthName}/42/invoice_my_invoice_");
+    expect($path)->toContain("transaction-documents/imports/{$year}/month-{$monthPad}-{$monthName}/42/invoice_my_invoice_");
     expect($path)->toContain('.pdf'); // Extension preserved correctly
 
     // With BL number — uses BL slug as folder
@@ -497,10 +584,9 @@ test('document generates correct S3 path', function () {
         'bill-of-lading.pdf',
         'BL-78542136',
         2025,
-        false,
         7, // July
     );
 
-    expect($pathWithBl)->toContain('documents/exports/2025/07-July/BL-78542136/bl_bill_of_lading_');
+    expect($pathWithBl)->toContain('transaction-documents/exports/2025/month-07-July/BL-78542136/bl_bill_of_lading_');
     expect($pathWithBl)->toContain('.pdf');
 });

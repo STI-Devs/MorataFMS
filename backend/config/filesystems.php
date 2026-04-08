@@ -28,7 +28,6 @@ return [
     */
     'document_disk' => env('APP_STORAGE_DISK', 's3'),
 
-
     /*
     |--------------------------------------------------------------------------
     | Filesystem Disks
@@ -70,7 +69,7 @@ return [
             'url' => env('AWS_URL'),
             'endpoint' => env('AWS_ENDPOINT'),
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
-            'throw' => false,
+            'throw' => env('APP_DEBUG', false),
             'report' => false,
         ],
 

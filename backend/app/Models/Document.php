@@ -12,6 +12,8 @@ class Document extends Model
 {
     use Auditable, HasFactory;
 
+    private const STORAGE_ROOT = 'transaction-documents';
+
     /**
      * @return list<string>
      */
@@ -120,9 +122,9 @@ class Document extends Model
         return round($bytes / 1048576, 2).' MB';
     }
 
-    // Helper to generate S3 path for documents
-    // $isArchive controls root prefix: archives/ vs documents/
-    // Path: {root}/{folder}/{year}/{MM-Month}/{BL}/{type}_{name}_{unique}.{ext}
+    // Helper to generate S3 path for transaction documents.
+    // Archive state lives in the database and S3 object tags, not in the root prefix.
+    // Path: {root}/{folder}/{year}/{period-folder}/{BL}/{type}_{name}_{unique}.{ext}
     public static function generateS3Path(
         string $documentableType,
         int $documentableId,
@@ -130,15 +132,13 @@ class Document extends Model
         string $filename,
         string $blNo = '',
         int $year = 0,
-        bool $isArchive = false,
         int $month = 0,
     ): string {
-        $root = $isArchive ? 'archives' : 'documents';
+        $root = self::STORAGE_ROOT;
         $folder = str_contains($documentableType, 'Import') ? 'imports' : 'exports';
         $year = $year ?: now()->year;
         $month = $month ?: now()->month;
-        $monthPad = str_pad($month, 2, '0', STR_PAD_LEFT);
-        $monthName = date('F', mktime(0, 0, 0, $month, 1));
+        $periodFolder = self::periodFolder($month);
         $blSlug = $blNo
             ? str($blNo)->slug('-')->upper()->value()
             : (string) $documentableId;
@@ -147,7 +147,7 @@ class Document extends Model
         $safeName = str($basename)->slug('_')->value();
         $unique = substr(uniqid(), -6); // short unique suffix to prevent overwrites
 
-        return "{$root}/{$folder}/{$year}/{$monthPad}-{$monthName}/{$blSlug}/{$type}_{$safeName}_{$unique}.{$ext}";
+        return "{$root}/{$folder}/{$year}/{$periodFolder}/{$blSlug}/{$type}_{$safeName}_{$unique}.{$ext}";
     }
 
     // Document type labels
@@ -168,5 +168,13 @@ class Document extends Model
             // Shared — catch-all for additional documents
             'others' => 'Other Documents',
         ];
+    }
+
+    private static function periodFolder(int $month): string
+    {
+        $monthPad = str_pad($month, 2, '0', STR_PAD_LEFT);
+        $monthName = date('F', mktime(0, 0, 0, $month, 1));
+
+        return "month-{$monthPad}-{$monthName}";
     }
 }

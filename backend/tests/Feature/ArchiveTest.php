@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\ArchiveOrigin;
 use App\Models\Client;
 use App\Models\Country;
 use App\Models\Document;
@@ -7,6 +8,7 @@ use App\Models\ExportTransaction;
 use App\Models\ImportTransaction;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 
 beforeEach(function () {
@@ -14,6 +16,10 @@ beforeEach(function () {
 
     // Fake the configured document disk to prevent actual storage calls during tests.
     Storage::fake($this->documentDisk);
+});
+
+afterEach(function () {
+    Carbon::setTestNow();
 });
 
 // ─── Authentication Guards ─────────────────────────────────────────────────────
@@ -69,7 +75,10 @@ test('archive import is accepted when file_date is today', function () {
         'file_date' => now()->toDateString(),
     ])->assertCreated()
         ->assertJsonPath('data.bl_no', 'BL-ARCH-TODAY-001')
-        ->assertJsonPath('data.status', 'Completed'); // Archives are stored as completed
+        ->assertJsonPath('data.status', 'Completed')
+        ->assertJsonPath('data.is_archive', true)
+        ->assertJsonPath('data.archived_by_id', $user->id)
+        ->assertJsonPath('data.archive_origin', ArchiveOrigin::DirectArchiveUpload->value); // Archives are stored as completed
 });
 
 test('archive import is accepted when file_date is in the past', function () {
@@ -90,7 +99,8 @@ test('archive import is accepted when file_date is in the past', function () {
         ->assertJsonPath('data.status', 'Completed')
         ->assertJsonPath('data.selective_color', 'yellow')
         ->assertJsonPath('data.importer.id', $client->id)
-        ->assertJsonPath('data.origin_country.id', $country->id);
+        ->assertJsonPath('data.origin_country.id', $country->id)
+        ->assertJsonPath('data.archive_origin', ArchiveOrigin::DirectArchiveUpload->value);
 });
 
 // ─── Import Archive: Required Fields ──────────────────────────────────────────
@@ -156,6 +166,19 @@ test('archive import fails with duplicate customs reference number', function ()
     ])->assertUnprocessable()->assertJsonValidationErrors(['customs_ref_no']);
 });
 
+test('archive import bypasses the generic max request size middleware', function () {
+    $user = User::factory()->create(['role' => 'encoder']);
+    $client = Client::factory()->importer()->create();
+
+    $this->actingAs($user)->postJson('/api/archives/import', [
+        'bl_no' => 'BL-ARCH-LARGE-001',
+        'selective_color' => 'green',
+        'importer_id' => $client->id,
+        'file_date' => '2024-01-10',
+        'notes' => str_repeat('A', 70 * 1024),
+    ])->assertUnprocessable()->assertJsonValidationErrors(['notes']);
+});
+
 // ─── Export Archive: Past Date Enforcement ────────────────────────────────────
 
 test('archive export is rejected when file_date is in the future', function () {
@@ -187,7 +210,8 @@ test('archive export is accepted when file_date is in the past', function () {
         ->assertJsonPath('data.bl_no', 'BL-EXP-ARCH-PAST-001')
         ->assertJsonPath('data.status', 'Completed')
         ->assertJsonPath('data.shipper.id', $client->id)
-        ->assertJsonPath('data.destination_country.id', $country->id);
+        ->assertJsonPath('data.destination_country.id', $country->id)
+        ->assertJsonPath('data.archive_origin', ArchiveOrigin::DirectArchiveUpload->value);
 });
 
 // ─── Export Archive: Required Fields ──────────────────────────────────────────
@@ -248,7 +272,7 @@ test('archive import document generates correct S3 path structure', function () 
     $monthPad = str_pad(now()->month, 2, '0', STR_PAD_LEFT);
     $monthName = date('F');
 
-    // Import path: documents/imports/{year}/{MM-Month}/{BL-SLUG}/{stage}_{filename}_{unique}.{ext}
+    // Import path: transaction-documents/imports/{year}/{period-folder}/{BL-SLUG}/{stage}_{filename}_{unique}.{ext}
     $path = Document::generateS3Path(
         'App\Models\ImportTransaction',
         1,
@@ -258,7 +282,7 @@ test('archive import document generates correct S3 path structure', function () 
         $year,
     );
 
-    expect($path)->toStartWith("documents/imports/{$year}/{$monthPad}-{$monthName}/MAEU123456789/");
+    expect($path)->toStartWith("transaction-documents/imports/{$year}/month-{$monthPad}-{$monthName}/MAEU123456789/");
     expect($path)->toContain('boc_customs_form_');
     expect($path)->toEndWith('.pdf');
 
@@ -268,7 +292,7 @@ test('archive import document generates correct S3 path structure', function () 
 });
 
 test('archive export document generates correct S3 path structure', function () {
-    // Export path: documents/exports/{year}/{MM-Month}/{BL-SLUG}/{stage}_{filename}_{unique}.{ext}
+    // Export path: transaction-documents/exports/{year}/{period-folder}/{BL-SLUG}/{stage}_{filename}_{unique}.{ext}
     $path = Document::generateS3Path(
         'App\Models\ExportTransaction',
         5,
@@ -276,11 +300,10 @@ test('archive export document generates correct S3 path structure', function () 
         'bill-of-lading.pdf',
         'MAEU-78542136',
         2024,
-        false,
         3, // March
     );
 
-    expect($path)->toStartWith('documents/exports/2024/03-March/MAEU-78542136/');
+    expect($path)->toStartWith('transaction-documents/exports/2024/month-03-March/MAEU-78542136/');
     expect($path)->toContain('bl_generation_bill_of_lading_');
     expect($path)->toEndWith('.pdf');
 });
@@ -293,11 +316,10 @@ test('S3 path falls back to documentable_id when no BL number given', function (
         'document.pdf',
         '',   // no BL — must fall back to ID
         2023,
-        false,
         6, // June
     );
 
-    expect($path)->toStartWith('documents/imports/2023/06-June/42/');
+    expect($path)->toStartWith('transaction-documents/imports/2023/month-06-June/42/');
     expect($path)->toContain('boc_document_');
 });
 
@@ -440,6 +462,9 @@ test('archive import sets is_archive flag to true', function () {
 
     $transaction = ImportTransaction::where('bl_no', 'BL-FLAG-IMP-001')->first();
     expect($transaction->is_archive)->toBeTrue();
+    expect($transaction->archived_at)->not->toBeNull();
+    expect($transaction->archived_by)->toBe($user->id);
+    expect($transaction->archive_origin)->toBe(ArchiveOrigin::DirectArchiveUpload);
 });
 
 test('archive export sets is_archive flag to true and stores export_date', function () {
@@ -457,6 +482,9 @@ test('archive export sets is_archive flag to true and stores export_date', funct
     $transaction = ExportTransaction::where('bl_no', 'BL-FLAG-EXP-001')->first();
     expect($transaction->is_archive)->toBeTrue();
     expect($transaction->export_date->toDateString())->toBe('2024-03-20');
+    expect($transaction->archived_at)->not->toBeNull();
+    expect($transaction->archived_by)->toBe($user->id);
+    expect($transaction->archive_origin)->toBe(ArchiveOrigin::DirectArchiveUpload);
 });
 
 test('regular import encoding does NOT set is_archive', function () {
@@ -475,9 +503,9 @@ test('regular import encoding does NOT set is_archive', function () {
     expect($transaction->is_archive)->toBeFalse();
 });
 
-// ─── S3 Archive Prefix Routing ────────────────────────────────────────────────
+// ─── Stable S3 Root Routing ───────────────────────────────────────────────────
 
-test('archive documents use archives/ S3 prefix', function () {
+test('archive documents use the stable transaction-documents S3 root', function () {
     $path = Document::generateS3Path(
         'App\Models\ImportTransaction',
         1,
@@ -485,16 +513,15 @@ test('archive documents use archives/ S3 prefix', function () {
         'customs-form.pdf',
         'MAEU123456789',
         2023,
-        true, // isArchive = true
         6, // June
     );
 
-    expect($path)->toStartWith('archives/imports/2023/06-June/MAEU123456789/');
+    expect($path)->toStartWith('transaction-documents/imports/2023/month-06-June/MAEU123456789/');
     expect($path)->toContain('boc_customs_form_');
     expect($path)->toEndWith('.pdf');
 });
 
-test('live documents use documents/ S3 prefix', function () {
+test('live documents use the same stable transaction-documents S3 root', function () {
     $path = Document::generateS3Path(
         'App\Models\ImportTransaction',
         1,
@@ -502,11 +529,10 @@ test('live documents use documents/ S3 prefix', function () {
         'customs-form.pdf',
         'MAEU123456789',
         2026,
-        false, // isArchive = false
         2, // February
     );
 
-    expect($path)->toStartWith('documents/imports/2026/02-February/MAEU123456789/');
+    expect($path)->toStartWith('transaction-documents/imports/2026/month-02-February/MAEU123456789/');
 });
 
 // ─── BL Format Validation ─────────────────────────────────────────────────────
@@ -575,6 +601,8 @@ test('archive listing only returns transactions with is_archive flag', function 
         'arrival_date' => '2023-06-15',
         'status' => 'Completed',
         'is_archive' => true,
+        'archived_at' => '2026-04-06 04:39:14',
+        'archive_origin' => ArchiveOrigin::DirectArchiveUpload,
     ]);
     // Attach a document so it appears in the flattened documents list
     Document::factory()->create([
@@ -601,9 +629,12 @@ test('archive listing only returns transactions with is_archive flag', function 
 
     $allDocs = collect($response->json('data'))->pluck('documents')->flatten(1);
     $blNumbers = $allDocs->pluck('bl_no')->toArray();
+    $archiveDocument = $allDocs->firstWhere('bl_no', 'BL-ARCHIVE-VISIBLE');
 
     expect($blNumbers)->toContain('BL-ARCHIVE-VISIBLE');
     expect($blNumbers)->not->toContain('BL-LIVE-HIDDEN');
+    expect($archiveDocument['archive_origin'] ?? null)->toBe(ArchiveOrigin::DirectArchiveUpload->value);
+    expect($archiveDocument['archived_at'] ?? null)->not->toBeNull();
 });
 
 test('archive import stores uploaded archive documents', function () {
@@ -637,4 +668,33 @@ test('archive import stores uploaded archive documents', function () {
 
     expect($document)->not->toBeNull();
     Storage::disk($this->documentDisk)->assertExists($document->path);
+});
+
+test('archive document uploads keep the archive file date month in S3 paths', function () {
+    Carbon::setTestNow('2026-04-06 04:39:14');
+    Storage::fake($this->documentDisk);
+
+    $user = User::factory()->create(['role' => 'admin']);
+    $client = Client::factory()->importer()->create();
+
+    $this->actingAs($user)->post('/api/archives/import', [
+        'bl_no' => 'BL-ARCH-DATE-001',
+        'selective_color' => 'green',
+        'importer_id' => $client->id,
+        'file_date' => '2023-06-15',
+        'documents' => [
+            [
+                'file' => UploadedFile::fake()->create('archive-boc.pdf', 100, 'application/pdf'),
+                'stage' => 'boc',
+            ],
+        ],
+    ])->assertCreated();
+
+    $transaction = ImportTransaction::where('bl_no', 'BL-ARCH-DATE-001')->first();
+    $document = Document::where('documentable_type', ImportTransaction::class)
+        ->where('documentable_id', $transaction?->id)
+        ->latest()
+        ->first();
+
+    expect($document?->path)->toStartWith('transaction-documents/imports/2023/month-06-June/BL-ARCH-DATE-001/');
 });

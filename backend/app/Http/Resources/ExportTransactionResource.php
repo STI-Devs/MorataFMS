@@ -17,18 +17,22 @@ class ExportTransactionResource extends JsonResource
                 'id' => $this->shipper?->id,
                 'name' => $this->shipper?->name,
             ],
-            'destination_country' => $this->whenLoaded('destinationCountry', fn() => [
+            'destination_country' => $this->whenLoaded('destinationCountry', fn () => [
                 'id' => $this->destinationCountry->id,
                 'name' => $this->destinationCountry->name,
                 'code' => $this->destinationCountry->code,
             ]),
-            'assigned_user' => $this->whenLoaded('assignedUser', fn() => [
+            'assigned_user' => $this->whenLoaded('assignedUser', fn () => [
                 'id' => $this->assignedUser->id,
                 'name' => $this->assignedUser->name,
             ]),
             'status' => $this->status,
+            'is_archive' => (bool) $this->is_archive,
+            'archived_at' => $this->archived_at?->toISOString(),
+            'archived_by_id' => $this->archived_by,
+            'archive_origin' => $this->archive_origin?->value,
             'notes' => $this->notes,
-            'stages' => $this->whenLoaded('stages', fn() => [
+            'stages' => $this->whenLoaded('stages', fn () => [
                 'docs_prep' => $this->stages->docs_prep_status,
                 'co' => $this->stages->co_status,
                 'cil' => $this->stages->cil_status,

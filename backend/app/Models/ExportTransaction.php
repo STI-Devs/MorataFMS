@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ArchiveOrigin;
 use App\Enums\ExportStatus;
 use App\Enums\StageStatus;
 use App\Traits\Auditable;
@@ -26,6 +27,8 @@ class ExportTransaction extends Model
     protected $casts = [
         'export_date' => 'date',
         'is_archive' => 'boolean',
+        'archived_at' => 'datetime',
+        'archive_origin' => ArchiveOrigin::class,
         'status' => ExportStatus::class,
     ];
 
@@ -43,6 +46,11 @@ class ExportTransaction extends Model
     public function assignedUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_user_id');
+    }
+
+    public function archivedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'archived_by');
     }
 
     public function stages(): HasOne

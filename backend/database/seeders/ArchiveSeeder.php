@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Enums\ArchiveOrigin;
 use App\Enums\ExportStatus;
 use App\Enums\ImportStatus;
 use App\Models\Client;
@@ -293,6 +294,9 @@ class ArchiveSeeder extends Seeder
                     $txn->origin_country_id = $originCountries[$originName] ?? null;
                     $txn->arrival_date = $date;
                     $txn->is_archive = true;
+                    $txn->archived_at = $date;
+                    $txn->archived_by = $admin->id;
+                    $txn->archive_origin = ArchiveOrigin::DirectArchiveUpload;
                     $txn->assigned_user_id = $admin->id;
                     $txn->status = ImportStatus::Completed;
                     $txn->save();
@@ -333,6 +337,9 @@ class ArchiveSeeder extends Seeder
                     $txn->destination_country_id = $destCountries[$destName] ?? null;
                     $txn->export_date = $date;
                     $txn->is_archive = true;
+                    $txn->archived_at = $date;
+                    $txn->archived_by = $admin->id;
+                    $txn->archive_origin = ArchiveOrigin::DirectArchiveUpload;
                     $txn->assigned_user_id = $admin->id;
                     $txn->status = ExportStatus::Completed;
                     $txn->save();
@@ -394,6 +401,9 @@ class ArchiveSeeder extends Seeder
                     $txn->origin_country_id = $originCountries[$originName] ?? null;
                     $txn->arrival_date = $date;
                     $txn->is_archive = true;
+                    $txn->archived_at = $date;
+                    $txn->archived_by = $encoder->id;
+                    $txn->archive_origin = ArchiveOrigin::DirectArchiveUpload;
                     $txn->assigned_user_id = $encoder->id;
                     $txn->status = ImportStatus::Completed;
                     $txn->save();
@@ -426,6 +436,9 @@ class ArchiveSeeder extends Seeder
                     $txn->destination_country_id = $destCountries[$destName] ?? null;
                     $txn->export_date = $date;
                     $txn->is_archive = true;
+                    $txn->archived_at = $date;
+                    $txn->archived_by = $encoder->id;
+                    $txn->archive_origin = ArchiveOrigin::DirectArchiveUpload;
                     $txn->assigned_user_id = $encoder->id;
                     $txn->status = ExportStatus::Completed;
                     $txn->save();
@@ -490,7 +503,6 @@ class ArchiveSeeder extends Seeder
                 filename: $filename,
                 blNo: $blNo,
                 year: $year,
-                isArchive: true,
                 month: $month,
             );
 

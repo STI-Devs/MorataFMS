@@ -48,6 +48,8 @@ class ArchiveIndexQuery
                     'stage' => $document->type,
                     'filename' => $document->filename,
                     'formatted_size' => $document->formatted_size,
+                    'archive_origin' => $transaction->archive_origin?->value,
+                    'archived_at' => $transaction->archived_at?->toIso8601String(),
                     'uploaded_at' => $document->created_at?->toIso8601String(),
                     'uploader' => $document->uploadedBy ? [
                         'id' => $document->uploadedBy->id,
@@ -93,6 +95,8 @@ class ArchiveIndexQuery
                     'stage' => $document->type,
                     'filename' => $document->filename,
                     'formatted_size' => $document->formatted_size,
+                    'archive_origin' => $transaction->archive_origin?->value,
+                    'archived_at' => $transaction->archived_at?->toIso8601String(),
                     'uploaded_at' => $document->created_at?->toIso8601String(),
                     'uploader' => $document->uploadedBy ? [
                         'id' => $document->uploadedBy->id,

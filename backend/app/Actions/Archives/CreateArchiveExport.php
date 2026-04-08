@@ -3,6 +3,7 @@
 namespace App\Actions\Archives;
 
 use App\Actions\Documents\StoreTransactionDocument;
+use App\Enums\ArchiveOrigin;
 use App\Enums\ExportStatus;
 use App\Models\ExportTransaction;
 use App\Models\User;
@@ -28,6 +29,9 @@ class CreateArchiveExport
                 $transaction->notes = $validated['notes'] ?? null;
                 $transaction->export_date = $validated['file_date'];
                 $transaction->is_archive = true;
+                $transaction->archived_at = now();
+                $transaction->archived_by = $user->id;
+                $transaction->archive_origin = ArchiveOrigin::DirectArchiveUpload;
                 $transaction->assigned_user_id = $user->id;
                 $transaction->status = ExportStatus::Completed;
                 $transaction->save();

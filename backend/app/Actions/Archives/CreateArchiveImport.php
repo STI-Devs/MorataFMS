@@ -3,6 +3,7 @@
 namespace App\Actions\Archives;
 
 use App\Actions\Documents\StoreTransactionDocument;
+use App\Enums\ArchiveOrigin;
 use App\Enums\ImportStatus;
 use App\Models\ImportTransaction;
 use App\Models\User;
@@ -30,6 +31,9 @@ class CreateArchiveImport
                 $transaction->arrival_date = $validated['file_date'];
                 $transaction->notes = $validated['notes'] ?? null;
                 $transaction->is_archive = true;
+                $transaction->archived_at = now();
+                $transaction->archived_by = $user->id;
+                $transaction->archive_origin = ArchiveOrigin::DirectArchiveUpload;
                 $transaction->assigned_user_id = $user->id;
                 $transaction->status = ImportStatus::Completed;
                 $transaction->save();

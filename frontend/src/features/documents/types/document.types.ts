@@ -1,5 +1,6 @@
 export type FileExt = 'pdf' | 'docx' | 'jpg' | string;
 export type TransactionType = 'import' | 'export';
+export type ArchiveOrigin = 'direct_archive_upload' | 'archived_from_live';
 
 export interface TransactionDocument {
     id: number;
@@ -21,7 +22,7 @@ export interface DocumentTransaction {
     documents: TransactionDocument[];
 }
 
-// Mirrors the S3 path: documents/{imports|exports}/{year}/{BL}/{stage}/{timestamp}_{filename}
+// Mirrors the current S3 path contract: transaction-documents/{imports|exports}/{year}/{period}/{BL}/{type}_{filename}_{unique}
 
 export interface ArchiveDocument {
     id: number;
@@ -38,6 +39,8 @@ export interface ArchiveDocument {
     filename: string;                // original filename (stripped of timestamp prefix)
     formatted_size: string;          // e.g. '1.1 MB'
     size_bytes: number;              // raw byte count (for summing total storage)
+    archive_origin: ArchiveOrigin | null;
+    archived_at: string | null;
     uploaded_at: string;             // ISO timestamp
     uploader: { id: number; name: string } | null;
 }
@@ -198,6 +201,9 @@ export interface AdminReviewArchiveResponse {
         id: number;
         type: TransactionType;
         is_archive: boolean;
+        archived_at: string | null;
+        archived_by_id: number | null;
+        archive_origin: ArchiveOrigin | null;
     };
 }
 

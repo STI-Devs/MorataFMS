@@ -14,6 +14,7 @@ class MaxRequestSize
      */
     private const EXEMPT_PATHS = [
         'api/documents*',
+        'api/archives*',
     ];
 
     /**

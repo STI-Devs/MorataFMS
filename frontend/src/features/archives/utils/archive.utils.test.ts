@@ -21,6 +21,8 @@ const buildArchiveYear = (stages: string[]): ArchiveYear => ({
         filename: `${stage}.pdf`,
         formatted_size: '164.62 KB',
         size_bytes: 168570,
+        archive_origin: 'direct_archive_upload',
+        archived_at: '2026-04-06T04:39:14Z',
         uploaded_at: '2026-03-24T11:15:00Z',
         uploader: { id: 1, name: 'Encoder User' },
     })),

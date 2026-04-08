@@ -12,7 +12,7 @@ import {
     IMPORT_STAGES
 } from '../../documents/types/document.types';
 import { trackingApi } from '../../tracking/api/trackingApi';
-import type { ApiClient, ApiCountry, DocumentableType } from '../../tracking/types';
+import type { ApiClient, ApiCountry } from '../../tracking/types';
 import { ArchiveTypeCard } from './ArchiveTypeCard';
 
 
@@ -182,11 +182,6 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
                 clientId = Number(selectedClientId);
             }
 
-            // 2. Create the transaction via the dedicated archive endpoint
-            // (backend enforces file_date must be past-or-today — cannot be bypassed)
-            let transactionId: number;
-            let documentableType: DocumentableType;
-
             // Derive file_date based on date mode
             const [y, m] = monthYear.split('-').map(Number);
             let fileDate: string;
@@ -203,44 +198,34 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
                     : `${y}-${String(m).padStart(2, '0')}-${lastDay}`;
             }
 
+            const documents = Object.entries(stageUploads)
+                .filter(([, upload]) => upload.file !== null)
+                .map(([stage, upload]) => ({
+                    file: upload.file!,
+                    stage,
+                }));
+
             if (isImport) {
-                const importData = await trackingApi.createArchiveImport({
+                await trackingApi.createArchiveImport({
                     customs_ref_no: form.refNo || undefined,
                     bl_no: form.bl,
                     selective_color: (form.blsc as 'green' | 'yellow' | 'red') || 'green',
                     importer_id: clientId,
                     file_date: fileDate,
                     notes: `Legacy archive (${y})`,
+                    documents,
                 });
-                transactionId = importData.id;
-                documentableType = 'App\\Models\\ImportTransaction';
             } else {
-                const exportData = await trackingApi.createArchiveExport({
+                await trackingApi.createArchiveExport({
                     bl_no: form.bl,
                     vessel: form.vessel || undefined,
                     shipper_id: clientId,
                     destination_country_id: Number(selectedCountryId),
                     file_date: fileDate,
                     notes: `Legacy archive (${y})`,
+                    documents,
                 });
-                transactionId = exportData.id;
-                documentableType = 'App\\Models\\ExportTransaction';
             }
-
-
-            // 3. Upload all files to S3
-            const filesToUpload = Object.entries(stageUploads)
-                .filter(([, upload]) => upload.file !== null)
-                .map(([stageKey, upload]) => ({
-                    file: upload.file!,
-                    type: stageKey,
-                    documentable_type: documentableType,
-                    documentable_id: transactionId,
-                }));
-
-            await Promise.all(
-                filesToUpload.map(payload => trackingApi.uploadDocument(payload)),
-            );
 
             onSubmit();
         } catch (err: unknown) {

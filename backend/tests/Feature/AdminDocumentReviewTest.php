@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\ArchiveOrigin;
 use App\Enums\ExportStatus;
 use App\Enums\ImportStatus;
 use App\Models\Client;
@@ -278,9 +279,16 @@ test('admin can archive a review-ready transaction', function () {
         ->assertJsonPath('message', 'Transaction archived successfully.')
         ->assertJsonPath('data.id', $transaction->id)
         ->assertJsonPath('data.type', 'import')
-        ->assertJsonPath('data.is_archive', true);
+        ->assertJsonPath('data.is_archive', true)
+        ->assertJsonPath('data.archived_by_id', $admin->id)
+        ->assertJsonPath('data.archive_origin', ArchiveOrigin::ArchivedFromLive->value);
 
-    expect($transaction->fresh()?->is_archive)->toBeTrue();
+    $transaction->refresh();
+
+    expect($transaction->is_archive)->toBeTrue();
+    expect($transaction->archived_at)->not->toBeNull();
+    expect($transaction->archived_by)->toBe($admin->id);
+    expect($transaction->archive_origin)->toBe(ArchiveOrigin::ArchivedFromLive);
 });
 
 test('admin cannot archive a transaction that is not review-ready', function () {

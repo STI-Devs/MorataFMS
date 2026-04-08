@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ArchiveOrigin;
 use App\Enums\ImportStatus;
 use App\Enums\SelectiveColor;
 use App\Enums\StageStatus;
@@ -29,6 +30,8 @@ class ImportTransaction extends Model
     protected $casts = [
         'arrival_date' => 'date',
         'is_archive' => 'boolean',
+        'archived_at' => 'datetime',
+        'archive_origin' => ArchiveOrigin::class,
         'status' => ImportStatus::class,
         'selective_color' => SelectiveColor::class,
     ];
@@ -47,6 +50,11 @@ class ImportTransaction extends Model
     public function assignedUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_user_id');
+    }
+
+    public function archivedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'archived_by');
     }
 
     public function stages(): HasOne
