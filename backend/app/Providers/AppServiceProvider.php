@@ -6,9 +6,11 @@ use App\Models\User;
 use Dedoc\Scramble\Scramble;
 use Dedoc\Scramble\Support\Generator\OpenApi;
 use Dedoc\Scramble\Support\Generator\SecurityScheme;
-use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -26,6 +28,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        $this->bootRateLimiters();
+
         Gate::define('transactions.viewOversight', function (User $user): bool {
             return $user->isAdmin();
         });
@@ -36,10 +40,6 @@ class AppServiceProvider extends ServiceProvider
 
         Gate::define('transactions.overrideStatus', function (User $user): bool {
             return $user->isAdmin();
-        });
-
-        ResetPassword::createUrlUsing(function (object $notifiable, string $token) {
-            return config('app.frontend_url')."/password-reset/$token?email={$notifiable->getEmailForPasswordReset()}";
         });
 
         Scramble::afterOpenApiGenerated(function (OpenApi $openApi) {
@@ -59,5 +59,41 @@ class AppServiceProvider extends ServiceProvider
         if (! $this->app->environment('local')) {
             config(['app.debug' => false]);
         }
+    }
+
+    private function bootRateLimiters(): void
+    {
+        RateLimiter::for('auth-login', function (Request $request) {
+            return Limit::perMinute(20)->by('auth-login:'.$request->ip());
+        });
+
+        RateLimiter::for('auth-verification', function (Request $request) {
+            return Limit::perMinute(6)->by('auth-verification:'.$this->rateLimitKey($request));
+        });
+
+        RateLimiter::for('api-general', function (Request $request) {
+            return Limit::perMinute(90)->by('api-general:'.$this->rateLimitKey($request));
+        });
+
+        RateLimiter::for('api-admin', function (Request $request) {
+            return Limit::perMinute(120)->by('api-admin:'.$this->rateLimitKey($request));
+        });
+
+        RateLimiter::for('api-search', function (Request $request) {
+            return Limit::perMinute(45)->by('api-search:'.$this->rateLimitKey($request));
+        });
+
+        RateLimiter::for('api-documents', function (Request $request) {
+            return Limit::perMinute(60)->by('api-documents:'.$this->rateLimitKey($request));
+        });
+
+        RateLimiter::for('archive-uploads', function (Request $request) {
+            return Limit::perMinute(60)->by('archive-uploads:'.$this->rateLimitKey($request));
+        });
+    }
+
+    private function rateLimitKey(Request $request): string
+    {
+        return (string) ($request->user()?->getAuthIdentifier() ?? $request->ip());
     }
 }

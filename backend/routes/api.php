@@ -27,9 +27,9 @@ Route::prefix('auth')->group(function () {
 // Document management (protected by signed URLs for preview/download)
 Route::get('documents/{document}/stream', [DocumentController::class, 'stream'])
     ->name('documents.stream')
-    ->middleware(['signed']);
+    ->middleware(['signed', 'throttle:api-documents']);
 
-Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
+Route::middleware(['auth:sanctum', 'throttle:api-general'])->group(function () {
 
     // Current user
     Route::get('/user', function (Request $request) {
@@ -53,16 +53,19 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
     Route::get('/countries', [CountryController::class, 'index']);
 
     // Document management
-    Route::get('documents/transactions', [DocumentController::class, 'transactions']);
+    Route::get('documents/transactions', [DocumentController::class, 'transactions'])
+        ->middleware('throttle:api-search');
     Route::apiResource('documents', DocumentController::class)->except(['update']);
-    Route::get('documents/{document}/download', [DocumentController::class, 'download']);
-    Route::get('documents/{document}/preview', [DocumentController::class, 'preview']);
+    Route::get('documents/{document}/download', [DocumentController::class, 'download'])
+        ->middleware('throttle:api-documents');
+    Route::get('documents/{document}/preview', [DocumentController::class, 'preview'])
+        ->middleware('throttle:api-documents');
 
     // Archive uploads (legacy)
     Route::prefix('archives')->group(function () {
         Route::get('/', [ArchiveController::class, 'index']);
-        Route::post('import', [ArchiveController::class, 'storeImport']);
-        Route::post('export', [ArchiveController::class, 'storeExport']);
+        Route::post('import', [ArchiveController::class, 'storeImport'])->middleware('throttle:archive-uploads');
+        Route::post('export', [ArchiveController::class, 'storeExport'])->middleware('throttle:archive-uploads');
     });
 
     // Notarial (Law Firm) module
@@ -73,7 +76,7 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
     });
 
     // Admin-only routes — moderate throttle (120 req/min)
-    Route::middleware('throttle:120,1')->group(function () {
+    Route::middleware('throttle:api-admin')->group(function () {
 
         // User management
         Route::apiResource('users', UserController::class);
@@ -83,23 +86,32 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
         // Client management (write operations)
         Route::apiResource('clients', ClientController::class)->except(['index']);
         Route::post('clients/{client}/toggle-active', [ClientController::class, 'toggleActive']);
-        Route::get('clients/{client}/transactions', [ClientController::class, 'transactions']);
+        Route::get('clients/{client}/transactions', [ClientController::class, 'transactions'])
+            ->middleware('throttle:api-search');
 
         // Audit logs (read-only, admin)
-        Route::get('audit-logs/actions', [AuditLogController::class, 'actions']);
-        Route::get('audit-logs', [AuditLogController::class, 'index']);
+        Route::get('audit-logs/actions', [AuditLogController::class, 'actions'])
+            ->middleware('throttle:api-search');
+        Route::get('audit-logs', [AuditLogController::class, 'index'])
+            ->middleware('throttle:api-search');
 
         // Reports (admin)
-        Route::get('reports/monthly', [ReportController::class, 'monthly']);
-        Route::get('reports/clients', [ReportController::class, 'clients']);
-        Route::get('reports/turnaround', [ReportController::class, 'turnaround']);
+        Route::get('reports/monthly', [ReportController::class, 'monthly'])
+            ->middleware('throttle:api-search');
+        Route::get('reports/clients', [ReportController::class, 'clients'])
+            ->middleware('throttle:api-search');
+        Route::get('reports/turnaround', [ReportController::class, 'turnaround'])
+            ->middleware('throttle:api-search');
 
         // Admin dashboard
-        Route::get('admin/dashboard', [AdminDashboardController::class, 'show']);
+        Route::get('admin/dashboard', [AdminDashboardController::class, 'show'])
+            ->middleware('throttle:api-search');
 
         // Transaction oversight (admin)
-        Route::get('transactions', [TransactionController::class, 'index']);
-        Route::get('transactions/encoders', [TransactionController::class, 'encoders']);
+        Route::get('transactions', [TransactionController::class, 'index'])
+            ->middleware('throttle:api-search');
+        Route::get('transactions/encoders', [TransactionController::class, 'encoders'])
+            ->middleware('throttle:api-search');
         Route::patch('transactions/import/{importTransaction}/reassign', [TransactionController::class, 'reassignImport']);
         Route::patch('transactions/export/{exportTransaction}/reassign', [TransactionController::class, 'reassignExport']);
         Route::patch('transactions/import/{importTransaction}/status', [TransactionController::class, 'overrideImportStatus']);
@@ -112,10 +124,13 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
 
         // Admin document review
         Route::prefix('admin/document-review')->group(function () {
-            Route::get('/', [AdminDocumentReviewController::class, 'index']);
-            Route::get('stats', [AdminDocumentReviewController::class, 'stats']);
+            Route::get('/', [AdminDocumentReviewController::class, 'index'])
+                ->middleware('throttle:api-search');
+            Route::get('stats', [AdminDocumentReviewController::class, 'stats'])
+                ->middleware('throttle:api-search');
             Route::post('{type}/{id}/archive', [AdminDocumentReviewController::class, 'archive']);
-            Route::get('{type}/{id}', [AdminDocumentReviewController::class, 'show']);
+            Route::get('{type}/{id}', [AdminDocumentReviewController::class, 'show'])
+                ->middleware('throttle:api-search');
         });
     });
 });
