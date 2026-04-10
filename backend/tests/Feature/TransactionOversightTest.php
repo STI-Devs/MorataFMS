@@ -260,3 +260,53 @@ test('admin can override status of a completed export transaction', function () 
         'auditable_id' => $transaction->id,
     ]);
 });
+
+test('admin can restore a cancelled import transaction', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $transaction = ImportTransaction::factory()->create([
+        'status' => ImportStatus::Cancelled,
+    ]);
+
+    $this->actingAs($admin)
+        ->patchJson("/api/transactions/import/{$transaction->id}/status", [
+            'status' => ImportStatus::Pending->value,
+        ])
+        ->assertOk()
+        ->assertJsonPath('status', ImportStatus::Pending->value);
+
+    $this->assertDatabaseHas('import_transactions', [
+        'id' => $transaction->id,
+        'status' => ImportStatus::Pending->value,
+    ]);
+
+    $this->assertDatabaseHas('audit_logs', [
+        'event' => 'status_changed',
+        'auditable_type' => 'App\Models\ImportTransaction',
+        'auditable_id' => $transaction->id,
+    ]);
+});
+
+test('admin can restore a cancelled export transaction', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $transaction = ExportTransaction::factory()->create([
+        'status' => ExportStatus::Cancelled,
+    ]);
+
+    $this->actingAs($admin)
+        ->patchJson("/api/transactions/export/{$transaction->id}/status", [
+            'status' => ExportStatus::Pending->value,
+        ])
+        ->assertOk()
+        ->assertJsonPath('status', ExportStatus::Pending->value);
+
+    $this->assertDatabaseHas('export_transactions', [
+        'id' => $transaction->id,
+        'status' => ExportStatus::Pending->value,
+    ]);
+
+    $this->assertDatabaseHas('audit_logs', [
+        'event' => 'status_changed',
+        'auditable_type' => 'App\Models\ExportTransaction',
+        'auditable_id' => $transaction->id,
+    ]);
+});

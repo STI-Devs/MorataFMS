@@ -15,8 +15,8 @@ test('trusted hosts include local development and the configured app host', func
     }
 });
 
-test('api routes render json for direct browser method mismatches', function () {
-    $response = $this->get('/api/auth/login');
+test('json api clients still receive json method mismatch responses', function () {
+    $response = $this->getJson('/api/auth/login');
 
     $response->assertStatus(405);
     expect($response->headers->get('content-type'))->toContain('application/json');
@@ -25,14 +25,49 @@ test('api routes render json for direct browser method mismatches', function () 
     ]);
 });
 
-test('api domain root does not expose the framework version', function () {
+test('api domain root returns a minimal plain-text identity response', function () {
     $response = $this->get('/');
 
+    $response->assertOk();
+    expect($response->headers->get('content-type'))->toContain('text/plain');
+    $response->assertSeeText('⣿⣿⣿⠟⠛⠛⠻⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡟⢋⣩⣉⢻⣿⣿', false);
+    $response->assertSeeText('MorataFMS API');
+});
+
+test('browser visits to unknown api routes receive a plain-text fallback response', function () {
+    $response = $this->get('/api/hello');
+
     $response->assertNotFound();
-    expect($response->headers->get('content-type'))->toContain('application/json');
-    $response->assertExactJson([
-        'message' => 'Not found.',
-    ]);
+    expect($response->headers->get('content-type'))->toContain('text/plain');
+    $response->assertSeeText('Route not found.');
+});
+
+test('browser visits to unknown web routes receive a plain-text not found response', function () {
+    $response = $this->get('/docs/ap');
+
+    $response->assertNotFound();
+    expect($response->headers->get('content-type'))->toContain('text/plain');
+    $response->assertSeeText('Not found.');
+});
+
+test('browser visits to protected api routes receive a plain-text unauthenticated response', function () {
+    $response = $this->get('/api/documents');
+
+    $response->assertUnauthorized();
+    expect($response->headers->get('content-type'))->toContain('text/plain');
+    $response->assertSeeText('Authentication required.');
+});
+
+test('api responses include a restrictive content security policy', function () {
+    $response = $this->get('/');
+
+    expect($response->headers->get('content-security-policy'))
+        ->toBe("default-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'");
+});
+
+test('health check endpoint returns a minimal no-content response', function () {
+    $this->get('/up')
+        ->assertNoContent(204);
 });
 
 test('legacy root auth routes are not registered', function () {

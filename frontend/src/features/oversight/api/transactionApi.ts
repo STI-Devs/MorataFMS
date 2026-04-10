@@ -41,6 +41,16 @@ export const transactionApi = {
         const response = await api.patch(`/api/transactions/export/${id}/status`, { status });
         return response.data;
     },
+
+    // Delete a cancelled import transaction
+    async deleteImport(id: number): Promise<void> {
+        await api.delete(`/api/import-transactions/${id}`);
+    },
+
+    // Delete a cancelled export transaction
+    async deleteExport(id: number): Promise<void> {
+        await api.delete(`/api/export-transactions/${id}`);
+    },
 };
 
 

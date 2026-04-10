@@ -4,6 +4,8 @@ import { CurrentDateTime } from '../../../components/CurrentDateTime';
 import { Icon } from '../../../components/Icon';
 import { Pagination } from '../../../components/Pagination';
 import { useDebounce } from '../../../hooks/useDebounce';
+import { trackingKeys } from '../../tracking/utils/queryKeys';
+import { transactionApi } from '../api/transactionApi';
 import { useAllTransactions } from '../hooks/useTransactions';
 import type { OversightTransaction } from '../types/transaction.types';
 import { ReassignModal } from './ReassignModal';
@@ -15,8 +17,12 @@ import { TransactionDetailDrawer } from './TransactionDetailDrawer';
 type TypeFilter = 'all' | 'import' | 'export';
 type StatusFilter = 'all' | 'pending' | 'in_progress' | 'completed' | 'cancelled';
 
-/** Statuses that lock reassign + status-override actions. */
-const TERMINAL_STATUSES = new Set(['completed', 'cancelled']);
+const COMPLETED_STATUS = 'completed';
+const CANCELLED_STATUS = 'cancelled';
+
+function normalizeStatus(status: string): string {
+    return status.trim().toLowerCase().replace(/\s+/g, '_');
+}
 
 
 const STATUS_CFG: Record<string, { color: string; bg: string }> = {
@@ -45,6 +51,7 @@ export const TransactionOversight = () => {
     const [statusTarget, setStatusTarget] = useState<OversightTransaction | null>(null);
     const [remarkTarget, setRemarkTarget] = useState<OversightTransaction | null>(null);
     const [detailTarget, setDetailTarget] = useState<OversightTransaction | null>(null);
+    const [deletingTargetKey, setDeletingTargetKey] = useState<string | null>(null);
 
     const { data, isLoading, isError, refetch } = useAllTransactions({
         page,
@@ -63,9 +70,52 @@ export const TransactionOversight = () => {
     const transactions: OversightTransaction[] = data?.data ?? [];
     const meta = data?.meta;
 
-    // Invalidate cache after modal success to get fresh data
-    const handleReassignSuccess = () => qc.invalidateQueries({ queryKey: ['admin', 'transactions'] });
-    const handleStatusSuccess = () => qc.invalidateQueries({ queryKey: ['admin', 'transactions'] });
+    const invalidateTransactionCaches = (type?: 'import' | 'export') => {
+        qc.invalidateQueries({ queryKey: ['admin', 'transactions'] });
+        qc.invalidateQueries({ queryKey: ['transaction-detail'] });
+
+        if (type === 'import') {
+            qc.invalidateQueries({ queryKey: trackingKeys.imports.all });
+            qc.invalidateQueries({ queryKey: trackingKeys.imports.stats });
+            return;
+        }
+
+        if (type === 'export') {
+            qc.invalidateQueries({ queryKey: trackingKeys.exports.all });
+            qc.invalidateQueries({ queryKey: trackingKeys.exports.stats });
+        }
+    };
+
+    const handleReassignSuccess = (_transactionId: number, type: 'import' | 'export') => {
+        invalidateTransactionCaches(type);
+    };
+
+    const handleStatusSuccess = (_transactionId: number, type: 'import' | 'export') => {
+        invalidateTransactionCaches(type);
+    };
+
+    const handleDelete = async (transaction: OversightTransaction) => {
+        const label = transaction.reference_no || transaction.bl_no || `#${transaction.id}`;
+
+        if (!window.confirm(`Delete cancelled ${transaction.type} transaction ${label}? This cannot be undone.`)) {
+            return;
+        }
+
+        const rowKey = `${transaction.type}-${transaction.id}`;
+        setDeletingTargetKey(rowKey);
+
+        try {
+            if (transaction.type === 'import') {
+                await transactionApi.deleteImport(transaction.id);
+            } else {
+                await transactionApi.deleteExport(transaction.id);
+            }
+
+            invalidateTransactionCaches(transaction.type);
+        } finally {
+            setDeletingTargetKey(null);
+        }
+    };
 
     return (
         <div className="space-y-5 p-4">
@@ -193,97 +243,121 @@ export const TransactionOversight = () => {
                             </thead>
                             <tbody>
                                 {transactions.map((t, idx) => {
-                                    const sc = STATUS_CFG[t.status] ?? STATUS_CFG.pending;
+                                    const normalizedStatus = normalizeStatus(t.status);
+                                    const isCompleted = normalizedStatus === COMPLETED_STATUS;
+                                    const isCancelled = normalizedStatus === CANCELLED_STATUS;
+                                    const canManageActiveTransaction = !isCompleted && !isCancelled;
+                                    const sc = STATUS_CFG[normalizedStatus] ?? STATUS_CFG.pending;
                                     const tc = TYPE_CFG[t.type] ?? TYPE_CFG.import;
                                     const rowKey = `${t.type}-${t.id}`;
                                     return (
-                                        <>
-                                            <tr
-                                                key={rowKey}
-                                                onClick={() => setDetailTarget(t)}
-                                                className={`border-b border-border transition-colors hover:bg-hover cursor-pointer ${idx % 2 !== 0 ? 'bg-surface-secondary/40' : ''}`}
-                                            >
-                                                {/* Type */}
-                                                <td className="px-5 py-3.5">
-                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold capitalize"
-                                                        style={{ color: tc.color, backgroundColor: tc.bg }}>
-                                                        <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: tc.color }} />
-                                                        {t.type}
-                                                    </span>
-                                                </td>
-                                                {/* Ref / BL */}
-                                                <td className="px-5 py-3.5">
-                                                    {t.reference_no && <p className="text-sm font-semibold text-text-primary">{t.reference_no}</p>}
-                                                    {t.bl_no && <p className={`text-xs mt-0.5 ${t.reference_no ? 'text-text-muted' : 'text-sm font-semibold text-text-primary'}`}>{t.bl_no}</p>}
-                                                    {!t.reference_no && !t.bl_no && <p className="text-sm font-semibold text-text-primary">—</p>}
-                                                </td>
-                                                {/* Client */}
-                                                <td className="px-5 py-3.5 text-sm text-text-secondary">{t.client || '—'}</td>
-                                                {/* Status */}
-                                                <td className="px-5 py-3.5">
-                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold capitalize whitespace-nowrap"
-                                                        style={{ color: sc.color, backgroundColor: sc.bg }}>
-                                                        <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: sc.color }} />
-                                                        {t.status.replace('_', ' ')}
-                                                    </span>
-                                                </td>
-                                                {/* Encoder */}
-                                                <td className="px-5 py-3.5 text-sm text-text-secondary">
-                                                    {t.assigned_to || <span className="text-text-muted italic">Unassigned</span>}
-                                                </td>
-                                                {/* Created */}
-                                                <td className="px-5 py-3.5 text-sm text-text-secondary">
-                                                    {t.date ? new Date(t.date).toLocaleDateString() : '—'}
-                                                </td>
-                                                {/* Remarks badge */}
-                                                <td className="px-5 py-3.5">
-                                                    {t.open_remarks_count > 0 ? (
-                                                        <button
-                                                            onClick={(e) => { e.stopPropagation(); setRemarkTarget(t); }}
-                                                            className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-bold transition-colors"
-                                                            style={{ color: '#ff453a', backgroundColor: 'rgba(255,69,58,0.12)' }}
-                                                        >
-                                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                                            </svg>
-                                                            {t.open_remarks_count}
-                                                        </button>
-                                                    ) : (
-                                                        <span className="text-text-muted text-xs">—</span>
+                                        <tr
+                                            key={rowKey}
+                                            onClick={() => setDetailTarget(t)}
+                                            className={`border-b border-border transition-colors hover:bg-hover cursor-pointer ${idx % 2 !== 0 ? 'bg-surface-secondary/40' : ''}`}
+                                        >
+                                            {/* Type */}
+                                            <td className="px-5 py-3.5">
+                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold capitalize"
+                                                    style={{ color: tc.color, backgroundColor: tc.bg }}>
+                                                    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: tc.color }} />
+                                                    {t.type}
+                                                </span>
+                                            </td>
+                                            {/* Ref / BL */}
+                                            <td className="px-5 py-3.5">
+                                                {t.reference_no && <p className="text-sm font-semibold text-text-primary">{t.reference_no}</p>}
+                                                {t.bl_no && <p className={`text-xs mt-0.5 ${t.reference_no ? 'text-text-muted' : 'text-sm font-semibold text-text-primary'}`}>{t.bl_no}</p>}
+                                                {!t.reference_no && !t.bl_no && <p className="text-sm font-semibold text-text-primary">—</p>}
+                                            </td>
+                                            {/* Client */}
+                                            <td className="px-5 py-3.5 text-sm text-text-secondary">{t.client || '—'}</td>
+                                            {/* Status */}
+                                            <td className="px-5 py-3.5">
+                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold capitalize whitespace-nowrap"
+                                                    style={{ color: sc.color, backgroundColor: sc.bg }}>
+                                                    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: sc.color }} />
+                                                    {t.status.replace('_', ' ')}
+                                                </span>
+                                            </td>
+                                            {/* Encoder */}
+                                            <td className="px-5 py-3.5 text-sm text-text-secondary">
+                                                {t.assigned_to || <span className="text-text-muted italic">Unassigned</span>}
+                                            </td>
+                                            {/* Created */}
+                                            <td className="px-5 py-3.5 text-sm text-text-secondary">
+                                                {t.date ? new Date(t.date).toLocaleDateString() : '—'}
+                                            </td>
+                                            {/* Remarks badge */}
+                                            <td className="px-5 py-3.5">
+                                                {t.open_remarks_count > 0 ? (
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); setRemarkTarget(t); }}
+                                                        className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-bold transition-colors"
+                                                        style={{ color: '#ff453a', backgroundColor: 'rgba(255,69,58,0.12)' }}
+                                                    >
+                                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                                        </svg>
+                                                        {t.open_remarks_count}
+                                                    </button>
+                                                ) : (
+                                                    <span className="text-text-muted text-xs">—</span>
+                                                )}
+                                            </td>
+                                            {/* Actions */}
+                                            <td className="px-5 py-3.5">
+                                                <div className="flex gap-1.5">
+                                                    {canManageActiveTransaction && (
+                                                        <>
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); setReassignTarget(t); }}
+                                                                className="p-1.5 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-md transition-colors"
+                                                                title="Reassign Encoder"
+                                                            >
+                                                                <Icon name="user" className="w-4 h-4" />
+                                                            </button>
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); setStatusTarget(t); }}
+                                                                className="p-1.5 text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/30 rounded-md transition-colors"
+                                                                title="Override Status"
+                                                            >
+                                                                <Icon name="alert-circle" className="w-4 h-4" />
+                                                            </button>
+                                                        </>
                                                     )}
-                                                </td>
-                                                {/* Actions */}
-                                                <td className="px-5 py-3.5">
-                                                    <div className="flex gap-1.5">
-                                                        {!TERMINAL_STATUSES.has(t.status.toLowerCase()) && (
-                                                            <>
-                                                                <button
-                                                                    onClick={(e) => { e.stopPropagation(); setReassignTarget(t); }}
-                                                                    className="p-1.5 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-md transition-colors"
-                                                                    title="Reassign Encoder"
-                                                                >
-                                                                    <Icon name="user" className="w-4 h-4" />
-                                                                </button>
-                                                                <button
-                                                                    onClick={(e) => { e.stopPropagation(); setStatusTarget(t); }}
-                                                                    className="p-1.5 text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/30 rounded-md transition-colors"
-                                                                    title="Override Status"
-                                                                >
-                                                                    <Icon name="alert-circle" className="w-4 h-4" />
-                                                                </button>
-                                                            </>
-                                                        )}
-                                                        <button
-                                                            onClick={(e) => { e.stopPropagation(); setRemarkTarget(t); }}
-                                                            className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md transition-colors"
-                                                            title="Flag / Remarks"
-                                                        >
-                                                            <Icon name="flag" className="w-4 h-4" />
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        </>
+                                                    {isCancelled && (
+                                                        <>
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); setStatusTarget(t); }}
+                                                                className="p-1.5 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-md transition-colors"
+                                                                title="Restore Transaction"
+                                                            >
+                                                                <Icon name="check-circle" className="w-4 h-4" />
+                                                            </button>
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    void handleDelete(t);
+                                                                }}
+                                                                disabled={deletingTargetKey === rowKey}
+                                                                className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                                title="Delete Cancelled Transaction"
+                                                            >
+                                                                <Icon name="trash" className="w-4 h-4" />
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); setRemarkTarget(t); }}
+                                                        className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md transition-colors"
+                                                        title="Flag / Remarks"
+                                                    >
+                                                        <Icon name="flag" className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
                                     );
                                 })}
                             </tbody>

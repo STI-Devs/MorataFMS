@@ -17,17 +17,26 @@ const STATUS_OPTIONS = [
     { value: 'cancelled', label: 'Cancelled', dot: '#ff453a' },
 ];
 
+function normalizeStatus(status: string): string {
+    return status.trim().toLowerCase().replace(/\s+/g, '_');
+}
+
 export const StatusOverrideModal = ({ isOpen, onClose, transaction, onSuccess }: StatusOverrideModalProps) => {
     const [selectedStatus, setSelectedStatus] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
+    const currentStatus = transaction ? normalizeStatus(transaction.status) : '';
+    const isRestoreMode = currentStatus === 'cancelled';
+    const availableOptions = isRestoreMode
+        ? STATUS_OPTIONS.filter((option) => option.value !== 'cancelled')
+        : STATUS_OPTIONS;
 
     useEffect(() => {
         if (isOpen && transaction) {
-            setSelectedStatus(transaction.status);
+            setSelectedStatus(isRestoreMode ? 'pending' : currentStatus);
             setError('');
         }
-    }, [isOpen, transaction]);
+    }, [currentStatus, isOpen, isRestoreMode, transaction]);
 
     const handleSubmit = async () => {
         if (!transaction || !selectedStatus) return;
@@ -61,7 +70,9 @@ export const StatusOverrideModal = ({ isOpen, onClose, transaction, onSuccess }:
                 {/* Header */}
                 <div className="flex justify-between items-start mb-5">
                     <div>
-                        <h2 className="text-lg font-bold mb-0.5 text-text-primary">Override Status</h2>
+                        <h2 className="text-lg font-bold mb-0.5 text-text-primary">
+                            {isRestoreMode ? 'Restore Transaction' : 'Override Status'}
+                        </h2>
                         <p className="text-sm text-text-secondary">
                             {transaction.type === 'import' ? transaction.reference_no || transaction.bl_no : transaction.bl_no} · {transaction.client || 'Unknown Client'}
                         </p>
@@ -81,18 +92,20 @@ export const StatusOverrideModal = ({ isOpen, onClose, transaction, onSuccess }:
                     <p className="text-[10px] font-bold uppercase tracking-wider mb-2 text-text-muted">Current Status</p>
                     <span className="inline-flex items-center gap-1.5 text-sm font-semibold capitalize text-text-primary">
                         {(() => {
-                            const opt = STATUS_OPTIONS.find(s => s.value === transaction.status);
+                            const opt = STATUS_OPTIONS.find((statusOption) => statusOption.value === currentStatus);
                             return opt ? <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: opt.dot }} /> : null;
                         })()}
-                        {transaction.status.replace('_', ' ')}
+                        {(STATUS_OPTIONS.find((statusOption) => statusOption.value === currentStatus)?.label ?? transaction.status).replace('_', ' ')}
                     </span>
                 </div>
 
                 {/* Status Options */}
                 <div className="mb-5">
-                    <label className="block text-sm font-semibold mb-2.5 text-text-primary">New Status</label>
+                    <label className="block text-sm font-semibold mb-2.5 text-text-primary">
+                        {isRestoreMode ? 'Restore To' : 'New Status'}
+                    </label>
                     <div className="grid grid-cols-2 gap-2">
-                        {STATUS_OPTIONS.map((opt) => (
+                        {availableOptions.map((opt) => (
                             <button
                                 key={opt.value}
                                 onClick={() => setSelectedStatus(opt.value)}
@@ -124,11 +137,11 @@ export const StatusOverrideModal = ({ isOpen, onClose, transaction, onSuccess }:
                     </button>
                     <button
                         onClick={handleSubmit}
-                        disabled={isLoading || selectedStatus === transaction.status}
+                        disabled={isLoading || selectedStatus === currentStatus}
                         className="px-4 py-2 rounded-lg text-sm font-semibold transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
                         style={{ backgroundColor: '#0a84ff', color: '#fff' }}
                     >
-                        {isLoading ? 'Saving...' : 'Apply'}
+                        {isLoading ? 'Saving...' : isRestoreMode ? 'Restore' : 'Apply'}
                     </button>
                 </div>
             </div>
