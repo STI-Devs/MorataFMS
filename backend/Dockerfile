@@ -22,7 +22,7 @@ WORKDIR /var/www/html
 
 FROM base AS vendor
 
-COPY backend/ /var/www/html/
+COPY . /var/www/html/
 
 RUN mkdir -p bootstrap/cache \
     storage/framework/cache \
@@ -41,11 +41,11 @@ RUN mkdir -p bootstrap/cache \
 
 FROM base AS runtime
 
-COPY backend/ /var/www/html/
+COPY . /var/www/html/
 COPY --from=vendor /var/www/html/vendor /var/www/html/vendor
-COPY backend/docker/nginx/default.conf /etc/nginx/templates/default.conf.template
-COPY backend/docker/php/app.ini /usr/local/etc/php/conf.d/99-app.ini
-COPY backend/docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY docker/nginx/default.conf /etc/nginx/templates/default.conf.template
+COPY docker/php/app.ini /usr/local/etc/php/conf.d/99-app.ini
+COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 RUN rm -f /etc/nginx/sites-enabled/default /etc/nginx/conf.d/default.conf \
     && mkdir -p /run/php /var/log/supervisor /etc/nginx/templates \

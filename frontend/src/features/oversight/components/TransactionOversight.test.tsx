@@ -130,6 +130,7 @@ describe('TransactionOversight', () => {
         expect(screen.getByText('Restore modal for 11')).toBeInTheDocument();
 
         fireEvent.click(screen.getByTitle('Delete Cancelled Transaction'));
+        fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
 
         await waitFor(() => {
             expect(mockDeleteImport).toHaveBeenCalledWith(11);
