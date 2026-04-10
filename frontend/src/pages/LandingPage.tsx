@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../features/auth';
 import { getHomePath } from '../features/auth/utils/access';
+import { landingHeroImage, logoImage } from '../assets/branding';
 import { appRoutes } from '../lib/appRoutes';
 
 const LandingPage: React.FC = () => {
@@ -22,7 +23,7 @@ const LandingPage: React.FC = () => {
             <div className="absolute inset-0 z-0 overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/50 to-black/85 z-10" />
                 <img
-                    src="/assets/landing-hero.jpg"
+                    src={landingHeroImage}
                     alt="Hero Background"
                     className="w-full h-full object-cover object-center"
                 />
@@ -35,7 +36,7 @@ const LandingPage: React.FC = () => {
                 <header className="container mx-auto px-6 py-8 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <div className="w-12 h-12">
-                            <img src="/logo.jpg" alt="F.M. Morata Logo" className="w-full h-full object-cover rounded-full" />
+                            <img src={logoImage} alt="F.M. Morata Logo" className="w-full h-full object-cover rounded-full" />
                         </div>
                         <div>
                             <h1 className="text-2xl font-black leading-none text-white uppercase tracking-[0.2em]">F.M. MORATA</h1>

@@ -1,5 +1,6 @@
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { logoImage } from '../../assets/branding';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../features/auth';
 import { getRoleLabel, hasBrokerageAccess, hasLegalAccess } from '../../features/auth/utils/access';
@@ -181,7 +182,7 @@ export const MainLayout = () => {
                     className="flex items-center gap-2.5 px-2 mb-5 cursor-pointer"
                     onClick={() => navigate(isAdmin ? appRoutes.dashboard : appRoutes.tracking)}
                 >
-                    <img src="/logo.jpg" alt="F.M Morata Logo" className="w-7 h-7 rounded-full object-cover shrink-0" />
+                    <img src={logoImage} alt="F.M Morata Logo" className="w-7 h-7 rounded-full object-cover shrink-0" />
                     <div>
                         <p className={`font-bold text-sm leading-tight ${isSidebarDark ? 'text-white' : 'text-black'}`}>F.M Morata</p>
                         <p className={`text-[10px] font-medium leading-tight ${isSidebarDark ? 'text-gray-500' : 'text-gray-400'}`}>

@@ -2,6 +2,19 @@
 
 use App\Models\User;
 
+test('trusted hosts include local development and the configured app host', function () {
+    $trustedHosts = config('app.trusted_hosts');
+    $appHost = parse_url((string) config('app.url'), PHP_URL_HOST);
+
+    expect($trustedHosts)->toContain('^localhost$');
+    expect($trustedHosts)->toContain('^127\.0\.0\.1$');
+    expect($trustedHosts)->toContain('^\[::1\]$');
+
+    if (is_string($appHost) && $appHost !== '') {
+        expect($trustedHosts)->toContain('^'.preg_quote($appHost, '/').'$');
+    }
+});
+
 test('api routes render json for direct browser method mismatches', function () {
     $response = $this->get('/api/auth/login');
 

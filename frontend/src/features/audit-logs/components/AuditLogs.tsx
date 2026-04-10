@@ -1,5 +1,6 @@
 import { Fragment, useState } from 'react';
 import { CurrentDateTime } from '../../../components/CurrentDateTime';
+import { useDebounce } from '../../../hooks/useDebounce';
 import { useAuditLogs } from '../hooks/useAuditLogs';
 import type { AuditLogFilters } from '../types/auditLog.types';
 
@@ -42,6 +43,7 @@ const formatValue = (val: unknown) => {
 
 export const AuditLogs = () => {
     const [search, setSearch] = useState('');
+    const debouncedSearch = useDebounce(search, 300);
     const [actionFilter, setActionFilter] = useState('');
     const [actorFilter, setActorFilter] = useState<'human' | 'system' | 'all'>('human');
     const [dateFrom, setDateFrom] = useState('');
@@ -50,7 +52,7 @@ export const AuditLogs = () => {
     const [expandedId, setExpandedId] = useState<number | null>(null);
 
     const filters: AuditLogFilters = {
-        search: search || undefined,
+        search: debouncedSearch || undefined,
         action: actionFilter || undefined,
         actor: actorFilter,
         date_from: dateFrom || undefined,

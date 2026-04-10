@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { landingHeroImage } from "../../../assets/branding";
 import { appRoutes } from "../../../lib/appRoutes";
 import { LoginForm } from "./LoginForm";
 
@@ -25,7 +26,7 @@ export const AuthPage = () => {
             {/* Full-page background */}
             <div className="fixed inset-0 z-0">
                 <img
-                    src="/assets/landing-hero.jpg"
+                    src={landingHeroImage}
                     alt="Background"
                     className="w-full h-full object-cover"
                 />

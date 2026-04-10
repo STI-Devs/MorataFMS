@@ -1,4 +1,4 @@
-import { waitFor } from '@testing-library/react';
+import { act } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { TransactionSyncProvider } from './TransactionSyncContext';
 import { trackingKeys } from '../features/tracking/utils/queryKeys';
@@ -76,6 +76,7 @@ vi.mock('../lib/realtime/echo', () => ({
 
 describe('TransactionSyncProvider', () => {
     beforeEach(() => {
+        vi.useFakeTimers();
         vi.stubEnv('VITE_REVERB_APP_KEY', 'test-reverb-key');
         vi.stubEnv('VITE_TRANSACTION_SYNC_ENABLED', 'true');
         channelRegistry.clear();
@@ -93,6 +94,7 @@ describe('TransactionSyncProvider', () => {
     });
 
     afterEach(() => {
+        vi.useRealTimers();
         vi.unstubAllEnvs();
         vi.restoreAllMocks();
     });
@@ -118,10 +120,11 @@ describe('TransactionSyncProvider', () => {
             occurred_at: '2026-03-26T02:30:00+08:00',
         });
 
-        await waitFor(() => {
-            expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: trackingKeys.imports.all });
+        act(() => {
+            vi.advanceTimersByTime(250);
         });
 
+        expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: trackingKeys.imports.all });
         expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['admin', 'transactions'] });
         expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['remarks', 'import', 42] });
         expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['admin-document-review'] });
@@ -148,10 +151,11 @@ describe('TransactionSyncProvider', () => {
             occurred_at: '2026-03-26T02:32:00+08:00',
         });
 
-        await waitFor(() => {
-            expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: trackingKeys.exports.all });
+        act(() => {
+            vi.advanceTimersByTime(250);
         });
 
+        expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: trackingKeys.exports.all });
         expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: trackingKeys.documents.transactions() });
         expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['admin-document-review'] });
         expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['archives'] });
@@ -169,5 +173,43 @@ describe('TransactionSyncProvider', () => {
 
         expect(mockDisconnectEcho).toHaveBeenCalled();
         expect(mockAcquirePrivateChannel).not.toHaveBeenCalled();
+    });
+
+    it('coalesces duplicate list invalidations during a burst of transaction events', async () => {
+        const { queryClient } = renderWithProviders(
+            <TransactionSyncProvider>
+                <div>provider test</div>
+            </TransactionSyncProvider>,
+        );
+
+        const invalidateQueries = vi.spyOn(queryClient, 'invalidateQueries').mockResolvedValue(undefined);
+
+        const payload = {
+            event_type: 'updated',
+            transaction_type: 'import',
+            transaction_id: 42,
+            reference: 'IMP-2026-001',
+            status: 'Processing',
+            is_archive: false,
+            assigned_user_id: 17,
+            actor_id: 5,
+            occurred_at: '2026-03-26T02:30:00+08:00',
+        } satisfies TransactionSyncPayload;
+
+        emit('transactions.user.9', '.transaction.changed', payload);
+        emit('transactions.user.9', '.transaction.changed', {
+            ...payload,
+            transaction_id: 43,
+            reference: 'IMP-2026-002',
+            occurred_at: '2026-03-26T02:30:01+08:00',
+        });
+
+        act(() => {
+            vi.advanceTimersByTime(250);
+        });
+
+        expect(invalidateQueries).toHaveBeenCalledTimes(2);
+        expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: trackingKeys.imports.all });
+        expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['admin', 'transactions'] });
     });
 });

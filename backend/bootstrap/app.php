@@ -23,6 +23,24 @@ return Application::configure(basePath: dirname(__DIR__))
         ['prefix' => 'api', 'middleware' => ['api', 'auth:sanctum']],
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Trust the cloud proxy chain so Laravel honors forwarded scheme, host,
+        // and client IP information behind Cloudflare and Railway.
+        // This improves URL generation, secure-cookie handling, and request IP
+        // resolution, but forwarded IPs should still be treated as best-effort
+        // origin metadata rather than a hard security identity.
+        $middleware->trustProxies(
+            headers: Request::HEADER_X_FORWARDED_FOR |
+                     Request::HEADER_X_FORWARDED_HOST |
+                     Request::HEADER_X_FORWARDED_PORT |
+                     Request::HEADER_X_FORWARDED_PROTO,
+            at: '*',
+        );
+
+        $middleware->trustHosts(
+            at: fn (): array => config('app.trusted_hosts'),
+            subdomains: false,
+        );
+
         $middleware->statefulApi();
 
         $middleware->api(prepend: [

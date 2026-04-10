@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { type ReactNode, useEffect, useEffectEvent } from 'react';
+import { type ReactNode, useEffect, useEffectEvent, useRef } from 'react';
 import { useAuth } from '../features/auth';
 import { acquirePrivateChannel, disconnectEcho, releasePrivateChannel } from '../lib/realtime/echo';
 import {
@@ -12,19 +12,54 @@ import {
     type TransactionSyncPayload,
 } from '../lib/realtime/transactionSync';
 
+const LIST_INVALIDATION_BATCH_WINDOW = 250;
+
 export function TransactionSyncProvider({ children }: { children: ReactNode }) {
     const queryClient = useQueryClient();
     const { isAuthenticated, isLoading, user } = useAuth();
+    const pendingInvalidationsRef = useRef(new Map<string, readonly unknown[]>());
+    const invalidationTimerRef = useRef<number | null>(null);
+
+    const flushPendingInvalidations = useEffectEvent(() => {
+        const pendingInvalidations = Array.from(pendingInvalidationsRef.current.values());
+
+        pendingInvalidationsRef.current.clear();
+        invalidationTimerRef.current = null;
+
+        for (const queryKey of pendingInvalidations) {
+            void queryClient.invalidateQueries({ queryKey });
+        }
+    });
+
+    const scheduleListInvalidations = useEffectEvent((queryKeys: readonly (readonly unknown[])[]) => {
+        for (const queryKey of queryKeys) {
+            pendingInvalidationsRef.current.set(JSON.stringify(queryKey), queryKey);
+        }
+
+        if (invalidationTimerRef.current !== null) {
+            return;
+        }
+
+        invalidationTimerRef.current = window.setTimeout(() => {
+            flushPendingInvalidations();
+        }, LIST_INVALIDATION_BATCH_WINDOW);
+    });
 
     const handleTransactionSync = useEffectEvent(
         (payload: TransactionSyncPayload, eventName: TransactionSyncEventName) => {
             const queryKeys = getListInvalidationKeys(payload, eventName);
-
-            for (const queryKey of queryKeys) {
-                void queryClient.invalidateQueries({ queryKey });
-            }
+            scheduleListInvalidations(queryKeys);
         },
     );
+
+    useEffect(() => () => {
+        if (invalidationTimerRef.current !== null) {
+            window.clearTimeout(invalidationTimerRef.current);
+        }
+
+        pendingInvalidationsRef.current.clear();
+        invalidationTimerRef.current = null;
+    }, []);
 
     useEffect(() => {
         if (isLoading) {

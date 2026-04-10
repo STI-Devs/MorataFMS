@@ -4,6 +4,13 @@ use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 
+beforeEach(function () {
+    config([
+        'services.turnstile.enabled' => false,
+        'services.turnstile.secret_key' => null,
+    ]);
+});
+
 function frontendHeaders(): array
 {
     return [

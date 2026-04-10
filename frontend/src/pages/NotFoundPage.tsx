@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { logoImage, notFoundBackgroundImage } from '../assets/branding';
 import { useAuth } from '../features/auth';
 import { getHomePath } from '../features/auth/utils/access';
 import { appRoutes } from '../lib/appRoutes';
@@ -30,7 +31,7 @@ const NotFoundPage: React.FC = () => {
             {/* Background Image: Cargo Ship Port */}
             <div
                 className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-60 transition-opacity duration-1000"
-                style={{ backgroundImage: 'url("/404-bg.jpg")' }}
+                style={{ backgroundImage: `url(${notFoundBackgroundImage})` }}
             />
 
             {/* Gradient Overlay for Text Readability */}
@@ -42,7 +43,7 @@ const NotFoundPage: React.FC = () => {
                 <div className="flex-1 flex justify-start items-center pl-8">
                     <div className="w-48 h-48 md:w-64 md:h-64 relative flex items-center justify-center">
                         <div className="w-full h-full border-2 border-dashed border-white/40 rounded-full flex items-center justify-center bg-white/10 backdrop-blur-sm shadow-[0_0_30px_rgba(255,255,255,0.2)]">
-                            <img src="/logo.jpg" alt="F.M Morata Logo" className="w-full h-full object-cover rounded-full" />
+                            <img src={logoImage} alt="F.M Morata Logo" className="w-full h-full object-cover rounded-full" />
                         </div>
                     </div>
                 </div>

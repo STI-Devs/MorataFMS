@@ -56,6 +56,13 @@ return [
 
     'api_docs_enabled' => (bool) env('API_DOCS_ENABLED', false),
 
+    'trusted_hosts' => array_values(array_filter([
+        '^localhost$',
+        '^127\.0\.0\.1$',
+        '^\[::1\]$',
+        (($appHost = parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)) ? '^'.preg_quote($appHost, '/').'$' : null),
+    ])),
+
     /*
     |--------------------------------------------------------------------------
     | Application Timezone
