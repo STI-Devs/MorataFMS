@@ -51,6 +51,7 @@ export const TransactionOversight = () => {
     const [statusTarget, setStatusTarget] = useState<OversightTransaction | null>(null);
     const [remarkTarget, setRemarkTarget] = useState<OversightTransaction | null>(null);
     const [detailTarget, setDetailTarget] = useState<OversightTransaction | null>(null);
+    const [deleteTarget, setDeleteTarget] = useState<OversightTransaction | null>(null);
     const [deletingTargetKey, setDeletingTargetKey] = useState<string | null>(null);
 
     const { data, isLoading, isError, refetch } = useAllTransactions({
@@ -94,12 +95,14 @@ export const TransactionOversight = () => {
         invalidateTransactionCaches(type);
     };
 
-    const handleDelete = async (transaction: OversightTransaction) => {
-        const label = transaction.reference_no || transaction.bl_no || `#${transaction.id}`;
+    const handleDelete = (transaction: OversightTransaction) => {
+        setDeleteTarget(transaction);
+    };
 
-        if (!window.confirm(`Delete cancelled ${transaction.type} transaction ${label}? This cannot be undone.`)) {
-            return;
-        }
+    const confirmDelete = async () => {
+        if (!deleteTarget) return;
+        const transaction = deleteTarget;
+        setDeleteTarget(null);
 
         const rowKey = `${transaction.type}-${transaction.id}`;
         setDeletingTargetKey(rowKey);
@@ -338,7 +341,7 @@ export const TransactionOversight = () => {
                                                             <button
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
-                                                                    void handleDelete(t);
+                                                                    handleDelete(t);
                                                                 }}
                                                                 disabled={deletingTargetKey === rowKey}
                                                                 className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -409,6 +412,56 @@ export const TransactionOversight = () => {
                 transaction={detailTarget}
                 onClose={() => setDetailTarget(null)}
             />
+
+            {/* Delete confirmation modal */}
+            {deleteTarget && (() => {
+                const label = deleteTarget.reference_no || deleteTarget.bl_no || `#${deleteTarget.id}`;
+                return (
+                    <div
+                        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                        style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
+                        onClick={() => setDeleteTarget(null)}
+                    >
+                        <div
+                            className="bg-surface border border-border rounded-xl shadow-2xl w-full max-w-sm p-6 space-y-5"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            {/* Icon + title */}
+                            <div className="flex items-start gap-4">
+                                <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: 'rgba(255,69,58,0.15)' }}>
+                                    <Icon name="trash" className="w-5 h-5" style={{ color: '#ff453a' }} />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-bold text-text-primary">Delete Cancelled Transaction</p>
+                                    <p className="text-xs text-text-muted mt-1 leading-relaxed">
+                                        You are about to permanently delete the cancelled{' '}
+                                        <span className="font-semibold capitalize">{deleteTarget.type}</span>{' '}transaction{' '}
+                                        <span className="font-semibold text-text-primary">{label}</span>.
+                                        This action cannot be undone.
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex gap-2 justify-end">
+                                <button
+                                    onClick={() => setDeleteTarget(null)}
+                                    className="px-4 py-2 text-sm font-semibold rounded-lg border border-border text-text-secondary hover:bg-hover transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={() => void confirmDelete()}
+                                    className="px-4 py-2 text-sm font-semibold rounded-lg text-white transition-colors"
+                                    style={{ backgroundColor: '#ff453a' }}
+                                >
+                                    Delete
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
         </div>
     );
 };
