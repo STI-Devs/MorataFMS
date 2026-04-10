@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Icon } from '../../../components/Icon';
 import { FilePreviewModal } from '../../../components/modals/FilePreviewModal';
 import { UploadModal } from '../../../components/modals/UploadModal';
+import { useAuth } from '../../auth';
 import { useTransactionSyncSubscription } from '../../../hooks/useTransactionSyncSubscription';
 import { appRoutes } from '../../../lib/appRoutes';
 import { trackingApi } from '../api/trackingApi';
@@ -33,6 +34,7 @@ type CompletionSnapshot = {
 
 export const TrackingDetails = () => {
     const navigate       = useNavigate();
+    const { user }       = useAuth();
     const { referenceId } = useParams();
     const queryClient    = useQueryClient();
     const addDocToCache  = useAddDocumentToCache();
@@ -307,6 +309,7 @@ export const TrackingDetails = () => {
                             isUploading={uploadingStage === i}
                             isDeleting={deletingDocId === displayStageDocuments[i]?.id}
                             activeIndex={activeIndex}
+                            allowEdit={['accounting', 'processor'].includes(user?.role || '') ? ['billing', 'cil', 'ppa', 'port_charges'].includes(stage.type) : true}
                             onUploadClick={handleStageUploadClick}
                             onPreviewDoc={handlePreviewDoc}
                             onDeleteDoc={handleDeleteDoc}

@@ -36,9 +36,21 @@ export function hasLegalAccess(user: AccessUser): boolean {
   return user.role === 'admin';
 }
 
+export function hasProcessorAccess(user: AccessUser): boolean {
+  if (!user) return false;
+  return user.role === 'processor';
+}
+
+export function hasAccountantAccess(user: AccessUser): boolean {
+  if (!user) return false;
+  return user.role === 'accounting';
+}
+
 export function getHomePath(user: AccessUser): string {
   if (!user) return appRoutes.login;
   if (user.role === 'admin') return appRoutes.dashboard;
+  if (user.role === 'processor') return appRoutes.processorDashboard;
+  if (user.role === 'accounting') return appRoutes.accountantDashboard;
   if (hasLegalAccess(user) && !hasBrokerageAccess(user)) return appRoutes.lawFirm;
 
   return appRoutes.tracking;

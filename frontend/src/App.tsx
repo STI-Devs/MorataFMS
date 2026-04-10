@@ -7,6 +7,9 @@ import { TransactionSyncProvider } from './context/TransactionSyncContext';
 import { AuthProvider, GuestRoute, ProtectedRoute, useAuth } from './features/auth';
 import { appRoutes } from './lib/appRoutes';
 import {
+  AccountantDashboard,
+  AccountantDocumentsPage,
+  AccountantImpExpPage,
   AdminDashboard,
   AdminDocumentReview,
   AdminLiveTracking,
@@ -23,6 +26,11 @@ import {
   ImportList,
   LandingPage,
   LawFirmPage,
+  ParalegalDashboard,
+  ParalegalDocumentsPage,
+  ProcessorDashboard,
+  ProcessorDocumentsPage,
+  ProcessorTransactionPage,
   Profile,
   ReportsAnalytics,
   TrackingDashboard,
@@ -70,7 +78,7 @@ function App() {
           </Route>
 
           {/* All authenticated users */}
-          <Route element={<ProtectedRoute allowedRoles={['encoder', 'admin', 'paralegal']} />}>
+          <Route element={<ProtectedRoute allowedRoles={['encoder', 'admin', 'paralegal', 'processor', 'accounting']} />}>
             <Route element={<MainLayout />}>
 
               {/* Shared routes — all authenticated roles */}
@@ -107,8 +115,24 @@ function App() {
 
               {/* Legal module - admin + paralegal */}
               <Route element={<ProtectedRoute allowedRoles={['admin', 'paralegal']} />}>
+                <Route path={appRoutes.paralegalDashboard} element={<ParalegalDashboard />} />
+                <Route path={appRoutes.paralegalDocuments} element={<ParalegalDocumentsPage />} />
                 <Route path={appRoutes.lawFirm} element={<LawFirmPage />} />
                 <Route path={appRoutes.forms} element={<FormsPage />} />
+              </Route>
+
+              {/* Processor module */}
+              <Route element={<ProtectedRoute allowedRoles={['processor']} />}>
+                <Route path={appRoutes.processorDashboard} element={<ProcessorDashboard />} />
+                <Route path={appRoutes.processorTransaction} element={<ProcessorTransactionPage />} />
+                <Route path={appRoutes.processorDocuments} element={<ProcessorDocumentsPage />} />
+              </Route>
+
+              {/* Accountant module */}
+              <Route element={<ProtectedRoute allowedRoles={['accounting']} />}>
+                <Route path={appRoutes.accountantDashboard} element={<AccountantDashboard />} />
+                <Route path={appRoutes.accountantImpExp} element={<AccountantImpExpPage />} />
+                <Route path={appRoutes.accountantDocuments} element={<AccountantDocumentsPage />} />
               </Route>
 
             </Route>

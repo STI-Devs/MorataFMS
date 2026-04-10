@@ -26,6 +26,7 @@ export interface TransactionListPageProps<T> {
     title: string;
     subtitle: string;
     encodeButtonLabel: string;
+    hideEncode?: boolean;
     gridTemplateColumns: string;
     renderHeaders: () => React.ReactNode;
     renderRow: (
@@ -42,6 +43,7 @@ export function TransactionListPage<T>({
     title,
     subtitle,
     encodeButtonLabel,
+    hideEncode = false,
     gridTemplateColumns,
     renderHeaders,
     renderRow,
@@ -322,13 +324,15 @@ export function TransactionListPage<T>({
                     </div>
 
                     {/* Encode button */}
-                    <button
-                        onClick={() => setIsEncodeOpen(true)}
-                        className="flex items-center gap-1.5 px-3.5 h-9 rounded-lg text-xs font-bold text-white shadow-sm bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-90 transition-opacity shrink-0"
-                    >
-                        <Icon name="plus" className="w-3.5 h-3.5" />
-                        {encodeButtonLabel}
-                    </button>
+                    {!hideEncode && (
+                        <button
+                            onClick={() => setIsEncodeOpen(true)}
+                            className="flex items-center gap-1.5 px-3.5 h-9 rounded-lg text-xs font-bold text-white shadow-sm bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-90 transition-opacity shrink-0"
+                        >
+                            <Icon name="plus" className="w-3.5 h-3.5" />
+                            {encodeButtonLabel}
+                        </button>
+                    )}
                 </div>
 
                 {/* Table */}

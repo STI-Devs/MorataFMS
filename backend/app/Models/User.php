@@ -74,13 +74,25 @@ class User extends Authenticatable
 
     public const ROLE_HIERARCHY = [
         'encoder' => 1,
-        'paralegal' => 2,
-        'admin' => 3,
+        'processor' => 2,
+        'accounting' => 2,
+        'paralegal' => 3,
+        'admin' => 4,
     ];
 
     public function isAdmin(): bool
     {
         return $this->role === UserRole::Admin;
+    }
+
+    public function isProcessor(): bool
+    {
+        return $this->role === UserRole::Processor;
+    }
+
+    public function isAccounting(): bool
+    {
+        return $this->role === UserRole::Accounting;
     }
 
     public function isParalegal(): bool

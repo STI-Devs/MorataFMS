@@ -61,8 +61,8 @@ export const AdminLiveTracking = () => {
                 const inTransit = imports.filter(r => r.status === 'In Transit').length + exports.filter(r => r.status === 'In Transit').length;
                 const pending = imports.filter(r => r.status === 'Pending').length + exports.filter(r => r.status === 'Processing').length;
                 const cards = [
-                    { label: 'Total Imports', value: imports.length, iconColor: '#30d158', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' },
-                    { label: 'Total Exports', value: exports.length, iconColor: '#0a84ff', icon: 'M12 19l9 2-9-18-9 18 9-2zm0 0v-8' },
+                    { label: 'Total Imports', value: imports.length, iconColor: '#ef4444', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' },
+                    { label: 'Total Exports', value: exports.length, iconColor: '#3b82f6', icon: 'M12 19l9 2-9-18-9 18 9-2zm0 0v-8' },
                     { label: 'In Progress', value: inTransit, iconColor: '#ff9f0a', icon: 'M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0' },
                     { label: 'Pending Action', value: pending, iconColor: '#64d2ff', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
                 ];
@@ -96,7 +96,7 @@ export const AdminLiveTracking = () => {
                     <div className="shrink-0 px-4 py-2.5 flex items-center justify-between"
                         style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
                         <div className="flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: '#30d158', boxShadow: '0 0 6px #30d15880' }} />
+                            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: '#ef4444', boxShadow: '0 0 6px #ef444480' }} />
                             <h2 className="text-sm font-bold" style={{ color: '#ffffff' }}>Import Transactions</h2>
                         </div>
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
@@ -114,7 +114,7 @@ export const AdminLiveTracking = () => {
                         <ColH className="text-center">Arrival</ColH>
                     </div>
                     <div className="flex flex-col">
-                        {importsLoading ? (<Spinner color="#30d158" />) :
+                        {importsLoading ? (<Spinner color="#ef4444" />) :
                             imports.length === 0 ? <EmptyState label="imports" /> :
                                 imports.map((row, i) => (
                                     <div
@@ -148,7 +148,7 @@ export const AdminLiveTracking = () => {
                     <div className="shrink-0 px-4 py-2.5 flex items-center justify-between"
                         style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
                         <div className="flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: '#0a84ff', boxShadow: '0 0 6px #0a84ff80' }} />
+                            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: '#3b82f6', boxShadow: '0 0 6px #3b82f680' }} />
                             <h2 className="text-sm font-bold" style={{ color: '#ffffff' }}>Export Transactions</h2>
                         </div>
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
@@ -166,7 +166,7 @@ export const AdminLiveTracking = () => {
                         <ColH className="text-center">Destination</ColH>
                     </div>
                     <div className="flex flex-col">
-                        {exportsLoading ? (<Spinner color="#0a84ff" />) :
+                        {exportsLoading ? (<Spinner color="#3b82f6" />) :
                             exports.length === 0 ? <EmptyState label="exports" /> :
                                 exports.map((row, i) => (
                                     <div

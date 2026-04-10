@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { Icon } from '../../../components/Icon';
 import { StatusBadge } from '../../../components/StatusBadge';
+import { useAuth } from '../../auth';
 import type { ApiImportTransaction, ImportTransaction } from '../types';
 import { mapImportTransaction } from '../utils/mappers';
 import { RemarkViewerModal } from './RemarkViewerModal';
 import { TransactionListPage } from './TransactionListPage';
 
 export const ImportList = () => {
+    const { user } = useAuth();
     const [remarkTarget, setRemarkTarget] = useState<ImportTransaction | null>(null);
 
     return (
@@ -16,6 +18,7 @@ export const ImportList = () => {
                 title="Import Transactions"
                 subtitle="Track and manage all import shipments"
                 encodeButtonLabel="Encode Import"
+                hideEncode={user?.role === 'accounting' || user?.role === 'processor'}
                 gridTemplateColumns="90px 1.2fr 1fr 120px 2fr 1.2fr 60px"
                 mapResponseData={data => (data as ApiImportTransaction[]).map(mapImportTransaction)}
                 renderHeaders={() => (

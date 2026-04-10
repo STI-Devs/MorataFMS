@@ -4,13 +4,13 @@ import { logoImage } from '../../assets/branding';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../features/auth';
 import { getRoleLabel, hasBrokerageAccess, hasLegalAccess } from '../../features/auth/utils/access';
-import { adminBrokerageGuardPaths, appRoutes, legalGuardPaths, navigationItems } from '../../lib/appRoutes';
+import { accountantGuardPaths, adminBrokerageGuardPaths, appRoutes, legalGuardPaths, navigationItems, processorGuardPaths } from '../../lib/appRoutes';
 import { PageFallback } from '../PageFallback';
 
 type Module = 'brokerage' | 'legal';
 
 type NavItemProps = {
-    item: { label: string; path: string; icon: string; newTab?: boolean };
+    item: { label: string; path: string; icon: string; newTab?: boolean; exact?: boolean; badge?: number | string };
     isActive: boolean;
     isSidebarDark: boolean;
     onNavigate: (path: string, newTab?: boolean) => void;
@@ -33,7 +33,12 @@ const NavItem = ({ item, isActive, isSidebarDark, onNavigate }: NavItemProps) =>
         >
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={item.icon} />
         </svg>
-        {item.label}
+        <span className="flex-1 text-left">{item.label}</span>
+        {item.badge !== undefined && (
+            <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full ml-auto leading-none">
+                {item.badge}
+            </span>
+        )}
     </button>
 );
 
@@ -105,7 +110,20 @@ export const MainLayout = () => {
     const accountRef = useRef<HTMLDivElement>(null);
 
     const brokerageItems = isAdmin ? navigationItems.adminBrokerage : navigationItems.encoderBrokerage;
-    const navItems = activeModule === 'legal' ? navigationItems.legal : brokerageItems;
+    const isProcessor = user?.role === 'processor';
+    const isAccountant = user?.role === 'accounting';
+    const isParalegal = user?.role === 'paralegal';
+
+    let navItems;
+    if (isProcessor) {
+        navItems = navigationItems.processor;
+    } else if (isAccountant) {
+        navItems = navigationItems.accountant;
+    } else if (isParalegal) {
+        navItems = navigationItems.paralegal;
+    } else {
+        navItems = activeModule === 'legal' ? navigationItems.legal : brokerageItems;
+    }
     const settingsItems = navigationItems.settings;
 
     const switchModule = (moduleName: Module) => {
@@ -145,6 +163,12 @@ export const MainLayout = () => {
     if (!hasLegal && legalGuardPaths.some((path) => location.pathname === path || location.pathname.startsWith(path + '/'))) {
         return <Navigate to={appRoutes.tracking} replace />;
     }
+    if (!isProcessor && processorGuardPaths.some((path) => location.pathname === path || location.pathname.startsWith(path + '/'))) {
+        return <Navigate to={appRoutes.tracking} replace />;
+    }
+    if (!isAccountant && accountantGuardPaths.some((path) => location.pathname === path || location.pathname.startsWith(path + '/'))) {
+        return <Navigate to={appRoutes.tracking} replace />;
+    }
 
     const isSidebarDark = theme === 'dark' || theme === 'mix';
     const isContentDark = theme === 'dark';
@@ -180,13 +204,18 @@ export const MainLayout = () => {
             >
                 <div
                     className="flex items-center gap-2.5 px-2 mb-5 cursor-pointer"
-                    onClick={() => navigate(isAdmin ? appRoutes.dashboard : appRoutes.tracking)}
+                    onClick={() => navigate(
+                    isAdmin ? appRoutes.dashboard
+                    : isProcessor ? appRoutes.processorDashboard
+                    : isAccountant ? appRoutes.accountantDashboard
+                    : appRoutes.tracking
+                )}
                 >
                     <img src={logoImage} alt="F.M Morata Logo" className="w-7 h-7 rounded-full object-cover shrink-0" />
                     <div>
                         <p className={`font-bold text-sm leading-tight ${isSidebarDark ? 'text-white' : 'text-black'}`}>F.M Morata</p>
                         <p className={`text-[10px] font-medium leading-tight ${isSidebarDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                            {activeModule === 'legal' ? 'Law Firm' : 'Customs Brokerage'}
+                            {isProcessor ? 'Processor' : isAccountant ? 'Accountant' : activeModule === 'legal' ? 'Law Firm' : 'Customs Brokerage'}
                         </p>
                     </div>
                 </div>
@@ -208,7 +237,9 @@ export const MainLayout = () => {
                         </p>
                         <nav className="space-y-0.5">
                             {navItems.map((item) => {
-                                const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
+                                const isActive = item.exact
+                                    ? location.pathname === item.path
+                                    : location.pathname === item.path || location.pathname.startsWith(item.path + '/');
                                 return (
                                     <NavItem
                                         key={item.label}

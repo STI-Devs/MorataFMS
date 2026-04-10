@@ -1,4 +1,4 @@
-export type AppRole = 'admin' | 'encoder' | 'paralegal';
+export type AppRole = 'admin' | 'encoder' | 'paralegal' | 'processor' | 'accounting';
 
 export interface PermissionMap {
   access_brokerage_module: boolean;

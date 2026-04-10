@@ -57,7 +57,7 @@ export const TrackingDashboard = () => {
                 <div className="w-full lg:flex-1 lg:min-w-0 flex flex-col bg-surface border border-border rounded-xl shadow-sm">
                     <div className="shrink-0 px-5 py-3.5 border-b border-border flex items-center justify-between">
                         <div className="flex items-center gap-2.5">
-                            <div className="w-2 h-2 rounded-full bg-[#30d158]" style={{ boxShadow: '0 0 6px #30d15880' }} />
+                            <div className="w-2 h-2 rounded-full bg-[#ef4444]" style={{ boxShadow: '0 0 6px #ef444480' }} />
                             <h2 className="text-sm font-bold text-text-primary">Import Transactions</h2>
                         </div>
                         <span className="text-[10px] font-bold text-text-muted bg-surface-secondary px-2 py-0.5 rounded-full border border-border">
@@ -124,7 +124,7 @@ export const TrackingDashboard = () => {
                 <div className="w-full lg:flex-1 lg:min-w-0 flex flex-col bg-surface border border-border rounded-xl shadow-sm">
                     <div className="shrink-0 px-5 py-3.5 border-b border-border flex items-center justify-between">
                         <div className="flex items-center gap-2.5">
-                            <div className="w-2 h-2 rounded-full bg-[#0a84ff]" style={{ boxShadow: '0 0 6px #0a84ff80' }} />
+                            <div className="w-2 h-2 rounded-full bg-[#3b82f6]" style={{ boxShadow: '0 0 6px #3b82f680' }} />
                             <h2 className="text-sm font-bold text-text-primary">Export Transactions</h2>
                         </div>
                         <span className="text-[10px] font-bold text-text-muted bg-surface-secondary px-2 py-0.5 rounded-full border border-border">

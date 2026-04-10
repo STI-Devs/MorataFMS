@@ -16,6 +16,8 @@ class UserAccess
         return match ($normalizedRole) {
             UserRole::Admin => ['brokerage', 'legal'],
             UserRole::Paralegal => ['legal'],
+            UserRole::Processor => ['brokerage'],
+            UserRole::Accounting => ['brokerage'],
             UserRole::Encoder => ['brokerage'],
         };
     }

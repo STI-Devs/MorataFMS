@@ -11,6 +11,7 @@ interface StageRowProps {
     isUploading:     boolean;
     isDeleting:      boolean;
     activeIndex:     number;
+    allowEdit?:      boolean;
     onUploadClick:   (index: number) => void;
     onPreviewDoc:    (doc: ApiDocument) => void;
     onDeleteDoc:     (doc: ApiDocument) => void;
@@ -26,6 +27,7 @@ export const StageRow = ({
     isUploading,
     isDeleting,
     activeIndex,
+    allowEdit = true,
     onUploadClick,
     onPreviewDoc,
     onDeleteDoc,
@@ -90,7 +92,7 @@ export const StageRow = ({
                     </div>
 
                     {/* Upload button — shown only when no doc yet */}
-                    {!doc && (
+                    {!doc && allowEdit && (
                         <button
                             onClick={e => { e.stopPropagation(); onUploadClick(index); }}
                             disabled={isUploading}
@@ -128,36 +130,40 @@ export const StageRow = ({
                         </button>
 
                         {/* Replace */}
-                        <button
-                            type="button"
-                            onClick={e => { e.stopPropagation(); onReplaceDoc(index, doc); }}
-                            disabled={isUploading || isDeleting}
-                            title="Replace document"
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold text-text-secondary hover:text-text-primary bg-surface-secondary hover:bg-hover border border-border transition-all disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
-                        >
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                            </svg>
-                            Replace
-                        </button>
+                        {allowEdit && (
+                            <button
+                                type="button"
+                                onClick={e => { e.stopPropagation(); onReplaceDoc(index, doc); }}
+                                disabled={isUploading || isDeleting}
+                                title="Replace document"
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold text-text-secondary hover:text-text-primary bg-surface-secondary hover:bg-hover border border-border transition-all disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+                            >
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                </svg>
+                                Replace
+                            </button>
+                        )}
 
                         {/* Delete */}
-                        <button
-                            type="button"
-                            onClick={e => { e.stopPropagation(); onDeleteDoc(doc); }}
-                            disabled={isDeleting || isUploading}
-                            title="Delete document"
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold text-red-500 hover:text-red-600 bg-red-500/5 hover:bg-red-500/10 border border-red-500/20 transition-all disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
-                        >
-                            {isDeleting ? (
-                                <div className="animate-spin rounded-full h-3 w-3 border border-red-400/30 border-t-red-500" />
-                            ) : (
-                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                            )}
-                            Delete
-                        </button>
+                        {allowEdit && (
+                            <button
+                                type="button"
+                                onClick={e => { e.stopPropagation(); onDeleteDoc(doc); }}
+                                disabled={isDeleting || isUploading}
+                                title="Delete document"
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold text-red-500 hover:text-red-600 bg-red-500/5 hover:bg-red-500/10 border border-red-500/20 transition-all disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+                            >
+                                {isDeleting ? (
+                                    <div className="animate-spin rounded-full h-3 w-3 border border-red-400/30 border-t-red-500" />
+                                ) : (
+                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                )}
+                                Delete
+                            </button>
+                        )}
                     </div>
                 )}
 
