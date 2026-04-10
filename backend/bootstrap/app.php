@@ -39,7 +39,9 @@ return Application::configure(basePath: dirname(__DIR__))
         );
 
         $middleware->trustHosts(
-            at: fn (): array => config('app.trusted_hosts'),
+            at: fn (): array => config('app.enforce_trusted_hosts')
+                ? config('app.trusted_hosts')
+                : ['.*'],
             subdomains: false,
         );
 

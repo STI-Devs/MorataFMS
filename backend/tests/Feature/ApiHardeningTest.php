@@ -9,6 +9,7 @@ test('trusted hosts include local development and the configured app host', func
     expect($trustedHosts)->toContain('^localhost$');
     expect($trustedHosts)->toContain('^127\.0\.0\.1$');
     expect($trustedHosts)->toContain('^\[::1\]$');
+    expect($trustedHosts)->toContain('^healthcheck\.railway\.app$');
 
     if (is_string($appHost) && $appHost !== '') {
         expect($trustedHosts)->toContain('^'.preg_quote($appHost, '/').'$');
@@ -68,6 +69,14 @@ test('api responses include a restrictive content security policy', function () 
 test('health check endpoint returns a minimal no-content response', function () {
     $this->get('/up')
         ->assertNoContent(204);
+});
+
+test('health check endpoint still responds when trusted host enforcement is disabled', function () {
+    config(['app.enforce_trusted_hosts' => false]);
+
+    $this->get('/up', [
+        'Host' => 'internal-healthcheck.platform',
+    ])->assertNoContent(204);
 });
 
 test('legacy root auth routes are not registered', function () {

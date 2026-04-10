@@ -56,11 +56,20 @@ return [
 
     'api_docs_enabled' => (bool) env('API_DOCS_ENABLED', false),
 
+    'enforce_trusted_hosts' => (bool) env('APP_ENFORCE_TRUSTED_HOSTS', true),
+
     'trusted_hosts' => array_values(array_filter([
         '^localhost$',
         '^127\.0\.0\.1$',
         '^\[::1\]$',
+        '^healthcheck\.railway\.app$',
         (($appHost = parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)) ? '^'.preg_quote($appHost, '/').'$' : null),
+        ...array_map(
+            static fn (string $host): ?string => ($host = trim($host)) !== ''
+                ? '^'.preg_quote($host, '/').'$'
+                : null,
+            explode(',', (string) env('APP_TRUSTED_HOSTS', ''))
+        ),
     ])),
 
     /*
