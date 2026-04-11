@@ -16,8 +16,6 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\TransactionRemarkController;
 use App\Http\Controllers\UserController;
-use App\Http\Resources\UserResource;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->group(function () {
@@ -32,9 +30,7 @@ Route::get('documents/{document}/stream', [DocumentController::class, 'stream'])
 Route::middleware(['auth:sanctum', 'throttle:api-general'])->group(function () {
 
     // Current user
-    Route::get('/user', function (Request $request) {
-        return new UserResource($request->user());
-    });
+    Route::get('/user', [ProfileController::class, 'show']);
 
     // Self-service profile update (any authenticated user)
     Route::put('/user/profile', [ProfileController::class, 'update']);

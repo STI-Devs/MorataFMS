@@ -43,6 +43,7 @@ FROM base AS runtime
 
 COPY . /var/www/html/
 COPY --from=vendor /var/www/html/vendor /var/www/html/vendor
+COPY docker/entrypoint.sh /usr/local/bin/entrypoint
 COPY docker/nginx/default.conf /etc/nginx/templates/default.conf.template
 COPY docker/php/app.ini /usr/local/etc/php/conf.d/99-app.ini
 COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
@@ -55,35 +56,6 @@ RUN rm -f /etc/nginx/sites-enabled/default /etc/nginx/conf.d/default.conf \
         /var/www/html/storage/framework/testing \
         /var/www/html/storage/framework/views \
         /var/www/html/storage/logs \
-    && printf '%s\n' \
-        '#!/usr/bin/env sh' \
-        'set -eu' \
-        '' \
-        'PORT="${PORT:-8000}"' \
-        'export PORT' \
-        '' \
-        'if [ -f /host/backend/.env.docker ] && [ ! -e /var/www/html/.env ]; then' \
-        '    ln -sf /host/backend/.env.docker /var/www/html/.env' \
-        'elif [ -f /host/backend/.env.docker.example ] && [ ! -e /var/www/html/.env ]; then' \
-        '    ln -sf /host/backend/.env.docker.example /var/www/html/.env' \
-        'fi' \
-        '' \
-        'mkdir -p \' \
-        '    /var/www/html/bootstrap/cache \' \
-        '    /var/www/html/storage/app \' \
-        '    /var/www/html/storage/framework/cache \' \
-        '    /var/www/html/storage/framework/sessions \' \
-        '    /var/www/html/storage/framework/testing \' \
-        '    /var/www/html/storage/framework/views \' \
-        '    /var/www/html/storage/logs \' \
-        '    /run/php' \
-        '' \
-        'chown -R www-data:www-data /var/www/html/bootstrap/cache /var/www/html/storage /run/php' \
-        '' \
-        'envsubst '"'"'${PORT}'"'"' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf' \
-        '' \
-        'exec "$@"' \
-        > /usr/local/bin/entrypoint \
     && chmod +x /usr/local/bin/entrypoint
 
 EXPOSE 8000

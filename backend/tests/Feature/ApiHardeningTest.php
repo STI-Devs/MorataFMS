@@ -79,6 +79,16 @@ test('health check endpoint still responds when trusted host enforcement is disa
     ])->assertNoContent(204);
 });
 
+test('route cache can be generated successfully', function () {
+    $this->artisan('route:cache')->assertSuccessful();
+    $this->artisan('route:clear')->assertSuccessful();
+});
+
+test('config cache can be generated successfully', function () {
+    $this->artisan('config:cache')->assertSuccessful();
+    $this->artisan('config:clear')->assertSuccessful();
+});
+
 test('legacy root auth routes are not registered', function () {
     $this->post('/login')->assertNotFound();
 });

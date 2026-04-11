@@ -4,10 +4,19 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\UpdateProfileRequest;
 use App\Http\Resources\UserResource;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
 class ProfileController extends Controller
 {
+    /**
+     * GET /api/user
+     */
+    public function show(Request $request): UserResource
+    {
+        return new UserResource($request->user());
+    }
+
     /**
      * PUT /api/user/profile
      * Update the authenticated user's name, job title, and/or password.
