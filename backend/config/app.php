@@ -72,6 +72,13 @@ return [
         ),
     ])),
 
+    'trusted_proxies' => array_values(array_filter(array_map(
+        static fn (string $proxy): ?string => ($proxy = trim($proxy)) !== ''
+            ? $proxy
+            : null,
+        explode(',', (string) env('APP_TRUSTED_PROXIES', ''))
+    ))),
+
     /*
     |--------------------------------------------------------------------------
     | Application Timezone

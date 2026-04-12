@@ -272,14 +272,18 @@ export const trackingApi = {
         window.URL.revokeObjectURL(url);
     },
 
-    deleteDocument: async (id: number): Promise<void> => {
-        await api.delete(`/api/documents/${id}`);
+    previewDocument: async (id: number): Promise<Blob> => {
+        const response = await api.get(`/api/documents/${id}/preview`, {
+            responseType: 'blob',
+        });
+
+        return new Blob([response.data], {
+            type: response.headers['content-type'] || response.data.type || 'application/octet-stream',
+        });
     },
 
-    getDocumentPreviewUrl: async (id: number): Promise<string> => {
-        // Both S3 and Local disks now safely return a pre-signed JSON URL
-        const { data } = await api.get<{ url: string }>(`/api/documents/${id}/preview`);
-        return data.url;
+    deleteDocument: async (id: number): Promise<void> => {
+        await api.delete(`/api/documents/${id}`);
     },
 };
 

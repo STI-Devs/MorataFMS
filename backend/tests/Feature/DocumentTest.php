@@ -404,7 +404,30 @@ test('encoder cannot download another encoders document', function () {
         ->assertForbidden();
 });
 
-test('signed local stream can be opened after an authorized preview request', function () {
+test('document preview streams the file inline for the authorized user', function () {
+    config()->set('filesystems.document_disk', 'local');
+    Storage::fake('local');
+
+    $encoder = User::factory()->create(['role' => 'encoder']);
+    $transaction = ImportTransaction::factory()->create(['assigned_user_id' => $encoder->id]);
+    $document = Document::factory()->create([
+        'documentable_type' => ImportTransaction::class,
+        'documentable_id' => $transaction->id,
+        'uploaded_by' => $encoder->id,
+        'path' => 'transaction-documents/test/restricted.pdf',
+        'filename' => 'restricted.pdf',
+    ]);
+
+    Storage::disk('local')->put($document->path, 'restricted');
+
+    $this->actingAs($encoder)
+        ->get("/api/documents/{$document->id}/preview")
+        ->assertOk()
+        ->assertHeader('content-type', 'application/pdf')
+        ->assertHeader('content-disposition', 'inline; filename="restricted.pdf"');
+});
+
+test('document stream now requires an authenticated authorized session', function () {
     config()->set('filesystems.document_disk', 'local');
     Storage::fake('local');
 
@@ -419,17 +442,7 @@ test('signed local stream can be opened after an authorized preview request', fu
 
     Storage::disk('local')->put($document->path, 'restricted');
 
-    $previewResponse = $this->actingAs($encoder)
-        ->getJson("/api/documents/{$document->id}/preview")
-        ->assertOk();
-
-    $signedUrl = $previewResponse->json('url');
-
-    app('auth')->forgetGuards();
-
-    $this
-        ->get($signedUrl)
-        ->assertOk();
+    $this->get("/api/documents/{$document->id}/stream")->assertUnauthorized();
 });
 
 test('admin can delete any document', function () {

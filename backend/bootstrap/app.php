@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureActiveUserSession;
 use App\Http\Middleware\EnsureEmailIsVerified;
 use App\Http\Middleware\MaxRequestSize;
 use App\Http\Middleware\SecurityHeaders;
@@ -13,6 +14,13 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
+$trustedProxies = array_values(array_filter(array_map(
+    static fn (string $proxy): ?string => ($proxy = trim($proxy)) !== ''
+        ? $proxy
+        : null,
+    explode(',', (string) env('APP_TRUSTED_PROXIES', ''))
+)));
+
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
@@ -22,20 +30,15 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withBroadcasting(
         __DIR__.'/../routes/channels.php',
-        ['prefix' => 'api', 'middleware' => ['api', 'auth:sanctum']],
+        ['prefix' => 'api', 'middleware' => ['api', 'auth:sanctum', EnsureActiveUserSession::class]],
     )
-    ->withMiddleware(function (Middleware $middleware): void {
-        // Trust the cloud proxy chain so Laravel honors forwarded scheme, host,
-        // and client IP information behind Cloudflare and Railway.
-        // This improves URL generation, secure-cookie handling, and request IP
-        // resolution, but forwarded IPs should still be treated as best-effort
-        // origin metadata rather than a hard security identity.
+    ->withMiddleware(function (Middleware $middleware) use ($trustedProxies): void {
         $middleware->trustProxies(
             headers: Request::HEADER_X_FORWARDED_FOR |
                      Request::HEADER_X_FORWARDED_HOST |
                      Request::HEADER_X_FORWARDED_PORT |
                      Request::HEADER_X_FORWARDED_PROTO,
-            at: '*',
+            at: $trustedProxies,
         );
 
         $middleware->trustHosts(
@@ -57,6 +60,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->append(SecurityHeaders::class);
 
         $middleware->alias([
+            'active-session' => EnsureActiveUserSession::class,
             'verified' => EnsureEmailIsVerified::class,
         ]);
 

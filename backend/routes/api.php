@@ -22,12 +22,12 @@ Route::prefix('auth')->group(function () {
     require __DIR__.'/auth.php';
 });
 
-// Document management (protected by signed URLs for preview/download)
+// Document management
 Route::get('documents/{document}/stream', [DocumentController::class, 'stream'])
     ->name('documents.stream')
-    ->middleware(['signed', 'throttle:public-documents']);
+    ->middleware(['auth:sanctum', 'active-session', 'throttle:api-documents']);
 
-Route::middleware(['auth:sanctum', 'throttle:api-general'])->group(function () {
+Route::middleware(['auth:sanctum', 'active-session', 'throttle:api-general'])->group(function () {
 
     // Current user
     Route::get('/user', [ProfileController::class, 'show']);

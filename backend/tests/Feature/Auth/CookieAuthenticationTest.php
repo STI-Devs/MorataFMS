@@ -133,6 +133,35 @@ test('login rejects deactivated users', function () {
     $this->assertGuest();
 });
 
+test('deactivated users lose access on the next authenticated request', function () {
+    $user = User::factory()->create([
+        'email' => 'active@example.com',
+        'password' => bcrypt('password'),
+        'role' => 'encoder',
+        'is_active' => true,
+    ]);
+
+    $this
+        ->withHeaders(frontendHeaders())
+        ->postJson('/api/auth/login', [
+            'email' => $user->email,
+            'password' => 'password',
+        ])
+        ->assertOk();
+
+    $user->forceFill(['is_active' => false])->save();
+
+    Auth::forgetGuards();
+
+    $this
+        ->withHeaders(frontendHeaders())
+        ->getJson('/api/user')
+        ->assertUnauthorized()
+        ->assertJson([
+            'message' => 'Unauthenticated.',
+        ]);
+});
+
 test('login requires a turnstile token when turnstile protection is enabled', function () {
     config([
         'services.turnstile.enabled' => true,

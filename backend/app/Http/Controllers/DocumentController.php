@@ -14,7 +14,6 @@ use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\URL;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DocumentController extends Controller
@@ -105,61 +104,25 @@ class DocumentController extends Controller
     /**
      * GET /api/documents/{document}/preview
      *
-     * Returns a viewer-ready representation of the stored file:
-     * - S3 / cloud disk  → JSON { url } with a 60-second pre-signed URL.
-     *   The frontend sends it to <iframe> / <img> / Google Docs Viewer.
-     * - Local disk       → streams the file inline with the correct MIME type
-     *   so the browser renders it natively.
-     *
-     * Uses the same disk as store() / download() / destroy() so the file is
-     * guaranteed to exist.
+     * Streams the file inline for an authenticated, authorized browser session.
      */
-    public function preview(Document $document)
+    public function preview(Document $document): StreamedResponse
     {
         $this->authorize('view', $document);
 
-        $disk = self::documentDisk();
-
-        if (self::storageDisk() === 's3') {
-            $url = $disk->temporaryUrl($document->path, now()->addMinutes(5));
-        } else {
-            $url = URL::temporarySignedRoute(
-                'documents.stream',
-                now()->addMinutes(5),
-                ['document' => $document->id]
-            );
-        }
-
-        return response()->json(['url' => $url]);
+        return $this->streamInline($document);
     }
 
     /**
      * GET /api/documents/{document}/stream
      *
-     * Securely streams a file from the local disk when accessed via a signed route.
-     * This mimics S3's pre-signed URL behavior natively.
+     * Securely streams a file inline for authenticated users.
      */
-    public function stream(Document $document)
+    public function stream(Document $document): StreamedResponse
     {
-        $disk = self::documentDisk();
+        $this->authorize('view', $document);
 
-        if (! $disk->exists($document->path)) {
-            abort(404, 'File not found on storage.');
-        }
-
-        $mimeType = $disk->mimeType($document->path) ?: 'application/octet-stream';
-        $stream = $disk->readStream($document->path);
-
-        return response()->stream(function () use ($stream) {
-            fpassthru($stream);
-            if (is_resource($stream)) {
-                fclose($stream);
-            }
-        }, 200, [
-            'Content-Type' => $mimeType,
-            'Content-Disposition' => 'inline; filename="'.addslashes($document->filename).'"',
-            'Cache-Control' => 'no-store',
-        ]);
+        return $this->streamInline($document);
     }
 
     // ─── Shared helpers ────────────────────────────────────────────────────────
@@ -210,6 +173,34 @@ class DocumentController extends Controller
                 fclose($stream);
             }
         }, $document->filename);
+    }
+
+    private function streamInline(Document $document): StreamedResponse
+    {
+        $disk = self::documentDisk();
+
+        if (! $disk->exists($document->path)) {
+            abort(404, 'File not found on storage.');
+        }
+
+        $mimeType = $disk->mimeType($document->path) ?: 'application/octet-stream';
+        $stream = $disk->readStream($document->path);
+
+        if (! $stream) {
+            abort(500, 'Unable to read file stream.');
+        }
+
+        return response()->stream(function () use ($stream) {
+            fpassthru($stream);
+            if (is_resource($stream)) {
+                fclose($stream);
+            }
+        }, 200, [
+            'Content-Type' => $mimeType,
+            'Content-Disposition' => 'inline; filename="'.addslashes($document->filename).'"',
+            'Cache-Control' => 'no-store',
+            'X-Frame-Options' => 'SAMEORIGIN',
+        ]);
     }
 
     /**
