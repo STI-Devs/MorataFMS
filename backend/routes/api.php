@@ -41,6 +41,8 @@ Route::middleware(['auth:sanctum', 'active-session', 'throttle:api-general'])->g
     Route::get('export-transactions/stats', [ExportTransactionController::class, 'stats']);
     Route::patch('import-transactions/{import_transaction}/cancel', [ImportTransactionController::class, 'cancel']);
     Route::patch('export-transactions/{export_transaction}/cancel', [ExportTransactionController::class, 'cancel']);
+    Route::patch('import-transactions/{import_transaction}/stage-applicability', [ImportTransactionController::class, 'updateStageApplicability']);
+    Route::patch('export-transactions/{export_transaction}/stage-applicability', [ExportTransactionController::class, 'updateStageApplicability']);
     Route::apiResource('import-transactions', ImportTransactionController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::apiResource('export-transactions', ExportTransactionController::class)->only(['index', 'store', 'update', 'destroy']);
 
@@ -62,6 +64,8 @@ Route::middleware(['auth:sanctum', 'active-session', 'throttle:api-general'])->g
         Route::get('/', [ArchiveController::class, 'index']);
         Route::post('import', [ArchiveController::class, 'storeImport'])->middleware('throttle:archive-uploads');
         Route::post('export', [ArchiveController::class, 'storeExport'])->middleware('throttle:archive-uploads');
+        Route::delete('import/{importTransaction}', [ArchiveController::class, 'rollbackImport'])->middleware('throttle:archive-uploads');
+        Route::delete('export/{exportTransaction}', [ArchiveController::class, 'rollbackExport'])->middleware('throttle:archive-uploads');
     });
 
     // Notarial (Law Firm) module

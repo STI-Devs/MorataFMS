@@ -6,11 +6,13 @@ use App\Enums\ImportStatus;
 use App\Enums\UserRole;
 use App\Http\Requests\CancelTransactionRequest;
 use App\Http\Requests\StoreImportTransactionRequest;
+use App\Http\Requests\UpdateImportStageApplicabilityRequest;
 use App\Http\Requests\UpdateImportTransactionRequest;
 use App\Http\Resources\ImportTransactionResource;
 use App\Models\ImportTransaction;
 use App\Support\Transactions\ImportStatusWorkflow;
 use App\Support\Transactions\TransactionSyncBroadcaster;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ImportTransactionController extends Controller
@@ -159,6 +161,36 @@ class ImportTransactionController extends Controller
 
         $import_transaction->load(['importer', 'originCountry', 'stages', 'assignedUser']);
         $this->transactionSyncBroadcaster->transactionChanged($import_transaction, $request->user(), 'cancelled');
+
+        return new ImportTransactionResource($import_transaction);
+    }
+
+    public function updateStageApplicability(
+        UpdateImportStageApplicabilityRequest $request,
+        ImportTransaction $import_transaction,
+    ): ImportTransactionResource|JsonResponse {
+        $this->authorize('update', $import_transaction);
+
+        $validated = $request->validated();
+        $stage = $validated['stage'];
+        $notApplicable = (bool) $validated['not_applicable'];
+
+        if ($notApplicable && $import_transaction->documents()->where('type', $stage)->exists()) {
+            return response()->json([
+                'message' => 'You cannot mark this stage as not applicable after files have been uploaded to it.',
+            ], 422);
+        }
+
+        $import_transaction->loadMissing('stages');
+        $import_transaction->setStageApplicability($stage, $notApplicable, $request->user()->id);
+        $import_transaction->recalculateStatus();
+        $import_transaction->load(['importer', 'originCountry', 'stages', 'assignedUser']);
+
+        $this->transactionSyncBroadcaster->transactionChanged(
+            $import_transaction,
+            $request->user(),
+            'stage_applicability_updated',
+        );
 
         return new ImportTransactionResource($import_transaction);
     }

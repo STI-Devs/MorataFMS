@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { toast } from 'sonner';
 import { Icon } from '../../../components/Icon';
 import { FilePreviewModal } from '../../../components/modals/FilePreviewModal';
 import { UploadModal } from '../../../components/modals/UploadModal';
@@ -45,6 +46,7 @@ export const TrackingDetails = () => {
     const [isUploadOpen,       setIsUploadOpen]       = useState(false);
     const [selectedStageIndex, setSelectedStageIndex] = useState<number | null>(null);
     const [uploadingStage,     setUploadingStage]     = useState<number | null>(null);
+    const [applicabilityStage, setApplicabilityStage] = useState<string | null>(null);
     const [deletingDocId,      setDeletingDocId]      = useState<number | null>(null);
     const [replacingDoc,       setReplacingDoc]       = useState<ApiDocument | null>(null);
     const [uploadError,        setUploadError]        = useState<string | null>(null);
@@ -135,6 +137,42 @@ export const TrackingDetails = () => {
         }
     };
 
+    const handleStageApplicabilityChange = async (stageType: string, notApplicable: boolean) => {
+        if (!txDetail) {
+            return;
+        }
+
+        setApplicabilityStage(stageType);
+
+        try {
+            if (txDetail.isImport) {
+                await trackingApi.updateImportStageApplicability(txDetail.raw.id, {
+                    stage: stageType,
+                    not_applicable: notApplicable,
+                });
+            } else {
+                await trackingApi.updateExportStageApplicability(txDetail.raw.id, {
+                    stage: stageType,
+                    not_applicable: notApplicable,
+                });
+            }
+
+            await queryClient.invalidateQueries({ queryKey: trackingKeys.detail(referenceId) });
+            toast.success(
+                notApplicable
+                    ? `${stages.find((stage) => stage.type === stageType)?.title ?? 'Stage'} marked as not applicable.`
+                    : `${stages.find((stage) => stage.type === stageType)?.title ?? 'Stage'} restored to required.`,
+            );
+        } catch (error: unknown) {
+            const message = error && typeof error === 'object' && 'response' in error
+                ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
+                : undefined;
+            toast.error(message ?? 'Failed to update the stage setting.');
+        } finally {
+            setApplicabilityStage(null);
+        }
+    };
+
     const handleUpload = async (files: File[]) => {
         if (selectedStageIndex === null || !txDetail || !docableType) {
             return;
@@ -184,9 +222,12 @@ export const TrackingDetails = () => {
                 : [...uploadedDocuments, ...(nextStageDocuments[selectedStageIndex] ?? [])];
 
             const uploadedTypes = new Set(
-                Object.values(nextStageDocuments)
-                    .flat()
-                    .map((document) => document.type),
+                stages
+                    .filter((stage, index) => {
+                        const documents = nextStageDocuments[index] ?? [];
+                        return documents.length > 0 || (txDetail.raw.not_applicable_stages ?? []).includes(stage.type);
+                    })
+                    .map((stage) => stage.type),
             );
             const allComplete = stages.every((stage) => uploadedTypes.has(stage.type));
             if (allComplete) {
@@ -269,17 +310,26 @@ export const TrackingDetails = () => {
 
     // Derive the badge label from uploaded doc types — instant reactivity,
     // and matches exactly what the backend saves after the enum migration.
-    const uploadedDocTypes = Object.values(displayStageDocuments).flat().map((document) => document.type);
+    const notApplicableStages = new Set(displayTxDetail.raw.not_applicable_stages ?? []);
+    const uploadedStageTypes = displayStages
+        .filter((_, index) => (displayStageDocuments[index]?.length ?? 0) > 0)
+        .map((stage) => stage.type);
     const displayStatus    = isImport
-        ? getImportDisplayStatus(uploadedDocTypes)
-        : getExportDisplayStatus(uploadedDocTypes);
+        ? getImportDisplayStatus(uploadedStageTypes)
+        : getExportDisplayStatus(uploadedStageTypes);
 
     const s = getStatusStyle(displayStatus);
 
     // Derive stage statuses from document presence (document-driven, not status-string-driven)
-    const firstEmptyIdx  = displayStages.findIndex((_, i) => (displayStageDocuments[i]?.length ?? 0) === 0);
-    const stageStatuses  = displayStages.map((_, i) =>
-        getStageStatusFromDoc((displayStageDocuments[i]?.length ?? 0) > 0, i === firstEmptyIdx),
+    const firstEmptyIdx  = displayStages.findIndex((stage, i) => {
+        const documents = displayStageDocuments[i] ?? [];
+        return documents.length === 0 && !notApplicableStages.has(stage.type);
+    });
+    const stageStatuses  = displayStages.map((stage, i) =>
+        getStageStatusFromDoc(
+            (displayStageDocuments[i]?.length ?? 0) > 0 || notApplicableStages.has(stage.type),
+            i === firstEmptyIdx,
+        ),
     );
     const importTx       = isImport  ? (transaction as ImportTransaction)  : null;
     const exportTx       = !isImport ? (transaction as ExportTransaction)  : null;
@@ -323,12 +373,15 @@ export const TrackingDetails = () => {
                             isLast={i === displayStages.length - 1}
                             stageStatus={stageStatuses[i]}
                             docs={displayStageDocuments[i] ?? []}
+                            isNotApplicable={notApplicableStages.has(stage.type)}
                             isUploading={uploadingStage === i}
+                            isApplicabilityUpdating={applicabilityStage === stage.type}
                             deletingDocId={deletingDocId}
                             onUploadClick={handleStageUploadClick}
                             onPreviewDoc={handlePreviewDoc}
                             onDeleteDoc={handleDeleteDoc}
                             onReplaceDoc={handleReplaceDoc}
+                            onNotApplicableChange={handleStageApplicabilityChange}
                         />
                     ))}
                 </div>

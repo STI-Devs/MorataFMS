@@ -75,6 +75,34 @@ function withUploadErrorMessage(error: unknown, message: string): Error {
     return new Error(message);
 }
 
+type ArchiveDocumentUpload = {
+    file: File;
+    stage: string;
+};
+
+type CreateArchiveImportPayload = {
+    bl_no: string;
+    selective_color: 'green' | 'yellow' | 'red';
+    importer_id: number;
+    file_date: string;
+    customs_ref_no?: string;
+    origin_country_id?: number;
+    notes?: string;
+    documents?: ArchiveDocumentUpload[];
+    not_applicable_stages?: string[];
+};
+
+type CreateArchiveExportPayload = {
+    bl_no: string;
+    shipper_id: number;
+    destination_country_id: number;
+    file_date: string;
+    vessel?: string;
+    notes?: string;
+    documents?: ArchiveDocumentUpload[];
+    not_applicable_stages?: string[];
+};
+
 export const trackingApi = {
     getTrackingDetail: async (referenceId: string): Promise<ApiTrackingDetail> => {
         const response = await api.get(`/api/tracking/${encodeURIComponent(referenceId)}`);
@@ -101,6 +129,14 @@ export const trackingApi = {
 
     updateImport: async ({ id, data }: { id: number; data: CreateImportPayload }): Promise<ApiImportTransaction> => {
         const response = await api.put(`/api/import-transactions/${id}`, data);
+        return response.data.data;
+    },
+
+    updateImportStageApplicability: async (
+        id: number,
+        payload: { stage: string; not_applicable: boolean },
+    ): Promise<ApiImportTransaction> => {
+        const response = await api.patch(`/api/import-transactions/${id}/stage-applicability`, payload);
         return response.data.data;
     },
 
@@ -150,6 +186,14 @@ export const trackingApi = {
 
     updateExport: async ({ id, data }: { id: number; data: CreateExportPayload }): Promise<ApiExportTransaction> => {
         const response = await api.put(`/api/export-transactions/${id}`, data);
+        return response.data.data;
+    },
+
+    updateExportStageApplicability: async (
+        id: number,
+        payload: { stage: string; not_applicable: boolean },
+    ): Promise<ApiExportTransaction> => {
+        const response = await api.patch(`/api/export-transactions/${id}/stage-applicability`, payload);
         return response.data.data;
     },
 
@@ -215,19 +259,7 @@ export const trackingApi = {
         return response.data.data;
     },
 
-    createArchiveImport: async (data: {
-        bl_no: string;
-        selective_color: 'green' | 'yellow' | 'red';
-        importer_id: number;
-        file_date: string;          // YYYY-MM-DD, must be <= today (enforced by backend)
-        customs_ref_no?: string;
-        origin_country_id?: number;
-        notes?: string;
-        documents?: Array<{
-            file: File;
-            stage: string;
-        }>;
-    }): Promise<ApiImportTransaction> => {
+    createArchiveImport: async (data: CreateArchiveImportPayload): Promise<ApiImportTransaction> => {
         const hasDocuments = (data.documents?.length ?? 0) > 0;
 
         const response = hasDocuments
@@ -239,18 +271,7 @@ export const trackingApi = {
         return response.data.data;
     },
 
-    createArchiveExport: async (data: {
-        bl_no: string;
-        shipper_id: number;
-        destination_country_id: number;
-        file_date: string;          // YYYY-MM-DD, must be <= today (enforced by backend)
-        vessel?: string;
-        notes?: string;
-        documents?: Array<{
-            file: File;
-            stage: string;
-        }>;
-    }): Promise<ApiExportTransaction> => {
+    createArchiveExport: async (data: CreateArchiveExportPayload): Promise<ApiExportTransaction> => {
         const hasDocuments = (data.documents?.length ?? 0) > 0;
 
         const response = hasDocuments
@@ -260,6 +281,90 @@ export const trackingApi = {
             : await api.post('/api/archives/export', data);
 
         return response.data.data;
+    },
+
+    rollbackArchiveImport: async (id: number): Promise<void> => {
+        await api.delete(`/api/archives/import/${id}`);
+    },
+
+    rollbackArchiveExport: async (id: number): Promise<void> => {
+        await api.delete(`/api/archives/export/${id}`);
+    },
+
+    createArchiveImportWithDocuments: async (data: CreateArchiveImportPayload): Promise<ApiImportTransaction> => {
+        const { documents = [], ...archivePayload } = data;
+        const transaction = await trackingApi.createArchiveImport(archivePayload);
+
+        if (documents.length === 0) {
+            return transaction;
+        }
+
+        try {
+            for (const document of documents) {
+                await trackingApi.uploadDocument({
+                    file: document.file,
+                    type: document.stage,
+                    documentable_type: 'App\\Models\\ImportTransaction',
+                    documentable_id: transaction.id,
+                });
+            }
+
+            return transaction;
+        } catch (error) {
+            let rollbackFailed = false;
+
+            try {
+                await trackingApi.rollbackArchiveImport(transaction.id);
+            } catch {
+                rollbackFailed = true;
+            }
+
+            const baseMessage = getUploadErrorMessage(error);
+            const rollbackMessage = rollbackFailed
+                ? 'The archive rollback failed. Manual cleanup may be required.'
+                : 'The archive record and uploaded files were rolled back.';
+            const message = `Failed to upload archive documents. ${rollbackMessage} ${baseMessage}`;
+
+            throw withUploadErrorMessage(error, message);
+        }
+    },
+
+    createArchiveExportWithDocuments: async (data: CreateArchiveExportPayload): Promise<ApiExportTransaction> => {
+        const { documents = [], ...archivePayload } = data;
+        const transaction = await trackingApi.createArchiveExport(archivePayload);
+
+        if (documents.length === 0) {
+            return transaction;
+        }
+
+        try {
+            for (const document of documents) {
+                await trackingApi.uploadDocument({
+                    file: document.file,
+                    type: document.stage,
+                    documentable_type: 'App\\Models\\ExportTransaction',
+                    documentable_id: transaction.id,
+                });
+            }
+
+            return transaction;
+        } catch (error) {
+            let rollbackFailed = false;
+
+            try {
+                await trackingApi.rollbackArchiveExport(transaction.id);
+            } catch {
+                rollbackFailed = true;
+            }
+
+            const baseMessage = getUploadErrorMessage(error);
+            const rollbackMessage = rollbackFailed
+                ? 'The archive rollback failed. Manual cleanup may be required.'
+                : 'The archive record and uploaded files were rolled back.';
+            const message = `Failed to upload archive documents. ${rollbackMessage} ${baseMessage}`;
+
+            throw withUploadErrorMessage(error, message);
+        }
     },
 
     // --- Documents ---
@@ -383,6 +488,16 @@ function buildArchiveFormData(data: Record<string, unknown>): FormData {
 
                 if (typeof stage === 'string' && stage !== '') {
                     formData.append(`documents[${index}][stage]`, stage);
+                }
+            });
+
+            return;
+        }
+
+        if (key === 'not_applicable_stages' && Array.isArray(value)) {
+            value.forEach((stage, index) => {
+                if (typeof stage === 'string' && stage !== '') {
+                    formData.append(`not_applicable_stages[${index}]`, stage);
                 }
             });
 

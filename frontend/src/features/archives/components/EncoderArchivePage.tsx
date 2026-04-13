@@ -4,8 +4,8 @@ import { CurrentDateTime } from '../../../components/CurrentDateTime';
 import { Icon } from '../../../components/Icon';
 import type { ArchiveDocument, ArchiveYear, TransactionType } from '../../documents/types/document.types';
 import { useMyArchives } from '../hooks/useMyArchives';
-import type { DrillState, SortKey, ViewMode } from '../utils/archive.utils';
-import { FOLDER_LABEL, MONTH_NAMES } from '../utils/archive.utils';
+import type { ArchiveUploadSuccessTarget, DrillState, SortKey, ViewMode } from '../utils/archive.utils';
+import { FOLDER_LABEL, MONTH_NAMES, resolveArchiveDrillTarget } from '../utils/archive.utils';
 import { AddArchiveDocumentModal } from './AddArchiveDocumentModal';
 import { ArchiveDocumentRow } from './ArchiveDocumentRow';
 import { ArchiveLegacyUploadPage } from './ArchiveLegacyUploadPage';
@@ -46,6 +46,32 @@ export const EncoderArchivePage = () => {
 
     const nav = (next: DrillState) => { setDrill(next); setSearch(''); setGlobalSearch(''); };
 
+    const handleArchiveUploadSuccess = async (target: ArchiveUploadSuccessTarget) => {
+        await queryClient.invalidateQueries({ queryKey: ['my-archives'] });
+
+        const refreshedArchiveData =
+            queryClient.getQueriesData<ArchiveYear[]>({ queryKey: ['my-archives'] })
+                .map(([, data]) => data)
+                .find((data): data is ArchiveYear[] => Array.isArray(data))
+            ?? [];
+        const nextDrill = resolveArchiveDrillTarget(refreshedArchiveData, target);
+
+        setShowLegacyUpload(false);
+        setViewMode('folder');
+        setGlobalSearch('');
+        setSearch('');
+        setFilterYear(String(target.year));
+        setFilterType(target.type);
+        setExpandedYears(new Set([target.year]));
+
+        if (nextDrill) {
+            setDrill(nextDrill);
+            return;
+        }
+
+        setDrill({ level: 'years' });
+    };
+
     const globalResults = useMemo(() => {
         const q = globalSearch.trim().toLowerCase();
         if (!q) return [];
@@ -62,13 +88,13 @@ export const EncoderArchivePage = () => {
     }, [globalSearch, archiveData]);
 
     const flatDocumentList = useMemo(() => {
-        const blMap = new Map<string, { blNo: string; client: string; type: TransactionType; year: number; month: number; stages: Set<string>; yearData: ArchiveYear }>();
+        const blMap = new Map<string, { blNo: string; client: string; type: TransactionType; year: number; month: number; docs: ArchiveDocument[]; yearData: ArchiveYear }>();
         for (const yearData of archiveData) {
             for (const doc of yearData.documents) {
                 const blNo = doc.bl_no || '(no BL)';
                 const key = `${blNo}|${doc.type}|${yearData.year}`;
-                if (!blMap.has(key)) blMap.set(key, { blNo, client: doc.client, type: doc.type, year: yearData.year, month: doc.month, stages: new Set(), yearData });
-                blMap.get(key)!.stages.add(doc.stage);
+                if (!blMap.has(key)) blMap.set(key, { blNo, client: doc.client, type: doc.type, year: yearData.year, month: doc.month, docs: [], yearData });
+                blMap.get(key)!.docs.push(doc);
             }
         }
         return [...blMap.values()].filter(r => {
@@ -88,7 +114,7 @@ export const EncoderArchivePage = () => {
                     <ArchiveLegacyUploadPage
                         defaultYear={currentYear}
                         onBack={() => setShowLegacyUpload(false)}
-                        onSubmit={() => { setShowLegacyUpload(false); queryClient.invalidateQueries({ queryKey: ['my-archives'] }); }}
+                        onSubmit={handleArchiveUploadSuccess}
                     />
                 </div>
             </div>

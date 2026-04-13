@@ -7,12 +7,15 @@ interface StageRowProps {
     isLast: boolean;
     stageStatus: 'completed' | 'active' | 'pending';
     docs: ApiDocument[];
+    isNotApplicable: boolean;
     isUploading: boolean;
+    isApplicabilityUpdating: boolean;
     deletingDocId: number | null;
     onUploadClick: (index: number) => void;
     onPreviewDoc: (doc: ApiDocument) => void;
     onDeleteDoc: (doc: ApiDocument) => void;
     onReplaceDoc: (index: number, oldDoc: ApiDocument) => void;
+    onNotApplicableChange: (stageType: string, notApplicable: boolean) => void;
 }
 
 export const StageRow = ({
@@ -21,15 +24,21 @@ export const StageRow = ({
     isLast,
     stageStatus,
     docs,
+    isNotApplicable,
     isUploading,
+    isApplicabilityUpdating,
     deletingDocId,
     onUploadClick,
     onPreviewDoc,
     onDeleteDoc,
     onReplaceDoc,
+    onNotApplicableChange,
 }: StageRowProps) => {
     const isCompleted = stageStatus === 'completed';
     const isActive = stageStatus === 'active';
+    const canToggleNotApplicable = !!stage.supportsNotApplicable && docs.length === 0;
+    const disableNotApplicableToggle = isApplicabilityUpdating || isUploading || (!canToggleNotApplicable && !isNotApplicable);
+    const disableUpload = isUploading || isApplicabilityUpdating || isNotApplicable;
 
     return (
         <div
@@ -77,7 +86,12 @@ export const StageRow = ({
                                     In Progress
                                 </span>
                             )}
-                            {isCompleted && (
+                            {isNotApplicable && (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 shrink-0">
+                                    N/A
+                                </span>
+                            )}
+                            {isCompleted && !isNotApplicable && (
                                 <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
                                     Done
                                 </span>
@@ -88,28 +102,58 @@ export const StageRow = ({
                                 </span>
                             )}
                         </div>
-                        <p className="text-xs text-text-muted leading-relaxed">{stage.description}</p>
+                        <p className="text-xs text-text-muted leading-relaxed">
+                            {isNotApplicable
+                                ? 'This stage is marked as not applicable for the current transaction.'
+                                : stage.description}
+                        </p>
                     </div>
 
-                    <button
-                        onClick={(e) => { e.stopPropagation(); onUploadClick(index); }}
-                        disabled={isUploading}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all shrink-0 self-center shadow-sm disabled:opacity-60 disabled:cursor-not-allowed ${
-                            docs.length > 0
-                                ? 'bg-surface-secondary hover:bg-hover text-text-primary border border-border'
-                                : 'bg-blue-600 hover:bg-blue-700 active:scale-95 text-white'
-                        }`}
-                        title={docs.length > 0 ? 'Upload more documents for this stage' : 'Upload document for this stage'}
-                    >
-                        {isUploading ? (
-                            <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-current/30 border-t-current" />
-                        ) : (
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                            </svg>
+                    <div className="flex flex-col items-end gap-2 shrink-0 self-center">
+                        {stage.supportsNotApplicable && (
+                            <label
+                                className={`inline-flex items-center gap-2 rounded-lg border px-2.5 py-1 text-[11px] font-semibold transition-colors ${
+                                    isNotApplicable
+                                        ? 'border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                                        : 'border-border bg-surface-secondary text-text-secondary'
+                                } ${disableNotApplicableToggle ? 'opacity-70' : 'cursor-pointer hover:bg-hover'}`}
+                                title={docs.length > 0 ? 'Remove uploaded files before marking this stage as not applicable.' : 'Mark this stage as not applicable.'}
+                            >
+                                <input
+                                    type="checkbox"
+                                    checked={isNotApplicable}
+                                    disabled={disableNotApplicableToggle}
+                                    onChange={(event) => onNotApplicableChange(stage.type, event.target.checked)}
+                                    className="h-3.5 w-3.5 rounded border-border-strong text-amber-500 focus:ring-amber-500/30"
+                                />
+                                {isApplicabilityUpdating ? 'Saving…' : 'N/A'}
+                            </label>
                         )}
-                        {isUploading ? 'Uploading…' : docs.length > 0 ? 'Upload More' : 'Upload'}
-                    </button>
+
+                        <button
+                            onClick={(e) => { e.stopPropagation(); onUploadClick(index); }}
+                            disabled={disableUpload}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all shrink-0 self-center shadow-sm disabled:opacity-60 disabled:cursor-not-allowed ${
+                                docs.length > 0
+                                    ? 'bg-surface-secondary hover:bg-hover text-text-primary border border-border'
+                                    : 'bg-blue-600 hover:bg-blue-700 active:scale-95 text-white'
+                            }`}
+                            title={isNotApplicable
+                                ? 'This stage is marked as not applicable.'
+                                : docs.length > 0
+                                    ? 'Upload more documents for this stage'
+                                    : 'Upload document for this stage'}
+                        >
+                            {isUploading ? (
+                                <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-current/30 border-t-current" />
+                            ) : (
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                </svg>
+                            )}
+                            {isUploading ? 'Uploading…' : docs.length > 0 ? 'Upload More' : 'Upload'}
+                        </button>
+                    </div>
                 </div>
 
                 {docs.length > 0 && (

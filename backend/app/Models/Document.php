@@ -21,6 +21,8 @@ class Document extends Model
     {
         return [
             'boc',
+            'bonds',
+            'phytosanitary',
             'ppa',
             'do',
             'port_charges',
@@ -39,10 +41,27 @@ class Document extends Model
             'boc',
             'bl_generation',
             'co',
+            'phytosanitary',
             'dccci',
             'billing',
             'others',
         ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function importOptionalTypeKeys(): array
+    {
+        return ['bonds'];
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function exportOptionalTypeKeys(): array
+    {
+        return ['co'];
     }
 
     /**
@@ -60,6 +79,33 @@ class Document extends Model
     public static function isAllowedTypeFor(?string $documentableType, string $type): bool
     {
         return in_array($type, self::allowedTypeKeysFor($documentableType), true);
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function optionalTypeKeysFor(?string $documentableType): array
+    {
+        return match ($documentableType) {
+            ImportTransaction::class => self::importOptionalTypeKeys(),
+            ExportTransaction::class => self::exportOptionalTypeKeys(),
+            default => [],
+        };
+    }
+
+    /**
+     * @param  list<string>  $notApplicableStageKeys
+     * @return list<string>
+     */
+    public static function requiredTypeKeysFor(
+        ?string $documentableType,
+        array $notApplicableStageKeys = [],
+    ): array {
+        return array_values(array_filter(
+            self::allowedTypeKeysFor($documentableType),
+            fn (string $typeKey): bool => $typeKey !== 'others'
+                && ! in_array($typeKey, $notApplicableStageKeys, true),
+        ));
     }
 
     /**
@@ -156,14 +202,16 @@ class Document extends Model
         return [
             // Import stages
             'boc' => 'BOC Document Processing',
+            'bonds' => 'BONDS',
+            'phytosanitary' => 'Phytosanitary Certificates',
             'ppa' => 'Payment for PPA Charges',
             'do' => 'Delivery Order Request',
             'port_charges' => 'Payment for Port Charges',
             'releasing' => 'Releasing of Documents',
             'billing' => 'Liquidation and Billing',
             // Export stages
-            'bl_generation' => 'Bill of Lading Generation',
-            'co' => 'CO Application and Releasing',
+            'bl_generation' => 'Bill of Lading',
+            'co' => 'CO Application',
             'dccci' => 'DCCCI Printing',
             // Shared — catch-all for additional documents
             'others' => 'Other Documents',

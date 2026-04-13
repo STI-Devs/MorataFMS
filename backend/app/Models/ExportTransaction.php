@@ -16,6 +16,39 @@ class ExportTransaction extends Model
 {
     use Auditable, HasFactory;
 
+    /**
+     * @return array<string, string>
+     */
+    public static function documentStageMap(): array
+    {
+        return [
+            'boc' => 'docs_prep',
+            'bl_generation' => 'bl',
+            'co' => 'co',
+            'phytosanitary' => 'phytosanitary',
+            'dccci' => 'cil',
+            'billing' => 'billing',
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function optionalStageFlagMap(): array
+    {
+        return [
+            'co' => 'co_not_applicable',
+        ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function optionalStageKeys(): array
+    {
+        return array_keys(self::optionalStageFlagMap());
+    }
+
     protected $fillable = [
         'shipper_id',
         'bl_no',
@@ -82,51 +115,46 @@ class ExportTransaction extends Model
      */
     public function recalculateStatus(): void
     {
-        // Map of document type → ExportStage field name
-        $stageMap = [
-            'boc' => 'docs_prep',
-            'bl_generation' => 'bl',
-            'co' => 'co',
-            'dccci' => 'cil',
-            'billing' => 'bl', // billing reuses bl slot for the last stage
-        ];
-
-        // Get all uploaded document types for this transaction
+        $stageMap = self::documentStageMap();
+        $optionalStageFlags = self::optionalStageFlagMap();
         $docTypes = $this->documents()->pluck('type')->toArray();
-
-        // Update per-stage statuses on the stages record
         $stages = $this->stages;
+
         if ($stages) {
             $stageUpdates = [];
+
             foreach ($stageMap as $docType => $stageKey) {
-                $hasDoc = in_array($docType, $docTypes);
+                $hasDoc = in_array($docType, $docTypes, true);
+                $notApplicable = isset($optionalStageFlags[$docType])
+                    ? (bool) $stages->{$optionalStageFlags[$docType]}
+                    : false;
                 $completedAtField = "{$stageKey}_completed_at";
-                // Only override with 'completed' not back to 'pending' if already set by another docType
-                if ($hasDoc) {
-                    $stageUpdates["{$stageKey}_status"] = StageStatus::Completed->value;
-                    $stageUpdates[$completedAtField] = $stages->$completedAtField ?? now();
-                } elseif (! isset($stageUpdates["{$stageKey}_status"])) {
-                    $stageUpdates["{$stageKey}_status"] = StageStatus::Pending->value;
-                    $stageUpdates[$completedAtField] = null;
-                }
+                $stageUpdates["{$stageKey}_status"] = $hasDoc || $notApplicable
+                    ? StageStatus::Completed->value
+                    : StageStatus::Pending->value;
+                $stageUpdates[$completedAtField] = $hasDoc || $notApplicable
+                    ? ($stages->$completedAtField ?? now())
+                    : null;
             }
+
             $stages->update($stageUpdates);
         }
 
-        // Derive overall transaction status from highest completed stage
-        if (in_array('billing', $docTypes)) {
+        if ($this->is_archive) {
             $newStatus = ExportStatus::Completed;
-        } elseif (array_intersect(['co', 'dccci'], $docTypes)) {
+        } elseif (in_array('billing', $docTypes, true)) {
+            $newStatus = ExportStatus::Completed;
+        } elseif (collect(['co', 'phytosanitary', 'dccci'])
+            ->contains(fn (string $stage): bool => in_array($stage, $docTypes, true))) {
             $newStatus = ExportStatus::Processing;
-        } elseif (in_array('bl_generation', $docTypes)) {
+        } elseif (in_array('bl_generation', $docTypes, true)) {
             $newStatus = ExportStatus::Departure;
-        } elseif (in_array('boc', $docTypes)) {
+        } elseif (in_array('boc', $docTypes, true)) {
             $newStatus = ExportStatus::InTransit;
         } else {
             $newStatus = ExportStatus::Pending;
         }
 
-        // Only update if status actually changed (prevents audit noise)
         if ($this->status !== $newStatus) {
             $this->status = $newStatus;
             $this->saveQuietly();
@@ -170,11 +198,77 @@ class ExportTransaction extends Model
             return [];
         }
 
-        return [
-            'docs_prep' => $stages->docs_prep_status,
-            'co' => $stages->co_status,
-            'cil' => $stages->cil_status,
-            'bl' => $stages->bl_status,
+        return collect(self::documentStageMap())
+            ->mapWithKeys(fn (string $stageKey, string $documentType) => [
+                $documentType => $stages->{"{$stageKey}_status"},
+            ])
+            ->all();
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function notApplicableStageKeys(): array
+    {
+        $stages = $this->stages;
+
+        if (! $stages) {
+            return [];
+        }
+
+        return collect(self::optionalStageFlagMap())
+            ->filter(fn (string $flagField) => (bool) $stages->{$flagField})
+            ->keys()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function requiredDocumentTypeKeys(): array
+    {
+        return Document::requiredTypeKeysFor(self::class, $this->notApplicableStageKeys());
+    }
+
+    public function isStageNotApplicable(string $stage): bool
+    {
+        $flagField = self::optionalStageFlagMap()[$stage] ?? null;
+
+        if ($flagField === null || ! $this->stages) {
+            return false;
+        }
+
+        return (bool) $this->stages->{$flagField};
+    }
+
+    public function setStageApplicability(string $stage, bool $notApplicable, int $userId): void
+    {
+        $flagField = self::optionalStageFlagMap()[$stage] ?? null;
+        $stageKey = self::documentStageMap()[$stage] ?? null;
+
+        if ($flagField === null || $stageKey === null) {
+            return;
+        }
+
+        $stages = $this->stages()->firstOrCreate();
+        $hasStageDocument = $this->documents()->where('type', $stage)->exists();
+
+        $updates = [
+            $flagField => $notApplicable,
         ];
+
+        if ($notApplicable) {
+            $updates["{$stageKey}_status"] = StageStatus::Completed->value;
+            $updates["{$stageKey}_completed_at"] = $stages->{"{$stageKey}_completed_at"} ?? now();
+            $updates["{$stageKey}_completed_by"] = $userId;
+        } elseif (! $hasStageDocument) {
+            $updates["{$stageKey}_status"] = StageStatus::Pending->value;
+            $updates["{$stageKey}_completed_at"] = null;
+            $updates["{$stageKey}_completed_by"] = null;
+        }
+
+        $stages->update($updates);
+        $this->unsetRelation('stages');
     }
 }

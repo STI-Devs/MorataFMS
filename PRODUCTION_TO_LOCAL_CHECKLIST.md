@@ -35,6 +35,9 @@ Important distinction:
 
 - `backend/.env` controls the native local Laravel process such as `php artisan serve`
 - `backend/.env.docker` controls the Docker backend container used by `docker compose`
+- maintenance delete commands run on the machine where `php artisan` is executed
+- production database targeting for destructive maintenance is now explicit through the `production_ops` Laravel connection
+- bare `php artisan ops:*` commands must remain local by default
 
 If the app does not show the mirrored data, always verify which backend mode is actually serving requests before assuming the sync failed.
 
@@ -95,6 +98,13 @@ Typical flow:
 Reference:
 
 - Railway CLI SSH: https://docs.railway.com/cli/ssh
+
+Important clarification:
+
+- for this repository's current maintenance workflow, you do not need `railway run` to hit the production database
+- `railway run php artisan ...` on this workstation was observed to execute Laravel locally with injected Railway variables, not inside the deployed container
+- the safe and supported production-maintenance path is local `php artisan ... --connection=production_ops`
+- this keeps the execution environment explicit and avoids relying on Railway private hostnames such as `mysql.railway.internal` from Windows
 
 ## Local Mirror Commands
 
@@ -163,6 +173,110 @@ PRODUCTION_MIRROR_SNAPSHOT_PATH=C:/Users/User/Documents/MorataFMS Backups
 ```
 
 This project is already configured to use that external folder in local development.
+
+## Destructive Maintenance Commands
+
+These commands are separate from the production-mirror workflow.
+
+Use them only when you intentionally want to inspect or modify the live production database through the Railway TCP proxy from your local machine.
+
+### Connection Model
+
+- local default connection remains whatever `DB_CONNECTION` points to
+- production maintenance connection is now the explicit Laravel connection name `production_ops`
+- `production_ops` is configured in [backend/config/database.php](/C:/Users/User/Desktop/MorataFMS/backend/config/database.php)
+- its credentials come from the `OPS_DB_*` variables in `backend/.env`
+- there is no implicit env default that switches destructive commands to production
+
+### Required Local Env For Production Maintenance
+
+Set these in `backend/.env` on the machine that will run the maintenance command:
+
+```env
+OPS_DB_HOST=maglev.proxy.rlwy.net
+OPS_DB_PORT=23832
+OPS_DB_DATABASE=railway
+OPS_DB_USERNAME=root
+OPS_DB_PASSWORD=your-railway-mysql-password
+```
+
+Optional:
+
+```env
+OPS_DB_URL=
+OPS_DB_SOCKET=
+OPS_DB_CHARSET=utf8mb4
+OPS_DB_COLLATION=utf8mb4_unicode_ci
+OPS_MYSQL_ATTR_SSL_CA=
+```
+
+After changing those values, clear cached config before running commands:
+
+```bash
+php artisan config:clear
+```
+
+### Safe Command Rule
+
+Treat the commands this way:
+
+```bash
+php artisan ops:reset-live-transactions --dry-run
+```
+
+- local only
+- uses the app's normal default database connection
+
+```bash
+php artisan ops:reset-live-transactions --dry-run --connection=production_ops
+```
+
+- production database preview
+- runs locally but queries the Railway MySQL TCP proxy
+
+```bash
+php artisan ops:delete transaction --type=import --id=123 --dry-run --connection=production_ops
+php artisan ops:delete document --id=456 --dry-run --connection=production_ops
+```
+
+- production database preview for targeted deletes
+
+### Production Safety Notes
+
+- always start with `--dry-run`
+- prefer explicit `--connection=production_ops` on every production-maintenance command even if you believe the env is correct
+- do not rely on `railway run` for this workflow
+- if the command output does not show `Database connection: production_ops`, stop immediately
+
+### File Deletion Warning
+
+These delete commands can remove both database rows and document files.
+
+The command output also shows the configured storage disk. Review it before running a real delete.
+
+If your local machine is not intentionally configured to talk to the production S3 document disk, use:
+
+```bash
+php artisan ops:reset-live-transactions --force --keep-files --connection=production_ops
+```
+
+and for targeted deletes:
+
+```bash
+php artisan ops:delete transaction --type=import --id=123 --force --keep-files --connection=production_ops
+php artisan ops:delete document --id=456 --force --keep-files --connection=production_ops
+```
+
+This keeps file deletion disabled and limits the operation to database rows only.
+
+### Minimum Production Checklist Before Real Delete
+
+- confirm the output says `Database connection: production_ops`
+- confirm the counts shown in the dry run match what you expect
+- confirm whether files should be preserved with `--keep-files`
+- confirm the storage disk shown by the command is expected
+- confirm you are using the correct target filters and IDs
+- only then re-run with `--force`
 
 ## Choosing The Local Backend Mode
 

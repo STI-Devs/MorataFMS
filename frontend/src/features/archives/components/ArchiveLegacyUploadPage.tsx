@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
+import { ConfirmationModal } from '../../../components/ConfirmationModal';
 import { Icon } from '../../../components/Icon';
-import { getMaxFilesErrorMessage, MAX_MULTI_UPLOAD_FILES } from '../../../lib/uploads';
+import { MAX_MULTI_UPLOAD_FILES } from '../../../lib/uploads';
 import { StageUploadRow } from '../../documents/components/StageUploadRow';
 import type {
     ArchiveFormState,
@@ -10,12 +11,12 @@ import type {
 import {
     BLSC_OPTIONS,
     EXPORT_STAGES,
-    IMPORT_STAGES
+    IMPORT_STAGES,
 } from '../../documents/types/document.types';
 import { trackingApi } from '../../tracking/api/trackingApi';
 import type { ApiClient, ApiCountry } from '../../tracking/types';
+import type { ArchiveUploadSuccessTarget } from '../utils/archive.utils';
 import { ArchiveTypeCard } from './ArchiveTypeCard';
-
 
 const inputClass =
     'w-full px-4 py-3 bg-input-bg border border-border-strong rounded-lg text-sm font-bold text-text-primary focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 outline-none transition-all placeholder:text-text-muted';
@@ -24,7 +25,6 @@ const selectClass = `${inputClass} appearance-none cursor-pointer`;
 
 const labelClass =
     'text-[11px] font-black text-text-muted uppercase tracking-widest ml-1';
-
 
 const SectionHeader = ({ step, label }: { step: number; label: string }) => (
     <div className="flex items-center gap-3 mb-5">
@@ -36,8 +36,7 @@ const SectionHeader = ({ step, label }: { step: number; label: string }) => (
     </div>
 );
 
-
-const EMPTY_STAGE_UPLOAD: StageUpload = { files: [] };
+const EMPTY_STAGE_UPLOAD: StageUpload = { files: [], notApplicable: false };
 
 const makeInitialForm = (year: number): ArchiveFormState => ({
     type: 'import',
@@ -50,11 +49,10 @@ const makeInitialForm = (year: number): ArchiveFormState => ({
     fileDate: '',
 });
 
-
 interface Props {
     defaultYear?: number;
     onBack: () => void;
-    onSubmit: () => void;
+    onSubmit: (target: ArchiveUploadSuccessTarget) => Promise<void> | void;
 }
 
 export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, onBack, onSubmit }) => {
@@ -62,61 +60,20 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
     const [stageUploads, setStageUploads] = useState<Record<string, StageUpload>>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [selectionError, setSelectionError] = useState<string | null>(null);
+    const [successTarget, setSuccessTarget] = useState<ArchiveUploadSuccessTarget | null>(null);
 
-    // Smart date picker mode: 'month' = month-only precision, 'exact' = full date
     const [dateMode, setDateMode] = useState<'month' | 'exact'>('month');
-
-    // Month-year picker (determines the year used for S3 path)
     const [monthYear, setMonthYear] = useState<string>(`${defaultYear}-01`);
 
-    const handleMonthYearChange = (val: string) => {
-        setMonthYear(val);
-        const y = val ? parseInt(val.split('-')[0], 10) : defaultYear;
-        set('year', y);
-        set('fileDate', ''); // Clear exact date when period changes
-    };
-
-    // When switching to exact mode, derive initial date from month picker
-    // When switching to month mode, derive monthYear from exact date
-    const handleDateModeChange = (mode: 'month' | 'exact') => {
-        if (mode === 'exact' && monthYear) {
-            // Pre-fill with first day of selected month
-            set('fileDate', `${monthYear}-01`);
-        } else if (mode === 'month' && form.fileDate) {
-            // Derive monthYear from exact date
-            const d = new Date(form.fileDate + 'T00:00:00');
-            const my = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-            setMonthYear(my);
-            set('year', d.getFullYear());
-            set('fileDate', '');
-        }
-        setDateMode(mode);
-    };
-
-    // Handle exact date change — also keep monthYear in sync
-    const handleExactDateChange = (val: string) => {
-        set('fileDate', val);
-        if (val) {
-            const d = new Date(val + 'T00:00:00');
-            const my = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-            setMonthYear(my);
-            set('year', d.getFullYear());
-        }
-    };
-
-    // Client dropdown state
     const [clients, setClients] = useState<ApiClient[]>([]);
     const [selectedClientId, setSelectedClientId] = useState<number | ''>('');
     const [useCustomClient, setUseCustomClient] = useState(false);
 
-    // Country dropdown for exports
     const [countries, setCountries] = useState<ApiCountry[]>([]);
     const [selectedCountryId, setSelectedCountryId] = useState<number | ''>('');
 
     const isImport = form.type === 'import';
 
-    // Fetch clients when type changes
     useEffect(() => {
         const clientType = isImport ? 'importer' : 'exporter';
         trackingApi.getClients(clientType).then(setClients).catch(() => setClients([]));
@@ -125,7 +82,6 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
         set('client', '');
     }, [isImport]);
 
-    // Fetch countries for exports
     useEffect(() => {
         if (!isImport) {
             trackingApi.getCountries('export_destination').then(setCountries).catch(() => setCountries([]));
@@ -133,30 +89,66 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
     }, [isImport]);
 
     const set = <K extends keyof ArchiveFormState>(key: K, value: ArchiveFormState[K]) =>
-        setForm(f => ({ ...f, [key]: value }));
+        setForm((currentForm) => ({ ...currentForm, [key]: value }));
 
     const setStageUpload = (key: string, next: StageUpload) =>
-        setStageUploads(prev => ({ ...prev, [key]: next }));
+        setStageUploads((currentUploads) => ({ ...currentUploads, [key]: next }));
 
-    const handleTypeChange = (t: TransactionType) => {
-        set('type', t);
+    const handleMonthYearChange = (value: string) => {
+        setMonthYear(value);
+        const year = value ? parseInt(value.split('-')[0], 10) : defaultYear;
+        set('year', year);
+        set('fileDate', '');
+    };
+
+    const handleDateModeChange = (mode: 'month' | 'exact') => {
+        if (mode === 'exact' && monthYear) {
+            set('fileDate', `${monthYear}-01`);
+        } else if (mode === 'month' && form.fileDate) {
+            const exactDate = new Date(`${form.fileDate}T00:00:00`);
+            const nextMonthYear = `${exactDate.getFullYear()}-${String(exactDate.getMonth() + 1).padStart(2, '0')}`;
+            setMonthYear(nextMonthYear);
+            set('year', exactDate.getFullYear());
+            set('fileDate', '');
+        }
+
+        setDateMode(mode);
+    };
+
+    const handleExactDateChange = (value: string) => {
+        set('fileDate', value);
+
+        if (!value) {
+            return;
+        }
+
+        const exactDate = new Date(`${value}T00:00:00`);
+        const nextMonthYear = `${exactDate.getFullYear()}-${String(exactDate.getMonth() + 1).padStart(2, '0')}`;
+        setMonthYear(nextMonthYear);
+        set('year', exactDate.getFullYear());
+    };
+
+    const handleTypeChange = (type: TransactionType) => {
+        set('type', type);
         setStageUploads({});
         setSelectedCountryId('');
     };
 
-    const handleClientSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const id = Number(e.target.value);
-        setSelectedClientId(id || '');
-        const found = clients.find(c => c.id === id);
-        set('client', found?.name ?? '');
+    const handleClientSelect = (event: React.ChangeEvent<HTMLSelectElement>) => {
+        const nextClientId = Number(event.target.value);
+        setSelectedClientId(nextClientId || '');
+        const selectedClient = clients.find((client) => client.id === nextClientId);
+        set('client', selectedClient?.name ?? '');
     };
 
     const stages = isImport ? IMPORT_STAGES : EXPORT_STAGES;
     const uploadedCount = Object.values(stageUploads).reduce((count, upload) => count + upload.files.length, 0);
-
-    useEffect(() => {
-        setSelectionError(uploadedCount > MAX_MULTI_UPLOAD_FILES ? getMaxFilesErrorMessage() : null);
-    }, [uploadedCount]);
+    const notApplicableStages = Object.entries(stageUploads)
+        .filter(([, upload]) => upload.notApplicable)
+        .map(([stage]) => stage);
+    const hasInvalidStageUpload = Object.values(stageUploads).some(
+        (upload) => upload.files.length > MAX_MULTI_UPLOAD_FILES,
+    );
 
     const hasClient = useCustomClient ? form.client.trim().length > 0 : selectedClientId !== '';
     const hasBl = form.bl.trim().length >= 4;
@@ -172,19 +164,22 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
         && hasBlsc
         && hasDate
         && uploadedCount > 0
-        && uploadedCount <= MAX_MULTI_UPLOAD_FILES
+        && !hasInvalidStageUpload
         && !isSubmitting;
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!canSubmit) return;
+    const handleSubmit = async (event: React.FormEvent) => {
+        event.preventDefault();
+
+        if (!canSubmit) {
+            return;
+        }
 
         setIsSubmitting(true);
         setError(null);
 
         try {
-            // 1. Resolve client ID — create new client if using custom name
             let clientId: number;
+
             if (useCustomClient) {
                 const clientType = isImport ? 'importer' : 'exporter';
                 const newClient = await trackingApi.createClient({
@@ -196,20 +191,18 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
                 clientId = Number(selectedClientId);
             }
 
-            // Derive file_date based on date mode
-            const [y, m] = monthYear.split('-').map(Number);
+            const [year, month] = monthYear.split('-').map(Number);
             let fileDate: string;
+
             if (dateMode === 'exact' && form.fileDate) {
-                // User provided an exact date
                 fileDate = form.fileDate;
             } else {
-                // Month mode — last day of month, clamped to today
-                const lastDay = new Date(y, m, 0).getDate();
+                const lastDay = new Date(year, month, 0).getDate();
                 const today = new Date();
-                const isCurrentMonth = y === today.getFullYear() && m === today.getMonth() + 1;
+                const isCurrentMonth = year === today.getFullYear() && month === today.getMonth() + 1;
                 fileDate = isCurrentMonth
                     ? today.toISOString().split('T')[0]
-                    : `${y}-${String(m).padStart(2, '0')}-${lastDay}`;
+                    : `${year}-${String(month).padStart(2, '0')}-${lastDay}`;
             }
 
             const documents = Object.entries(stageUploads).flatMap(([stage, upload]) =>
@@ -219,43 +212,49 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
                 })),
             );
 
-            if (isImport) {
-                await trackingApi.createArchiveImport({
+            const transaction = isImport
+                ? await trackingApi.createArchiveImportWithDocuments({
                     customs_ref_no: form.refNo || undefined,
                     bl_no: form.bl,
                     selective_color: (form.blsc as 'green' | 'yellow' | 'red') || 'green',
                     importer_id: clientId,
                     file_date: fileDate,
-                    notes: `Legacy archive (${y})`,
+                    notes: `Legacy archive (${year})`,
                     documents,
-                });
-            } else {
-                await trackingApi.createArchiveExport({
+                    not_applicable_stages: notApplicableStages,
+                })
+                : await trackingApi.createArchiveExportWithDocuments({
                     bl_no: form.bl,
                     vessel: form.vessel || undefined,
                     shipper_id: clientId,
                     destination_country_id: Number(selectedCountryId),
                     file_date: fileDate,
-                    notes: `Legacy archive (${y})`,
+                    notes: `Legacy archive (${year})`,
                     documents,
+                    not_applicable_stages: notApplicableStages,
                 });
-            }
 
-            onSubmit();
+            setSuccessTarget({
+                type: isImport ? 'import' : 'export',
+                transactionId: transaction.id,
+                blNo: form.bl,
+                year,
+                month,
+                uploadedCount,
+            });
         } catch (err: unknown) {
             if (err && typeof err === 'object' && 'response' in err) {
-                const res = (err as { response: { status: number; data?: { message?: string } } }).response;
-                if (res.status === 403) {
+                const response = (err as { response: { status: number; data?: { message?: string } } }).response;
+
+                if (response.status === 403) {
                     setError('You don\'t have permission to create new clients. Please select from the dropdown or ask an admin to add the client first.');
-                } else if (res.status === 422) {
-                    const msg = res.data?.message || 'Validation error. Please check your inputs.';
-                    setError(msg);
+                } else if (response.status === 422) {
+                    setError(response.data?.message || 'Validation error. Please check your inputs.');
                 } else {
-                    setError(res.data?.message || 'Upload failed. Please try again.');
+                    setError(response.data?.message || 'Upload failed. Please try again.');
                 }
             } else {
-                const message = err instanceof Error ? err.message : 'Upload failed. Please try again.';
-                setError(message);
+                setError(err instanceof Error ? err.message : 'Upload failed. Please try again.');
             }
         } finally {
             setIsSubmitting(false);
@@ -264,7 +263,6 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
 
     return (
         <div className="max-w-2xl mx-auto space-y-8 p-4 pb-12">
-            {/* Page header */}
             <div className="flex items-center gap-4">
                 <button
                     type="button"
@@ -283,7 +281,6 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-8">
-
                 <div>
                     <SectionHeader step={1} label="Transaction Type" />
                     <div className="flex flex-col sm:flex-row gap-3">
@@ -295,29 +292,30 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
                 <div>
                     <SectionHeader step={2} label="Transaction Details" />
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-
                         <div className="sm:col-span-2 space-y-2">
                             <label className={labelClass}>Archive Date <span className="text-red-400">*</span></label>
-                            {/* Toggle: Month / Exact */}
                             <div className="inline-flex bg-surface-subtle p-1 rounded-lg border border-border">
-                                <button type="button"
+                                <button
+                                    type="button"
                                     onClick={() => handleDateModeChange('month')}
                                     className={`px-4 py-1.5 text-xs font-bold tracking-wide transition-all rounded-md border ${dateMode === 'month'
                                         ? 'bg-white dark:bg-zinc-800 shadow border-green-500 text-text-primary'
                                         : 'border-transparent text-text-muted hover:text-text-primary'
-                                        }`}>
+                                    }`}
+                                >
                                     Month
                                 </button>
-                                <button type="button"
+                                <button
+                                    type="button"
                                     onClick={() => handleDateModeChange('exact')}
                                     className={`px-4 py-1.5 text-xs font-bold tracking-wide transition-all rounded-md border ${dateMode === 'exact'
                                         ? 'bg-white dark:bg-zinc-800 shadow border-green-500 text-text-primary'
                                         : 'border-transparent text-text-muted hover:text-text-primary'
-                                        }`}>
+                                    }`}
+                                >
                                     Exact Date
                                 </button>
                             </div>
-                            {/* Month picker */}
                             {dateMode === 'month' && (
                                 <>
                                     <div className="max-w-xs">
@@ -326,15 +324,17 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
                                             required
                                             value={monthYear}
                                             min="2015-01"
-                                            max={(() => { const n = new Date(); return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}`; })()}
-                                            onChange={e => handleMonthYearChange(e.target.value)}
+                                            max={(() => {
+                                                const now = new Date();
+                                                return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                                            })()}
+                                            onChange={(event) => handleMonthYearChange(event.target.value)}
                                             className={inputClass}
                                         />
                                     </div>
                                     <p className="text-[10px] text-text-muted ml-1">Select the month and year of the archived document</p>
                                 </>
                             )}
-                            {/* Exact date picker */}
                             {dateMode === 'exact' && (
                                 <>
                                     <div className="max-w-xs">
@@ -342,7 +342,7 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
                                             type="date"
                                             required
                                             value={form.fileDate}
-                                            onChange={e => handleExactDateChange(e.target.value)}
+                                            onChange={(event) => handleExactDateChange(event.target.value)}
                                             min="2015-01-01"
                                             max={new Date().toISOString().split('T')[0]}
                                             className={inputClass}
@@ -356,17 +356,29 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
                         {isImport && (
                             <div className="space-y-2">
                                 <label className={labelClass}>Customs Ref No. <span className="normal-case font-normal opacity-60">(optional)</span></label>
-                                <input type="text" value={form.refNo} onChange={e => set('refNo', e.target.value)}
-                                    placeholder="e.g. IMP-2023-055" className={inputClass} />
+                                <input
+                                    type="text"
+                                    value={form.refNo}
+                                    onChange={(event) => set('refNo', event.target.value)}
+                                    placeholder="e.g. IMP-2023-055"
+                                    className={inputClass}
+                                />
                             </div>
                         )}
 
                         <div className="space-y-2">
                             <label className={labelClass}>Bill of Lading <span className="text-red-400">*</span></label>
-                            <input type="text" required minLength={4} maxLength={50}
-                                pattern="[A-Za-z0-9\-]+"
-                                value={form.bl} onChange={e => set('bl', e.target.value)}
-                                placeholder="e.g. MAEU123456789" className={inputClass} />
+                            <input
+                                type="text"
+                                required
+                                minLength={4}
+                                maxLength={50}
+                                pattern="[A-Za-z0-9\\-]+"
+                                value={form.bl}
+                                onChange={(event) => set('bl', event.target.value)}
+                                placeholder="e.g. MAEU123456789"
+                                className={inputClass}
+                            />
                             {form.bl.length > 0 && form.bl.length < 4 && (
                                 <p className="text-[10px] text-red-400 ml-1 font-semibold">Must be at least 4 characters</p>
                             )}
@@ -379,15 +391,21 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
                             <div className="space-y-2">
                                 <label className={labelClass}>BLSC (Selective Color) <span className="text-red-400">*</span></label>
                                 <div className="relative">
-                                    <select required value={form.blsc} onChange={e => set('blsc', e.target.value)} className={selectClass}>
-                                        {BLSC_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                                    <select
+                                        required
+                                        value={form.blsc}
+                                        onChange={(event) => set('blsc', event.target.value)}
+                                        className={selectClass}
+                                    >
+                                        {BLSC_OPTIONS.map((option) => (
+                                            <option key={option.value} value={option.value}>{option.label}</option>
+                                        ))}
                                     </select>
                                     <Icon name="chevron-down" className="w-4 h-4 absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                                 </div>
                             </div>
                         )}
 
-                        {/* Client — Dropdown with checkbox fallback */}
                         <div className="space-y-2">
                             <label className={labelClass}>{isImport ? 'Importer' : 'Shipper'} <span className="text-red-400">*</span></label>
                             {!useCustomClient && (
@@ -399,35 +417,35 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
                                         className={selectClass}
                                     >
                                         <option value="">Select {isImport ? 'importer' : 'shipper'}</option>
-                                        {clients.map(c => (
-                                            <option key={c.id} value={c.id}>{c.name}</option>
+                                        {clients.map((client) => (
+                                            <option key={client.id} value={client.id}>{client.name}</option>
                                         ))}
                                     </select>
                                     <Icon name="chevron-down" className="w-4 h-4 absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                                 </div>
                             )}
-                            {/* Checkbox: not in list */}
                             <label className="flex items-center gap-2 cursor-pointer mt-1.5 select-none">
                                 <input
                                     type="checkbox"
                                     checked={useCustomClient}
-                                    onChange={e => {
-                                        setUseCustomClient(e.target.checked);
-                                        if (!e.target.checked) {
+                                    onChange={(event) => {
+                                        setUseCustomClient(event.target.checked);
+
+                                        if (!event.target.checked) {
                                             setSelectedClientId('');
                                             set('client', '');
                                         }
                                     }}
                                     className="w-3.5 h-3.5 rounded accent-amber-500 cursor-pointer"
                                 />
-                                <span className="text-xs text-text-muted font-semibold">Not in list — enter name manually</span>
+                                <span className="text-xs text-text-muted font-semibold">Not in list - enter name manually</span>
                             </label>
                             {useCustomClient && (
                                 <input
                                     type="text"
                                     required
                                     value={form.client}
-                                    onChange={e => set('client', e.target.value)}
+                                    onChange={(event) => set('client', event.target.value)}
                                     placeholder={`Enter ${isImport ? 'importer' : 'shipper'} name`}
                                     className={inputClass}
                                     autoFocus
@@ -438,8 +456,13 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
                         {!isImport && (
                             <div className="space-y-2">
                                 <label className={labelClass}>Vessel <span className="normal-case font-normal opacity-60">(optional)</span></label>
-                                <input type="text" value={form.vessel} onChange={e => set('vessel', e.target.value)}
-                                    placeholder="Enter vessel name" className={inputClass} />
+                                <input
+                                    type="text"
+                                    value={form.vessel}
+                                    onChange={(event) => set('vessel', event.target.value)}
+                                    placeholder="Enter vessel name"
+                                    className={inputClass}
+                                />
                             </div>
                         )}
 
@@ -449,20 +472,19 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
                                 <div className="relative">
                                     <select
                                         value={selectedCountryId}
-                                        onChange={e => setSelectedCountryId(Number(e.target.value) || '')}
+                                        onChange={(event) => setSelectedCountryId(Number(event.target.value) || '')}
                                         className={selectClass}
                                         required
                                     >
                                         <option value="">Select country</option>
-                                        {countries.map(c => (
-                                            <option key={c.id} value={c.id}>{c.name}</option>
+                                        {countries.map((country) => (
+                                            <option key={country.id} value={country.id}>{country.name}</option>
                                         ))}
                                     </select>
                                     <Icon name="chevron-down" className="w-4 h-4 absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                                 </div>
                             </div>
                         )}
-
                     </div>
                 </div>
 
@@ -470,34 +492,34 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
                     <SectionHeader step={3} label="Stage Documents" />
                     <p className="text-xs text-text-muted mb-4 -mt-2 ml-1">
                         Attach one or more files to each stage that has documents to archive.
-                        <span className="ml-1">Maximum {MAX_MULTI_UPLOAD_FILES} files per archive upload.</span>
+                        <span className="ml-1">Maximum {MAX_MULTI_UPLOAD_FILES} files per stage.</span>
                         {uploadedCount > 0 && (
-                            <span
-                                className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/10 text-blue-500"
-                            >
+                            <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/10 text-blue-500">
                                 {uploadedCount} file{uploadedCount !== 1 ? 's' : ''} attached
                             </span>
                         )}
                     </p>
                     <div className="space-y-3">
-                        {stages.map(s => (
+                        {stages.map((stage) => (
                             <StageUploadRow
-                                key={s.key}
-                                stageKey={s.key}
-                                label={s.label}
-                                upload={stageUploads[s.key] ?? EMPTY_STAGE_UPLOAD}
-                                onChange={next => setStageUpload(s.key, next)}
+                                key={stage.key}
+                                stageKey={stage.key}
+                                label={stage.label}
+                                upload={stageUploads[stage.key] ?? EMPTY_STAGE_UPLOAD}
+                                allowNotApplicable={stage.optional === true}
+                                onChange={(next) => setStageUpload(stage.key, next)}
                             />
                         ))}
                     </div>
                 </div>
 
-                {(selectionError ?? error) && (
+                {error && (
                     <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
                         <Icon name="alert-circle" className="w-4 h-4 text-red-500 shrink-0" />
-                        <p className="text-sm text-red-600 dark:text-red-400">{selectionError ?? error}</p>
+                        <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
                     </div>
                 )}
+
                 <div className="flex items-center gap-3 pt-4 border-t border-border">
                     <button
                         type="button"
@@ -526,8 +548,26 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
                     </button>
                 </div>
             </form>
+
+            <ConfirmationModal
+                isOpen={successTarget !== null}
+                onClose={() => setSuccessTarget(null)}
+                onConfirm={async () => {
+                    if (!successTarget) {
+                        return;
+                    }
+
+                    await onSubmit(successTarget);
+                }}
+                title="Archive Upload Complete"
+                message={successTarget
+                    ? `${successTarget.uploadedCount} file${successTarget.uploadedCount !== 1 ? 's were' : ' was'} saved to ${successTarget.type} archive record ${successTarget.blNo}.`
+                    : ''}
+                confirmText="Open Uploaded Record"
+                confirmButtonClass="bg-emerald-600 hover:bg-emerald-700"
+                hideCancel
+                icon="success"
+            />
         </div>
     );
 };
-
-

@@ -38,6 +38,10 @@ class CreateArchiveImport
                 $transaction->status = ImportStatus::Completed;
                 $transaction->save();
 
+                foreach ($validated['not_applicable_stages'] ?? [] as $stage) {
+                    $transaction->setStageApplicability($stage, true, $user->id);
+                }
+
                 foreach ($validated['documents'] ?? [] as $document) {
                     $storedDocument = $this->storeTransactionDocument->handle(
                         $transaction,
@@ -49,7 +53,10 @@ class CreateArchiveImport
                     $storedPaths[] = $storedDocument->path;
                 }
 
-                if (! empty($validated['documents']) && method_exists($transaction, 'recalculateStatus')) {
+                if (
+                    (! empty($validated['documents']) || ! empty($validated['not_applicable_stages']))
+                    && method_exists($transaction, 'recalculateStatus')
+                ) {
                     $transaction->recalculateStatus();
                     $transaction->status = ImportStatus::Completed;
                     $transaction->saveQuietly();

@@ -139,7 +139,7 @@ test('overriding an export transaction to completed stamps the final stage times
     ]);
 
     expect($transaction->stages)->not->toBeNull();
-    expect($transaction->stages->bl_completed_at)->toBeNull();
+    expect($transaction->stages->billing_completed_at)->toBeNull();
 
     $this->actingAs($admin)
         ->patchJson("/api/transactions/export/{$transaction->id}/status", [
@@ -150,9 +150,9 @@ test('overriding an export transaction to completed stamps the final stage times
 
     $transaction->refresh()->load('stages');
 
-    expect($transaction->stages->bl_status->value)->toBe('completed');
-    expect($transaction->stages->bl_completed_at)->not->toBeNull();
-    expect($transaction->stages->bl_completed_by)->toBe($admin->id);
+    expect($transaction->stages->billing_status->value)->toBe('completed');
+    expect($transaction->stages->billing_completed_at)->not->toBeNull();
+    expect($transaction->stages->billing_completed_by)->toBe($admin->id);
 });
 
 test('admin can reassign a completed import transaction', function () {

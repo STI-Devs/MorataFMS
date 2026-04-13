@@ -7,6 +7,7 @@ use App\Models\ExportTransaction;
 use App\Models\ImportTransaction;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class StoreDocumentRequest extends FormRequest
 {
@@ -75,6 +76,36 @@ class StoreDocumentRequest extends FormRequest
             'file.mimes' => 'Only PDF, Office documents, and images are allowed.',
             'type.in' => 'Invalid document type selected.',
             'documentable_type.in' => 'Invalid transaction type.',
+        ];
+    }
+
+    public function after(): array
+    {
+        return [
+            function (Validator $validator): void {
+                $documentableType = $this->input('documentable_type');
+                $documentableId = $this->input('documentable_id');
+                $stage = $this->input('type');
+
+                if (! is_string($documentableType) || ! is_numeric($documentableId) || ! is_string($stage)) {
+                    return;
+                }
+
+                $transaction = match ($documentableType) {
+                    ImportTransaction::class => ImportTransaction::query()->with('stages')->find($documentableId),
+                    ExportTransaction::class => ExportTransaction::query()->with('stages')->find($documentableId),
+                    default => null,
+                };
+
+                if ($transaction && $transaction->isStageNotApplicable($stage)) {
+                    $label = Document::getTypeLabels()[$stage] ?? str($stage)->replace('_', ' ')->title()->value();
+
+                    $validator->errors()->add(
+                        'type',
+                        "The {$label} stage is marked as not applicable for this transaction.",
+                    );
+                }
+            },
         ];
     }
 }

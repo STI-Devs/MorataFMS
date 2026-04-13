@@ -42,6 +42,7 @@ export interface ArchiveDocument {
     archive_origin: ArchiveOrigin | null;
     archived_at: string | null;
     uploaded_at: string;             // ISO timestamp
+    not_applicable_stages?: string[];
     uploader: { id: number; name: string } | null;
 }
 
@@ -149,6 +150,7 @@ export interface AdminReviewRequiredDocument {
     type_key: string;
     label: string;
     uploaded: boolean;
+    not_applicable: boolean;
     files: AdminReviewDocumentFile[];
 }
 
@@ -211,6 +213,7 @@ export interface AdminReviewArchiveResponse {
 /** Per-stage file attachment used in the legacy upload form */
 export interface StageUpload {
     files: File[];
+    notApplicable?: boolean;
 }
 
 /** Top-level form state for ArchiveLegacyUploadPage */
@@ -225,9 +228,16 @@ export interface ArchiveFormState {
     fileDate: string;
 }
 
+export interface ArchiveStageDefinition {
+    key: string;
+    label: string;
+    optional?: boolean;
+}
 
-export const IMPORT_STAGES = [
+export const IMPORT_STAGES: readonly ArchiveStageDefinition[] = [
     { key: 'boc', label: 'BOC Processing' },
+    { key: 'bonds', label: 'BONDS', optional: true },
+    { key: 'phytosanitary', label: 'Phytosanitary Certificates' },
     { key: 'ppa', label: 'PPA Processing' },
     { key: 'do', label: 'DO Request' },
     { key: 'port_charges', label: 'Port Charges' },
@@ -236,10 +246,11 @@ export const IMPORT_STAGES = [
     { key: 'others', label: 'Others' },
 ] as const;
 
-export const EXPORT_STAGES = [
+export const EXPORT_STAGES: readonly ArchiveStageDefinition[] = [
     { key: 'boc', label: 'BOC Processing' },
-    { key: 'bl_generation', label: 'BL Generation' },
-    { key: 'co', label: 'CO Processing' },
+    { key: 'bl_generation', label: 'Bill of Lading' },
+    { key: 'co', label: 'CO Application', optional: true },
+    { key: 'phytosanitary', label: 'Phytosanitary Certificates' },
     { key: 'dccci', label: 'DCCCI Printing' },
     { key: 'billing', label: 'Billing' },
     { key: 'others', label: 'Others' },
@@ -248,8 +259,14 @@ export const EXPORT_STAGES = [
 export const REQUIRED_IMPORT_STAGES = IMPORT_STAGES.filter((stage) => stage.key !== 'others');
 export const REQUIRED_EXPORT_STAGES = EXPORT_STAGES.filter((stage) => stage.key !== 'others');
 
-export const getRequiredArchiveStages = (type: TransactionType) =>
-    type === 'import' ? REQUIRED_IMPORT_STAGES : REQUIRED_EXPORT_STAGES;
+export const getRequiredArchiveStages = (
+    type: TransactionType,
+    notApplicableStages: string[] = [],
+) => {
+    const requiredStages = type === 'import' ? REQUIRED_IMPORT_STAGES : REQUIRED_EXPORT_STAGES;
+
+    return requiredStages.filter((stage) => !notApplicableStages.includes(stage.key));
+};
 
 // Dynamic: 2015 → current year, newest first. Auto-expands each year without code changes.
 const _currentYear = new Date().getFullYear();

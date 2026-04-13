@@ -110,14 +110,8 @@ class TransactionOversightIndexQuery
                     'assigned_user_id' => $transaction->assigned_user_id,
                     'open_remarks_count' => $transaction->open_remarks_count ?? 0,
                     'created_at' => $transaction->created_at?->toISOString(),
-                    'stages' => $transaction->stages ? [
-                        'boc' => $transaction->stages->boc_status,
-                        'ppa' => $transaction->stages->ppa_status,
-                        'do' => $transaction->stages->do_status,
-                        'port_charges' => $transaction->stages->port_charges_status,
-                        'releasing' => $transaction->stages->releasing_status,
-                        'billing' => $transaction->stages->billing_status,
-                    ] : null,
+                    'stages' => $transaction->stages ? $transaction->progress : null,
+                    'not_applicable_stages' => $transaction->stages ? $transaction->notApplicableStageKeys() : [],
                 ];
             }
 
@@ -143,12 +137,8 @@ class TransactionOversightIndexQuery
                 'assigned_user_id' => $transaction->assigned_user_id,
                 'open_remarks_count' => $transaction->open_remarks_count ?? 0,
                 'created_at' => $transaction->created_at?->toISOString(),
-                'stages' => $transaction->stages ? [
-                    'docs_prep' => $transaction->stages->docs_prep_status,
-                    'co' => $transaction->stages->co_status,
-                    'cil' => $transaction->stages->cil_status,
-                    'bl' => $transaction->stages->bl_status,
-                ] : null,
+                'stages' => $transaction->stages ? $transaction->progress : null,
+                'not_applicable_stages' => $transaction->stages ? $transaction->notApplicableStageKeys() : [],
             ];
         })->filter()->values();
 

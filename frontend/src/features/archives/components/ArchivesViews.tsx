@@ -1,12 +1,11 @@
 import type { ArchiveDocument, ArchiveYear, TransactionType } from '../../documents/types/document.types';
-import { getRequiredArchiveStages } from '../../documents/types/document.types';
 import type { DrillState, SortKey, ViewMode } from '../utils/archive.utils';
-import { MONTH_NAMES, toTitleCase } from '../utils/archive.utils';
+import { getArchiveBlCompletion, MONTH_NAMES, toTitleCase } from '../utils/archive.utils';
 
 interface ArchivesDocumentViewProps {
     flatDocumentList: {
         blNo: string; client: string; type: TransactionType;
-        year: number; month: number; stages: Set<string>; yearData: ArchiveYear;
+        year: number; month: number; yearData: ArchiveYear; docs: ArchiveDocument[];
     }[];
     nav: (next: DrillState) => void;
     setViewMode: (m: ViewMode) => void;
@@ -29,9 +28,7 @@ export const ArchivesDocumentView = ({ flatDocumentList, nav, setViewMode }: Arc
                 ))}
             </div>
             {flatDocumentList.map((r, idx) => {
-                const required = getRequiredArchiveStages(r.type);
-                const isComplete = required.every(s => r.stages.has(s.key));
-                const done = [...required].filter(s => r.stages.has(s.key)).length;
+                const completion = getArchiveBlCompletion(r.docs, r.type);
                 return (
                     <button key={idx}
                         onClick={() => {
@@ -46,12 +43,12 @@ export const ArchivesDocumentView = ({ flatDocumentList, nav, setViewMode }: Arc
                         <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-md w-fit ${r.type === 'import' ? 'bg-green-500/10 text-green-600 border border-green-500/30' : 'bg-blue-500/10 text-blue-500 border border-blue-500/30'}`}>
                             {r.type === 'import' ? 'IMP' : 'EXP'}
                         </span>
-                        <span className={`inline-flex items-center gap-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full border w-fit ${isComplete ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30' : 'bg-amber-500/10 text-amber-500 border-amber-500/30'}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${isComplete ? 'bg-emerald-500' : 'bg-amber-400'}`} />
-                            {isComplete ? 'Complete' : 'Incomplete'}
+                        <span className={`inline-flex items-center gap-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full border w-fit ${completion.isComplete ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30' : 'bg-amber-500/10 text-amber-500 border-amber-500/30'}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${completion.isComplete ? 'bg-emerald-500' : 'bg-amber-400'}`} />
+                            {completion.isComplete ? 'Complete' : 'Incomplete'}
                         </span>
-                        <span className={`text-xs font-semibold tabular-nums ${isComplete ? 'text-emerald-500' : 'text-amber-500'}`}>
-                            {done}/{required.length}
+                        <span className={`text-xs font-semibold tabular-nums ${completion.isComplete ? 'text-emerald-500' : 'text-amber-500'}`}>
+                            {completion.doneCount}/{completion.requiredStages.length}
                         </span>
                     </button>
                 );
@@ -127,12 +124,11 @@ const formatPeriod = (dateStr: string) => {
 
 export const BLFolderRow = ({ blNo, blDocs, drill, nav, COL, color }: BLFolderRowProps) => {
     const firstDoc = blDocs[0];
-    const uploadedKeys = new Set(blDocs.map(d => d.stage));
     const isImport = drill.type === 'import';
-    const stageList = getRequiredArchiveStages(drill.type);
-    const done = stageList.filter(s => uploadedKeys.has(s.key)).length;
-    const isComplete = done === stageList.length;
-    const tooltip = stageList.map(s => `${uploadedKeys.has(s.key) ? 'Γ£ô' : 'Γùï'} ${s.label}`).join('\n');
+    const completion = getArchiveBlCompletion(blDocs, drill.type);
+    const tooltip = completion.requiredStages
+        .map((stage) => `${completion.uploadedStages.has(stage.key) ? 'Uploaded' : 'Missing'} ${stage.label}`)
+        .join('\n');
 
     return (
         <div className="grid items-center gap-4 px-5 py-3.5 border-b border-border hover:bg-hover transition-colors group"
@@ -160,8 +156,8 @@ export const BLFolderRow = ({ blNo, blDocs, drill, nav, COL, color }: BLFolderRo
             <span className="text-xs text-text-muted tabular-nums">
                 {firstDoc?.transaction_date ? formatPeriod(firstDoc.transaction_date) : '—'}
             </span>
-            <span title={tooltip} className={`text-xs font-semibold tabular-nums ${isComplete ? 'text-emerald-500' : done === 0 ? 'text-text-muted' : 'text-amber-500'}`}>
-                {done}/{stageList.length}
+            <span title={tooltip} className={`text-xs font-semibold tabular-nums ${completion.isComplete ? 'text-emerald-500' : completion.doneCount === 0 ? 'text-text-muted' : 'text-amber-500'}`}>
+                {completion.doneCount}/{completion.requiredStages.length}
             </span>
             <button
                 onClick={() => nav({ level: 'files', year: drill.year, type: drill.type, month: drill.month, bl: blNo })}

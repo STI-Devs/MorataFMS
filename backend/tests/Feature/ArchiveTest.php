@@ -342,7 +342,7 @@ test('document upload accepts valid import stage keys', function () {
     $user = User::factory()->create(['role' => 'admin']);
     $transaction = ImportTransaction::factory()->create();
 
-    foreach (['boc', 'ppa', 'do', 'port_charges', 'releasing', 'billing', 'others'] as $stage) {
+    foreach (['boc', 'bonds', 'phytosanitary', 'ppa', 'do', 'port_charges', 'releasing', 'billing', 'others'] as $stage) {
         $this->actingAs($user)->postJson('/api/documents', [
             'file' => UploadedFile::fake()->create("doc-{$stage}.pdf", 100, 'application/pdf'),
             'type' => $stage,
@@ -356,7 +356,7 @@ test('document upload accepts valid export stage keys', function () {
     $user = User::factory()->create(['role' => 'admin']);
     $transaction = ExportTransaction::factory()->create();
 
-    foreach (['boc', 'bl_generation', 'co', 'dccci', 'billing', 'others'] as $stage) {
+    foreach (['boc', 'bl_generation', 'co', 'phytosanitary', 'dccci', 'billing', 'others'] as $stage) {
         $this->actingAs($user)->postJson('/api/documents', [
             'file' => UploadedFile::fake()->create("doc-{$stage}.pdf", 100, 'application/pdf'),
             'type' => $stage,
@@ -808,7 +808,7 @@ test('archive import stores uploaded archive documents', function () {
     Storage::disk($this->documentDisk)->assertExists($document->path);
 });
 
-test('archive import rejects more than 10 uploaded documents', function () {
+test('archive import rejects more than 10 uploaded documents in a single stage', function () {
     $user = User::factory()->create(['role' => 'admin']);
     $client = Client::factory()->importer()->create();
 
@@ -829,10 +829,10 @@ test('archive import rejects more than 10 uploaded documents', function () {
     ]);
 
     $response->assertUnprocessable()->assertJsonValidationErrors(['documents']);
-    $response->assertJsonPath('errors.documents.0', 'You can upload up to 10 files per archive request.');
+    $response->assertJsonPath('errors.documents.0', 'You can upload up to 10 files for the BOC Document Processing stage.');
 });
 
-test('archive export rejects more than 10 uploaded documents', function () {
+test('archive export rejects more than 10 uploaded documents in a single stage', function () {
     $user = User::factory()->create(['role' => 'admin']);
     $client = Client::factory()->exporter()->create();
     $country = Country::factory()->create();
@@ -854,7 +854,264 @@ test('archive export rejects more than 10 uploaded documents', function () {
     ]);
 
     $response->assertUnprocessable()->assertJsonValidationErrors(['documents']);
-    $response->assertJsonPath('errors.documents.0', 'You can upload up to 10 files per archive request.');
+    $response->assertJsonPath('errors.documents.0', 'You can upload up to 10 files for the BOC Document Processing stage.');
+});
+
+test('archive import accepts more than 10 uploaded documents when they are split across stages', function () {
+    Storage::fake($this->documentDisk);
+
+    $user = User::factory()->create(['role' => 'admin']);
+    $client = Client::factory()->importer()->create();
+
+    $documents = [
+        ...array_map(
+            fn (int $index) => [
+                'file' => UploadedFile::fake()->create("archive-import-boc-{$index}.pdf", 100, 'application/pdf'),
+                'stage' => 'boc',
+            ],
+            range(1, 6),
+        ),
+        ...array_map(
+            fn (int $index) => [
+                'file' => UploadedFile::fake()->create("archive-import-others-{$index}.pdf", 100, 'application/pdf'),
+                'stage' => 'others',
+            ],
+            range(1, 6),
+        ),
+    ];
+
+    $this->actingAs($user)->post('/api/archives/import', [
+        'bl_no' => 'BL-ARCH-STAGE-SPLIT-001',
+        'selective_color' => 'green',
+        'importer_id' => $client->id,
+        'file_date' => '2023-06-15',
+        'documents' => $documents,
+    ])->assertCreated();
+
+    $transaction = ImportTransaction::where('bl_no', 'BL-ARCH-STAGE-SPLIT-001')->first();
+
+    expect($transaction)->not->toBeNull();
+    expect(Document::where('documentable_type', ImportTransaction::class)
+        ->where('documentable_id', $transaction?->id)
+        ->count())->toBe(12);
+});
+
+test('archive export accepts more than 10 uploaded documents when they are split across stages', function () {
+    Storage::fake($this->documentDisk);
+
+    $user = User::factory()->create(['role' => 'admin']);
+    $client = Client::factory()->exporter()->create();
+    $country = Country::factory()->create();
+
+    $documents = [
+        ...array_map(
+            fn (int $index) => [
+                'file' => UploadedFile::fake()->create("archive-export-boc-{$index}.pdf", 100, 'application/pdf'),
+                'stage' => 'boc',
+            ],
+            range(1, 6),
+        ),
+        ...array_map(
+            fn (int $index) => [
+                'file' => UploadedFile::fake()->create("archive-export-others-{$index}.pdf", 100, 'application/pdf'),
+                'stage' => 'others',
+            ],
+            range(1, 6),
+        ),
+    ];
+
+    $this->actingAs($user)->post('/api/archives/export', [
+        'bl_no' => 'BL-ARCH-STAGE-SPLIT-EXP-001',
+        'shipper_id' => $client->id,
+        'destination_country_id' => $country->id,
+        'file_date' => '2023-06-15',
+        'documents' => $documents,
+    ])->assertCreated();
+
+    $transaction = ExportTransaction::where('bl_no', 'BL-ARCH-STAGE-SPLIT-EXP-001')->first();
+
+    expect($transaction)->not->toBeNull();
+    expect(Document::where('documentable_type', ExportTransaction::class)
+        ->where('documentable_id', $transaction?->id)
+        ->count())->toBe(12);
+});
+
+test('archive import rejects files for optional stages marked as not applicable', function () {
+    $user = User::factory()->create(['role' => 'admin']);
+    $client = Client::factory()->importer()->create();
+
+    $response = $this->actingAs($user)->post('/api/archives/import', [
+        'bl_no' => 'BL-ARCH-NA-IMP-001',
+        'selective_color' => 'green',
+        'importer_id' => $client->id,
+        'file_date' => '2023-06-15',
+        'not_applicable_stages' => ['bonds'],
+        'documents' => [
+            [
+                'file' => UploadedFile::fake()->create('archive-bonds.pdf', 100, 'application/pdf'),
+                'stage' => 'bonds',
+            ],
+        ],
+    ]);
+
+    $response->assertUnprocessable()->assertJsonValidationErrors(['not_applicable_stages']);
+    $response->assertJsonPath(
+        'errors.not_applicable_stages.0',
+        'You cannot upload files for the BONDS stage while it is marked as not applicable.',
+    );
+});
+
+test('archive export rejects files for optional stages marked as not applicable', function () {
+    $user = User::factory()->create(['role' => 'admin']);
+    $client = Client::factory()->exporter()->create();
+    $country = Country::factory()->create();
+
+    $response = $this->actingAs($user)->post('/api/archives/export', [
+        'bl_no' => 'BL-ARCH-NA-EXP-001',
+        'shipper_id' => $client->id,
+        'destination_country_id' => $country->id,
+        'file_date' => '2023-06-15',
+        'not_applicable_stages' => ['co'],
+        'documents' => [
+            [
+                'file' => UploadedFile::fake()->create('archive-co.pdf', 100, 'application/pdf'),
+                'stage' => 'co',
+            ],
+        ],
+    ]);
+
+    $response->assertUnprocessable()->assertJsonValidationErrors(['not_applicable_stages']);
+    $response->assertJsonPath(
+        'errors.not_applicable_stages.0',
+        'You cannot upload files for the CO Application stage while it is marked as not applicable.',
+    );
+});
+
+test('archive import rollback deletes the created transaction and uploaded documents', function () {
+    Storage::fake($this->documentDisk);
+
+    $user = User::factory()->create(['role' => 'encoder']);
+    $client = Client::factory()->importer()->create();
+
+    $transaction = ImportTransaction::factory()->create([
+        'bl_no' => 'BL-ARCH-ROLLBACK-IMP-001',
+        'importer_id' => $client->id,
+        'arrival_date' => '2023-06-15',
+        'status' => 'Completed',
+        'is_archive' => true,
+        'archived_at' => now(),
+        'archive_origin' => ArchiveOrigin::DirectArchiveUpload,
+        'assigned_user_id' => $user->id,
+        'archived_by' => $user->id,
+    ]);
+
+    $document = Document::factory()->create([
+        'documentable_type' => ImportTransaction::class,
+        'documentable_id' => $transaction->id,
+        'uploaded_by' => $user->id,
+        'type' => 'boc',
+        'path' => 'transaction-documents/imports/2023/month-06-June/BL-ARCH-ROLLBACK-IMP-001/boc_test.pdf',
+    ]);
+
+    Storage::disk($this->documentDisk)->put($document->path, 'rollback');
+
+    $this->actingAs($user)
+        ->deleteJson("/api/archives/import/{$transaction->id}")
+        ->assertNoContent();
+
+    expect(ImportTransaction::query()->whereKey($transaction->id)->exists())->toBeFalse();
+    expect(Document::query()->whereKey($document->id)->exists())->toBeFalse();
+    Storage::disk($this->documentDisk)->assertMissing($document->path);
+});
+
+test('archive export rollback deletes the created transaction and uploaded documents', function () {
+    Storage::fake($this->documentDisk);
+
+    $user = User::factory()->create(['role' => 'encoder']);
+    $client = Client::factory()->exporter()->create();
+    $country = Country::factory()->create();
+
+    $transaction = ExportTransaction::factory()->create([
+        'bl_no' => 'BL-ARCH-ROLLBACK-EXP-001',
+        'shipper_id' => $client->id,
+        'destination_country_id' => $country->id,
+        'export_date' => '2023-06-15',
+        'status' => 'Completed',
+        'is_archive' => true,
+        'archived_at' => now(),
+        'archive_origin' => ArchiveOrigin::DirectArchiveUpload,
+        'assigned_user_id' => $user->id,
+        'archived_by' => $user->id,
+    ]);
+
+    $document = Document::factory()->create([
+        'documentable_type' => ExportTransaction::class,
+        'documentable_id' => $transaction->id,
+        'uploaded_by' => $user->id,
+        'type' => 'boc',
+        'path' => 'transaction-documents/exports/2023/month-06-June/BL-ARCH-ROLLBACK-EXP-001/boc_test.pdf',
+    ]);
+
+    Storage::disk($this->documentDisk)->put($document->path, 'rollback');
+
+    $this->actingAs($user)
+        ->deleteJson("/api/archives/export/{$transaction->id}")
+        ->assertNoContent();
+
+    expect(ExportTransaction::query()->whereKey($transaction->id)->exists())->toBeFalse();
+    expect(Document::query()->whereKey($document->id)->exists())->toBeFalse();
+    Storage::disk($this->documentDisk)->assertMissing($document->path);
+});
+
+test('archive import stays completed when documents are uploaded after creation', function () {
+    Storage::fake($this->documentDisk);
+
+    $user = User::factory()->create(['role' => 'encoder']);
+    $client = Client::factory()->importer()->create();
+
+    $response = $this->actingAs($user)->postJson('/api/archives/import', [
+        'bl_no' => 'BL-ARCH-LATE-UPLOAD-IMP-001',
+        'selective_color' => 'green',
+        'importer_id' => $client->id,
+        'file_date' => '2023-06-15',
+    ])->assertCreated();
+
+    $transactionId = $response->json('data.id');
+
+    $this->actingAs($user)->postJson('/api/documents', [
+        'file' => UploadedFile::fake()->create('archive-boc.pdf', 100, 'application/pdf'),
+        'type' => 'boc',
+        'documentable_type' => ImportTransaction::class,
+        'documentable_id' => $transactionId,
+    ])->assertCreated();
+
+    expect(ImportTransaction::find($transactionId)?->status->value)->toBe('Completed');
+});
+
+test('archive export stays completed when documents are uploaded after creation', function () {
+    Storage::fake($this->documentDisk);
+
+    $user = User::factory()->create(['role' => 'encoder']);
+    $client = Client::factory()->exporter()->create();
+    $country = Country::factory()->create();
+
+    $response = $this->actingAs($user)->postJson('/api/archives/export', [
+        'bl_no' => 'BL-ARCH-LATE-UPLOAD-EXP-001',
+        'shipper_id' => $client->id,
+        'destination_country_id' => $country->id,
+        'file_date' => '2023-06-15',
+    ])->assertCreated();
+
+    $transactionId = $response->json('data.id');
+
+    $this->actingAs($user)->postJson('/api/documents', [
+        'file' => UploadedFile::fake()->create('archive-boc.pdf', 100, 'application/pdf'),
+        'type' => 'boc',
+        'documentable_type' => ExportTransaction::class,
+        'documentable_id' => $transactionId,
+    ])->assertCreated();
+
+    expect(ExportTransaction::find($transactionId)?->status->value)->toBe('Completed');
 });
 
 test('archive document uploads keep the archive file date month in S3 paths', function () {

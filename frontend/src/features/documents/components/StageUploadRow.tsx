@@ -7,6 +7,7 @@ interface StageUploadRowProps {
     stageKey: string;
     label: string;
     upload: StageUpload;
+    allowNotApplicable?: boolean;
     onChange: (next: StageUpload) => void;
 }
 
@@ -16,20 +17,34 @@ const formatSize = (bytes: number): string => {
     return `${(bytes / 1048576).toFixed(1)} MB`;
 };
 
-export const StageUploadRow: React.FC<StageUploadRowProps> = ({ stageKey, label, upload, onChange }) => {
+export const StageUploadRow: React.FC<StageUploadRowProps> = ({
+    stageKey,
+    label,
+    upload,
+    allowNotApplicable = false,
+    onChange,
+}) => {
     const inputId = `stage-file-${stageKey}`;
     const fileInputRef = useRef<HTMLInputElement>(null);
     const hasFiles = upload.files.length > 0;
+    const isNotApplicable = upload.notApplicable === true;
+    const stageError = upload.files.length > MAX_MULTI_UPLOAD_FILES
+        ? `You can upload up to ${MAX_MULTI_UPLOAD_FILES} files for the ${label} stage.`
+        : null;
 
     const handleFiles = (files: FileList | null) => {
         const nextFiles = Array.from(files ?? []);
         if (nextFiles.length > 0) {
-            onChange({ files: nextFiles });
+            onChange({ files: [...upload.files, ...nextFiles], notApplicable: false });
+        }
+
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
         }
     };
 
     const clearSelection = () => {
-        onChange({ files: [] });
+        onChange({ files: [], notApplicable: false });
         if (fileInputRef.current) {
             fileInputRef.current.value = '';
         }
@@ -52,6 +67,11 @@ export const StageUploadRow: React.FC<StageUploadRowProps> = ({ stageKey, label,
                         {upload.files.length} file{upload.files.length === 1 ? '' : 's'}
                     </span>
                 )}
+                {isNotApplicable && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-600">
+                        N/A
+                    </span>
+                )}
                 {hasFiles && (
                     <button
                         type="button"
@@ -71,12 +91,41 @@ export const StageUploadRow: React.FC<StageUploadRowProps> = ({ stageKey, label,
                     type="file"
                     multiple
                     className="hidden"
+                    disabled={isNotApplicable}
                     onChange={(e) => handleFiles(e.target.files)}
                 />
 
+                {allowNotApplicable && (
+                    <label className="inline-flex items-center gap-2 text-[11px] font-semibold text-text-secondary">
+                        <input
+                            type="checkbox"
+                            checked={isNotApplicable}
+                            disabled={hasFiles}
+                            onChange={(event) => {
+                                const nextNotApplicable = event.target.checked;
+
+                                onChange({
+                                    files: nextNotApplicable ? [] : upload.files,
+                                    notApplicable: nextNotApplicable,
+                                });
+
+                                if (nextNotApplicable && fileInputRef.current) {
+                                    fileInputRef.current.value = '';
+                                }
+                            }}
+                            className="h-3.5 w-3.5 rounded border-border-strong text-amber-500 focus:ring-amber-500/30"
+                        />
+                        Mark this stage as N/A
+                        {hasFiles && <span className="text-[10px] text-text-muted">Remove files first</span>}
+                    </label>
+                )}
+
                 <label
                     htmlFor={inputId}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border-2 border-dashed cursor-pointer transition-all ${
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border-2 border-dashed transition-all ${
+                        isNotApplicable
+                            ? 'cursor-not-allowed border-amber-400/40 bg-amber-50/40 dark:bg-amber-900/10 opacity-80'
+                            :
                         hasFiles
                             ? 'border-amber-400/40 bg-amber-50/40 dark:bg-amber-900/10 hover:border-amber-400/70'
                             : 'border-border hover:border-amber-400/50 hover:bg-hover'
@@ -92,10 +141,16 @@ export const StageUploadRow: React.FC<StageUploadRowProps> = ({ stageKey, label,
                     </div>
                     <div className="flex-1 min-w-0">
                         <p className="text-xs text-text-primary font-semibold">
-                            {hasFiles ? 'Replace selected files' : 'Click to attach files'}
+                            {isNotApplicable
+                                ? 'Stage marked as not applicable'
+                                : hasFiles
+                                    ? 'Add more files'
+                                    : 'Click to attach files'}
                         </p>
                         <p className="text-[10px] text-text-muted mt-0.5">
-                            Select one or more files for this stage. Up to {MAX_MULTI_UPLOAD_FILES} files total per archive upload.
+                            {isNotApplicable
+                                ? 'Uncheck N/A if you need to upload documents for this stage.'
+                                : `Select one or more files for this stage. Up to ${MAX_MULTI_UPLOAD_FILES} files for this stage.`}
                         </p>
                     </div>
                 </label>
@@ -118,7 +173,7 @@ export const StageUploadRow: React.FC<StageUploadRowProps> = ({ stageKey, label,
                                     type="button"
                                     onClick={() => {
                                         const remainingFiles = upload.files.filter((_, currentIndex) => currentIndex !== index);
-                                        onChange({ files: remainingFiles });
+                                        onChange({ files: remainingFiles, notApplicable: false });
                                         if (remainingFiles.length === 0 && fileInputRef.current) {
                                             fileInputRef.current.value = '';
                                         }
@@ -130,6 +185,12 @@ export const StageUploadRow: React.FC<StageUploadRowProps> = ({ stageKey, label,
                                 </button>
                             </div>
                         ))}
+                    </div>
+                )}
+
+                {stageError && (
+                    <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 dark:border-red-800 dark:bg-red-900/20">
+                        <p className="text-[11px] font-semibold text-red-600 dark:text-red-400">{stageError}</p>
                     </div>
                 )}
             </div>

@@ -5,6 +5,7 @@ use App\Models\Country;
 use App\Models\ImportTransaction;
 use App\Models\User;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Schema;
 
 // --- Authentication Guard ---
@@ -466,6 +467,50 @@ test('can update using same bl_no (unique validation ignores self)', function ()
         ]);
 
     $response->assertOk();
+});
+
+test('marking an optional import stage as not applicable does not advance the live status', function () {
+    $user = User::factory()->create(['role' => 'encoder']);
+    $transaction = ImportTransaction::factory()->create([
+        'assigned_user_id' => $user->id,
+        'status' => 'Pending',
+    ]);
+
+    $this->actingAs($user)
+        ->patchJson("/api/import-transactions/{$transaction->id}/stage-applicability", [
+            'stage' => 'bonds',
+            'not_applicable' => true,
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.status', 'Pending')
+        ->assertJsonPath('data.not_applicable_stages.0', 'bonds');
+
+    $transaction->refresh()->load('stages');
+
+    expect($transaction->status->value)->toBe('Pending');
+    expect($transaction->stages->bonds_not_applicable)->toBeTrue();
+});
+
+test('document uploads are rejected for import stages marked as not applicable', function () {
+    $user = User::factory()->create(['role' => 'encoder']);
+    $transaction = ImportTransaction::factory()->create([
+        'assigned_user_id' => $user->id,
+    ]);
+    $transaction->stages()->update([
+        'bonds_not_applicable' => true,
+        'bonds_status' => 'completed',
+    ]);
+
+    $this->actingAs($user)
+        ->postJson('/api/documents', [
+            'file' => UploadedFile::fake()->create('bonds.pdf', 100, 'application/pdf'),
+            'type' => 'bonds',
+            'documentable_type' => ImportTransaction::class,
+            'documentable_id' => $transaction->id,
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['type'])
+        ->assertJsonPath('errors.type.0', 'The BONDS stage is marked as not applicable for this transaction.');
 });
 
 test('updating an import transaction fails when customs reference number belongs to another transaction', function () {

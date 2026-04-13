@@ -3,17 +3,19 @@ import { trackingApi } from '../../tracking/api/trackingApi';
 
 const STAGE_LABELS: Record<string, string> = {
     boc:           'BOC Processing',
+    bonds:         'BONDS',
+    phytosanitary: 'Phytosanitary Certificates',
     ppa:           'PPA Processing',
     do:            'DO Request',
     port_charges:  'Port Charges',
     releasing:     'Releasing',
     billing:       'Billing',
     // Export stages
-    docs_prep:     'Docs Preparation',
-    bl_generation: 'BL Generation',
-    bl:            'BL Generation',   // legacy alias
-    co:            'CO Processing',
-    cil:           'CIL Processing',
+    docs_prep:     'BOC Processing',
+    bl_generation: 'Bill of Lading',
+    bl:            'Bill of Lading',
+    co:            'CO Application',
+    cil:           'DCCCI Printing',
     dccci:         'DCCCI Printing',
     // Shared catch-all
     others:        'Other Documents',
@@ -21,17 +23,19 @@ const STAGE_LABELS: Record<string, string> = {
 
 const STAGE_COLORS: Record<string, { color: string; bg: string }> = {
     boc:           { color: '#f97316', bg: 'rgba(249,115,22,0.1)' },
+    bonds:         { color: '#d97706', bg: 'rgba(217,119,6,0.1)' },
+    phytosanitary: { color: '#0f766e', bg: 'rgba(15,118,110,0.1)' },
     ppa:           { color: '#3b82f6', bg: 'rgba(59,130,246,0.1)' },
     do:            { color: '#8b5cf6', bg: 'rgba(139,92,246,0.1)' },
     port_charges:  { color: '#06b6d4', bg: 'rgba(6,182,212,0.1)' },
     releasing:     { color: '#22c55e', bg: 'rgba(34,197,94,0.1)' },
     billing:       { color: '#ff9f0a', bg: 'rgba(255,159,10,0.1)' },
     // Export stages
-    docs_prep:     { color: '#a855f7', bg: 'rgba(168,85,247,0.1)' },
+    docs_prep:     { color: '#f97316', bg: 'rgba(249,115,22,0.1)' },
     bl_generation: { color: '#f97316', bg: 'rgba(249,115,22,0.1)' },
     bl:            { color: '#f97316', bg: 'rgba(249,115,22,0.1)' },
     co:            { color: '#3b82f6', bg: 'rgba(59,130,246,0.1)' },
-    cil:           { color: '#ec4899', bg: 'rgba(236,72,153,0.1)' },
+    cil:           { color: '#22c55e', bg: 'rgba(34,197,94,0.1)' },
     dccci:         { color: '#22c55e', bg: 'rgba(34,197,94,0.1)' },
     // Shared catch-all
     others:        { color: '#6b7280', bg: 'rgba(107,114,128,0.1)' },

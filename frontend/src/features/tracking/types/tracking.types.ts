@@ -76,12 +76,15 @@ export interface ApiImportTransaction {
     notes: string | null;
     stages?: {
         boc: string;
+        bonds: string;
+        phytosanitary: string;
         ppa: string;
         do: string;
         port_charges: string;
         releasing: string;
         billing: string;
     };
+    not_applicable_stages?: string[];
     created_at: string;
     open_remarks_count: number;
     documents_count: number;
@@ -101,11 +104,14 @@ export interface ApiExportTransaction {
     archive_origin?: 'direct_archive_upload' | 'archived_from_live' | null;
     notes: string | null;
     stages?: {
-        docs_prep: string;
+        boc: string;
+        bl_generation: string;
         co: string;
-        cil: string;
-        bl: string;
+        phytosanitary: string;
+        dccci: string;
+        billing: string;
     };
+    not_applicable_stages?: string[];
     created_at: string;
     open_remarks_count: number;
     documents_count: number;

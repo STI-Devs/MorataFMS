@@ -4,13 +4,20 @@ import { CurrentDateTime } from '../../../components/CurrentDateTime';
 import { ConfirmationModal } from '../../../components/ConfirmationModal';
 import { Icon } from '../../../components/Icon';
 import type { ArchiveDocument, ArchiveYear, TransactionType } from '../../documents/types/document.types';
-import { getRequiredArchiveStages } from '../../documents/types/document.types';
 import { trackingApi } from '../../tracking/api/trackingApi';
 import { useArchives } from '../hooks/useArchives';
-import type { DocStatusFilter, DrillState, SortKey, ViewMode } from '../utils/archive.utils';
+import type {
+    ArchiveUploadSuccessTarget,
+    DocStatusFilter,
+    DrillState,
+    SortKey,
+    ViewMode,
+} from '../utils/archive.utils';
 import {
     computeGlobalCompleteness, countIncompleteBLs,
     FOLDER_LABEL, MONTH_NAMES,
+    getArchiveBlCompletion,
+    resolveArchiveDrillTarget,
 } from '../utils/archive.utils';
 import { exportArchiveCSV } from '../utils/export.utils';
 import { AddArchiveDocumentModal } from './AddArchiveDocumentModal';
@@ -65,6 +72,28 @@ export const ArchivesPage = () => {
     const openConfirm = (title: string, message: string, onConfirm: () => void) =>
         setConfirmModal({ isOpen: true, title, message, confirmText: 'Delete', confirmButtonClass: 'bg-red-600 hover:bg-red-700', onConfirm });
 
+    const handleArchiveUploadSuccess = async (target: ArchiveUploadSuccessTarget) => {
+        await queryClient.invalidateQueries({ queryKey: ['archives'] });
+
+        const refreshedArchiveData = queryClient.getQueryData<ArchiveYear[]>(['archives']) ?? [];
+        const nextDrill = resolveArchiveDrillTarget(refreshedArchiveData, target);
+
+        setShowLegacyUpload(false);
+        setViewMode('folder');
+        setGlobalSearch('');
+        setSearch('');
+        setFilterYear(String(target.year));
+        setFilterType(target.type);
+        setExpandedYears(new Set([target.year]));
+
+        if (nextDrill) {
+            setDrill(nextDrill);
+            return;
+        }
+
+        setDrill({ level: 'years' });
+    };
+
     const handleDeleteArchiveDoc = (docId: number) =>
         openConfirm('Delete Archive Document', 'This will permanently remove this legacy document. Continue?', async () => {
             await trackingApi.deleteDocument(docId);
@@ -89,13 +118,13 @@ export const ArchivesPage = () => {
     }, [globalSearch, archiveData]);
 
     const flatDocumentList = useMemo(() => {
-        const blMap = new Map<string, { blNo: string; client: string; type: TransactionType; year: number; month: number; stages: Set<string>; yearData: ArchiveYear }>();
+        const blMap = new Map<string, { blNo: string; client: string; type: TransactionType; year: number; month: number; docs: ArchiveDocument[]; yearData: ArchiveYear }>();
         for (const yearData of archiveData) {
             for (const doc of yearData.documents) {
                 const blNo = doc.bl_no || '(no BL)';
                 const key = `${blNo}|${doc.type}|${yearData.year}`;
-                if (!blMap.has(key)) blMap.set(key, { blNo, client: doc.client, type: doc.type, year: yearData.year, month: doc.month, stages: new Set(), yearData });
-                blMap.get(key)!.stages.add(doc.stage);
+                if (!blMap.has(key)) blMap.set(key, { blNo, client: doc.client, type: doc.type, year: yearData.year, month: doc.month, docs: [], yearData });
+                blMap.get(key)!.docs.push(doc);
             }
         }
         return [...blMap.values()].filter(r => {
@@ -103,11 +132,10 @@ export const ArchivesPage = () => {
             if (q && !r.blNo.toLowerCase().includes(q) && !r.client.toLowerCase().includes(q)) return false;
             if (filterYear !== 'all' && String(r.year) !== filterYear) return false;
             if (filterType !== 'all' && r.type !== filterType) return false;
-            const required = getRequiredArchiveStages(r.type);
-            const isComplete = required.every(s => r.stages.has(s.key));
-            if (filterStatus === 'complete' && !isComplete) return false;
-            if (filterStatus === 'incomplete' && isComplete) return false;
-            if (incompleteFilterActive && isComplete) return false;
+            const completion = getArchiveBlCompletion(r.docs, r.type);
+            if (filterStatus === 'complete' && !completion.isComplete) return false;
+            if (filterStatus === 'incomplete' && completion.isComplete) return false;
+            if (incompleteFilterActive && completion.isComplete) return false;
             return true;
         });
     }, [archiveData, globalSearch, filterYear, filterType, filterStatus, incompleteFilterActive]);
@@ -120,7 +148,7 @@ export const ArchivesPage = () => {
                     <ArchiveLegacyUploadPage
                         defaultYear={currentYear}
                         onBack={() => setShowLegacyUpload(false)}
-                        onSubmit={() => { setShowLegacyUpload(false); queryClient.invalidateQueries({ queryKey: ['archives'] }); }}
+                        onSubmit={handleArchiveUploadSuccess}
                     />
                 </div>
             </div>

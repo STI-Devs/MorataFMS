@@ -1,9 +1,14 @@
 import { useState } from 'react';
 import { useAuth } from '../../auth/hooks/useAuth';
 import type { ArchiveDocument, ArchiveYear, TransactionType } from '../../documents/types/document.types';
-import { getRequiredArchiveStages } from '../../documents/types/document.types';
 import type { DocStatusFilter, DrillState } from '../utils/archive.utils';
-import { FOLDER_COLOR, MONTH_NAMES, computeGlobalCompleteness, hasRoleAtLeast } from '../utils/archive.utils';
+import {
+    FOLDER_COLOR,
+    MONTH_NAMES,
+    computeGlobalCompleteness,
+    getArchiveBlCompletion,
+    hasRoleAtLeast,
+} from '../utils/archive.utils';
 import { UploadHistoryPanel } from './UploadHistoryPanel';
 import { FolderSVG } from './ui/FolderSVG';
 
@@ -106,14 +111,13 @@ export const SubFolderRow = ({ groupKey, docs, yr, filterStatus, nav, openMenuKe
     const [monthStr, txType] = groupKey.split('|') as [string, TransactionType];
     const month = Number(monthStr);
 
-    const blMap = new Map<string, Set<string>>();
+    const blMap = new Map<string, ArchiveDocument[]>();
     for (const d of docs) {
         const bk = d.bl_no || '(no BL)';
-        if (!blMap.has(bk)) blMap.set(bk, new Set());
-        blMap.get(bk)!.add(d.stage);
+        if (!blMap.has(bk)) blMap.set(bk, []);
+        blMap.get(bk)!.push(d);
     }
-    const required = getRequiredArchiveStages(txType);
-    const completedBLs = [...blMap.values()].filter(s => required.every(r => s.has(r.key))).length;
+    const completedBLs = [...blMap.values()].filter((blDocs) => getArchiveBlCompletion(blDocs, txType).isComplete).length;
     const folderPct = blMap.size === 0 ? 0 : Math.round((completedBLs / blMap.size) * 100);
 
     const statusLabel = folderPct >= 90 ? 'Complete' : folderPct >= 50 ? 'Partial' : 'Incomplete';
@@ -215,14 +219,15 @@ const YearRow = ({ yr, isOpen, toggleYear, filterType, filterStatus, nav, openMe
 
     const incompleteSubCount = allGroups.filter(([k, docs]) => {
         const txType = k.split('|')[1] as TransactionType;
-        const req = getRequiredArchiveStages(txType);
-        const bm = new Map<string, Set<string>>();
+        const bm = new Map<string, ArchiveDocument[]>();
         for (const d of docs) {
             const bk = d.bl_no || '(no BL)';
-            if (!bm.has(bk)) bm.set(bk, new Set());
-            bm.get(bk)!.add(d.stage);
+            if (!bm.has(bk)) bm.set(bk, []);
+            bm.get(bk)!.push(d);
         }
-        const pct = bm.size === 0 ? 0 : Math.round(([...bm.values()].filter(s => req.every(r => s.has(r.key))).length / bm.size) * 100);
+        const pct = bm.size === 0
+            ? 0
+            : Math.round(([...bm.values()].filter((blDocs) => getArchiveBlCompletion(blDocs, txType).isComplete).length / bm.size) * 100);
         return pct < 90;
     }).length;
 

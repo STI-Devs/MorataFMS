@@ -13,6 +13,8 @@ const {
     mockDeleteDocument,
     mockDownloadDocument,
     mockUploadDocuments,
+    mockUpdateExportStageApplicability,
+    mockUpdateImportStageApplicability,
     mockUseAddDocumentToCache,
     mockUseDocumentPreview,
     mockUseTransactionDetail,
@@ -22,6 +24,8 @@ const {
     mockDeleteDocument: vi.fn(),
     mockDownloadDocument: vi.fn(),
     mockUploadDocuments: vi.fn(),
+    mockUpdateExportStageApplicability: vi.fn(),
+    mockUpdateImportStageApplicability: vi.fn(),
     mockUseAddDocumentToCache: vi.fn(),
     mockUseDocumentPreview: vi.fn(),
     mockUseTransactionDetail: vi.fn(),
@@ -47,6 +51,8 @@ vi.mock('../api/trackingApi', () => ({
         deleteDocument: mockDeleteDocument,
         downloadDocument: mockDownloadDocument,
         uploadDocuments: mockUploadDocuments,
+        updateExportStageApplicability: mockUpdateExportStageApplicability,
+        updateImportStageApplicability: mockUpdateImportStageApplicability,
     },
 }));
 
@@ -203,6 +209,8 @@ describe('TrackingDetails', () => {
         mockDeleteDocument.mockReset();
         mockDownloadDocument.mockReset();
         mockUploadDocuments.mockReset();
+        mockUpdateExportStageApplicability.mockReset();
+        mockUpdateImportStageApplicability.mockReset();
         mockUseAddDocumentToCache.mockReset();
         mockUseDocumentPreview.mockReset();
         mockUseTransactionDetail.mockReset();
@@ -290,7 +298,7 @@ describe('TrackingDetails', () => {
         mockUseTransactionDocuments.mockReturnValue({
             byStageIndex: {
                 0: [makeApiDocument({ id: 701, type: 'boc', filename: 'boc.pdf' })],
-                1: [makeApiDocument({ id: 702, type: 'ppa', filename: 'ppa.pdf' })],
+                1: [makeApiDocument({ id: 702, type: 'bonds', filename: 'bond.pdf' })],
             },
             isLoading: false,
         });
@@ -304,6 +312,29 @@ describe('TrackingDetails', () => {
         expect(screen.getByTestId('stage-status-0')).toHaveTextContent('completed');
         expect(screen.getByTestId('stage-status-1')).toHaveTextContent('completed');
         expect(screen.getByTestId('stage-status-2')).toHaveTextContent('active');
+    });
+
+    it('does not advance the display status when only an optional stage is marked as N/A', () => {
+        const detail = makeImportDetailResult({
+            customs_ref_no: 'IMP-2026-003',
+            status: 'Pending',
+            not_applicable_stages: ['bonds'],
+        });
+
+        mockUseTransactionDetail.mockReturnValue({ data: detail, isLoading: false });
+        mockUseTransactionDocuments.mockReturnValue({
+            byStageIndex: {
+                0: [makeApiDocument({ id: 720, type: 'boc', filename: 'boc.pdf' })],
+            },
+            isLoading: false,
+        });
+
+        renderWithProviders(<TrackingDetails />, {
+            route: '/tracking/IMP-2026-003',
+            path: appRoutes.trackingDetail,
+        });
+
+        expect(screen.getByTestId('tracking-status')).toHaveTextContent('Vessel Arrived');
     });
 
     it('opens and closes the remarks, edit, upload, and preview flows through the screen wiring', async () => {
@@ -343,7 +374,7 @@ describe('TrackingDetails', () => {
             expect(screen.queryByText('Edit modal open')).not.toBeInTheDocument();
         });
 
-        fireEvent.click(screen.getByText('Upload 2'));
+        fireEvent.click(screen.getByText('Upload 4'));
         expect(screen.getByText('Upload modal: Delivery Order Request')).toBeInTheDocument();
         fireEvent.click(screen.getByText('Close upload'));
         await waitFor(() => {
@@ -413,7 +444,7 @@ describe('TrackingDetails', () => {
             queryClient,
         });
 
-        fireEvent.click(screen.getByText('Upload 2'));
+        fireEvent.click(screen.getByText('Upload 4'));
         fireEvent.click(screen.getByText('Confirm upload'));
 
         await waitFor(() => {
@@ -457,10 +488,12 @@ describe('TrackingDetails', () => {
         mockUseTransactionDocuments.mockImplementation(() => ({
             byStageIndex: isRefreshingAfterCompletion ? {} : {
                 0: [makeApiDocument({ id: 710, type: 'boc', filename: 'boc.pdf' })],
-                1: [makeApiDocument({ id: 711, type: 'ppa', filename: 'ppa.pdf' })],
-                2: [makeApiDocument({ id: 712, type: 'do', filename: 'do.pdf' })],
-                3: [makeApiDocument({ id: 713, type: 'port_charges', filename: 'port-charges.pdf' })],
-                4: [makeApiDocument({ id: 714, type: 'releasing', filename: 'releasing.pdf' })],
+                1: [makeApiDocument({ id: 711, type: 'bonds', filename: 'bonds.pdf' })],
+                2: [makeApiDocument({ id: 712, type: 'phytosanitary', filename: 'phyto.pdf' })],
+                3: [makeApiDocument({ id: 713, type: 'ppa', filename: 'ppa.pdf' })],
+                4: [makeApiDocument({ id: 714, type: 'do', filename: 'do.pdf' })],
+                5: [makeApiDocument({ id: 715, type: 'port_charges', filename: 'port-charges.pdf' })],
+                6: [makeApiDocument({ id: 716, type: 'releasing', filename: 'releasing.pdf' })],
             },
             isLoading: isRefreshingAfterCompletion,
         }));
@@ -476,7 +509,7 @@ describe('TrackingDetails', () => {
             ],
         });
 
-        fireEvent.click(screen.getByText('Upload 5'));
+        fireEvent.click(screen.getByText('Upload 7'));
         fireEvent.click(screen.getByText('Confirm upload'));
 
         await waitFor(() => {

@@ -18,6 +18,11 @@ class ExportStage extends Model
         'co_status',
         'co_completed_at',
         'co_completed_by',
+        'co_not_applicable',
+        // Phytosanitary
+        'phytosanitary_status',
+        'phytosanitary_completed_at',
+        'phytosanitary_completed_by',
         // CIL (Certificate of Inspection & Loading)
         'cil_status',
         'cil_completed_at',
@@ -26,17 +31,26 @@ class ExportStage extends Model
         'bl_status',
         'bl_completed_at',
         'bl_completed_by',
+        // Billing
+        'billing_status',
+        'billing_completed_at',
+        'billing_completed_by',
     ];
 
     protected $casts = [
         'docs_prep_completed_at' => 'datetime',
-        'co_completed_at'        => 'datetime',
-        'cil_completed_at'       => 'datetime',
-        'bl_completed_at'        => 'datetime',
-        'docs_prep_status'       => StageStatus::class,
-        'co_status'              => StageStatus::class,
-        'cil_status'             => StageStatus::class,
-        'bl_status'              => StageStatus::class,
+        'co_completed_at' => 'datetime',
+        'phytosanitary_completed_at' => 'datetime',
+        'cil_completed_at' => 'datetime',
+        'bl_completed_at' => 'datetime',
+        'billing_completed_at' => 'datetime',
+        'docs_prep_status' => StageStatus::class,
+        'co_status' => StageStatus::class,
+        'phytosanitary_status' => StageStatus::class,
+        'cil_status' => StageStatus::class,
+        'bl_status' => StageStatus::class,
+        'billing_status' => StageStatus::class,
+        'co_not_applicable' => 'boolean',
     ];
 
     // Relationships
@@ -55,6 +69,11 @@ class ExportStage extends Model
         return $this->belongsTo(User::class, 'co_completed_by');
     }
 
+    public function phytosanitaryCompletedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'phytosanitary_completed_by');
+    }
+
     public function cilCompletedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'cil_completed_by');
@@ -63,6 +82,11 @@ class ExportStage extends Model
     public function blCompletedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'bl_completed_by');
+    }
+
+    public function billingCompletedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'billing_completed_by');
     }
 
     // Helper methods
@@ -81,11 +105,11 @@ class ExportStage extends Model
 
     public function getCompletedStagesCount(): int
     {
-        $stages = ['docs_prep', 'co', 'cil', 'bl'];
+        $stages = ['docs_prep', 'bl', 'co', 'phytosanitary', 'cil', 'billing'];
         $count = 0;
 
         foreach ($stages as $stage) {
-            if ($this->{"{$stage}_status"} === 'completed') {
+            if ($this->{"{$stage}_status"} === StageStatus::Completed) {
                 $count++;
             }
         }
@@ -95,6 +119,6 @@ class ExportStage extends Model
 
     public function isAllComplete(): bool
     {
-        return $this->getCompletedStagesCount() === 4;
+        return $this->getCompletedStagesCount() === 6;
     }
 }

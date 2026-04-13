@@ -70,10 +70,12 @@ const DocumentActions = ({
 
 const DocumentChecklistSection = ({
     requiredDocuments,
+    summary,
     onPreview,
     onDownload,
 }: {
     requiredDocuments: AdminReviewRequiredDocument[];
+    summary: AdminReviewDetailResponse['summary'];
     onPreview: (file: AdminReviewDocumentFile, typeKey: string) => void;
     onDownload: (file: AdminReviewDocumentFile) => void;
 }) => (
@@ -81,27 +83,35 @@ const DocumentChecklistSection = ({
         <SectionHeading
             accentClassName="bg-blue-500"
             title="Document Checklist"
-            meta={`${requiredDocuments.filter((d) => d.uploaded).length}/${requiredDocuments.length} stages filled`}
+            meta={`${summary.required_completed}/${summary.required_total} required stages filled`}
         />
         <div className="overflow-hidden rounded-xl border border-border bg-surface divide-y divide-border">
             {requiredDocuments.map((document) => {
                 const files = normalizeRequiredDocumentFiles(document);
+                const isMissing = !document.uploaded && !document.not_applicable;
 
                 return (
                     <div
                         key={document.type_key}
                         className={`flex flex-col gap-3 px-4 py-3 ${
-                            document.uploaded ? '' : 'bg-red-500/5'
+                            isMissing ? 'bg-red-500/5' : ''
                         }`}
                     >
                         <div className="flex items-center justify-between">
                             <div className="flex min-w-0 items-center gap-3">
                                 <div
                                     className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${
-                                        document.uploaded ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'
+                                        document.uploaded
+                                            ? 'bg-emerald-500/10 text-emerald-500'
+                                            : document.not_applicable
+                                                ? 'bg-amber-500/10 text-amber-500'
+                                                : 'bg-red-500/10 text-red-500'
                                     }`}
                                 >
-                                    <Icon name={document.uploaded ? 'check-circle' : 'x'} className="h-3.5 w-3.5" />
+                                    <Icon
+                                        name={document.uploaded ? 'check-circle' : document.not_applicable ? 'ban' : 'x'}
+                                        className="h-3.5 w-3.5"
+                                    />
                                 </div>
                                 <div className="flex items-center gap-1.5 flex-wrap">
                                     <p className="text-sm font-semibold text-text-primary" title={document.label}>{document.label}</p>
@@ -110,11 +120,15 @@ const DocumentChecklistSection = ({
                                     </span>
                                 </div>
                             </div>
-                            {!document.uploaded && (
+                            {document.not_applicable ? (
+                                <span className="rounded-md border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-amber-600">
+                                    N/A
+                                </span>
+                            ) : !document.uploaded ? (
                                 <span className="rounded-md border border-red-500/20 bg-red-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-red-600">
                                     Missing
                                 </span>
-                            )}
+                            ) : null}
                         </div>
 
                         {files.length > 0 && (
@@ -395,6 +409,7 @@ export const AdminReviewDetailPane = ({
                     <div className="min-w-0 flex-1">
                         <DocumentChecklistSection
                             requiredDocuments={detailData.required_documents}
+                            summary={detailData.summary}
                             onPreview={onPreview}
                             onDownload={onDownload}
                         />

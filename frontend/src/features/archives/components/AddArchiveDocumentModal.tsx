@@ -37,6 +37,7 @@ export const AddArchiveDocumentModal: React.FC<AddArchiveDocumentModalProps> = (
         acc[document.stage] = (acc[document.stage] ?? 0) + 1;
         return acc;
     }, {});
+    const notApplicableStages = new Set(existingDocs.flatMap((document) => document.not_applicable_stages ?? []));
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const nextFiles = Array.from(e.target.files ?? []);
@@ -118,23 +119,29 @@ export const AddArchiveDocumentModal: React.FC<AddArchiveDocumentModalProps> = (
                         <div className="grid grid-cols-2 gap-2">
                             {allStages.map((stage) => {
                                 const count = stageDocCount[stage.key] ?? 0;
+                                const isNotApplicable = notApplicableStages.has(stage.key);
                                 const isSelected = selectedStage === stage.key;
                                 const cardClass = isSelected
                                     ? 'border-green-500 bg-green-500/10 ring-1 ring-green-500/30'
-                                    : 'border-border-strong bg-input-bg hover:border-border hover:bg-hover';
+                                    : isNotApplicable
+                                        ? 'border-amber-500/30 bg-amber-500/10 opacity-80'
+                                        : 'border-border-strong bg-input-bg hover:border-border hover:bg-hover';
 
                                 return (
                                     <button
                                         key={stage.key}
                                         type="button"
+                                        disabled={isNotApplicable}
                                         onClick={() => { setSelectedStage(stage.key); setError(null); }}
-                                        className={`relative px-3 pt-2.5 pb-2 rounded-xl border text-left transition-all cursor-pointer ${cardClass}`}
+                                        className={`relative px-3 pt-2.5 pb-2 rounded-xl border text-left transition-all ${isNotApplicable ? 'cursor-not-allowed' : 'cursor-pointer'} ${cardClass}`}
                                     >
                                         <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
                                             <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
-                                                count > 0 ? 'bg-blue-500/15 text-blue-500' : 'bg-amber-400/10 text-amber-500'
+                                                isNotApplicable
+                                                    ? 'bg-amber-500/15 text-amber-600'
+                                                    : count > 0 ? 'bg-blue-500/15 text-blue-500' : 'bg-amber-400/10 text-amber-500'
                                             }`}>
-                                                {count > 0 ? `${count} file${count === 1 ? '' : 's'}` : 'Empty'}
+                                                {isNotApplicable ? 'N/A' : count > 0 ? `${count} file${count === 1 ? '' : 's'}` : 'Empty'}
                                             </span>
                                             {isSelected && (
                                                 <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-green-500 text-[9px] font-black text-white uppercase tracking-wider">
@@ -146,6 +153,11 @@ export const AddArchiveDocumentModal: React.FC<AddArchiveDocumentModalProps> = (
                                         <p className={`text-[12px] font-bold leading-snug ${isSelected ? 'text-text-primary' : 'text-text-primary'}`}>
                                             {stage.label}
                                         </p>
+                                        {isNotApplicable && (
+                                            <p className="mt-1 text-[10px] font-semibold text-amber-600">
+                                                This stage is marked as not applicable.
+                                            </p>
+                                        )}
                                     </button>
                                 );
                             })}

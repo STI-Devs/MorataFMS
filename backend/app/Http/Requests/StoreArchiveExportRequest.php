@@ -3,8 +3,10 @@
 namespace App\Http\Requests;
 
 use App\Models\Document;
+use App\Models\ExportTransaction;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class StoreArchiveExportRequest extends FormRequest
 {
@@ -35,7 +37,7 @@ class StoreArchiveExportRequest extends FormRequest
             'notes' => ['nullable', 'string', 'max:1000'],
 
             // Documents array (optional)
-            'documents' => ['nullable', 'array', 'list', 'max:10'],
+            'documents' => ['nullable', 'array', 'list'],
             'documents.*.file' => [
                 'required_with:documents',
                 'file',
@@ -46,6 +48,13 @@ class StoreArchiveExportRequest extends FormRequest
                 'required_with:documents',
                 'string',
                 Rule::in(Document::exportTypeKeys()),
+            ],
+            'not_applicable_stages' => ['nullable', 'array', 'list'],
+            'not_applicable_stages.*' => [
+                'required_with:not_applicable_stages',
+                'string',
+                'distinct',
+                Rule::in(ExportTransaction::optionalStageKeys()),
             ],
         ];
     }
@@ -65,9 +74,54 @@ class StoreArchiveExportRequest extends FormRequest
             'file_date.date' => 'Archive period must be a valid date.',
             'file_date.after_or_equal' => 'Archive period cannot be before year 2000.',
             'file_date.before_or_equal' => 'Archive date cannot be in the future. Archives are for past documents only.',
-            'documents.max' => 'You can upload up to 10 files per archive request.',
             'documents.*.file.max' => 'Each file must be 10MB or less.',
             'documents.*.file.mimes' => 'Only PDF, JPG, PNG, DOCX, XLSX, and CSV files are accepted.',
+            'not_applicable_stages.*.distinct' => 'Each optional stage can only be marked once.',
+        ];
+    }
+
+    public function after(): array
+    {
+        return [
+            function (Validator $validator): void {
+                $documents = collect($this->input('documents', []));
+
+                if ($documents->isEmpty()) {
+                    return;
+                }
+
+                $stageLabels = Document::getTypeLabels();
+                $notApplicableStages = collect($this->input('not_applicable_stages', []))
+                    ->filter(fn ($stage) => is_string($stage))
+                    ->values();
+
+                $notApplicableStages->each(function (string $stage) use ($validator, $stageLabels, $documents): void {
+                    if (! $documents->contains('stage', $stage)) {
+                        return;
+                    }
+
+                    $label = $stageLabels[$stage] ?? str($stage)->replace('_', ' ')->title()->value();
+                    $validator->errors()->add(
+                        'not_applicable_stages',
+                        "You cannot upload files for the {$label} stage while it is marked as not applicable.",
+                    );
+                });
+
+                $documents
+                    ->countBy('stage')
+                    ->each(function (int $count, string $stage) use ($validator, $stageLabels): void {
+                        if ($count <= 10) {
+                            return;
+                        }
+
+                        $label = $stageLabels[$stage] ?? str($stage)->replace('_', ' ')->title()->value();
+
+                        $validator->errors()->add(
+                            'documents',
+                            "You can upload up to 10 files for the {$label} stage.",
+                        );
+                    });
+            },
         ];
     }
 }

@@ -5,11 +5,13 @@ namespace App\Http\Controllers;
 use App\Enums\ExportStatus;
 use App\Http\Requests\CancelTransactionRequest;
 use App\Http\Requests\StoreExportTransactionRequest;
+use App\Http\Requests\UpdateExportStageApplicabilityRequest;
 use App\Http\Requests\UpdateExportTransactionRequest;
 use App\Http\Resources\ExportTransactionResource;
 use App\Models\ExportTransaction;
 use App\Support\Transactions\ExportStatusWorkflow;
 use App\Support\Transactions\TransactionSyncBroadcaster;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ExportTransactionController extends Controller
@@ -157,6 +159,36 @@ class ExportTransactionController extends Controller
 
         $export_transaction->load(['shipper', 'stages', 'assignedUser', 'destinationCountry']);
         $this->transactionSyncBroadcaster->transactionChanged($export_transaction, $request->user(), 'cancelled');
+
+        return new ExportTransactionResource($export_transaction);
+    }
+
+    public function updateStageApplicability(
+        UpdateExportStageApplicabilityRequest $request,
+        ExportTransaction $export_transaction,
+    ): ExportTransactionResource|JsonResponse {
+        $this->authorize('update', $export_transaction);
+
+        $validated = $request->validated();
+        $stage = $validated['stage'];
+        $notApplicable = (bool) $validated['not_applicable'];
+
+        if ($notApplicable && $export_transaction->documents()->where('type', $stage)->exists()) {
+            return response()->json([
+                'message' => 'You cannot mark this stage as not applicable after files have been uploaded to it.',
+            ], 422);
+        }
+
+        $export_transaction->loadMissing('stages');
+        $export_transaction->setStageApplicability($stage, $notApplicable, $request->user()->id);
+        $export_transaction->recalculateStatus();
+        $export_transaction->load(['shipper', 'stages', 'assignedUser', 'destinationCountry']);
+
+        $this->transactionSyncBroadcaster->transactionChanged(
+            $export_transaction,
+            $request->user(),
+            'stage_applicability_updated',
+        );
 
         return new ExportTransactionResource($export_transaction);
     }

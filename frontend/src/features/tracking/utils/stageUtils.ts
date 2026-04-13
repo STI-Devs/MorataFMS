@@ -6,10 +6,13 @@ export interface StageDefinition {
     icon:        IconName;
     description: string;
     type:        string;
+    supportsNotApplicable?: boolean;
 }
 
 export const IMPORT_STAGES: StageDefinition[] = [
     { title: 'BOC Document Processing',  icon: 'file-text',    description: 'Submit and process customs declaration at the Bureau of Customs.',    type: 'boc' },
+    { title: 'BONDS',                    icon: 'check-circle', description: 'Process customs bonds when the shipment requires them.',               type: 'bonds', supportsNotApplicable: true },
+    { title: 'Phytosanitary Certificates', icon: 'file-text',  description: 'Prepare and secure phytosanitary certificates for regulated cargo.',  type: 'phytosanitary' },
     { title: 'Payment for PPA Charges',  icon: 'truck',        description: 'Settle port and pier authority charges.',                              type: 'ppa' },
     { title: 'Delivery Order Request',   icon: 'file-text',    description: 'Request delivery order from the shipping line or agent.',             type: 'do' },
     { title: 'Payment for Port Charges', icon: 'file-text',    description: 'Pay remaining port storage and handling fees.',                       type: 'port_charges' },
@@ -19,8 +22,9 @@ export const IMPORT_STAGES: StageDefinition[] = [
 
 export const EXPORT_STAGES: StageDefinition[] = [
     { title: 'BOC Document Processing',    icon: 'file-text',    description: 'Submit export declaration at the Bureau of Customs.',             type: 'boc' },
-    { title: 'Bill of Lading Generation',  icon: 'file-text',    description: 'Coordinate with shipping line to issue the Bill of Lading.',      type: 'bl_generation' },
-    { title: 'CO Application & Releasing', icon: 'check-circle', description: 'Apply for and receive Certificate of Origin.',                    type: 'co' },
+    { title: 'Bill of Lading',             icon: 'file-text',    description: 'Coordinate with the shipping line to issue the Bill of Lading.',  type: 'bl_generation' },
+    { title: 'CO Application',             icon: 'check-circle', description: 'Apply for the Certificate of Origin when required.',              type: 'co', supportsNotApplicable: true },
+    { title: 'Phytosanitary Certificates', icon: 'file-text',    description: 'Prepare phytosanitary certificates for export shipments.',        type: 'phytosanitary' },
     { title: 'DCCCI Printing',             icon: 'file-text',    description: 'Print documents from DCCCI for export compliance.',                type: 'dccci' },
     { title: 'Billing of Liquidation',     icon: 'file-text',    description: 'Finalize billing and close out the export transaction.',           type: 'billing' },
 ];
@@ -74,30 +78,45 @@ export function getStatusStyle(status: string): { color: string; bg: string } {
 }
 
 /**
- * Derives a human-readable import status label from the set of uploaded document types.
+ * Derives a human-readable import status label from the set of uploaded stage types.
  * Used by the UI badge so it reflects document state without waiting for a DB status update.
  *
  * Import ladder:
- *   No docs → Pending → BOC → Vessel Arrived → PPA/DO/Port/Releasing → Processing → Billing → Completed
+ *   No stages → Pending → BOC → Vessel Arrived → Bonds/Phyto/PPA/DO/Port/Releasing → Processing → Billing → Completed
  */
-export function getImportDisplayStatus(docTypes: string[]): string {
-    if (docTypes.includes('billing'))                                                 return 'Completed';
-    if (docTypes.some(t => ['ppa', 'do', 'port_charges', 'releasing'].includes(t))) return 'Processing';
-    if (docTypes.includes('boc'))                                                     return 'Vessel Arrived';
+export function getImportDisplayStatus(uploadedStages: string[]): string {
+    if (uploadedStages.includes('billing')) {
+        return 'Completed';
+    }
+    if (uploadedStages.some((stage) => ['bonds', 'phytosanitary', 'ppa', 'do', 'port_charges', 'releasing'].includes(stage))) {
+        return 'Processing';
+    }
+    if (uploadedStages.includes('boc')) {
+        return 'Vessel Arrived';
+    }
+
     return 'Pending';
 }
 
 /**
- * Derives a human-readable export status label from the set of uploaded document types.
+ * Derives a human-readable export status label from the set of uploaded stage types.
  *
  * Export ladder:
- *   No docs → Pending → BOC → In Transit → BL → Departure → CO/DCCCI → Processing → Billing → Completed
+ *   No stages → Pending → BOC → In Transit → BL → Departure → CO/Phyto/DCCCI → Processing → Billing → Completed
  */
-export function getExportDisplayStatus(docTypes: string[]): string {
-    if (docTypes.includes('billing'))                              return 'Completed';
-    if (docTypes.some(t => ['co', 'dccci'].includes(t)))          return 'Processing';
-    if (docTypes.includes('bl_generation'))                        return 'Departure';
-    if (docTypes.includes('boc'))                                  return 'In Transit';
+export function getExportDisplayStatus(uploadedStages: string[]): string {
+    if (uploadedStages.includes('billing')) {
+        return 'Completed';
+    }
+    if (uploadedStages.some((stage) => ['co', 'phytosanitary', 'dccci'].includes(stage))) {
+        return 'Processing';
+    }
+    if (uploadedStages.includes('bl_generation')) {
+        return 'Departure';
+    }
+    if (uploadedStages.includes('boc')) {
+        return 'In Transit';
+    }
+
     return 'Pending';
 }
-

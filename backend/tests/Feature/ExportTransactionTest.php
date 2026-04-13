@@ -357,3 +357,25 @@ test('can update using same bl_no (unique validation ignores self)', function ()
 
     $response->assertOk();
 });
+
+test('marking an optional export stage as not applicable does not advance the live status', function () {
+    $user = User::factory()->create(['role' => 'encoder']);
+    $transaction = ExportTransaction::factory()->create([
+        'assigned_user_id' => $user->id,
+        'status' => 'Pending',
+    ]);
+
+    $this->actingAs($user)
+        ->patchJson("/api/export-transactions/{$transaction->id}/stage-applicability", [
+            'stage' => 'co',
+            'not_applicable' => true,
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.status', 'Pending')
+        ->assertJsonPath('data.not_applicable_stages.0', 'co');
+
+    $transaction->refresh()->load('stages');
+
+    expect($transaction->status->value)->toBe('Pending');
+    expect($transaction->stages->co_not_applicable)->toBeTrue();
+});

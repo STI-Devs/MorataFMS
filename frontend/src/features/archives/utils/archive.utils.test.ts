@@ -1,8 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import type { ArchiveYear } from '../../documents/types/document.types';
-import { computeGlobalCompleteness, countIncompleteBLs } from './archive.utils';
+import {
+    computeGlobalCompleteness,
+    countIncompleteBLs,
+    getArchiveBlCompletion,
+    resolveArchiveDrillTarget,
+} from './archive.utils';
 
-const buildArchiveYear = (stages: string[]): ArchiveYear => ({
+const buildArchiveYear = (
+    stages: string[],
+    notApplicableStages: string[] = [],
+): ArchiveYear => ({
     year: 2026,
     imports: 1,
     exports: 0,
@@ -24,6 +32,7 @@ const buildArchiveYear = (stages: string[]): ArchiveYear => ({
         archive_origin: 'direct_archive_upload',
         archived_at: '2026-04-06T04:39:14Z',
         uploaded_at: '2026-03-24T11:15:00Z',
+        not_applicable_stages: notApplicableStages,
         uploader: { id: 1, name: 'Encoder User' },
     })),
 });
@@ -31,7 +40,10 @@ const buildArchiveYear = (stages: string[]): ArchiveYear => ({
 describe('archive completeness', () => {
     it('treats import records with all required stages as complete even without others', () => {
         const archiveData = [
-            buildArchiveYear(['boc', 'ppa', 'do', 'port_charges', 'releasing', 'billing']),
+            buildArchiveYear(
+                ['boc', 'phytosanitary', 'ppa', 'do', 'port_charges', 'releasing', 'billing'],
+                ['bonds'],
+            ),
         ];
 
         expect(computeGlobalCompleteness(archiveData)).toBe(100);
@@ -45,5 +57,42 @@ describe('archive completeness', () => {
 
         expect(computeGlobalCompleteness(archiveData)).toBe(0);
         expect(countIncompleteBLs(archiveData)).toBe(1);
+    });
+
+    it('treats optional stages marked as N/A as complete in per-BL completion counts', () => {
+        const archiveData = [
+            buildArchiveYear(
+                ['boc', 'phytosanitary', 'ppa', 'do', 'port_charges', 'releasing', 'billing'],
+                ['bonds'],
+            ),
+        ];
+
+        const completion = getArchiveBlCompletion(archiveData[0].documents, 'import');
+
+        expect(completion.isComplete).toBe(true);
+        expect(completion.doneCount).toBe(7);
+        expect(completion.requiredStages).toHaveLength(7);
+        expect(completion.notApplicableStages).toEqual(['bonds']);
+    });
+
+    it('resolves a newly uploaded archive target to the file drill view', () => {
+        const archiveData = [
+            buildArchiveYear(['boc', 'billing']),
+        ];
+
+        expect(resolveArchiveDrillTarget(archiveData, {
+            type: 'import',
+            transactionId: 1,
+            blNo: 'BL-1234567',
+            year: 2026,
+            month: 4,
+            uploadedCount: 2,
+        })).toEqual({
+            level: 'files',
+            year: archiveData[0],
+            type: 'import',
+            month: 4,
+            bl: 'BL-1234567',
+        });
     });
 });

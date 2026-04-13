@@ -4,13 +4,21 @@ namespace App\Http\Controllers;
 
 use App\Actions\Archives\CreateArchiveExport;
 use App\Actions\Archives\CreateArchiveImport;
+use App\Enums\ArchiveOrigin;
 use App\Http\Requests\StoreArchiveExportRequest;
 use App\Http\Requests\StoreArchiveImportRequest;
 use App\Http\Resources\ExportTransactionResource;
 use App\Http\Resources\ImportTransactionResource;
+use App\Models\ExportTransaction;
+use App\Models\ImportTransaction;
+use App\Models\User;
 use App\Queries\Archives\ArchiveIndexQuery;
+use App\Support\Operations\Deletion\Transactions\TransactionDeletionExecutor;
+use App\Support\Operations\Deletion\Transactions\TransactionDeletionPlanner;
 use App\Support\Transactions\TransactionSyncBroadcaster;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 
 /**
  * Handles legacy archive uploads and listing.
@@ -31,6 +39,8 @@ class ArchiveController extends Controller
         private CreateArchiveExport $createArchiveExport,
         private ArchiveIndexQuery $archiveIndexQuery,
         private TransactionSyncBroadcaster $transactionSyncBroadcaster,
+        private TransactionDeletionPlanner $transactionDeletionPlanner,
+        private TransactionDeletionExecutor $transactionDeletionExecutor,
     ) {}
 
     /**
@@ -97,5 +107,46 @@ class ArchiveController extends Controller
         return (new ExportTransactionResource($transaction))
             ->response()
             ->setStatusCode(201);
+    }
+
+    public function rollbackImport(Request $request, ImportTransaction $importTransaction): Response
+    {
+        $this->authorizeArchiveRollback($request->user(), $importTransaction);
+
+        $plan = $this->transactionDeletionPlanner->build([$importTransaction->id], [], config('database.default'));
+
+        $this->transactionSyncBroadcaster->transactionChanged($importTransaction, $request->user(), 'archive_rolled_back');
+        $this->transactionDeletionExecutor->delete($plan, true);
+
+        return response()->noContent();
+    }
+
+    public function rollbackExport(Request $request, ExportTransaction $exportTransaction): Response
+    {
+        $this->authorizeArchiveRollback($request->user(), $exportTransaction);
+
+        $plan = $this->transactionDeletionPlanner->build([], [$exportTransaction->id], config('database.default'));
+
+        $this->transactionSyncBroadcaster->transactionChanged($exportTransaction, $request->user(), 'archive_rolled_back');
+        $this->transactionDeletionExecutor->delete($plan, true);
+
+        return response()->noContent();
+    }
+
+    private function authorizeArchiveRollback(
+        User $user,
+        ImportTransaction|ExportTransaction $transaction,
+    ): void {
+        if (! $transaction->is_archive || $transaction->archive_origin !== ArchiveOrigin::DirectArchiveUpload) {
+            abort(404, 'Archive transaction not found.');
+        }
+
+        if ($user->isAdmin()) {
+            return;
+        }
+
+        if (! $user->hasBrokerageAccess() || $transaction->assigned_user_id !== $user->id) {
+            abort(403, 'You are not allowed to roll back this archive upload.');
+        }
     }
 }

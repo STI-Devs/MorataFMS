@@ -1,5 +1,6 @@
 import {
     getRequiredArchiveStages,
+    type ArchiveDocument,
     type ArchiveYear,
     type TransactionType,
 } from '../../documents/types/document.types';
@@ -14,6 +15,15 @@ export type DrillState =
 export type ViewMode = 'folder' | 'document';
 export type DocStatusFilter = 'all' | 'complete' | 'incomplete';
 export type SortKey = 'bl' | 'client' | 'period' | 'files';
+
+export interface ArchiveUploadSuccessTarget {
+    type: TransactionType;
+    transactionId: number;
+    blNo: string;
+    year: number;
+    month: number;
+    uploadedCount: number;
+}
 
 const ROLE_RANK: Record<string, number> = {
     encoder: 1, paralegal: 2, admin: 3,
@@ -32,38 +42,108 @@ export const MONTH_NAMES = [
 export const toTitleCase = (str: string) =>
     str.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
 
+export const getArchiveBlCompletion = (
+    blDocs: ArchiveDocument[],
+    typeOverride?: TransactionType,
+) => {
+    const type = typeOverride ?? blDocs[0]?.type ?? 'import';
+    const uploadedStages = new Set(blDocs.map((doc) => doc.stage));
+    const notApplicableStages = [...new Set(blDocs.flatMap((doc) => doc.not_applicable_stages ?? []))];
+    const requiredStages = getRequiredArchiveStages(type, notApplicableStages);
+    const doneCount = requiredStages.filter((stage) => uploadedStages.has(stage.key)).length;
+
+    return {
+        type,
+        uploadedStages,
+        notApplicableStages,
+        requiredStages,
+        doneCount,
+        isComplete: doneCount === requiredStages.length,
+    };
+};
+
 export const computeGlobalCompleteness = (archiveData: ArchiveYear[]): number => {
-    const blMap = new Map<string, { type: TransactionType; stages: Set<string> }>();
+    const blMap = new Map<string, { type: TransactionType; stages: Set<string>; notApplicableStages: Set<string> }>();
     for (const yearData of archiveData) {
         for (const doc of yearData.documents) {
             const key = `${doc.bl_no}|${doc.type}|${yearData.year}`;
-            if (!blMap.has(key)) blMap.set(key, { type: doc.type, stages: new Set() });
+            if (!blMap.has(key)) {
+                blMap.set(key, { type: doc.type, stages: new Set(), notApplicableStages: new Set() });
+            }
             blMap.get(key)!.stages.add(doc.stage);
+            doc.not_applicable_stages?.forEach((stage) => blMap.get(key)!.notApplicableStages.add(stage));
         }
     }
     if (blMap.size === 0) return 0;
     let complete = 0;
-    for (const { type, stages } of blMap.values()) {
-        const required = getRequiredArchiveStages(type);
+    for (const { type, stages, notApplicableStages } of blMap.values()) {
+        const required = getRequiredArchiveStages(type, [...notApplicableStages]);
         if (required.every(s => stages.has(s.key))) complete++;
     }
     return Math.round((complete / blMap.size) * 100);
 };
 
 export const countIncompleteBLs = (archiveData: ArchiveYear[]): number => {
-    const blMap = new Map<string, { type: TransactionType; stages: Set<string> }>();
+    const blMap = new Map<string, { type: TransactionType; stages: Set<string>; notApplicableStages: Set<string> }>();
     for (const yearData of archiveData) {
         for (const doc of yearData.documents) {
             const key = `${doc.bl_no}|${doc.type}|${yearData.year}`;
-            if (!blMap.has(key)) blMap.set(key, { type: doc.type, stages: new Set() });
+            if (!blMap.has(key)) {
+                blMap.set(key, { type: doc.type, stages: new Set(), notApplicableStages: new Set() });
+            }
             blMap.get(key)!.stages.add(doc.stage);
+            doc.not_applicable_stages?.forEach((stage) => blMap.get(key)!.notApplicableStages.add(stage));
         }
     }
     let incomplete = 0;
-    for (const { type, stages } of blMap.values()) {
-        const required = getRequiredArchiveStages(type);
+    for (const { type, stages, notApplicableStages } of blMap.values()) {
+        const required = getRequiredArchiveStages(type, [...notApplicableStages]);
         if (!required.every(s => stages.has(s.key))) incomplete++;
     }
     return incomplete;
+};
+
+export const resolveArchiveDrillTarget = (
+    archiveData: ArchiveYear[],
+    target: ArchiveUploadSuccessTarget,
+): DrillState | null => {
+    const normalizedBl = target.blNo || '(no BL)';
+    const yearMatch = archiveData.find((yearData) =>
+        yearData.year === target.year
+        && yearData.documents.some((doc) => doc.transaction_id === target.transactionId),
+    );
+
+    if (yearMatch) {
+        const matchingDocument = yearMatch.documents.find((doc) => doc.transaction_id === target.transactionId);
+
+        return {
+            level: 'files',
+            year: yearMatch,
+            type: matchingDocument?.type ?? target.type,
+            month: matchingDocument?.month ?? target.month,
+            bl: matchingDocument?.bl_no || normalizedBl,
+        };
+    }
+
+    const fallbackYear = archiveData.find((yearData) =>
+        yearData.year === target.year
+        && yearData.documents.some((doc) =>
+            doc.type === target.type
+            && doc.month === target.month
+            && (doc.bl_no || '(no BL)') === normalizedBl,
+        ),
+    );
+
+    if (!fallbackYear) {
+        return null;
+    }
+
+    return {
+        level: 'files',
+        year: fallbackYear,
+        type: target.type,
+        month: target.month,
+        bl: normalizedBl,
+    };
 };
 
