@@ -10,6 +10,7 @@ import { appRoutes } from '../../../lib/appRoutes';
 import { getStatusStyle } from '../../../lib/statusStyles';
 import { trackingApi } from '../../tracking/api/trackingApi';
 import { useTransactionDetail } from '../../tracking/hooks/useTransactionDetail';
+import { EXPORT_STAGES, IMPORT_STAGES } from '../types/document.types';
 import type {
     ApiDocument,
     ApiExportTransaction,
@@ -27,6 +28,8 @@ interface TransactionDoc {
     id: number;
     name: string;
     fileType: DocFileType;
+    stageKey: string;
+    stageLabel: string;
     date: string;
     uploader: { name: string; initials: string; avatarColor: string };
     size: string;
@@ -50,6 +53,30 @@ const AVATAR_COLORS = [
     'bg-cyan-500', 'bg-teal-500',
 ];
 
+const STAGE_COLORS: Record<string, { color: string; bg: string }> = {
+    boc:           { color: '#f97316', bg: 'rgba(249,115,22,0.1)' },
+    ppa:           { color: '#3b82f6', bg: 'rgba(59,130,246,0.1)' },
+    do:            { color: '#8b5cf6', bg: 'rgba(139,92,246,0.1)' },
+    port_charges:  { color: '#06b6d4', bg: 'rgba(6,182,212,0.1)' },
+    releasing:     { color: '#22c55e', bg: 'rgba(34,197,94,0.1)' },
+    billing:       { color: '#ff9f0a', bg: 'rgba(255,159,10,0.1)' },
+    docs_prep:     { color: '#a855f7', bg: 'rgba(168,85,247,0.1)' },
+    bl_generation: { color: '#f97316', bg: 'rgba(249,115,22,0.1)' },
+    bl:            { color: '#f97316', bg: 'rgba(249,115,22,0.1)' },
+    co:            { color: '#3b82f6', bg: 'rgba(59,130,246,0.1)' },
+    cil:           { color: '#ec4899', bg: 'rgba(236,72,153,0.1)' },
+    dccci:         { color: '#22c55e', bg: 'rgba(34,197,94,0.1)' },
+    others:        { color: '#6b7280', bg: 'rgba(107,114,128,0.1)' },
+};
+
+const IMPORT_STAGE_LABELS = Object.fromEntries(
+    IMPORT_STAGES.map((stage) => [stage.key, stage.label]),
+) as Record<string, string>;
+
+const EXPORT_STAGE_LABELS = Object.fromEntries(
+    EXPORT_STAGES.map((stage) => [stage.key, stage.label]),
+) as Record<string, string>;
+
 function toTitleCase(str: string): string {
     if (!str || str === '\u2014') return str;
     return str.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
@@ -60,6 +87,20 @@ function formatDate(dateStr: string): string {
     const d = new Date(dateStr + 'T00:00:00');
     if (isNaN(d.getTime())) return dateStr;
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function formatStageFallback(stageKey: string): string {
+    return stageKey
+        .split('_')
+        .filter(Boolean)
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ');
+}
+
+function getStageLabel(stageKey: string, isImport: boolean): string {
+    const labelMap = isImport ? IMPORT_STAGE_LABELS : EXPORT_STAGE_LABELS;
+
+    return labelMap[stageKey] ?? formatStageFallback(stageKey);
 }
 
 
@@ -93,12 +134,15 @@ function formatBytes(bytes: number): string {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function mapDocument(doc: ApiDocument): TransactionDoc {
+function mapDocument(doc: ApiDocument, isImport: boolean): TransactionDoc {
     const uploaderName = doc.uploaded_by?.name ?? 'Unknown';
+
     return {
         id:       doc.id,
         name:     doc.filename,
         fileType: getFileType(doc.filename),
+        stageKey: doc.type,
+        stageLabel: getStageLabel(doc.type, isImport),
         date:     doc.created_at.slice(0, 10),
         uploader: {
             name:        uploaderName,
@@ -160,7 +204,7 @@ export const DocumentsDetail = () => {
         txnFound,
     );
 
-    const documents: TransactionDoc[] = apiDocuments.map(mapDocument);
+    const documents: TransactionDoc[] = apiDocuments.map((doc) => mapDocument(doc, isImport));
 
     const { mutate: uploadDocument, isPending: isUploading } = useUploadDocument();
     const rawImport: ApiImportTransaction | null = txDetail?.isImport
@@ -170,20 +214,28 @@ export const DocumentsDetail = () => {
         ? txDetail.raw as ApiExportTransaction
         : null;
 
-    const handleUpload = (file: File) => {
+    const handleUpload = async (files: File[]) => {
         setUploadError(undefined);
-        uploadDocument(
-            {
-                file,
-                type:               'others',
-                documentable_type:  documentableType,
-                documentable_id:    txnId,
-            },
-            {
-                onSuccess: () => setIsUploadOpen(false),
-                onError:   () => setUploadError('Upload failed. Please try again.'),
-            },
-        );
+        await new Promise<void>((resolve, reject) => {
+            uploadDocument(
+                {
+                    files,
+                    type: 'others',
+                    documentable_type: documentableType,
+                    documentable_id: txnId,
+                },
+                {
+                    onSuccess: () => {
+                        setIsUploadOpen(false);
+                        resolve();
+                    },
+                    onError: () => {
+                        setUploadError('Upload failed. Please try again.');
+                        reject(new Error('Upload failed. Please try again.'));
+                    },
+                },
+            );
+        });
     };
 
     const displayRef    = ref ?? '';
@@ -368,7 +420,23 @@ export const DocumentsDetail = () => {
                                 style={{ gridTemplateColumns: '40px 2.5fr 1fr 1.4fr 80px 90px' }}
                             >
                                 <FileTypeIcon type={doc.fileType} />
-                                <p className="text-sm font-semibold text-text-primary truncate">{doc.name}</p>
+                                <div className="min-w-0 flex items-center gap-2">
+                                    <p className="min-w-0 truncate text-sm font-semibold text-text-primary">
+                                        {doc.name}
+                                    </p>
+                                    {(() => {
+                                        const sc = STAGE_COLORS[doc.stageKey] ?? { color: '#9ca3af', bg: 'rgba(156,163,175,0.1)' };
+                                        return (
+                                            <span 
+                                                className="inline-flex shrink-0 items-center px-2 py-0.5 rounded-md text-[10px] font-semibold"
+                                                style={{ color: sc.color, backgroundColor: sc.bg }}
+                                                title={doc.stageLabel}
+                                            >
+                                                {doc.stageLabel}
+                                            </span>
+                                        );
+                                    })()}
+                                </div>
                                 <p className="text-sm font-semibold text-text-secondary">{formatDate(doc.date)}</p>
                                 <div className="flex items-center gap-2">
                                     <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold text-white shrink-0 ${doc.uploader.avatarColor}`}>

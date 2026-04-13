@@ -288,6 +288,41 @@ test('file upload validates file size limit', function () {
     $response->assertJsonValidationErrors(['file']);
 });
 
+test('file upload returns a clear message when php rejects the uploaded file before validation', function () {
+    $user = User::factory()->create(['role' => 'encoder']);
+    $import = ImportTransaction::factory()->create(['assigned_user_id' => $user->id]);
+    $temporaryFile = tempnam(sys_get_temp_dir(), 'upload-test-');
+
+    expect($temporaryFile)->not->toBeFalse();
+
+    file_put_contents($temporaryFile, 'test');
+
+    $file = new UploadedFile(
+        $temporaryFile,
+        'too-large.png',
+        'image/png',
+        UPLOAD_ERR_INI_SIZE,
+        true,
+    );
+
+    $this->actingAs($user);
+
+    $response = $this->postJson('/api/documents', [
+        'file' => $file,
+        'type' => 'boc',
+        'documentable_type' => ImportTransaction::class,
+        'documentable_id' => $import->id,
+    ]);
+
+    unlink($temporaryFile);
+
+    $response->assertStatus(422);
+    $response->assertJsonPath(
+        'errors.file.0',
+        'The file could not be uploaded by the server. If the file is within the 10 MB app limit, increase the PHP upload limit and try again.',
+    );
+});
+
 test('file upload validates document type', function () {
     $user = User::factory()->create(['role' => 'encoder']);
     $import = ImportTransaction::factory()->create(['assigned_user_id' => $user->id]);

@@ -69,6 +69,8 @@ class StoreDocumentRequest extends FormRequest
     {
         return [
             'file.required' => 'Please select a file to upload.',
+            'file.uploaded' => 'The file could not be uploaded by the server. If the file is within the 10 MB app limit, increase the PHP upload limit and try again.',
+            'file.file' => 'The file could not be uploaded by the server. If the file is within the 10 MB app limit, increase the PHP upload limit and try again.',
             'file.max' => 'The file must not be larger than 10 MB.',
             'file.mimes' => 'Only PDF, Office documents, and images are allowed.',
             'type.in' => 'Invalid document type selected.',

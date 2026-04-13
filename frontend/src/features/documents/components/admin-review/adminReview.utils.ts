@@ -2,7 +2,7 @@ import type { ApiDocument } from '../../../tracking/types';
 import type {
     AdminReviewReadinessFilter,
     AdminReviewQueueItem,
-    AdminReviewRequiredDocument,
+    AdminReviewDocumentFile,
     TransactionType,
 } from '../../types/document.types';
 
@@ -99,21 +99,21 @@ export const extractErrorMessage = (error: unknown) => {
     return 'Failed to archive transaction.';
 };
 
-export const toPreviewDocument = (document: AdminReviewRequiredDocument): ApiDocument | null => {
-    if (!document.file) {
+export const toPreviewDocument = (file: AdminReviewDocumentFile | null, typeKey: string): ApiDocument | null => {
+    if (!file) {
         return null;
     }
 
     return {
-        id: document.file.id,
-        type: document.type_key,
-        filename: document.file.filename,
+        id: file.id,
+        type: typeKey,
+        filename: file.filename,
         size_bytes: 0,
-        formatted_size: document.file.size,
+        formatted_size: file.size,
         version: 1,
-        download_url: `/api/documents/${document.file.id}/download`,
-        uploaded_by: document.file.uploaded_by ? { id: 0, name: document.file.uploaded_by } : null,
-        created_at: document.file.uploaded_at ?? '',
-        updated_at: document.file.uploaded_at ?? '',
+        download_url: `/api/documents/${file.id}/download`,
+        uploaded_by: file.uploaded_by ? { id: 0, name: file.uploaded_by } : null,
+        created_at: file.uploaded_at ?? '',
+        updated_at: file.uploaded_at ?? '',
     };
 };

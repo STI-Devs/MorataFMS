@@ -1,9 +1,11 @@
+import { QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthProvider } from './AuthContext';
 import { resetAuthProviderStateForTests } from './authProviderState';
 import { useAuth } from '../hooks/useAuth';
 import type { User } from '../types/auth.types';
+import { createTestQueryClient } from '../../../test/renderWithProviders';
 
 const { mockGetCurrentUser, mockLogin, mockLogout } = vi.hoisted(() => ({
     mockGetCurrentUser: vi.fn(),
@@ -75,6 +77,20 @@ function AuthProbe() {
     );
 }
 
+function renderAuthProvider() {
+    const queryClient = createTestQueryClient();
+
+    render(
+        <QueryClientProvider client={queryClient}>
+            <AuthProvider>
+                <AuthProbe />
+            </AuthProvider>
+        </QueryClientProvider>,
+    );
+
+    return queryClient;
+}
+
 describe('AuthProvider', () => {
     beforeEach(() => {
         mockGetCurrentUser.mockReset();
@@ -86,11 +102,7 @@ describe('AuthProvider', () => {
     it('restores the authenticated user from the backend during auth bootstrap', async () => {
         mockGetCurrentUser.mockResolvedValue(authenticatedUser);
 
-        render(
-            <AuthProvider>
-                <AuthProbe />
-            </AuthProvider>,
-        );
+        renderAuthProvider();
 
         await waitFor(() => {
             expect(screen.getByTestId('loading')).toHaveTextContent('false');
@@ -108,11 +120,7 @@ describe('AuthProvider', () => {
             },
         });
 
-        render(
-            <AuthProvider>
-                <AuthProbe />
-            </AuthProvider>,
-        );
+        renderAuthProvider();
 
         await waitFor(() => {
             expect(screen.getByTestId('loading')).toHaveTextContent('false');
@@ -130,11 +138,7 @@ describe('AuthProvider', () => {
             }),
         );
 
-        render(
-            <AuthProvider>
-                <AuthProbe />
-            </AuthProvider>,
-        );
+        renderAuthProvider();
 
         await waitFor(() => {
             expect(screen.getByTestId('loading')).toHaveTextContent('false');
@@ -149,11 +153,8 @@ describe('AuthProvider', () => {
             user: authenticatedUser,
         });
 
-        render(
-            <AuthProvider>
-                <AuthProbe />
-            </AuthProvider>,
-        );
+        const queryClient = renderAuthProvider();
+        const clearSpy = vi.spyOn(queryClient, 'clear');
 
         await waitFor(() => {
             expect(screen.getByTestId('loading')).toHaveTextContent('false');
@@ -166,6 +167,7 @@ describe('AuthProvider', () => {
         });
 
         expect(screen.getByTestId('name')).toHaveTextContent(authenticatedUser.name);
+        expect(clearSpy).toHaveBeenCalledTimes(1);
     });
 
     it('clears auth state when logout fails', async () => {
@@ -174,11 +176,8 @@ describe('AuthProvider', () => {
         mockGetCurrentUser.mockResolvedValue(authenticatedUser);
         mockLogout.mockRejectedValue(new Error('Network failure'));
 
-        render(
-            <AuthProvider>
-                <AuthProbe />
-            </AuthProvider>,
-        );
+        const queryClient = renderAuthProvider();
+        const clearSpy = vi.spyOn(queryClient, 'clear');
 
         await waitFor(() => {
             expect(screen.getByTestId('authenticated')).toHaveTextContent('true');
@@ -191,7 +190,27 @@ describe('AuthProvider', () => {
         });
 
         expect(screen.getByTestId('name')).toHaveTextContent('none');
+        expect(clearSpy).toHaveBeenCalledTimes(1);
 
         consoleErrorSpy.mockRestore();
+    });
+
+    it('clears cached queries when an authenticated session becomes unauthorized', async () => {
+        mockGetCurrentUser.mockResolvedValue(authenticatedUser);
+
+        const queryClient = renderAuthProvider();
+        const clearSpy = vi.spyOn(queryClient, 'clear');
+
+        await waitFor(() => {
+            expect(screen.getByTestId('authenticated')).toHaveTextContent('true');
+        });
+
+        window.dispatchEvent(new Event('auth:unauthorized'));
+
+        await waitFor(() => {
+            expect(screen.getByTestId('authenticated')).toHaveTextContent('false');
+        });
+
+        expect(clearSpy).toHaveBeenCalledTimes(1);
     });
 });

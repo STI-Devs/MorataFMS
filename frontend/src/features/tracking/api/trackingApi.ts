@@ -1,4 +1,5 @@
 import api from '../../../lib/axios';
+import { getMaxFilesErrorMessage, MAX_MULTI_UPLOAD_FILES } from '../../../lib/uploads';
 import type {
     ApiClient,
     ApiCountry,
@@ -13,6 +14,7 @@ import type {
     PaginatedResponse,
     TransactionStats,
     UploadDocumentPayload,
+    UploadDocumentsPayload,
 } from '../types';
 
 const MAX_PAGE_SIZE = 500;
@@ -37,6 +39,40 @@ async function fetchAllPages<T>(
     }
 
     return allRows;
+}
+
+function getUploadErrorMessage(error: unknown): string {
+    const responseData = (error as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } })?.response?.data;
+    const validationMessage = responseData?.errors
+        ? Object.values(responseData.errors).flat().find((message) => typeof message === 'string' && message.trim().length > 0)
+        : null;
+
+    return validationMessage
+        ?? responseData?.message
+        ?? (error instanceof Error ? error.message : null)
+        ?? 'Upload failed. Please try again.';
+}
+
+function withUploadErrorMessage(error: unknown, message: string): Error {
+    if (error && typeof error === 'object') {
+        const errorRecord = error as {
+            message?: string;
+            response?: {
+                data?: {
+                    message?: string;
+                };
+            };
+        };
+
+        errorRecord.message = message;
+        errorRecord.response ??= {};
+        errorRecord.response.data ??= {};
+        errorRecord.response.data.message = message;
+
+        return error as Error;
+    }
+
+    return new Error(message);
 }
 
 export const trackingApi = {
@@ -256,6 +292,43 @@ export const trackingApi = {
             headers: { 'Content-Type': 'multipart/form-data' },
         });
         return response.data.data;
+    },
+
+    uploadDocuments: async (payload: UploadDocumentsPayload): Promise<ApiDocument[]> => {
+        if (payload.files.length > MAX_MULTI_UPLOAD_FILES) {
+            throw new Error(getMaxFilesErrorMessage());
+        }
+
+        const uploadedDocuments: ApiDocument[] = [];
+
+        for (const file of payload.files) {
+            try {
+                uploadedDocuments.push(await trackingApi.uploadDocument({
+                    file,
+                    type: payload.type,
+                    documentable_type: payload.documentable_type,
+                    documentable_id: payload.documentable_id,
+                }));
+            } catch (error) {
+                if (uploadedDocuments.length > 0) {
+                    await Promise.allSettled(
+                        uploadedDocuments.map((document) => trackingApi.deleteDocument(document.id)),
+                    );
+                }
+
+                const baseMessage = getUploadErrorMessage(error);
+                const rollbackMessage = uploadedDocuments.length > 0
+                    ? `Uploaded files were rolled back.`
+                    : 'Nothing was uploaded.';
+                const enhancedMessage = payload.files.length > 1
+                    ? `Failed to upload "${file.name}". ${rollbackMessage} ${baseMessage}`
+                    : baseMessage;
+
+                throw withUploadErrorMessage(error, enhancedMessage);
+            }
+        }
+
+        return uploadedDocuments;
     },
 
     downloadDocument: async (id: number, filename: string): Promise<void> => {

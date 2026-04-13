@@ -35,7 +35,7 @@ class StoreArchiveExportRequest extends FormRequest
             'notes' => ['nullable', 'string', 'max:1000'],
 
             // Documents array (optional)
-            'documents' => ['nullable', 'array'],
+            'documents' => ['nullable', 'array', 'list', 'max:10'],
             'documents.*.file' => [
                 'required_with:documents',
                 'file',
@@ -65,6 +65,7 @@ class StoreArchiveExportRequest extends FormRequest
             'file_date.date' => 'Archive period must be a valid date.',
             'file_date.after_or_equal' => 'Archive period cannot be before year 2000.',
             'file_date.before_or_equal' => 'Archive date cannot be in the future. Archives are for past documents only.',
+            'documents.max' => 'You can upload up to 10 files per archive request.',
             'documents.*.file.max' => 'Each file must be 10MB or less.',
             'documents.*.file.mimes' => 'Only PDF, JPG, PNG, DOCX, XLSX, and CSV files are accepted.',
         ];

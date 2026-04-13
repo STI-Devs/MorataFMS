@@ -149,7 +149,7 @@ export interface AdminReviewRequiredDocument {
     type_key: string;
     label: string;
     uploaded: boolean;
-    file: AdminReviewDocumentFile | null;
+    files: AdminReviewDocumentFile[];
 }
 
 export interface AdminReviewUploadedDocument {
@@ -210,7 +210,7 @@ export interface AdminReviewArchiveResponse {
 
 /** Per-stage file attachment used in the legacy upload form */
 export interface StageUpload {
-    file: File | null;
+    files: File[];
 }
 
 /** Top-level form state for ArchiveLegacyUploadPage */

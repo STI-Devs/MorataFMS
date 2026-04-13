@@ -637,6 +637,144 @@ test('archive listing only returns transactions with is_archive flag', function 
     expect($archiveDocument['archived_at'] ?? null)->not->toBeNull();
 });
 
+test('encoder my archive listing only returns documents uploaded by the current user', function () {
+    $encoder = User::factory()->create(['role' => 'encoder']);
+    $otherEncoder = User::factory()->create(['role' => 'encoder']);
+    $admin = User::factory()->create(['role' => 'admin']);
+    $importer = Client::factory()->importer()->create();
+    $shipper = Client::factory()->exporter()->create();
+    $country = Country::factory()->create();
+
+    $ownedImport = ImportTransaction::factory()->create([
+        'bl_no' => 'BL-MY-ARCHIVE-001',
+        'importer_id' => $importer->id,
+        'arrival_date' => '2024-06-15',
+        'status' => 'Completed',
+        'is_archive' => true,
+        'archived_at' => now(),
+        'archive_origin' => ArchiveOrigin::DirectArchiveUpload,
+        'assigned_user_id' => $encoder->id,
+    ]);
+    $ownedDocument = Document::factory()->create([
+        'documentable_type' => ImportTransaction::class,
+        'documentable_id' => $ownedImport->id,
+        'type' => 'boc',
+        'uploaded_by' => $encoder->id,
+    ]);
+
+    $otherImport = ImportTransaction::factory()->create([
+        'bl_no' => 'BL-OTHER-ARCHIVE-001',
+        'importer_id' => $importer->id,
+        'arrival_date' => '2024-06-16',
+        'status' => 'Completed',
+        'is_archive' => true,
+        'archived_at' => now(),
+        'archive_origin' => ArchiveOrigin::DirectArchiveUpload,
+        'assigned_user_id' => $otherEncoder->id,
+    ]);
+    Document::factory()->create([
+        'documentable_type' => ImportTransaction::class,
+        'documentable_id' => $otherImport->id,
+        'type' => 'boc',
+        'uploaded_by' => $otherEncoder->id,
+    ]);
+
+    $adminExport = ExportTransaction::factory()->create([
+        'bl_no' => 'BL-ADMIN-ARCHIVE-001',
+        'shipper_id' => $shipper->id,
+        'destination_country_id' => $country->id,
+        'export_date' => '2024-06-17',
+        'status' => 'Completed',
+        'is_archive' => true,
+        'archived_at' => now(),
+        'archive_origin' => ArchiveOrigin::DirectArchiveUpload,
+        'assigned_user_id' => $admin->id,
+    ]);
+    Document::factory()->create([
+        'documentable_type' => ExportTransaction::class,
+        'documentable_id' => $adminExport->id,
+        'type' => 'boc',
+        'uploaded_by' => $admin->id,
+    ]);
+
+    $response = $this->actingAs($encoder)
+        ->getJson('/api/archives?mine=1')
+        ->assertOk();
+
+    $documents = collect($response->json('data'))
+        ->pluck('documents')
+        ->flatten(1)
+        ->values();
+
+    expect($documents)->toHaveCount(1);
+    expect($documents->pluck('id')->all())->toBe([$ownedDocument->id]);
+    expect($documents->pluck('bl_no')->all())->toBe(['BL-MY-ARCHIVE-001']);
+    expect($documents->pluck('uploader.id')->all())->toBe([$encoder->id]);
+});
+
+test('encoder cannot access the full archive listing without the mine filter', function () {
+    $encoder = User::factory()->create(['role' => 'encoder']);
+
+    $this->actingAs($encoder)
+        ->getJson('/api/archives')
+        ->assertForbidden();
+});
+
+test('admin can access archive documents uploaded by every user', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $encoder = User::factory()->create(['role' => 'encoder']);
+    $otherEncoder = User::factory()->create(['role' => 'encoder']);
+    $importer = Client::factory()->importer()->create();
+    $shipper = Client::factory()->exporter()->create();
+    $country = Country::factory()->create();
+
+    $encoderImport = ImportTransaction::factory()->create([
+        'bl_no' => 'BL-ADMIN-VIEW-IMP-001',
+        'importer_id' => $importer->id,
+        'arrival_date' => '2024-07-10',
+        'status' => 'Completed',
+        'is_archive' => true,
+        'archived_at' => now(),
+        'archive_origin' => ArchiveOrigin::DirectArchiveUpload,
+        'assigned_user_id' => $encoder->id,
+    ]);
+    Document::factory()->create([
+        'documentable_type' => ImportTransaction::class,
+        'documentable_id' => $encoderImport->id,
+        'type' => 'boc',
+        'uploaded_by' => $encoder->id,
+    ]);
+
+    $otherExport = ExportTransaction::factory()->create([
+        'bl_no' => 'BL-ADMIN-VIEW-EXP-001',
+        'shipper_id' => $shipper->id,
+        'destination_country_id' => $country->id,
+        'export_date' => '2024-07-11',
+        'status' => 'Completed',
+        'is_archive' => true,
+        'archived_at' => now(),
+        'archive_origin' => ArchiveOrigin::DirectArchiveUpload,
+        'assigned_user_id' => $otherEncoder->id,
+    ]);
+    Document::factory()->create([
+        'documentable_type' => ExportTransaction::class,
+        'documentable_id' => $otherExport->id,
+        'type' => 'boc',
+        'uploaded_by' => $otherEncoder->id,
+    ]);
+
+    $response = $this->actingAs($admin)
+        ->getJson('/api/archives')
+        ->assertOk();
+
+    $documents = collect($response->json('data'))
+        ->pluck('documents')
+        ->flatten(1);
+
+    expect($documents->pluck('bl_no')->all())
+        ->toContain('BL-ADMIN-VIEW-IMP-001', 'BL-ADMIN-VIEW-EXP-001');
+});
+
 test('archive import stores uploaded archive documents', function () {
     Storage::fake($this->documentDisk);
 
@@ -668,6 +806,55 @@ test('archive import stores uploaded archive documents', function () {
 
     expect($document)->not->toBeNull();
     Storage::disk($this->documentDisk)->assertExists($document->path);
+});
+
+test('archive import rejects more than 10 uploaded documents', function () {
+    $user = User::factory()->create(['role' => 'admin']);
+    $client = Client::factory()->importer()->create();
+
+    $documents = array_map(
+        fn (int $index) => [
+            'file' => UploadedFile::fake()->create("archive-import-{$index}.pdf", 100, 'application/pdf'),
+            'stage' => 'boc',
+        ],
+        range(1, 11),
+    );
+
+    $response = $this->actingAs($user)->post('/api/archives/import', [
+        'bl_no' => 'BL-ARCH-TOO-MANY-001',
+        'selective_color' => 'green',
+        'importer_id' => $client->id,
+        'file_date' => '2023-06-15',
+        'documents' => $documents,
+    ]);
+
+    $response->assertUnprocessable()->assertJsonValidationErrors(['documents']);
+    $response->assertJsonPath('errors.documents.0', 'You can upload up to 10 files per archive request.');
+});
+
+test('archive export rejects more than 10 uploaded documents', function () {
+    $user = User::factory()->create(['role' => 'admin']);
+    $client = Client::factory()->exporter()->create();
+    $country = Country::factory()->create();
+
+    $documents = array_map(
+        fn (int $index) => [
+            'file' => UploadedFile::fake()->create("archive-export-{$index}.pdf", 100, 'application/pdf'),
+            'stage' => 'boc',
+        ],
+        range(1, 11),
+    );
+
+    $response = $this->actingAs($user)->post('/api/archives/export', [
+        'bl_no' => 'BL-ARCH-TOO-MANY-EXP-001',
+        'shipper_id' => $client->id,
+        'destination_country_id' => $country->id,
+        'file_date' => '2023-06-15',
+        'documents' => $documents,
+    ]);
+
+    $response->assertUnprocessable()->assertJsonValidationErrors(['documents']);
+    $response->assertJsonPath('errors.documents.0', 'You can upload up to 10 files per archive request.');
 });
 
 test('archive document uploads keep the archive file date month in S3 paths', function () {

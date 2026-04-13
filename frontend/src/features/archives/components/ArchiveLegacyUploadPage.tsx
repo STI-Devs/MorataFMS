@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Icon } from '../../../components/Icon';
+import { getMaxFilesErrorMessage, MAX_MULTI_UPLOAD_FILES } from '../../../lib/uploads';
 import { StageUploadRow } from '../../documents/components/StageUploadRow';
 import type {
     ArchiveFormState,
@@ -36,7 +37,7 @@ const SectionHeader = ({ step, label }: { step: number; label: string }) => (
 );
 
 
-const EMPTY_STAGE_UPLOAD: StageUpload = { file: null };
+const EMPTY_STAGE_UPLOAD: StageUpload = { files: [] };
 
 const makeInitialForm = (year: number): ArchiveFormState => ({
     type: 'import',
@@ -61,6 +62,7 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
     const [stageUploads, setStageUploads] = useState<Record<string, StageUpload>>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [selectionError, setSelectionError] = useState<string | null>(null);
 
     // Smart date picker mode: 'month' = month-only precision, 'exact' = full date
     const [dateMode, setDateMode] = useState<'month' | 'exact'>('month');
@@ -150,7 +152,11 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
     };
 
     const stages = isImport ? IMPORT_STAGES : EXPORT_STAGES;
-    const uploadedCount = Object.values(stageUploads).filter(u => u.file !== null).length;
+    const uploadedCount = Object.values(stageUploads).reduce((count, upload) => count + upload.files.length, 0);
+
+    useEffect(() => {
+        setSelectionError(uploadedCount > MAX_MULTI_UPLOAD_FILES ? getMaxFilesErrorMessage() : null);
+    }, [uploadedCount]);
 
     const hasClient = useCustomClient ? form.client.trim().length > 0 : selectedClientId !== '';
     const hasBl = form.bl.trim().length >= 4;
@@ -159,7 +165,15 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
     const hasBlsc = !isImport || form.blsc !== '';
     const hasDate = dateMode === 'month' ? monthYear.length > 0 : form.fileDate.length > 0;
 
-    const canSubmit = hasClient && hasBl && blValid && hasCountry && hasBlsc && hasDate && uploadedCount > 0 && !isSubmitting;
+    const canSubmit = hasClient
+        && hasBl
+        && blValid
+        && hasCountry
+        && hasBlsc
+        && hasDate
+        && uploadedCount > 0
+        && uploadedCount <= MAX_MULTI_UPLOAD_FILES
+        && !isSubmitting;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -198,12 +212,12 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
                     : `${y}-${String(m).padStart(2, '0')}-${lastDay}`;
             }
 
-            const documents = Object.entries(stageUploads)
-                .filter(([, upload]) => upload.file !== null)
-                .map(([stage, upload]) => ({
-                    file: upload.file!,
+            const documents = Object.entries(stageUploads).flatMap(([stage, upload]) =>
+                upload.files.map((file) => ({
+                    file,
                     stage,
-                }));
+                })),
+            );
 
             if (isImport) {
                 await trackingApi.createArchiveImport({
@@ -455,7 +469,8 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
                 <div>
                     <SectionHeader step={3} label="Stage Documents" />
                     <p className="text-xs text-text-muted mb-4 -mt-2 ml-1">
-                        Attach a file to each stage that has a document to archive.
+                        Attach one or more files to each stage that has documents to archive.
+                        <span className="ml-1">Maximum {MAX_MULTI_UPLOAD_FILES} files per archive upload.</span>
                         {uploadedCount > 0 && (
                             <span
                                 className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/10 text-blue-500"
@@ -477,10 +492,10 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
                     </div>
                 </div>
 
-                {error && (
+                {(selectionError ?? error) && (
                     <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
                         <Icon name="alert-circle" className="w-4 h-4 text-red-500 shrink-0" />
-                        <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                        <p className="text-sm text-red-600 dark:text-red-400">{selectionError ?? error}</p>
                     </div>
                 )}
                 <div className="flex items-center gap-3 pt-4 border-t border-border">

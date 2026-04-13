@@ -195,3 +195,10 @@ export interface UploadDocumentPayload {
     documentable_id: number;
 }
 
+export interface UploadDocumentsPayload {
+    files: File[];
+    type: string;
+    documentable_type: DocumentableType;
+    documentable_id: number;
+}
+

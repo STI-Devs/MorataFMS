@@ -87,22 +87,22 @@ class AdminDocumentReviewController extends Controller
             'transaction' => $this->mapDetailTransaction($transaction, $type),
             'required_documents' => collect($requiredTypes)
                 ->map(function (string $typeKey) use ($documents, $labels): array {
-                    $document = $documents
+                    $stageDocuments = $documents
                         ->where('type', $typeKey)
                         ->sortByDesc(fn (Document $file) => $file->created_at?->getTimestamp() ?? 0)
-                        ->first();
+                        ->values();
 
                     return [
                         'type_key' => $typeKey,
                         'label' => $labels[$typeKey] ?? $typeKey,
-                        'uploaded' => $document !== null,
-                        'file' => $document ? [
-                            'id' => $document->id,
-                            'filename' => $document->filename,
-                            'size' => $document->formatted_size,
-                            'uploaded_by' => $document->uploadedBy?->name,
-                            'uploaded_at' => $this->formatDateTime($document->created_at),
-                        ] : null,
+                        'uploaded' => $stageDocuments->isNotEmpty(),
+                        'files' => $stageDocuments->map(fn (Document $file) => [
+                            'id' => $file->id,
+                            'filename' => $file->filename,
+                            'size' => $file->formatted_size,
+                            'uploaded_by' => $file->uploadedBy?->name,
+                            'uploaded_at' => $this->formatDateTime($file->created_at),
+                        ])->all(),
                     ];
                 })
                 ->values()
