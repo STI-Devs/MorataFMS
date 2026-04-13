@@ -13,9 +13,9 @@ class DocumentDeletionPlanner
     /**
      * @param  list<int>  $documentIds
      */
-    public function build(array $documentIds): DocumentDeletionPlan
+    public function build(array $documentIds, string $connectionName): DocumentDeletionPlan
     {
-        $documents = Document::query()
+        $documents = Document::on($connectionName)
             ->whereIn('id', $documentIds)
             ->get(['id', 'path', 'documentable_type', 'documentable_id']);
 
@@ -31,7 +31,7 @@ class DocumentDeletionPlanner
             ->values()
             ->all();
 
-        $remarkIds = TransactionRemark::query()
+        $remarkIds = TransactionRemark::on($connectionName)
             ->whereIn('document_id', $resolvedDocumentIds)
             ->pluck('id')
             ->map(fn (mixed $id): int => (int) $id)
@@ -57,7 +57,7 @@ class DocumentDeletionPlanner
         $existingAuditLogCount = 0;
 
         if ($resolvedDocumentIds !== [] || $remarkIds !== []) {
-            $existingAuditLogCount = AuditLog::query()
+            $existingAuditLogCount = AuditLog::on($connectionName)
                 ->where(function ($query) use ($resolvedDocumentIds, $remarkIds): void {
                     if ($resolvedDocumentIds !== []) {
                         $query->orWhere(function ($auditQuery) use ($resolvedDocumentIds): void {
@@ -85,6 +85,7 @@ class DocumentDeletionPlanner
             parentTransactions: $parentTransactions,
             existingAuditLogCount: $existingAuditLogCount,
             storageDisk: (string) config('filesystems.document_disk', 's3'),
+            connectionName: $connectionName,
         );
     }
 }

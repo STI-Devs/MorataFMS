@@ -16,12 +16,12 @@ class TransactionDeletionPlanner
      * @param  list<int>  $importIds
      * @param  list<int>  $exportIds
      */
-    public function build(array $importIds, array $exportIds): TransactionDeletionPlan
+    public function build(array $importIds, array $exportIds, string $connectionName): TransactionDeletionPlan
     {
         $documentIds = [];
 
         if ($importIds !== [] || $exportIds !== []) {
-            $documentIds = Document::query()
+            $documentIds = Document::on($connectionName)
                 ->where(function ($query) use ($importIds, $exportIds): void {
                     if ($importIds !== []) {
                         $query->orWhere(function ($documentQuery) use ($importIds): void {
@@ -44,7 +44,7 @@ class TransactionDeletionPlanner
                 ->all();
         }
 
-        $documentPaths = Document::query()
+        $documentPaths = Document::on($connectionName)
             ->whereIn('id', $documentIds)
             ->pluck('path')
             ->filter(fn (mixed $path): bool => is_string($path) && $path !== '')
@@ -55,7 +55,7 @@ class TransactionDeletionPlanner
         $remarkIds = [];
 
         if ($importIds !== [] || $exportIds !== []) {
-            $remarkIds = TransactionRemark::query()
+            $remarkIds = TransactionRemark::on($connectionName)
                 ->where(function ($query) use ($importIds, $exportIds): void {
                     if ($importIds !== []) {
                         $query->orWhere(function ($remarkQuery) use ($importIds): void {
@@ -81,7 +81,7 @@ class TransactionDeletionPlanner
         $existingAuditLogCount = 0;
 
         if ($importIds !== [] || $exportIds !== [] || $documentIds !== [] || $remarkIds !== []) {
-            $existingAuditLogCount = AuditLog::query()
+            $existingAuditLogCount = AuditLog::on($connectionName)
                 ->where(function ($query) use ($importIds, $exportIds, $documentIds, $remarkIds): void {
                     if ($importIds !== []) {
                         $query->orWhere(function ($auditQuery) use ($importIds): void {
@@ -120,11 +120,11 @@ class TransactionDeletionPlanner
 
         $importStageCount = $importIds === []
             ? 0
-            : ImportStage::query()->whereIn('import_transaction_id', $importIds)->count();
+            : ImportStage::on($connectionName)->whereIn('import_transaction_id', $importIds)->count();
 
         $exportStageCount = $exportIds === []
             ? 0
-            : ExportStage::query()->whereIn('export_transaction_id', $exportIds)->count();
+            : ExportStage::on($connectionName)->whereIn('export_transaction_id', $exportIds)->count();
 
         return new TransactionDeletionPlan(
             importIds: $importIds,
@@ -136,6 +136,7 @@ class TransactionDeletionPlanner
             exportStageCount: $exportStageCount,
             existingAuditLogCount: $existingAuditLogCount,
             storageDisk: (string) config('filesystems.document_disk', 's3'),
+            connectionName: $connectionName,
         );
     }
 }

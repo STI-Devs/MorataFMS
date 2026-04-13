@@ -41,12 +41,12 @@ class TransactionDeletionExecutor
     {
         $deletedAuditLogCount = 0;
 
-        DB::transaction(function () use ($plan, &$deletedAuditLogCount): void {
+        DB::connection($plan->connectionName)->transaction(function () use ($plan, &$deletedAuditLogCount): void {
             $this->deletesTransactionRemarks->delete($plan);
             $this->deletesTransactionDocuments->delete($plan);
             $this->deletesImportTransactions->delete($plan);
             $this->deletesExportTransactions->delete($plan);
-            $deletedAuditLogCount = $this->purgesAuditLogsForSubjects->delete($plan->auditableSubjects());
+            $deletedAuditLogCount = $this->purgesAuditLogsForSubjects->delete($plan->auditableSubjects(), $plan->connectionName);
         });
 
         $fileDeletion = [

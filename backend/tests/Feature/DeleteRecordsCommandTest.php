@@ -22,6 +22,7 @@ test('ops delete document removes the document graph and recalculates the parent
         '--id' => [$document->id],
         '--force' => true,
     ])
+        ->expectsOutputToContain('Database connection: sqlite')
         ->expectsOutputToContain('Deletion complete for target [document].')
         ->assertSuccessful();
 
@@ -76,6 +77,16 @@ test('ops delete document requires at least one id filter', function () {
         'target' => 'document',
     ])
         ->expectsOutputToContain('The document target requires at least one --id value.')
+        ->assertFailed();
+});
+
+test('ops delete rejects an unknown connection name', function () {
+    $this->artisan('ops:delete', [
+        'target' => 'document',
+        '--id' => [1],
+        '--connection' => 'missing_ops_connection',
+    ])
+        ->expectsOutputToContain('The database connection [missing_ops_connection] is not configured.')
         ->assertFailed();
 });
 

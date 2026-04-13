@@ -15,19 +15,20 @@ class LiveTransactionResetter
         private TransactionDeletionExecutor $transactionDeletionExecutor,
     ) {}
 
-    public function summarize(): TransactionDeletionPlan
+    public function summarize(string $connectionName): TransactionDeletionPlan
     {
         return $this->transactionDeletionPlanner->build(
-            ImportTransaction::query()
+            ImportTransaction::on($connectionName)
                 ->where('is_archive', false)
                 ->pluck('id')
                 ->map(fn (mixed $id): int => (int) $id)
                 ->all(),
-            ExportTransaction::query()
+            ExportTransaction::on($connectionName)
                 ->where('is_archive', false)
                 ->pluck('id')
                 ->map(fn (mixed $id): int => (int) $id)
                 ->all(),
+            $connectionName,
         );
     }
 
@@ -47,8 +48,8 @@ class LiveTransactionResetter
      *     failed_file_deletions: list<string>
      * }
      */
-    public function reset(bool $deleteFiles = true): array
+    public function reset(string $connectionName, bool $deleteFiles = true): array
     {
-        return $this->transactionDeletionExecutor->delete($this->summarize(), $deleteFiles);
+        return $this->transactionDeletionExecutor->delete($this->summarize($connectionName), $deleteFiles);
     }
 }

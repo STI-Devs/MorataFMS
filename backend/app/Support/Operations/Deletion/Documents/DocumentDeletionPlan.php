@@ -20,6 +20,7 @@ class DocumentDeletionPlan
         public readonly array $parentTransactions,
         public readonly int $existingAuditLogCount,
         public readonly string $storageDisk,
+        public readonly string $connectionName,
     ) {}
 
     public function documentCount(): int

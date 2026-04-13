@@ -13,6 +13,6 @@ class DeletesTransactionDocuments
             return 0;
         }
 
-        return Document::query()->whereIn('id', $plan->documentIds)->delete();
+        return Document::on($plan->connectionName)->whereIn('id', $plan->documentIds)->delete();
     }
 }

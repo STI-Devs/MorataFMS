@@ -14,6 +14,7 @@ class DeleteRecords extends Command
                             {--id=* : One or more numeric IDs for the selected target}
                             {--bl-no=* : One or more BL numbers for the transaction target}
                             {--type=any : For transaction target: import, export, or any}
+                            {--connection= : Database connection name for this delete run}
                             {--dry-run : Preview what would be deleted without changing data}
                             {--force : Required in production and skips the interactive confirmation}
                             {--keep-files : Keep stored document objects and only delete database rows}';
@@ -30,9 +31,16 @@ class DeleteRecords extends Command
     public function handle(): int
     {
         $target = strtolower(trim((string) $this->argument('target')));
+        $connectionName = $this->resolveConnectionName();
         $dryRun = (bool) $this->option('dry-run');
         $force = (bool) $this->option('force');
         $keepFiles = (bool) $this->option('keep-files');
+
+        if (! array_key_exists($connectionName, config('database.connections'))) {
+            $this->error("The database connection [{$connectionName}] is not configured.");
+
+            return self::FAILURE;
+        }
 
         if (app()->isProduction() && ! $force) {
             $this->error('This command is destructive in production. Re-run it with --force after reviewing the scope.');
@@ -41,7 +49,7 @@ class DeleteRecords extends Command
         }
 
         try {
-            $plan = $this->deleteOperationPlanner->plan($target, $this->filters());
+            $plan = $this->deleteOperationPlanner->plan($target, $this->filters(), $connectionName);
         } catch (InvalidArgumentException $exception) {
             $this->error($exception->getMessage());
 
@@ -52,6 +60,7 @@ class DeleteRecords extends Command
         $summary = $plan->summary();
 
         $this->info("Delete scope for target [{$target}]");
+        $this->line('Database connection: '.$connectionName);
         if (isset($summary['storage_disk'])) {
             $this->line('Storage disk: '.$summary['storage_disk']);
         }
@@ -140,5 +149,16 @@ class DeleteRecords extends Command
             'bl_no' => $blNumbers,
             'type' => strtolower(trim((string) $this->option('type'))) ?: 'any',
         ];
+    }
+
+    private function resolveConnectionName(): string
+    {
+        $selectedConnection = trim((string) $this->option('connection'));
+
+        if ($selectedConnection !== '') {
+            return $selectedConnection;
+        }
+
+        return (string) config('database.default');
     }
 }

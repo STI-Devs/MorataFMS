@@ -34,11 +34,11 @@ class DocumentDeletionExecutor
     {
         $deletedAuditLogCount = 0;
 
-        DB::transaction(function () use ($plan, &$deletedAuditLogCount): void {
+        DB::connection($plan->connectionName)->transaction(function () use ($plan, &$deletedAuditLogCount): void {
             $this->deletesDocumentRemarks->delete($plan);
             $this->deletesTargetDocuments->delete($plan);
             $this->recalculateParentTransactions($plan);
-            $deletedAuditLogCount = $this->purgesAuditLogsForSubjects->delete($plan->auditableSubjects());
+            $deletedAuditLogCount = $this->purgesAuditLogsForSubjects->delete($plan->auditableSubjects(), $plan->connectionName);
         });
 
         $fileDeletion = [
@@ -62,7 +62,7 @@ class DocumentDeletionExecutor
     private function recalculateParentTransactions(DocumentDeletionPlan $plan): void
     {
         if ($plan->parentTransactions[ImportTransaction::class] !== []) {
-            ImportTransaction::query()
+            ImportTransaction::on($plan->connectionName)
                 ->whereIn('id', $plan->parentTransactions[ImportTransaction::class])
                 ->get()
                 ->each(function (ImportTransaction $transaction): void {
@@ -71,7 +71,7 @@ class DocumentDeletionExecutor
         }
 
         if ($plan->parentTransactions[ExportTransaction::class] !== []) {
-            ExportTransaction::query()
+            ExportTransaction::on($plan->connectionName)
                 ->whereIn('id', $plan->parentTransactions[ExportTransaction::class])
                 ->get()
                 ->each(function (ExportTransaction $transaction): void {

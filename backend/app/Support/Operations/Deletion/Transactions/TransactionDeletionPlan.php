@@ -26,6 +26,7 @@ class TransactionDeletionPlan
         public readonly int $exportStageCount,
         public readonly int $existingAuditLogCount,
         public readonly string $storageDisk,
+        public readonly string $connectionName,
     ) {}
 
     public function importCount(): int

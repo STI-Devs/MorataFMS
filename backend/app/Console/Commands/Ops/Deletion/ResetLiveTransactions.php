@@ -8,6 +8,7 @@ use Illuminate\Console\Command;
 class ResetLiveTransactions extends Command
 {
     protected $signature = 'ops:reset-live-transactions
+                            {--connection= : Database connection name for this delete run}
                             {--force : Required in production and skips the interactive confirmation}
                             {--dry-run : Preview what would be deleted without changing data}
                             {--keep-files : Keep document objects on the storage disk and only delete database rows}';
@@ -21,9 +22,16 @@ class ResetLiveTransactions extends Command
 
     public function handle(): int
     {
+        $connectionName = $this->resolveConnectionName();
         $force = (bool) $this->option('force');
         $dryRun = (bool) $this->option('dry-run');
         $keepFiles = (bool) $this->option('keep-files');
+
+        if (! array_key_exists($connectionName, config('database.connections'))) {
+            $this->error("The database connection [{$connectionName}] is not configured.");
+
+            return self::FAILURE;
+        }
 
         if (app()->isProduction() && ! $force) {
             $this->error('This command is destructive in production. Re-run it with --force after reviewing the scope.');
@@ -31,10 +39,11 @@ class ResetLiveTransactions extends Command
             return self::FAILURE;
         }
 
-        $plan = $this->liveTransactionResetter->summarize();
+        $plan = $this->liveTransactionResetter->summarize($connectionName);
         $summary = $plan->summary();
 
         $this->info('Live transaction reset scope');
+        $this->line('Database connection: '.$connectionName);
         $this->table(
             ['Item', 'Count'],
             [
@@ -68,7 +77,7 @@ class ResetLiveTransactions extends Command
             return self::FAILURE;
         }
 
-        $result = $this->liveTransactionResetter->reset(! $keepFiles);
+        $result = $this->liveTransactionResetter->reset($connectionName, ! $keepFiles);
 
         $this->info('Live transaction reset complete.');
         $this->line('Deleted live transactions: '.$result['transaction_count']);
@@ -91,5 +100,16 @@ class ResetLiveTransactions extends Command
         }
 
         return self::SUCCESS;
+    }
+
+    private function resolveConnectionName(): string
+    {
+        $selectedConnection = trim((string) $this->option('connection'));
+
+        if ($selectedConnection !== '') {
+            return $selectedConnection;
+        }
+
+        return (string) config('database.default');
     }
 }

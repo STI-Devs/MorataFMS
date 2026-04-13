@@ -9,13 +9,13 @@ class PurgesAuditLogsForSubjects
     /**
      * @param  array<string, list<int>>  $subjects
      */
-    public function delete(array $subjects): int
+    public function delete(array $subjects, string $connectionName): int
     {
         if ($subjects === []) {
             return 0;
         }
 
-        $query = AuditLog::query()->where(function ($builder) use ($subjects): void {
+        $query = AuditLog::on($connectionName)->where(function ($builder) use ($subjects): void {
             foreach ($subjects as $type => $ids) {
                 if ($ids === []) {
                     continue;

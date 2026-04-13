@@ -13,6 +13,6 @@ class DeletesImportTransactions
             return 0;
         }
 
-        return ImportTransaction::query()->whereIn('id', $plan->importIds)->delete();
+        return ImportTransaction::on($plan->connectionName)->whereIn('id', $plan->importIds)->delete();
     }
 }

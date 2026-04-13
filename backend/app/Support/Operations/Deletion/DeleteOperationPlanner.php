@@ -22,11 +22,11 @@ class DeleteOperationPlanner
      *     type: string
      * }  $filters
      */
-    public function plan(string $target, array $filters): object
+    public function plan(string $target, array $filters, string $connectionName): object
     {
         return match ($target) {
-            'document' => $this->planDocuments($filters),
-            'transaction' => $this->planTransactions($filters),
+            'document' => $this->planDocuments($filters, $connectionName),
+            'transaction' => $this->planTransactions($filters, $connectionName),
             default => throw new InvalidArgumentException("Unsupported delete target [{$target}]."),
         };
     }
@@ -38,7 +38,7 @@ class DeleteOperationPlanner
      *     type: string
      * }  $filters
      */
-    private function planDocuments(array $filters): object
+    private function planDocuments(array $filters, string $connectionName): object
     {
         if ($filters['id'] === []) {
             throw new InvalidArgumentException('The document target requires at least one --id value.');
@@ -48,7 +48,7 @@ class DeleteOperationPlanner
             throw new InvalidArgumentException('The document target does not support --bl-no filters.');
         }
 
-        return $this->documentDeletionPlanner->build($filters['id']);
+        return $this->documentDeletionPlanner->build($filters['id'], $connectionName);
     }
 
     /**
@@ -58,7 +58,7 @@ class DeleteOperationPlanner
      *     type: string
      * }  $filters
      */
-    private function planTransactions(array $filters): object
+    private function planTransactions(array $filters, string $connectionName): object
     {
         $type = $filters['type'];
 
@@ -78,7 +78,7 @@ class DeleteOperationPlanner
         $exportIds = [];
 
         if (in_array($type, ['import', 'any'], true)) {
-            $importIds = ImportTransaction::query()
+            $importIds = ImportTransaction::on($connectionName)
                 ->when($filters['id'] !== [] || $filters['bl_no'] !== [], function ($query) use ($filters): void {
                     $query->where(function ($scopedQuery) use ($filters): void {
                         if ($filters['id'] !== []) {
@@ -98,7 +98,7 @@ class DeleteOperationPlanner
         }
 
         if (in_array($type, ['export', 'any'], true)) {
-            $exportIds = ExportTransaction::query()
+            $exportIds = ExportTransaction::on($connectionName)
                 ->when($filters['id'] !== [] || $filters['bl_no'] !== [], function ($query) use ($filters): void {
                     $query->where(function ($scopedQuery) use ($filters): void {
                         if ($filters['id'] !== []) {
@@ -117,6 +117,6 @@ class DeleteOperationPlanner
                 ->all();
         }
 
-        return $this->transactionDeletionPlanner->build($importIds, $exportIds);
+        return $this->transactionDeletionPlanner->build($importIds, $exportIds, $connectionName);
     }
 }

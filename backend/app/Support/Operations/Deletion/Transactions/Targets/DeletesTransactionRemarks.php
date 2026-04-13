@@ -13,6 +13,6 @@ class DeletesTransactionRemarks
             return 0;
         }
 
-        return TransactionRemark::query()->whereIn('id', $plan->remarkIds)->delete();
+        return TransactionRemark::on($plan->connectionName)->whereIn('id', $plan->remarkIds)->delete();
     }
 }

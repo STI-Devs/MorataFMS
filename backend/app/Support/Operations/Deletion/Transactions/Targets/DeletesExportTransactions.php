@@ -13,6 +13,6 @@ class DeletesExportTransactions
             return 0;
         }
 
-        return ExportTransaction::query()->whereIn('id', $plan->exportIds)->delete();
+        return ExportTransaction::on($plan->connectionName)->whereIn('id', $plan->exportIds)->delete();
     }
 }

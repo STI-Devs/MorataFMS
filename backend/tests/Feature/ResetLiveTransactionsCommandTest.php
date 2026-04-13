@@ -22,6 +22,7 @@ test('ops reset live transactions previews the reset scope without deleting data
 
     $this->artisan('ops:reset-live-transactions', ['--dry-run' => true])
         ->expectsOutputToContain('Live transaction reset scope')
+        ->expectsOutputToContain('Database connection: sqlite')
         ->expectsOutputToContain('Dry run only. No data was deleted.')
         ->assertSuccessful();
 
@@ -87,10 +88,18 @@ test('ops reset live transactions cancels when confirmation is rejected', functi
     expect(ImportTransaction::query()->whereKey($liveImport->id)->exists())->toBeTrue();
 });
 
+test('ops reset live transactions rejects an unknown connection name', function () {
+    $this->artisan('ops:reset-live-transactions', [
+        '--connection' => 'missing_ops_connection',
+    ])
+        ->expectsOutputToContain('The database connection [missing_ops_connection] is not configured.')
+        ->assertFailed();
+});
+
 test('live transaction resetter summarizes the explicit per-table deletion scope', function () {
     seedResetScenario();
 
-    $plan = app(LiveTransactionResetter::class)->summarize();
+    $plan = app(LiveTransactionResetter::class)->summarize(config('database.default'));
     $summary = $plan->summary();
 
     expect($summary['import_count'])->toBe(1);
