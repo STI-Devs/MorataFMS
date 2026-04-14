@@ -6,7 +6,7 @@ The goal is to keep this React frontend scalable, consistent with the Laravel ba
 
 ## Skills Activation
 
-- `vercel-react-best-practices` — Use this local skill for React performance, rerender, bundle size, route-splitting, hydration, and production-readiness work inside `frontend/`. Trigger whenever a task involves React component refactors, hooks, lazy routes, bundle warnings, rendering churn, or frontend audits.
+- `vercel-react-best-practices` C:\Users\User\Desktop\MorataFMS\frontend\.agents\skills\vercel-react-best-practices — Use this local skill for React performance, rerender, bundle size, route-splitting, hydration, and production-readiness work inside `frontend/`. Trigger whenever a task involves React component refactors, hooks, lazy routes, bundle warnings, rendering churn, or frontend audits.
 
 ## Package Manager
 
