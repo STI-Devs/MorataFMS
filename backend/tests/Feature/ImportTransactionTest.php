@@ -64,7 +64,6 @@ test('processors list shared imports with ready processor tasks', function () {
     $visibleTransaction->stages()->update([
         'boc_status' => 'completed',
         'bonds_status' => 'completed',
-        'phytosanitary_status' => 'completed',
         'ppa_status' => 'pending',
         'do_status' => 'pending',
         'port_charges_status' => 'pending',
@@ -75,7 +74,6 @@ test('processors list shared imports with ready processor tasks', function () {
     $completedProcessorTaskTransaction->stages()->update([
         'boc_status' => 'completed',
         'bonds_status' => 'completed',
-        'phytosanitary_status' => 'completed',
         'ppa_status' => 'completed',
         'port_charges_status' => 'completed',
         'billing_status' => 'pending',
@@ -85,7 +83,6 @@ test('processors list shared imports with ready processor tasks', function () {
     $notReadyTransaction->stages()->update([
         'boc_status' => 'completed',
         'bonds_status' => 'pending',
-        'phytosanitary_status' => 'pending',
         'ppa_status' => 'pending',
         'port_charges_status' => 'pending',
     ]);
@@ -109,7 +106,6 @@ test('accounting users list shared imports only when billing is ready', function
     $visibleTransaction->stages()->update([
         'boc_status' => 'completed',
         'bonds_status' => 'completed',
-        'phytosanitary_status' => 'completed',
         'ppa_status' => 'completed',
         'do_status' => 'completed',
         'port_charges_status' => 'completed',
@@ -121,7 +117,6 @@ test('accounting users list shared imports only when billing is ready', function
     $hiddenTransaction->stages()->update([
         'boc_status' => 'completed',
         'bonds_status' => 'completed',
-        'phytosanitary_status' => 'completed',
         'ppa_status' => 'completed',
         'do_status' => 'completed',
         'port_charges_status' => 'completed',
@@ -154,7 +149,6 @@ test('processors can list waiting imports when requesting the operational worksp
         'boc_status' => 'completed',
         'boc_completed_at' => $waitingSince,
         'bonds_status' => 'pending',
-        'phytosanitary_status' => 'pending',
         'ppa_status' => 'pending',
         'port_charges_status' => 'pending',
     ]);
@@ -186,8 +180,6 @@ test('accounting can list waiting imports when requesting the operational worksp
         'boc_completed_at' => '2026-04-09 07:00:00',
         'bonds_status' => 'completed',
         'bonds_completed_at' => '2026-04-10 07:00:00',
-        'phytosanitary_status' => 'completed',
-        'phytosanitary_completed_at' => '2026-04-11 07:00:00',
         'ppa_status' => 'completed',
         'ppa_completed_at' => $waitingSince,
         'do_status' => 'pending',

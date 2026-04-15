@@ -52,7 +52,6 @@ describe('AccountingImpExpPage', () => {
             stages: {
                 boc: 'completed',
                 bonds: 'completed',
-                phytosanitary: 'completed',
                 ppa: 'completed',
                 do: 'completed',
                 port_charges: 'pending',

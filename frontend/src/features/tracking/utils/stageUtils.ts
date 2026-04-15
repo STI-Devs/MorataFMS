@@ -15,7 +15,6 @@ export interface StageDefinition {
 export const IMPORT_STAGES: StageDefinition[] = [
     { title: 'BOC Document Processing',  icon: 'file-text',    description: 'Submit and process customs declaration at the Bureau of Customs.',    type: 'boc' },
     { title: 'BONDS',                    icon: 'check-circle', description: 'Process customs bonds when the shipment requires them.',               type: 'bonds', supportsNotApplicable: true },
-    { title: 'Phytosanitary Certificates', icon: 'file-text',  description: 'Prepare and secure phytosanitary certificates for regulated cargo.',  type: 'phytosanitary' },
     { title: 'Payment for PPA Charges',  icon: 'truck',        description: 'Settle port and pier authority charges.',                              type: 'ppa' },
     { title: 'Delivery Order Request',   icon: 'file-text',    description: 'Request delivery order from the shipping line or agent.',             type: 'do' },
     { title: 'Payment for Port Charges', icon: 'file-text',    description: 'Pay remaining port storage and handling fees.',                       type: 'port_charges' },
@@ -119,8 +118,8 @@ function getFirstIncompletePrerequisite(
 
 export function getImportProcessorActionability(stages?: StageStatusMap): Record<'ppa' | 'port_charges', boolean> {
     return {
-        ppa: areStagesCompleted(stages, ['boc', 'bonds', 'phytosanitary']) && !isStageCompleted(stages?.ppa),
-        port_charges: areStagesCompleted(stages, ['boc', 'bonds', 'phytosanitary', 'ppa', 'do']) && !isStageCompleted(stages?.port_charges),
+        ppa: areStagesCompleted(stages, ['boc', 'bonds']) && !isStageCompleted(stages?.ppa),
+        port_charges: areStagesCompleted(stages, ['boc', 'bonds', 'ppa', 'do']) && !isStageCompleted(stages?.port_charges),
     };
 }
 
@@ -133,7 +132,7 @@ export function getExportProcessorActionability(stages?: StageStatusMap): Record
 
 export function getImportAccountingActionability(stages?: StageStatusMap): Record<'billing', boolean> {
     return {
-        billing: areStagesCompleted(stages, ['boc', 'bonds', 'phytosanitary', 'ppa', 'do', 'port_charges', 'releasing']) && !isStageCompleted(stages?.billing),
+        billing: areStagesCompleted(stages, ['boc', 'bonds', 'ppa', 'do', 'port_charges', 'releasing']) && !isStageCompleted(stages?.billing),
     };
 }
 
@@ -149,13 +148,13 @@ export function getImportProcessorWaitingReason(stages?: StageStatusMap): string
     }
 
     if (! isStageCompleted(stages.ppa)) {
-        const blocker = getFirstIncompletePrerequisite(stages, ['boc', 'bonds', 'phytosanitary'], IMPORT_STAGES);
+        const blocker = getFirstIncompletePrerequisite(stages, ['boc', 'bonds'], IMPORT_STAGES);
 
         return blocker ? `Waiting for ${blocker}.` : null;
     }
 
     if (! isStageCompleted(stages.port_charges)) {
-        const blocker = getFirstIncompletePrerequisite(stages, ['boc', 'bonds', 'phytosanitary', 'ppa', 'do'], IMPORT_STAGES);
+        const blocker = getFirstIncompletePrerequisite(stages, ['boc', 'bonds', 'ppa', 'do'], IMPORT_STAGES);
 
         return blocker ? `Waiting for ${blocker}.` : null;
     }
@@ -194,7 +193,7 @@ export function getImportAccountingWaitingReason(stages?: StageStatusMap): strin
 
     const blocker = getFirstIncompletePrerequisite(
         stages,
-        ['boc', 'bonds', 'phytosanitary', 'ppa', 'do', 'port_charges', 'releasing'],
+        ['boc', 'bonds', 'ppa', 'do', 'port_charges', 'releasing'],
         IMPORT_STAGES,
     );
 
@@ -256,13 +255,13 @@ export function getStatusStyle(status: string): { color: string; bg: string } {
  * Used by the UI badge so it reflects document state without waiting for a DB status update.
  *
  * Import ladder:
- *   No stages → Pending → BOC → Vessel Arrived → Bonds/Phyto/PPA/DO/Port/Releasing → Processing → Billing → Completed
+ *   No stages → Pending → BOC → Vessel Arrived → Bonds/PPA/DO/Port/Releasing → Processing → Billing → Completed
  */
 export function getImportDisplayStatus(uploadedStages: string[]): string {
     if (uploadedStages.includes('billing')) {
         return 'Completed';
     }
-    if (uploadedStages.some((stage) => ['bonds', 'phytosanitary', 'ppa', 'do', 'port_charges', 'releasing'].includes(stage))) {
+    if (uploadedStages.some((stage) => ['bonds', 'ppa', 'do', 'port_charges', 'releasing'].includes(stage))) {
         return 'Processing';
     }
     if (uploadedStages.includes('boc')) {

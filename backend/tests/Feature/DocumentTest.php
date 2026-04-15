@@ -201,13 +201,11 @@ test('operational roles can upload only their allowed stage documents', function
             'ppa' => [
                 'boc_status' => 'completed',
                 'bonds_status' => 'completed',
-                'phytosanitary_status' => 'completed',
                 'ppa_status' => 'pending',
             ],
             'billing' => [
                 'boc_status' => 'completed',
                 'bonds_status' => 'completed',
-                'phytosanitary_status' => 'completed',
                 'ppa_status' => 'completed',
                 'do_status' => 'completed',
                 'port_charges_status' => 'completed',
@@ -308,7 +306,6 @@ test('operational roles cannot upload their stage before it is ready', function 
     $transaction->stages()->update([
         'boc_status' => 'completed',
         'bonds_status' => 'pending',
-        'phytosanitary_status' => 'pending',
         'ppa_status' => 'pending',
     ]);
 
@@ -732,7 +729,6 @@ test('operational upload stamps and clears stage completion ownership', function
     $transaction->stages()->update([
         'boc_status' => 'completed',
         'bonds_status' => 'completed',
-        'phytosanitary_status' => 'completed',
         'ppa_status' => 'pending',
     ]);
 

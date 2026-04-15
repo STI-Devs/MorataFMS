@@ -1,7 +1,6 @@
 export interface ImportStages {
     boc: string;
     bonds: string;
-    phytosanitary: string;
     ppa: string;
     do: string;
     port_charges: string;

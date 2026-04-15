@@ -4,7 +4,6 @@ import type { ExportStages, ImportStages, OversightTransaction } from '../types/
 const IMPORT_STAGE_LABELS: Record<keyof ImportStages, string> = {
     boc: 'BOC',
     bonds: 'Bonds',
-    phytosanitary: 'Phyto',
     ppa: 'PPA',
     do: 'D/O',
     port_charges: 'Port Chg.',

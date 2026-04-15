@@ -41,7 +41,7 @@ describe('archive completeness', () => {
     it('treats import records with all required stages as complete even without others', () => {
         const archiveData = [
             buildArchiveYear(
-                ['boc', 'phytosanitary', 'ppa', 'do', 'port_charges', 'releasing', 'billing'],
+                ['boc', 'ppa', 'do', 'port_charges', 'releasing', 'billing'],
                 ['bonds'],
             ),
         ];
@@ -62,7 +62,7 @@ describe('archive completeness', () => {
     it('treats optional stages marked as N/A as complete in per-BL completion counts', () => {
         const archiveData = [
             buildArchiveYear(
-                ['boc', 'phytosanitary', 'ppa', 'do', 'port_charges', 'releasing', 'billing'],
+                ['boc', 'ppa', 'do', 'port_charges', 'releasing', 'billing'],
                 ['bonds'],
             ),
         ];
@@ -70,8 +70,8 @@ describe('archive completeness', () => {
         const completion = getArchiveBlCompletion(archiveData[0].documents, 'import');
 
         expect(completion.isComplete).toBe(true);
-        expect(completion.doneCount).toBe(7);
-        expect(completion.requiredStages).toHaveLength(7);
+        expect(completion.doneCount).toBe(6);
+        expect(completion.requiredStages).toHaveLength(6);
         expect(completion.notApplicableStages).toEqual(['bonds']);
     });
 

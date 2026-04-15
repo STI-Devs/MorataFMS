@@ -299,8 +299,8 @@ test('admin review detail treats optional stages marked not applicable as satisf
         'not_applicable' => true,
     ]);
     expect($requiredDocuments->get('bonds')['files'])->toBe([]);
-    expect($response->json('summary.required_total'))->toBe(7);
-    expect($response->json('summary.required_completed'))->toBe(7);
+    expect($response->json('summary.required_total'))->toBe(6);
+    expect($response->json('summary.required_completed'))->toBe(6);
     expect($response->json('summary.missing_count'))->toBe(0);
     expect($response->json('summary.archive_ready'))->toBeTrue();
 });

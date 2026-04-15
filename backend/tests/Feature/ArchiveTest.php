@@ -342,7 +342,7 @@ test('document upload accepts valid import stage keys', function () {
     $user = User::factory()->create(['role' => 'admin']);
     $transaction = ImportTransaction::factory()->create();
 
-    foreach (['boc', 'bonds', 'phytosanitary', 'ppa', 'do', 'port_charges', 'releasing', 'billing', 'others'] as $stage) {
+    foreach (['boc', 'bonds', 'ppa', 'do', 'port_charges', 'releasing', 'billing', 'others'] as $stage) {
         $this->actingAs($user)->postJson('/api/documents', [
             'file' => UploadedFile::fake()->create("doc-{$stage}.pdf", 100, 'application/pdf'),
             'type' => $stage,
@@ -350,6 +350,18 @@ test('document upload accepts valid import stage keys', function () {
             'documentable_id' => $transaction->id,
         ])->assertCreated();
     }
+});
+
+test('document upload rejects phytosanitary for import transactions', function () {
+    $user = User::factory()->create(['role' => 'admin']);
+    $transaction = ImportTransaction::factory()->create();
+
+    $this->actingAs($user)->postJson('/api/documents', [
+        'file' => UploadedFile::fake()->create('doc-phytosanitary.pdf', 100, 'application/pdf'),
+        'type' => 'phytosanitary',
+        'documentable_type' => ImportTransaction::class,
+        'documentable_id' => $transaction->id,
+    ])->assertUnprocessable()->assertJsonValidationErrors(['type']);
 });
 
 test('document upload accepts valid export stage keys', function () {

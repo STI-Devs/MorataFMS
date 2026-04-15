@@ -54,7 +54,6 @@ describe('ProcessorTransactionPage', () => {
             stages: {
                 boc: 'completed',
                 bonds: 'completed',
-                phytosanitary: 'completed',
                 ppa: 'pending',
                 do: 'pending',
                 port_charges: 'pending',
@@ -71,7 +70,6 @@ describe('ProcessorTransactionPage', () => {
             stages: {
                 boc: 'completed',
                 bonds: 'pending',
-                phytosanitary: 'pending',
                 ppa: 'pending',
                 do: 'pending',
                 port_charges: 'pending',

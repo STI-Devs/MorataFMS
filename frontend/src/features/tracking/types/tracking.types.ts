@@ -62,7 +62,6 @@ export interface EncodeFormData {
 export interface ApiImportStages {
     boc: string;
     bonds: string;
-    phytosanitary: string;
     ppa: string;
     do: string;
     port_charges: string;

@@ -23,7 +23,6 @@ class Document extends Model
         return [
             'boc',
             'bonds',
-            'phytosanitary',
             'ppa',
             'do',
             'port_charges',

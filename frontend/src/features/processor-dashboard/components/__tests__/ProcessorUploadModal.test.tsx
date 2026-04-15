@@ -90,7 +90,6 @@ describe('ProcessorUploadModal', () => {
                 transactionStages={{
                     boc: 'completed',
                     bonds: 'completed',
-                    phytosanitary: 'completed',
                     ppa: 'pending',
                     do: 'pending',
                     port_charges: 'pending',
@@ -125,7 +124,6 @@ describe('ProcessorUploadModal', () => {
                 transactionStages={{
                     boc: 'completed',
                     bonds: 'completed',
-                    phytosanitary: 'completed',
                     ppa: 'completed',
                     do: 'completed',
                     port_charges: 'pending',

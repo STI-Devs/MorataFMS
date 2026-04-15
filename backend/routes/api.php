@@ -89,6 +89,11 @@ Route::middleware(['auth:sanctum', 'active-session', 'throttle:api-general'])->g
         Route::get('clients/{client}/transactions', [ClientController::class, 'transactions'])
             ->middleware('throttle:api-search');
 
+        // Country management (write operations)
+        Route::post('countries', [CountryController::class, 'store']);
+        Route::put('countries/{country}', [CountryController::class, 'update']);
+        Route::post('countries/{country}/toggle-active', [CountryController::class, 'toggleActive']);
+
         // Audit logs (read-only, admin)
         Route::get('audit-logs/actions', [AuditLogController::class, 'actions'])
             ->middleware('throttle:api-search');

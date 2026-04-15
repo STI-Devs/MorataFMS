@@ -127,7 +127,7 @@ class ImportStage extends Model
 
     public function getCompletedStagesCount(): int
     {
-        $stages = ['boc', 'bonds', 'phytosanitary', 'ppa', 'do', 'port_charges', 'releasing', 'billing'];
+        $stages = ['boc', 'bonds', 'ppa', 'do', 'port_charges', 'releasing', 'billing'];
         $count = 0;
 
         foreach ($stages as $stage) {
@@ -141,6 +141,6 @@ class ImportStage extends Model
 
     public function isAllComplete(): bool
     {
-        return $this->getCompletedStagesCount() === 8;
+        return $this->getCompletedStagesCount() === 7;
     }
 }

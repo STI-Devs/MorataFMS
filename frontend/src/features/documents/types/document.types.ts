@@ -237,7 +237,6 @@ export interface ArchiveStageDefinition {
 export const IMPORT_STAGES: readonly ArchiveStageDefinition[] = [
     { key: 'boc', label: 'BOC Processing' },
     { key: 'bonds', label: 'BONDS', optional: true },
-    { key: 'phytosanitary', label: 'Phytosanitary Certificates' },
     { key: 'ppa', label: 'PPA Processing' },
     { key: 'do', label: 'DO Request' },
     { key: 'port_charges', label: 'Port Charges' },

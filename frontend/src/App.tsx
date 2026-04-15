@@ -17,6 +17,7 @@ import {
   AuditLogs,
   AuthPage,
   ClientManagement,
+  CountryManagement,
   Documents,
   DocumentsDetail,
   EncoderArchivePage,
@@ -107,6 +108,7 @@ function App() {
                 <Route path={appRoutes.adminDocumentReview} element={<AdminDocumentReview />} />
                 <Route path={appRoutes.users} element={<UserManagement />} />
                 <Route path={appRoutes.clients} element={<ClientManagement />} />
+                <Route path={appRoutes.countries} element={<CountryManagement />} />
                 <Route path={appRoutes.transactions} element={<TransactionOversight />} />
                 <Route path={appRoutes.reports} element={<ReportsAnalytics />} />
                 <Route path={appRoutes.auditLogs} element={<AuditLogs />} />

@@ -40,6 +40,10 @@ export const ClientManagement = lazy(() =>
     import('../features/clients/components/ClientManagement').then((module) => ({ default: module.ClientManagement })),
 );
 
+export const CountryManagement = lazy(() =>
+    import('../features/countries/components/CountryManagement').then((module) => ({ default: module.CountryManagement })),
+);
+
 export const Documents = lazy(() =>
     import('../features/documents/components/document-list/Documents').then((module) => ({ default: module.Documents })),
 );

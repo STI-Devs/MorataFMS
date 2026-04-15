@@ -375,8 +375,7 @@ describe('TrackingDetails', () => {
             byStageIndex: {
                 0: [doc],
                 1: [makeApiDocument({ id: 801, type: 'bonds', filename: 'bonds.pdf' })],
-                2: [makeApiDocument({ id: 802, type: 'phytosanitary', filename: 'phyto.pdf' })],
-                3: [makeApiDocument({ id: 803, type: 'ppa', filename: 'ppa.pdf' })],
+                2: [makeApiDocument({ id: 803, type: 'ppa', filename: 'ppa.pdf' })],
             },
             isLoading: false,
         });
@@ -405,7 +404,7 @@ describe('TrackingDetails', () => {
             expect(screen.queryByText('Edit modal open')).not.toBeInTheDocument();
         });
 
-        fireEvent.click(screen.getByText('Upload 4'));
+        fireEvent.click(screen.getByText('Upload 3'));
         expect(screen.getByText('Upload modal: Delivery Order Request')).toBeInTheDocument();
         fireEvent.click(screen.getByText('Close upload'));
         await waitFor(() => {
@@ -466,8 +465,7 @@ describe('TrackingDetails', () => {
             byStageIndex: {
                 0: [makeApiDocument({ id: 706, type: 'boc', filename: 'boc.pdf' })],
                 1: [makeApiDocument({ id: 717, type: 'bonds', filename: 'bonds.pdf' })],
-                2: [makeApiDocument({ id: 718, type: 'phytosanitary', filename: 'phyto.pdf' })],
-                3: [makeApiDocument({ id: 719, type: 'ppa', filename: 'ppa.pdf' })],
+                2: [makeApiDocument({ id: 719, type: 'ppa', filename: 'ppa.pdf' })],
             },
             isLoading: false,
         });
@@ -478,7 +476,7 @@ describe('TrackingDetails', () => {
             queryClient,
         });
 
-        fireEvent.click(screen.getByText('Upload 4'));
+        fireEvent.click(screen.getByText('Upload 3'));
         fireEvent.click(screen.getByText('Confirm upload'));
 
         await waitFor(() => {
@@ -523,11 +521,10 @@ describe('TrackingDetails', () => {
             byStageIndex: isRefreshingAfterCompletion ? {} : {
                 0: [makeApiDocument({ id: 710, type: 'boc', filename: 'boc.pdf' })],
                 1: [makeApiDocument({ id: 711, type: 'bonds', filename: 'bonds.pdf' })],
-                2: [makeApiDocument({ id: 712, type: 'phytosanitary', filename: 'phyto.pdf' })],
-                3: [makeApiDocument({ id: 713, type: 'ppa', filename: 'ppa.pdf' })],
-                4: [makeApiDocument({ id: 714, type: 'do', filename: 'do.pdf' })],
-                5: [makeApiDocument({ id: 715, type: 'port_charges', filename: 'port-charges.pdf' })],
-                6: [makeApiDocument({ id: 716, type: 'releasing', filename: 'releasing.pdf' })],
+                2: [makeApiDocument({ id: 713, type: 'ppa', filename: 'ppa.pdf' })],
+                3: [makeApiDocument({ id: 714, type: 'do', filename: 'do.pdf' })],
+                4: [makeApiDocument({ id: 715, type: 'port_charges', filename: 'port-charges.pdf' })],
+                5: [makeApiDocument({ id: 716, type: 'releasing', filename: 'releasing.pdf' })],
             },
             isLoading: isRefreshingAfterCompletion,
         }));
@@ -543,7 +540,7 @@ describe('TrackingDetails', () => {
             ],
         });
 
-        fireEvent.click(screen.getByText('Upload 7'));
+        fireEvent.click(screen.getByText('Upload 6'));
         fireEvent.click(screen.getByText('Confirm upload'));
 
         await waitFor(() => {
