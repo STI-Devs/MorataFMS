@@ -11,6 +11,7 @@ interface StageRowProps {
     isUploading: boolean;
     isApplicabilityUpdating: boolean;
     deletingDocId: number | null;
+    uploadDisabledReason?: string | null;
     onUploadClick: (index: number) => void;
     onPreviewDoc: (doc: ApiDocument) => void;
     onDeleteDoc: (doc: ApiDocument) => void;
@@ -28,6 +29,7 @@ export const StageRow = ({
     isUploading,
     isApplicabilityUpdating,
     deletingDocId,
+    uploadDisabledReason,
     onUploadClick,
     onPreviewDoc,
     onDeleteDoc,
@@ -36,9 +38,10 @@ export const StageRow = ({
 }: StageRowProps) => {
     const isCompleted = stageStatus === 'completed';
     const isActive = stageStatus === 'active';
-    const canToggleNotApplicable = !!stage.supportsNotApplicable && docs.length === 0;
-    const disableNotApplicableToggle = isApplicabilityUpdating || isUploading || (!canToggleNotApplicable && !isNotApplicable);
-    const disableUpload = isUploading || isApplicabilityUpdating || isNotApplicable;
+    const isPending = stageStatus === 'pending';
+    const canToggleNotApplicable = !!stage.supportsNotApplicable && docs.length === 0 && !uploadDisabledReason;
+    const disableNotApplicableToggle = isApplicabilityUpdating || isUploading || (!isNotApplicable && !canToggleNotApplicable);
+    const disableUpload = isUploading || isApplicabilityUpdating || isNotApplicable || !!uploadDisabledReason;
 
     return (
         <div
@@ -96,6 +99,11 @@ export const StageRow = ({
                                     Done
                                 </span>
                             )}
+                            {isPending && !isNotApplicable && !docs.length && uploadDisabledReason && (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-surface-secondary text-text-muted border border-border shrink-0">
+                                    Waiting
+                                </span>
+                            )}
                             {docs.length > 0 && (
                                 <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-surface-secondary border border-border text-text-muted shrink-0">
                                     {docs.length} file{docs.length === 1 ? '' : 's'}
@@ -140,9 +148,11 @@ export const StageRow = ({
                             }`}
                             title={isNotApplicable
                                 ? 'This stage is marked as not applicable.'
-                                : docs.length > 0
-                                    ? 'Upload more documents for this stage'
-                                    : 'Upload document for this stage'}
+                                : uploadDisabledReason
+                                    ? uploadDisabledReason
+                                    : docs.length > 0
+                                        ? 'Upload more documents for this stage'
+                                        : 'Upload document for this stage'}
                         >
                             {isUploading ? (
                                 <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-current/30 border-t-current" />
@@ -160,19 +170,25 @@ export const StageRow = ({
                     <div className="mt-3 space-y-2">
                         {docs.map((doc) => (
                             <div key={doc.id} className="flex items-center gap-2 flex-wrap">
-                                <button
-                                    type="button"
-                                    onClick={() => onPreviewDoc(doc)}
-                                    className="inline-flex items-center gap-2 px-3 py-1.5 bg-surface-secondary hover:bg-hover border border-border rounded-lg cursor-pointer transition-colors group/file min-w-0"
-                                >
-                                    <svg className="w-3.5 h-3.5 text-blue-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                    </svg>
-                                    <span className="text-xs font-bold text-blue-600 dark:text-blue-400 group-hover/file:underline truncate max-w-[220px]">
-                                        {doc.filename}
-                                    </span>
-                                    <span className="text-[10px] text-text-muted shrink-0">{doc.formatted_size}</span>
-                                </button>
+                                <div className="min-w-0">
+                                    <button
+                                        type="button"
+                                        onClick={() => onPreviewDoc(doc)}
+                                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-surface-secondary hover:bg-hover border border-border rounded-lg cursor-pointer transition-colors group/file min-w-0"
+                                    >
+                                        <svg className="w-3.5 h-3.5 text-blue-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                        </svg>
+                                        <span className="text-xs font-bold text-blue-600 dark:text-blue-400 group-hover/file:underline truncate max-w-[220px]">
+                                            {doc.filename}
+                                        </span>
+                                        <span className="text-[10px] text-text-muted shrink-0">{doc.formatted_size}</span>
+                                    </button>
+                                    <p className="mt-1 pl-1 text-[10px] text-text-muted">
+                                        Processed by {doc.uploaded_by?.name ?? 'Unknown user'}
+                                        {doc.created_at ? ` on ${new Date(doc.created_at).toLocaleDateString()}` : ''}
+                                    </p>
+                                </div>
 
                                 <button
                                     type="button"

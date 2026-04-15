@@ -77,6 +77,9 @@ class DocumentController extends Controller
         // Recalculate parent transaction's stage statuses based on uploaded docs
         $parent = $document->documentable;
         if ($parent && method_exists($parent, 'recalculateStatus')) {
+            if (method_exists($parent, 'syncStageCompletionForDocument')) {
+                $parent->syncStageCompletionForDocument($validated['type'], $request->user()->id);
+            }
             $parent->recalculateStatus();
         }
         if ($parent instanceof ImportTransaction || $parent instanceof ExportTransaction) {

@@ -12,6 +12,18 @@ export const ArchivesPage = lazy(() =>
     import('../features/archives/components/ArchivesPage').then((module) => ({ default: module.ArchivesPage })),
 );
 
+export const AccountantDashboard = lazy(() =>
+    import('../features/accounting-dashboard/components/AccountingDashboard').then((module) => ({ default: module.AccountingDashboard })),
+);
+
+export const AccountantDocumentsPage = lazy(() =>
+    import('../features/accounting-dashboard/components/AccountingDocumentsPage').then((module) => ({ default: module.AccountingDocumentsPage })),
+);
+
+export const AccountantImpExpPage = lazy(() =>
+    import('../features/accounting-dashboard/components/AccountingImpExpPage').then((module) => ({ default: module.AccountingImpExpPage })),
+);
+
 export const EncoderArchivePage = lazy(() =>
     import('../features/archives/components/EncoderArchivePage').then((module) => ({ default: module.EncoderArchivePage })),
 );
@@ -42,6 +54,26 @@ export const FormsPage = lazy(() =>
 
 export const LawFirmPage = lazy(() =>
     import('../features/law-firm/components/LawFirmPage').then((module) => ({ default: module.LawFirmPage })),
+);
+
+export const LegalDocumentsPage = lazy(() =>
+    import('../features/law-firm/components/LegalDocumentsPage').then((module) => ({ default: module.LegalDocumentsPage })),
+);
+
+export const ParalegalDashboard = lazy(() =>
+    import('../features/law-firm/components/ParalegalDashboard').then((module) => ({ default: module.ParalegalDashboard })),
+);
+
+export const ProcessorDashboard = lazy(() =>
+    import('../features/processor-dashboard/components/ProcessorDashboard').then((module) => ({ default: module.ProcessorDashboard })),
+);
+
+export const ProcessorDocumentsPage = lazy(() =>
+    import('../features/processor-dashboard/components/ProcessorDocumentsPage').then((module) => ({ default: module.ProcessorDocumentsPage })),
+);
+
+export const ProcessorTransactionPage = lazy(() =>
+    import('../features/processor-dashboard/components/ProcessorTransactionPage').then((module) => ({ default: module.ProcessorTransactionPage })),
 );
 
 export const TransactionOversight = lazy(() =>

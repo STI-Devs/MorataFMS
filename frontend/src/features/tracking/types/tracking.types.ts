@@ -59,6 +59,27 @@ export interface EncodeFormData {
 
 // --- API Response Types (matching backend resources) ---
 
+export interface ApiImportStages {
+    boc: string;
+    bonds: string;
+    phytosanitary: string;
+    ppa: string;
+    do: string;
+    port_charges: string;
+    releasing: string;
+    billing: string;
+}
+
+export interface ApiExportStages {
+    boc: string;
+    bl_generation: string;
+    phytosanitary: string;
+    co: string;
+    cil: string;
+    dccci: string;
+    billing: string;
+}
+
 export interface ApiImportTransaction {
     id: number;
     customs_ref_no: string;
@@ -74,17 +95,9 @@ export interface ApiImportTransaction {
     archived_by_id?: number | null;
     archive_origin?: 'direct_archive_upload' | 'archived_from_live' | null;
     notes: string | null;
-    stages?: {
-        boc: string;
-        bonds: string;
-        phytosanitary: string;
-        ppa: string;
-        do: string;
-        port_charges: string;
-        releasing: string;
-        billing: string;
-    };
+    stages?: ApiImportStages;
     not_applicable_stages?: string[];
+    waiting_since: string | null;
     created_at: string;
     open_remarks_count: number;
     documents_count: number;
@@ -94,6 +107,7 @@ export interface ApiExportTransaction {
     id: number;
     bl_no: string;
     vessel: string;
+    export_date: string | null;
     shipper: { id: number; name: string } | null;
     destination_country?: { id: number; name: string; code: string };
     assigned_user?: { id: number; name: string };
@@ -103,15 +117,9 @@ export interface ApiExportTransaction {
     archived_by_id?: number | null;
     archive_origin?: 'direct_archive_upload' | 'archived_from_live' | null;
     notes: string | null;
-    stages?: {
-        boc: string;
-        bl_generation: string;
-        co: string;
-        phytosanitary: string;
-        dccci: string;
-        billing: string;
-    };
+    stages?: ApiExportStages;
     not_applicable_stages?: string[];
+    waiting_since: string | null;
     created_at: string;
     open_remarks_count: number;
     documents_count: number;
@@ -171,9 +179,12 @@ export interface CreateExportPayload {
     shipper_id: number;
     bl_no: string;
     vessel: string;
+    export_date: string;
     destination_country_id?: number;
     notes?: string;
 }
+
+export type OperationalScope = 'ready' | 'workspace';
 
 // --- Document API Types ---
 

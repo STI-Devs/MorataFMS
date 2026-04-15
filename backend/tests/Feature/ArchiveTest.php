@@ -356,7 +356,7 @@ test('document upload accepts valid export stage keys', function () {
     $user = User::factory()->create(['role' => 'admin']);
     $transaction = ExportTransaction::factory()->create();
 
-    foreach (['boc', 'bl_generation', 'co', 'phytosanitary', 'dccci', 'billing', 'others'] as $stage) {
+    foreach (['boc', 'bl_generation', 'phytosanitary', 'co', 'cil', 'dccci', 'billing', 'others'] as $stage) {
         $this->actingAs($user)->postJson('/api/documents', [
             'file' => UploadedFile::fake()->create("doc-{$stage}.pdf", 100, 'application/pdf'),
             'type' => $stage,
@@ -961,7 +961,11 @@ test('archive import rejects files for optional stages marked as not applicable'
     );
 });
 
-test('archive export rejects files for optional stages marked as not applicable', function () {
+test('archive export rejects files for optional stages marked as not applicable', function (
+    string $stage,
+    string $filename,
+    string $expectedMessage,
+) {
     $user = User::factory()->create(['role' => 'admin']);
     $client = Client::factory()->exporter()->create();
     $country = Country::factory()->create();
@@ -971,11 +975,11 @@ test('archive export rejects files for optional stages marked as not applicable'
         'shipper_id' => $client->id,
         'destination_country_id' => $country->id,
         'file_date' => '2023-06-15',
-        'not_applicable_stages' => ['co'],
+        'not_applicable_stages' => [$stage],
         'documents' => [
             [
-                'file' => UploadedFile::fake()->create('archive-co.pdf', 100, 'application/pdf'),
-                'stage' => 'co',
+                'file' => UploadedFile::fake()->create($filename, 100, 'application/pdf'),
+                'stage' => $stage,
             ],
         ],
     ]);
@@ -983,9 +987,12 @@ test('archive export rejects files for optional stages marked as not applicable'
     $response->assertUnprocessable()->assertJsonValidationErrors(['not_applicable_stages']);
     $response->assertJsonPath(
         'errors.not_applicable_stages.0',
-        'You cannot upload files for the CO Application stage while it is marked as not applicable.',
+        $expectedMessage,
     );
-});
+})->with([
+    'co application' => ['co', 'archive-co.pdf', 'You cannot upload files for the CO Application stage while it is marked as not applicable.'],
+    'dccci printing' => ['dccci', 'archive-dccci.pdf', 'You cannot upload files for the DCCCI Printing stage while it is marked as not applicable.'],
+]);
 
 test('archive import rollback deletes the created transaction and uploaded documents', function () {
     Storage::fake($this->documentDisk);

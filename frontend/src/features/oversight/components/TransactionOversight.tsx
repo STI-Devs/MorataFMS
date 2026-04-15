@@ -8,7 +8,6 @@ import { trackingKeys } from '../../tracking/utils/queryKeys';
 import { transactionApi } from '../api/transactionApi';
 import { useAllTransactions } from '../hooks/useTransactions';
 import type { OversightTransaction } from '../types/transaction.types';
-import { ReassignModal } from './ReassignModal';
 import { RemarkModal } from './RemarkModal';
 import { StatusOverrideModal } from './StatusOverrideModal';
 import { TransactionDetailDrawer } from './TransactionDetailDrawer';
@@ -47,7 +46,6 @@ export const TransactionOversight = () => {
     const debouncedSearch = useDebounce(searchTerm, 300);
     const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
     const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
-    const [reassignTarget, setReassignTarget] = useState<OversightTransaction | null>(null);
     const [statusTarget, setStatusTarget] = useState<OversightTransaction | null>(null);
     const [remarkTarget, setRemarkTarget] = useState<OversightTransaction | null>(null);
     const [detailTarget, setDetailTarget] = useState<OversightTransaction | null>(null);
@@ -87,10 +85,6 @@ export const TransactionOversight = () => {
         }
     };
 
-    const handleReassignSuccess = (_transactionId: number, type: 'import' | 'export') => {
-        invalidateTransactionCaches(type);
-    };
-
     const handleStatusSuccess = (_transactionId: number, type: 'import' | 'export') => {
         invalidateTransactionCaches(type);
     };
@@ -127,7 +121,7 @@ export const TransactionOversight = () => {
             <div className="flex justify-between items-end">
                 <div>
                     <h1 className="text-3xl font-bold mb-1 text-text-primary">Transaction Oversight</h1>
-                    <p className="text-sm text-text-secondary">All imports &amp; exports — reassign encoders, override statuses</p>
+                    <p className="text-sm text-text-secondary">All imports &amp; exports — primary encoder ownership, status control, and remarks</p>
                 </div>
                 <CurrentDateTime
                     className="text-right hidden sm:block shrink-0"
@@ -314,13 +308,6 @@ export const TransactionOversight = () => {
                                                     {canManageActiveTransaction && (
                                                         <>
                                                             <button
-                                                                onClick={(e) => { e.stopPropagation(); setReassignTarget(t); }}
-                                                                className="p-1.5 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-md transition-colors"
-                                                                title="Reassign Encoder"
-                                                            >
-                                                                <Icon name="user" className="w-4 h-4" />
-                                                            </button>
-                                                            <button
                                                                 onClick={(e) => { e.stopPropagation(); setStatusTarget(t); }}
                                                                 className="p-1.5 text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/30 rounded-md transition-colors"
                                                                 title="Override Status"
@@ -386,12 +373,6 @@ export const TransactionOversight = () => {
             </div>
 
             {/* Modals */}
-            <ReassignModal
-                isOpen={!!reassignTarget}
-                onClose={() => setReassignTarget(null)}
-                transaction={reassignTarget}
-                onSuccess={handleReassignSuccess}
-            />
             <StatusOverrideModal
                 isOpen={!!statusTarget}
                 onClose={() => setStatusTarget(null)}

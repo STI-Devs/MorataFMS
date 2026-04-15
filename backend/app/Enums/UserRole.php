@@ -5,6 +5,8 @@ namespace App\Enums;
 enum UserRole: string
 {
     case Encoder = 'encoder';
+    case Processor = 'processor';
+    case Accounting = 'accounting';
     case Paralegal = 'paralegal';
     case Admin = 'admin';
 
@@ -19,8 +21,10 @@ enum UserRole: string
     {
         $hierarchy = [
             self::Encoder->value => 1,
-            self::Paralegal->value => 2,
-            self::Admin->value => 3,
+            self::Processor->value => 2,
+            self::Accounting->value => 2,
+            self::Paralegal->value => 3,
+            self::Admin->value => 4,
         ];
 
         return ($hierarchy[$this->value] ?? 0) >= ($hierarchy[$minimum->value] ?? 0);
@@ -30,6 +34,8 @@ enum UserRole: string
     {
         return match ($this) {
             self::Encoder => 'Encoder',
+            self::Processor => 'Processor',
+            self::Accounting => 'Accountant',
             self::Paralegal => 'Paralegal',
             self::Admin => 'Admin',
         };

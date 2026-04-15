@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\UserRole;
 use App\Models\Document;
 use App\Models\ExportTransaction;
 use App\Models\ImportTransaction;
@@ -104,6 +105,49 @@ class StoreDocumentRequest extends FormRequest
                         'type',
                         "The {$label} stage is marked as not applicable for this transaction.",
                     );
+                }
+
+                $user = $this->user();
+                if (! $user) {
+                    return;
+                }
+
+                $allowedTypes = match ($user->role) {
+                    UserRole::Processor => match ($documentableType) {
+                        ImportTransaction::class => ['ppa', 'port_charges'],
+                        ExportTransaction::class => ['cil', 'dccci'],
+                        default => [],
+                    },
+                    UserRole::Accounting => match ($documentableType) {
+                        ImportTransaction::class, ExportTransaction::class => ['billing'],
+                        default => [],
+                    },
+                    default => Document::allowedTypeKeysFor($documentableType),
+                };
+
+                if (! in_array($stage, $allowedTypes, true)) {
+                    $validator->errors()->add(
+                        'type',
+                        'You are not allowed to upload this document type for the selected transaction.',
+                    );
+
+                    return;
+                }
+
+                if (
+                    $transaction instanceof ImportTransaction
+                    || $transaction instanceof ExportTransaction
+                ) {
+                    if ($stage === 'others') {
+                        return;
+                    }
+
+                    if (! $transaction->isDocumentTypeReadyForUpload($stage)) {
+                        $validator->errors()->add(
+                            'type',
+                            'This stage is not ready for upload yet.',
+                        );
+                    }
                 }
             },
         ];

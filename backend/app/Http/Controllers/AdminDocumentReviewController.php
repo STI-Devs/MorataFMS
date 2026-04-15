@@ -362,7 +362,7 @@ class AdminDocumentReviewController extends Controller
             ->with([
                 'shipper:id,name',
                 'assignedUser:id,name',
-                'stages:export_transaction_id,billing_completed_at,co_not_applicable',
+                'stages:export_transaction_id,billing_completed_at,co_not_applicable,dccci_not_applicable',
                 'documents:id,documentable_id,documentable_type,type',
                 'remarks:id,remarkble_id,remarkble_type,is_resolved',
             ])
@@ -523,7 +523,7 @@ class AdminDocumentReviewController extends Controller
                 ->with([
                     'shipper:id,name',
                     'assignedUser:id,name',
-                    'stages:export_transaction_id,billing_completed_at,co_not_applicable',
+                    'stages:export_transaction_id,billing_completed_at,co_not_applicable,dccci_not_applicable',
                     'documents' => function ($query) {
                         $query->select([
                             'id',
@@ -773,7 +773,10 @@ class AdminDocumentReviewController extends Controller
     {
         return match ($type) {
             'import' => ['bonds' => 'import_stages.bonds_not_applicable'],
-            'export' => ['co' => 'export_stages.co_not_applicable'],
+            'export' => [
+                'co' => 'export_stages.co_not_applicable',
+                'dccci' => 'export_stages.dccci_not_applicable',
+            ],
             default => [],
         };
     }

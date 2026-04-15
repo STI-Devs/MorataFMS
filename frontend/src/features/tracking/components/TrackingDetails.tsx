@@ -331,6 +331,15 @@ export const TrackingDetails = () => {
             i === firstEmptyIdx,
         ),
     );
+    const stageUploadDisabledReasons = displayStages.map((stage, i) => {
+        const hasDocuments = (displayStageDocuments[i]?.length ?? 0) > 0;
+
+        if (hasDocuments || notApplicableStages.has(stage.type) || stageStatuses[i] === 'active') {
+            return null;
+        }
+
+        return 'Complete the earlier required stages before uploading this document.';
+    });
     const importTx       = isImport  ? (transaction as ImportTransaction)  : null;
     const exportTx       = !isImport ? (transaction as ExportTransaction)  : null;
 
@@ -377,6 +386,7 @@ export const TrackingDetails = () => {
                             isUploading={uploadingStage === i}
                             isApplicabilityUpdating={applicabilityStage === stage.type}
                             deletingDocId={deletingDocId}
+                            uploadDisabledReason={stageUploadDisabledReasons[i]}
                             onUploadClick={handleStageUploadClick}
                             onPreviewDoc={handlePreviewDoc}
                             onDeleteDoc={handleDeleteDoc}

@@ -36,8 +36,13 @@ export const UploadModal: React.FC<UploadModalProps> = ({
             return;
         }
 
-        setSelectedFiles(files);
-        setSelectionError(files.length > MAX_MULTI_UPLOAD_FILES ? getMaxFilesErrorMessage() : null);
+        const combinedFiles = [...selectedFiles, ...files];
+        const uniqueFiles = combinedFiles.filter((file, index, self) =>
+            index === self.findIndex((f) => f.name === file.name && f.size === file.size)
+        );
+
+        setSelectedFiles(uniqueFiles);
+        setSelectionError(uniqueFiles.length > MAX_MULTI_UPLOAD_FILES ? getMaxFilesErrorMessage() : null);
     };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {

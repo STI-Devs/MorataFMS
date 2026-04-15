@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\ExportStatus;
+use App\Enums\UserRole;
 use App\Http\Requests\CancelTransactionRequest;
 use App\Http\Requests\StoreExportTransactionRequest;
 use App\Http\Requests\UpdateExportStageApplicabilityRequest;
@@ -26,11 +27,22 @@ class ExportTransactionController extends Controller
     {
         $this->authorize('viewAny', ExportTransaction::class);
 
+        $user = $request->user();
+
         $query = ExportTransaction::query()
-            ->visibleTo($request->user())
             ->with(['shipper', 'stages', 'assignedUser', 'destinationCountry'])
             ->withCount(['remarks as open_remarks_count' => fn ($q) => $q->where('is_resolved', false)])
             ->withCount('documents');
+
+        if (in_array($user->role, [UserRole::Processor, UserRole::Accounting], true)) {
+            if ($request->query('operational_scope') === 'workspace') {
+                $query->relevantToOperationalWorkspace($user);
+            } else {
+                $query->relevantToOperationalQueue($user);
+            }
+        } else {
+            $query->visibleTo($user);
+        }
 
         if ($search = $request->query('search')) {
             $query->where(function ($q) use ($search) {
@@ -119,8 +131,16 @@ class ExportTransactionController extends Controller
     {
         $this->authorize('viewAny', ExportTransaction::class);
 
-        $counts = ExportTransaction::query()
-            ->visibleTo(request()->user())
+        $user = request()->user();
+        $countsQuery = ExportTransaction::query();
+
+        if (in_array($user->role, [UserRole::Processor, UserRole::Accounting], true)) {
+            $countsQuery->relevantToOperationalQueue($user);
+        } else {
+            $countsQuery->visibleTo($user);
+        }
+
+        $counts = $countsQuery
             ->selectRaw('
             COUNT(*) as total,
             SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as pending,
@@ -180,6 +200,13 @@ class ExportTransactionController extends Controller
         }
 
         $export_transaction->loadMissing('stages');
+
+        if ($notApplicable && ! $export_transaction->isDocumentTypeReadyForUpload($stage)) {
+            return response()->json([
+                'message' => 'Complete the earlier required stages before marking this stage as not applicable.',
+            ], 422);
+        }
+
         $export_transaction->setStageApplicability($stage, $notApplicable, $request->user()->id);
         $export_transaction->recalculateStatus();
         $export_transaction->load(['shipper', 'stages', 'assignedUser', 'destinationCountry']);

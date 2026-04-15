@@ -15,8 +15,9 @@ const IMPORT_STAGE_LABELS: Record<keyof ImportStages, string> = {
 const EXPORT_STAGE_LABELS: Record<keyof ExportStages, string> = {
     boc: 'BOC',
     bl_generation: 'B/L',
-    co: 'C/O',
     phytosanitary: 'Phyto',
+    co: 'C/O',
+    cil: 'CIL',
     dccci: 'DCCCI',
     billing: 'Billing',
 };

@@ -36,6 +36,10 @@ class ImportTransactionResource extends JsonResource
             'notes' => $this->notes,
             'stages' => $this->whenLoaded('stages', fn () => $this->progress),
             'not_applicable_stages' => $this->whenLoaded('stages', fn () => $this->notApplicableStageKeys()),
+            'waiting_since' => $this->whenLoaded(
+                'stages',
+                fn () => $request->user() ? $this->waitingSinceForOperationalRole($request->user())?->toISOString() : null,
+            ),
             'created_at' => $this->created_at?->toISOString(),
             'open_remarks_count' => $this->open_remarks_count ?? 0,
             'documents_count' => $this->documents_count ?? 0,

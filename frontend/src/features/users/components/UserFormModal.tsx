@@ -12,6 +12,8 @@ interface UserFormModalProps {
 
 const ROLES: { value: UserRole; label: string }[] = [
     { value: 'encoder', label: 'Encoder' },
+    { value: 'processor', label: 'Processor' },
+    { value: 'accounting', label: 'Accountant' },
     { value: 'paralegal', label: 'Paralegal' },
     { value: 'admin', label: 'Admin' },
 ];

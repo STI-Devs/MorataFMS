@@ -155,31 +155,6 @@ test('creating and resolving a remark dispatches transaction remark broadcast ev
     });
 });
 
-test('reassigning a transaction dispatches a transaction changed broadcast event', function () {
-    $admin = User::factory()->create(['role' => 'admin']);
-    $currentEncoder = User::factory()->create(['role' => 'encoder']);
-    $newEncoder = User::factory()->create(['role' => 'encoder']);
-    $transaction = ImportTransaction::factory()->create([
-        'assigned_user_id' => $currentEncoder->id,
-    ]);
-
-    Event::fake([TransactionChanged::class]);
-
-    $this->actingAs($admin)
-        ->patchJson("/api/transactions/import/{$transaction->id}/reassign", [
-            'assigned_user_id' => $newEncoder->id,
-        ])
-        ->assertOk();
-
-    Event::assertDispatched(TransactionChanged::class, function (TransactionChanged $event) use ($transaction, $newEncoder, $admin) {
-        return $event->broadcastWith()['event_type'] === 'reassigned'
-            && $event->broadcastWith()['transaction_type'] === 'import'
-            && $event->broadcastWith()['transaction_id'] === $transaction->id
-            && $event->broadcastWith()['assigned_user_id'] === $newEncoder->id
-            && $event->broadcastWith()['actor_id'] === $admin->id;
-    });
-});
-
 test('overriding status and cancelling a transaction dispatch transaction changed broadcast events', function () {
     $admin = User::factory()->create(['role' => 'admin']);
     $encoder = User::factory()->create(['role' => 'encoder']);

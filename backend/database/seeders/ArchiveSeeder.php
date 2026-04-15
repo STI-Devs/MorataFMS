@@ -52,7 +52,7 @@ class ArchiveSeeder extends Seeder
 
     private const IMPORT_STAGES = ['boc', 'ppa', 'do', 'port_charges', 'releasing', 'billing'];
 
-    private const EXPORT_STAGES = ['docs_prep', 'co', 'cil', 'bl'];
+    private const EXPORT_STAGES = ['docs_prep', 'bl', 'phytosanitary', 'co', 'cil', 'dccci'];
 
     private const SELECTIVE_COLORS = ['green', 'green', 'green', 'green', 'yellow', 'yellow', 'red'];
 

@@ -58,4 +58,39 @@ describe('EncodeModal', () => {
 
         expect(screen.queryByText('Request failed with status code 422')).not.toBeInTheDocument();
     });
+
+    it('requires an explicit departure date when encoding an export transaction', async () => {
+        const onSave = vi.fn().mockResolvedValue(undefined);
+
+        mockUseClients.mockReturnValue({
+            data: [{ id: 1, name: 'ANFLO BANANA CORPORATION', type: 'exporter' }],
+            isLoading: false,
+        });
+        mockUseCountries.mockReturnValue({
+            data: [{ id: 9, name: 'Singapore', code: 'SG' }],
+            isLoading: false,
+        });
+
+        render(<EncodeModal isOpen onClose={vi.fn()} type="export" onSave={onSave} />);
+
+        expect(screen.getByLabelText(/departure date/i)).toHaveValue('');
+
+        fireEvent.change(screen.getByLabelText(/shipper/i), { target: { value: '1' } });
+        fireEvent.change(screen.getByLabelText(/bill of lading/i), { target: { value: 'BL-EXPORT-001' } });
+        fireEvent.change(screen.getByLabelText(/vessel/i), { target: { value: 'MV Pacific' } });
+        fireEvent.change(screen.getByLabelText(/departure date/i), { target: { value: '2026-04-20' } });
+        fireEvent.change(screen.getByLabelText(/port of destination/i), { target: { value: '9' } });
+
+        fireEvent.click(screen.getByRole('button', { name: /encode/i }));
+
+        await waitFor(() => {
+            expect(onSave).toHaveBeenCalledWith({
+                shipper_id: 1,
+                bl_no: 'BL-EXPORT-001',
+                vessel: 'MV Pacific',
+                export_date: '2026-04-20',
+                destination_country_id: 9,
+            });
+        });
+    });
 });

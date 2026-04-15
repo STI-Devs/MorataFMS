@@ -51,10 +51,13 @@ If backend and frontend drift, the backend API contract is the source of truth f
 
 These conventions are final unless intentionally changed across the stack:
 
-- auth roles are only `encoder`, `paralegal`, and `admin`
+- auth roles are only `encoder`, `processor`, `accounting`, `paralegal`, and `admin`
 - the current deployed split frontend/backend setup uses Sanctum cookie-based SPA auth on the shared `fmmcbs.com` root domain
 - `job_title` is display metadata, not an authorization role
 - the frontend should consume backend `role`, `departments`, and `permissions` rather than infer access ad hoc
+- `processor` and `accounting` are brokerage operational roles, not full transaction encoders
+- processor UI should focus on assigned transaction charge uploads: `CIL`, `PPA`, and `Port Charges`
+- accounting UI should focus on assigned finance uploads: `Billing` and `Liquidation`
 - backend contract changes must update frontend types, API helpers, hooks, and affected UI in the same workstream
 
 Do not reintroduce deprecated auth role names in either layer.

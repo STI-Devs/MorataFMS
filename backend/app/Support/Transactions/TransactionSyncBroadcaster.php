@@ -55,7 +55,13 @@ class TransactionSyncBroadcaster
         ?int $previousAssignedUserId = null,
     ): array {
         $recipientIds = User::query()
-            ->where('role', UserRole::Admin->value)
+            ->whereIn('role', [
+                UserRole::Admin->value,
+                UserRole::Encoder->value,
+                UserRole::Processor->value,
+                UserRole::Accounting->value,
+            ])
+            ->where('is_active', true)
             ->pluck('id')
             ->push($transaction->assigned_user_id)
             ->push($previousAssignedUserId)

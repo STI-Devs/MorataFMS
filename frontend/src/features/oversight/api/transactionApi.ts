@@ -1,32 +1,10 @@
 import api from '../../../lib/axios';
-import type { EncoderUser, OversightListResponse, OversightQueryParams } from '../types/transaction.types';
+import type { OversightListResponse, OversightQueryParams } from '../types/transaction.types';
 
 export const transactionApi = {
     // Get all transactions combined (admin)
     async getAllTransactions(params?: OversightQueryParams): Promise<OversightListResponse> {
         const response = await api.get('/api/transactions', { params });
-        return response.data;
-    },
-
-    // Get list of active encoders for reassignment dropdown
-    async getEncoders(): Promise<{ data: EncoderUser[] }> {
-        const response = await api.get('/api/transactions/encoders');
-        return response.data;
-    },
-
-    // Reassign encoder for an import
-    async reassignImport(id: number, assignedUserId: number): Promise<{ message: string; assigned_to: string; assigned_user_id: number }> {
-        const response = await api.patch(`/api/transactions/import/${id}/reassign`, {
-            assigned_user_id: assignedUserId,
-        });
-        return response.data;
-    },
-
-    // Reassign encoder for an export
-    async reassignExport(id: number, assignedUserId: number): Promise<{ message: string; assigned_to: string; assigned_user_id: number }> {
-        const response = await api.patch(`/api/transactions/export/${id}/reassign`, {
-            assigned_user_id: assignedUserId,
-        });
         return response.data;
     },
 

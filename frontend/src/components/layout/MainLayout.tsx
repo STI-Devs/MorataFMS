@@ -4,13 +4,20 @@ import { logoImage } from '../../assets/branding';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../features/auth';
 import { getRoleLabel, hasBrokerageAccess, hasLegalAccess } from '../../features/auth/utils/access';
-import { adminBrokerageGuardPaths, appRoutes, legalGuardPaths, navigationItems } from '../../lib/appRoutes';
+import {
+    accountantGuardPaths,
+    adminBrokerageGuardPaths,
+    appRoutes,
+    legalGuardPaths,
+    navigationItems,
+    processorGuardPaths,
+} from '../../lib/appRoutes';
 import { PageFallback } from '../PageFallback';
 
 type Module = 'brokerage' | 'legal';
 
 type NavItemProps = {
-    item: { label: string; path: string; icon: string; newTab?: boolean };
+    item: { label: string; path: string; icon: string; newTab?: boolean; exact?: boolean; badge?: number | string };
     isActive: boolean;
     isSidebarDark: boolean;
     onNavigate: (path: string, newTab?: boolean) => void;
@@ -33,7 +40,22 @@ const NavItem = ({ item, isActive, isSidebarDark, onNavigate }: NavItemProps) =>
         >
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={item.icon} />
         </svg>
-        {item.label}
+        <span className="min-w-0 flex-1 truncate">{item.label}</span>
+        {item.badge ? (
+            <span
+                className={`ml-auto rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none ${
+                    isActive
+                        ? isSidebarDark
+                            ? 'bg-white text-black'
+                            : 'bg-black text-white'
+                        : isSidebarDark
+                            ? 'bg-white/10 text-gray-300'
+                            : 'bg-black/8 text-gray-600'
+                }`}
+            >
+                {item.badge}
+            </span>
+        ) : null}
     </button>
 );
 
@@ -96,6 +118,8 @@ export const MainLayout = () => {
 
     const departments = user?.departments ?? ['brokerage'];
     const isAdmin = user?.role === 'admin';
+    const isProcessor = user?.role === 'processor';
+    const isAccountant = user?.role === 'accounting';
     const hasLegal = hasLegalAccess(user);
     const hasBrokerage = hasBrokerageAccess(user);
     const isMultiDept = user?.multi_department ?? isAdmin;
@@ -104,15 +128,49 @@ export const MainLayout = () => {
     const [isAccountOpen, setIsAccountOpen] = useState(false);
     const accountRef = useRef<HTMLDivElement>(null);
 
-    const brokerageItems = isAdmin ? navigationItems.adminBrokerage : navigationItems.encoderBrokerage;
+    const brokerageItems = isAdmin
+        ? navigationItems.adminBrokerage
+        : isProcessor
+            ? navigationItems.processor
+            : isAccountant
+                ? navigationItems.accountant
+                : navigationItems.encoderBrokerage;
     const navItems = activeModule === 'legal' ? navigationItems.legal : brokerageItems;
     const settingsItems = navigationItems.settings;
+    const activeModuleHomePath = activeModule === 'legal' && hasLegal
+        ? appRoutes.paralegalDashboard
+        : isAdmin
+            ? appRoutes.dashboard
+            : isProcessor
+                ? appRoutes.processorDashboard
+                : isAccountant
+                    ? appRoutes.accountantDashboard
+                    : appRoutes.tracking;
 
     const switchModule = (moduleName: Module) => {
         setActiveModule(moduleName);
         localStorage.setItem('activeModule', moduleName);
-        navigate(moduleName === 'legal' ? appRoutes.lawFirm : (isAdmin ? appRoutes.dashboard : appRoutes.tracking));
+        navigate(
+            moduleName === 'legal'
+                ? appRoutes.paralegalDashboard
+                : isAdmin
+                    ? appRoutes.dashboard
+                    : isProcessor
+                        ? appRoutes.processorDashboard
+                        : isAccountant
+                            ? appRoutes.accountantDashboard
+                            : appRoutes.tracking,
+        );
     };
+
+    useEffect(() => {
+        const isLegalRoute = legalGuardPaths.some((path) => location.pathname === path || location.pathname.startsWith(path + '/'));
+
+        if (isLegalRoute && hasLegal && activeModule !== 'legal') {
+            setActiveModule('legal');
+            localStorage.setItem('activeModule', 'legal');
+        }
+    }, [activeModule, hasLegal, location.pathname]);
 
     useEffect(() => {
         if (!isAccountOpen) {
@@ -140,10 +198,16 @@ export const MainLayout = () => {
     };
 
     if (!isAdmin && adminBrokerageGuardPaths.some((path) => location.pathname === path || location.pathname.startsWith(path + '/'))) {
-        return <Navigate to={appRoutes.tracking} replace />;
+        return <Navigate to={activeModuleHomePath} replace />;
     }
     if (!hasLegal && legalGuardPaths.some((path) => location.pathname === path || location.pathname.startsWith(path + '/'))) {
-        return <Navigate to={appRoutes.tracking} replace />;
+        return <Navigate to={activeModuleHomePath} replace />;
+    }
+    if (!isProcessor && processorGuardPaths.some((path) => location.pathname === path || location.pathname.startsWith(path + '/'))) {
+        return <Navigate to={activeModuleHomePath} replace />;
+    }
+    if (!isAccountant && accountantGuardPaths.some((path) => location.pathname === path || location.pathname.startsWith(path + '/'))) {
+        return <Navigate to={activeModuleHomePath} replace />;
     }
 
     const isSidebarDark = theme === 'dark' || theme === 'mix';
@@ -180,13 +244,19 @@ export const MainLayout = () => {
             >
                 <div
                     className="flex items-center gap-2.5 px-2 mb-5 cursor-pointer"
-                    onClick={() => navigate(isAdmin ? appRoutes.dashboard : appRoutes.tracking)}
+                    onClick={() => navigate(activeModuleHomePath)}
                 >
                     <img src={logoImage} alt="F.M Morata Logo" className="w-7 h-7 rounded-full object-cover shrink-0" />
                     <div>
                         <p className={`font-bold text-sm leading-tight ${isSidebarDark ? 'text-white' : 'text-black'}`}>F.M Morata</p>
                         <p className={`text-[10px] font-medium leading-tight ${isSidebarDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                            {activeModule === 'legal' ? 'Law Firm' : 'Customs Brokerage'}
+                            {activeModule === 'legal'
+                                ? 'Law Firm'
+                                : isProcessor
+                                    ? 'Processor'
+                                    : isAccountant
+                                        ? 'Accountant'
+                                        : 'Customs Brokerage'}
                         </p>
                     </div>
                 </div>
@@ -208,7 +278,9 @@ export const MainLayout = () => {
                         </p>
                         <nav className="space-y-0.5">
                             {navItems.map((item) => {
-                                const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
+                                const isActive = item.exact
+                                    ? location.pathname === item.path
+                                    : location.pathname === item.path || location.pathname.startsWith(item.path + '/');
                                 return (
                                     <NavItem
                                         key={item.label}

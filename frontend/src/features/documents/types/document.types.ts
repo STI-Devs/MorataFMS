@@ -249,9 +249,10 @@ export const IMPORT_STAGES: readonly ArchiveStageDefinition[] = [
 export const EXPORT_STAGES: readonly ArchiveStageDefinition[] = [
     { key: 'boc', label: 'BOC Processing' },
     { key: 'bl_generation', label: 'Bill of Lading' },
-    { key: 'co', label: 'CO Application', optional: true },
     { key: 'phytosanitary', label: 'Phytosanitary Certificates' },
-    { key: 'dccci', label: 'DCCCI Printing' },
+    { key: 'co', label: 'CO Application', optional: true },
+    { key: 'cil', label: 'CIL' },
+    { key: 'dccci', label: 'DCCCI Printing', optional: true },
     { key: 'billing', label: 'Billing' },
     { key: 'others', label: 'Others' },
 ] as const;

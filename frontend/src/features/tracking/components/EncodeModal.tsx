@@ -32,12 +32,14 @@ export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type,
     const vesselFieldId = `${type}-vessel`;
     const destinationCountryFieldId = `${type}-destination-country`;
     const arrivalDateFieldId = `${type}-arrival-date`;
+    const departureDateFieldId = `${type}-departure-date`;
 
     const [ref, setRef] = useState('');
     const [bl, setBl] = useState('');
     const [blsc, setBlsc] = useState('');
     const [clientId, setClientId] = useState<number | ''>('');
     const [arrivalDate, setArrivalDate] = useState('');
+    const [departureDate, setDepartureDate] = useState('');
     const [vessel, setVessel] = useState('');
     const [destinationCountryId, setDestinationCountryId] = useState<number | ''>('');
     const [submitting, setSubmitting] = useState(false);
@@ -54,7 +56,7 @@ export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type,
         if (main) main.style.overflow = 'hidden';
 
         setRef(''); setBl(''); setBlsc(''); setClientId('');
-        setArrivalDate(''); setVessel(''); setDestinationCountryId('');
+        setArrivalDate(''); setDepartureDate(''); setVessel(''); setDestinationCountryId('');
         setError(null);
 
         return () => {
@@ -63,8 +65,6 @@ export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type,
     }, [isOpen]);
 
     if (!isOpen) return null;
-
-    const today = new Date().toISOString().split('T')[0];
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -87,6 +87,7 @@ export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type,
                     shipper_id: clientId as number,
                     bl_no: bl,
                     vessel,
+                    export_date: departureDate,
                     ...(destinationCountryId !== '' && { destination_country_id: destinationCountryId }),
                 } satisfies CreateExportPayload);
             }
@@ -231,6 +232,20 @@ export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type,
                             </div>
                         )}
 
+                        {!isImport && (
+                            <div className="space-y-2">
+                                <label htmlFor={departureDateFieldId} className={labelCls}>Departure Date</label>
+                                <input
+                                    id={departureDateFieldId}
+                                    required
+                                    type="date"
+                                    value={departureDate}
+                                    className={inputCls}
+                                    onChange={e => setDepartureDate(e.target.value)}
+                                />
+                            </div>
+                        )}
+
                         {/* Port of Destination — export only */}
                         {!isImport && (
                             <div className="space-y-2 md:col-span-2">
@@ -265,7 +280,6 @@ export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type,
                                     required
                                     type="date"
                                     value={arrivalDate}
-                                    min={today}
                                     className={inputCls}
                                     onChange={e => setArrivalDate(e.target.value)}
                                 />

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\UserRole;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -40,8 +41,9 @@ class Document extends Model
         return [
             'boc',
             'bl_generation',
-            'co',
             'phytosanitary',
+            'co',
+            'cil',
             'dccci',
             'billing',
             'others',
@@ -61,7 +63,7 @@ class Document extends Model
      */
     public static function exportOptionalTypeKeys(): array
     {
-        return ['co'];
+        return ['co', 'dccci'];
     }
 
     /**
@@ -143,15 +145,36 @@ class Document extends Model
             return $query->whereRaw('1 = 0');
         }
 
-        return $query->where(function ($documentQuery) use ($user) {
-            $documentQuery
-                ->whereHasMorph('documentable', [ImportTransaction::class], function ($transactionQuery) use ($user) {
-                    $transactionQuery->visibleTo($user);
-                })
-                ->orWhereHasMorph('documentable', [ExportTransaction::class], function ($transactionQuery) use ($user) {
-                    $transactionQuery->visibleTo($user);
-                });
-        });
+        if ($user->isAdmin()) {
+            return $query;
+        }
+
+        if ($user->role === UserRole::Encoder) {
+            return $query->where(function ($documentQuery) use ($user) {
+                $documentQuery
+                    ->whereHasMorph('documentable', [ImportTransaction::class], function ($transactionQuery) use ($user) {
+                        $transactionQuery->visibleTo($user);
+                    })
+                    ->orWhereHasMorph('documentable', [ExportTransaction::class], function ($transactionQuery) use ($user) {
+                        $transactionQuery->visibleTo($user);
+                    });
+            });
+        }
+
+        if (in_array($user->role, [UserRole::Processor, UserRole::Accounting], true)) {
+            return $query->where(function ($documentQuery) use ($user) {
+                $documentQuery
+                    ->where('uploaded_by', $user->id)
+                    ->orWhereHasMorph('documentable', [ImportTransaction::class], function ($transactionQuery) use ($user) {
+                        $transactionQuery->relevantToOperationalQueue($user);
+                    })
+                    ->orWhereHasMorph('documentable', [ExportTransaction::class], function ($transactionQuery) use ($user) {
+                        $transactionQuery->relevantToOperationalQueue($user);
+                    });
+            });
+        }
+
+        return $query->whereRaw('1 = 0');
     }
 
     // Helper to get human-readable file size
@@ -211,6 +234,7 @@ class Document extends Model
             'billing' => 'Liquidation and Billing',
             // Export stages
             'bl_generation' => 'Bill of Lading',
+            'cil' => 'CIL',
             'co' => 'CO Application',
             'dccci' => 'DCCCI Printing',
             // Shared — catch-all for additional documents

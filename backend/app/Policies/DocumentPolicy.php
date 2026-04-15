@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Enums\UserRole;
 use App\Models\Document;
 use App\Models\ExportTransaction;
 use App\Models\ImportTransaction;
@@ -23,7 +24,7 @@ class DocumentPolicy
      */
     public function view(User $user, Document $document): bool
     {
-        return $this->canAccessTransactionDocument($user, $document->documentable);
+        return $this->canAccessTransactionDocument($user, $document->documentable, $document);
     }
 
     /**
@@ -48,12 +49,13 @@ class DocumentPolicy
     public function delete(User $user, Document $document): bool
     {
         return $user->isAdmin()
-            || ($document->uploaded_by === $user->id && $this->canAccessTransactionDocument($user, $document->documentable));
+            || ($document->uploaded_by === $user->id && $this->canAccessTransactionDocument($user, $document->documentable, $document));
     }
 
     private function canAccessTransactionDocument(
         User $user,
         ImportTransaction|ExportTransaction|Model|null $documentable,
+        ?Document $document = null,
     ): bool {
         if (! $documentable instanceof ImportTransaction && ! $documentable instanceof ExportTransaction) {
             return false;
@@ -67,6 +69,18 @@ class DocumentPolicy
             return false;
         }
 
-        return $documentable->assigned_user_id === $user->id;
+        if ($user->role === UserRole::Encoder) {
+            return $documentable->assigned_user_id === $user->id;
+        }
+
+        if (in_array($user->role, [UserRole::Processor, UserRole::Accounting], true)) {
+            if ($document?->uploaded_by === $user->id) {
+                return true;
+            }
+
+            return $documentable->isRelevantToOperationalQueue($user);
+        }
+
+        return false;
     }
 }

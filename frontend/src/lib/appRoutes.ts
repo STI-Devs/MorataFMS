@@ -20,6 +20,14 @@ export const appRoutes = {
     archives: '/archives',
     lawFirm: '/law-firm',
     forms: '/forms',
+    paralegalDashboard: '/paralegal',
+    paralegalDocuments: '/paralegal/documents',
+    processorDashboard: '/processor',
+    processorTransaction: '/processor/transaction',
+    processorDocuments: '/processor/documents',
+    accountantDashboard: '/accountant',
+    accountantImpExp: '/accountant/impexp',
+    accountantDocuments: '/accountant/documents',
     liveTracking: '/live-tracking',
     adminDocumentReview: '/admin/document-review',
     adminAlias: '/admin',
@@ -30,16 +38,20 @@ type NavigationItem = {
     path: string;
     icon: string;
     newTab?: boolean;
+    exact?: boolean;
+    badge?: number | string;
 };
 
 export const navigationItems: {
     adminBrokerage: NavigationItem[];
     encoderBrokerage: NavigationItem[];
+    processor: NavigationItem[];
+    accountant: NavigationItem[];
     legal: NavigationItem[];
     settings: NavigationItem[];
 } = {
     adminBrokerage: [
-        { label: 'Dashboard', path: appRoutes.dashboard, icon: 'M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z' },
+        { label: 'Dashboard', path: appRoutes.dashboard, exact: true, icon: 'M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z' },
         { label: 'Transaction Oversight', path: appRoutes.transactions, icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4' },
         { label: 'Documents', path: appRoutes.adminDocumentReview, icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
         { label: 'Live Tracking', path: appRoutes.liveTracking, newTab: true, icon: 'M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z M15 11a3 3 0 11-6 0 3 3 0 016 0z' },
@@ -56,9 +68,21 @@ export const navigationItems: {
         { label: 'Documents', path: appRoutes.documents, icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
         { label: 'My Archive', path: appRoutes.myArchive, icon: 'M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4' },
     ],
+    processor: [
+        { label: 'Dashboard', path: appRoutes.processorDashboard, exact: true, icon: 'M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z' },
+        { label: 'Transaction', path: appRoutes.processorTransaction, icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4' },
+        { label: 'Documents', path: appRoutes.processorDocuments, icon: 'M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2' },
+    ],
+    accountant: [
+        { label: 'Dashboard', path: appRoutes.accountantDashboard, exact: true, icon: 'M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z' },
+        { label: 'ImpExp', path: appRoutes.accountantImpExp, icon: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4' },
+        { label: 'Documents', path: appRoutes.accountantDocuments, icon: 'M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2' },
+    ],
     legal: [
+        { label: 'Dashboard', path: appRoutes.paralegalDashboard, exact: true, icon: 'M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z' },
         { label: 'Law Firm', path: appRoutes.lawFirm, icon: 'M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3' },
         { label: 'Forms', path: appRoutes.forms, icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
+        { label: 'Documents', path: appRoutes.paralegalDocuments, icon: 'M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2' },
     ],
     settings: [
         { label: 'Profile', path: appRoutes.profile, icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' },
@@ -79,8 +103,22 @@ export const adminBrokerageGuardPaths = [
 ];
 
 export const legalGuardPaths = [
+    appRoutes.paralegalDashboard,
+    appRoutes.paralegalDocuments,
     appRoutes.lawFirm,
     appRoutes.forms,
+];
+
+export const processorGuardPaths = [
+    appRoutes.processorDashboard,
+    appRoutes.processorTransaction,
+    appRoutes.processorDocuments,
+];
+
+export const accountantGuardPaths = [
+    appRoutes.accountantDashboard,
+    appRoutes.accountantImpExp,
+    appRoutes.accountantDocuments,
 ];
 
 export const adminDashboardQuickLinks = [

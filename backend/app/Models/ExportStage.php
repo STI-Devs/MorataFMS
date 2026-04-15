@@ -23,10 +23,15 @@ class ExportStage extends Model
         'phytosanitary_status',
         'phytosanitary_completed_at',
         'phytosanitary_completed_by',
-        // CIL (Certificate of Inspection & Loading)
+        // CIL
         'cil_status',
         'cil_completed_at',
         'cil_completed_by',
+        // DCCCI
+        'dccci_status',
+        'dccci_completed_at',
+        'dccci_completed_by',
+        'dccci_not_applicable',
         // BL (Bill of Lading)
         'bl_status',
         'bl_completed_at',
@@ -42,15 +47,18 @@ class ExportStage extends Model
         'co_completed_at' => 'datetime',
         'phytosanitary_completed_at' => 'datetime',
         'cil_completed_at' => 'datetime',
+        'dccci_completed_at' => 'datetime',
         'bl_completed_at' => 'datetime',
         'billing_completed_at' => 'datetime',
         'docs_prep_status' => StageStatus::class,
         'co_status' => StageStatus::class,
         'phytosanitary_status' => StageStatus::class,
         'cil_status' => StageStatus::class,
+        'dccci_status' => StageStatus::class,
         'bl_status' => StageStatus::class,
         'billing_status' => StageStatus::class,
         'co_not_applicable' => 'boolean',
+        'dccci_not_applicable' => 'boolean',
     ];
 
     // Relationships
@@ -79,6 +87,11 @@ class ExportStage extends Model
         return $this->belongsTo(User::class, 'cil_completed_by');
     }
 
+    public function dccciCompletedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'dccci_completed_by');
+    }
+
     public function blCompletedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'bl_completed_by');
@@ -105,7 +118,7 @@ class ExportStage extends Model
 
     public function getCompletedStagesCount(): int
     {
-        $stages = ['docs_prep', 'bl', 'co', 'phytosanitary', 'cil', 'billing'];
+        $stages = ['docs_prep', 'bl', 'phytosanitary', 'co', 'cil', 'dccci', 'billing'];
         $count = 0;
 
         foreach ($stages as $stage) {
@@ -119,6 +132,6 @@ class ExportStage extends Model
 
     public function isAllComplete(): bool
     {
-        return $this->getCompletedStagesCount() === 6;
+        return $this->getCompletedStagesCount() === 7;
     }
 }

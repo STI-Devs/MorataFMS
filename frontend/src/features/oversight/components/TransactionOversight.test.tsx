@@ -36,10 +36,6 @@ vi.mock('../../../components/Pagination', () => ({
     Pagination: () => null,
 }));
 
-vi.mock('./ReassignModal', () => ({
-    ReassignModal: () => null,
-}));
-
 vi.mock('./RemarkModal', () => ({
     RemarkModal: () => null,
 }));

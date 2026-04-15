@@ -36,6 +36,7 @@ export default function EditTransactionModal({ isOpen, onClose, type, transactio
     const [destCountryId, setDestCountryId] = useState('');
     const [vessel, setVessel] = useState('');
     const [arrivalDate, setArrivalDate] = useState('');
+    const [departureDate, setDepartureDate] = useState('');
 
     // Sync state if transaction changes
     const [prevTxnId, setPrevTxnId] = useState<number | null>(null);
@@ -55,6 +56,7 @@ export default function EditTransactionModal({ isOpen, onClose, type, transactio
             setBlNo(t.bl_no || '');
             setShipperId(t.shipper?.id?.toString() || '');
             setVessel(t.vessel || '');
+            setDepartureDate(t.export_date || '');
             setDestCountryId(t.destination_country?.id?.toString() || '');
         }
     }
@@ -80,6 +82,7 @@ export default function EditTransactionModal({ isOpen, onClose, type, transactio
                     shipper_id: Number(shipperId),
                     bl_no: blNo.trim(),
                     vessel: vessel.trim(),
+                    export_date: departureDate,
                     destination_country_id: Number(destCountryId),
                 };
                 await updateMutation.mutateAsync({ id: transaction.id, data: payload });
@@ -253,6 +256,16 @@ export default function EditTransactionModal({ isOpen, onClose, type, transactio
                                         onChange={(e) => setVessel(e.target.value)}
                                         className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                                         placeholder="e.g. MV Pacific Star"
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">Departure Date</label>
+                                    <input
+                                        type="date"
+                                        required
+                                        value={departureDate}
+                                        onChange={(e) => setDepartureDate(e.target.value)}
+                                        className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500/50 [color-scheme:light] dark:[color-scheme:dark]"
                                     />
                                 </div>
                                 <div className="space-y-1.5">

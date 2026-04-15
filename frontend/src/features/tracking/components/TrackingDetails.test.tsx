@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { appRoutes } from '../../../lib/appRoutes';
 import {
     makeApiDocument,
+    makeExportDetailResult,
     makeImportDetailResult,
 } from '../../../test/fixtures/tracking';
 import { createTestQueryClient, renderWithProviders } from '../../../test/renderWithProviders';
@@ -93,6 +94,7 @@ vi.mock('./StageRow', () => ({
         stage,
         stageStatus,
         docs,
+        uploadDisabledReason,
         onUploadClick,
         onPreviewDoc,
         onDeleteDoc,
@@ -102,6 +104,7 @@ vi.mock('./StageRow', () => ({
         stage: { title: string };
         stageStatus: string;
         docs: Array<{ filename: string }>;
+        uploadDisabledReason?: string | null;
         onUploadClick: (index: number) => void;
         onPreviewDoc: (doc: { filename: string }) => void;
         onDeleteDoc: (doc: { filename: string }) => void;
@@ -118,7 +121,9 @@ vi.mock('./StageRow', () => ({
                     <button onClick={() => onReplaceDoc(index, docs[0])}>Replace {index}</button>
                 </>
             ) : (
-                <button onClick={() => onUploadClick(index)}>Upload {index}</button>
+                <button disabled={!!uploadDisabledReason} onClick={() => onUploadClick(index)}>
+                    Upload {index}
+                </button>
             )}
         </div>
     ),
@@ -337,6 +342,29 @@ describe('TrackingDetails', () => {
         expect(screen.getByTestId('tracking-status')).toHaveTextContent('Vessel Arrived');
     });
 
+    it('shows the export bill of lading as the visible reference and keeps future stages locked', () => {
+        const detail = makeExportDetailResult({
+            bl_no: 'BL-EXPORT-900',
+            status: 'Pending',
+            export_date: '2026-04-20',
+        });
+
+        mockUseTransactionDetail.mockReturnValue({ data: detail, isLoading: false });
+        mockUseTransactionDocuments.mockReturnValue({
+            byStageIndex: {},
+            isLoading: false,
+        });
+
+        renderWithProviders(<TrackingDetails />, {
+            route: '/tracking/BL-EXPORT-900',
+            path: appRoutes.trackingDetail,
+        });
+
+        expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('BL-EXPORT-900');
+        expect(screen.getByRole('button', { name: 'Upload 0' })).toBeEnabled();
+        expect(screen.getByRole('button', { name: 'Upload 1' })).toBeDisabled();
+    });
+
     it('opens and closes the remarks, edit, upload, and preview flows through the screen wiring', async () => {
         const previewHandler = vi.fn();
         const clearPreview = vi.fn();
@@ -346,6 +374,9 @@ describe('TrackingDetails', () => {
         mockUseTransactionDocuments.mockReturnValue({
             byStageIndex: {
                 0: [doc],
+                1: [makeApiDocument({ id: 801, type: 'bonds', filename: 'bonds.pdf' })],
+                2: [makeApiDocument({ id: 802, type: 'phytosanitary', filename: 'phyto.pdf' })],
+                3: [makeApiDocument({ id: 803, type: 'ppa', filename: 'ppa.pdf' })],
             },
             isLoading: false,
         });
@@ -434,6 +465,9 @@ describe('TrackingDetails', () => {
         mockUseTransactionDocuments.mockReturnValue({
             byStageIndex: {
                 0: [makeApiDocument({ id: 706, type: 'boc', filename: 'boc.pdf' })],
+                1: [makeApiDocument({ id: 717, type: 'bonds', filename: 'bonds.pdf' })],
+                2: [makeApiDocument({ id: 718, type: 'phytosanitary', filename: 'phyto.pdf' })],
+                3: [makeApiDocument({ id: 719, type: 'ppa', filename: 'ppa.pdf' })],
             },
             isLoading: false,
         });

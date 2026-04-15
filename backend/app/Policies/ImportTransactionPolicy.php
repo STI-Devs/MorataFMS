@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Enums\UserRole;
 use App\Models\ImportTransaction;
 use App\Models\User;
 
@@ -20,7 +21,7 @@ class ImportTransactionPolicy
      */
     public function create(User $user): bool
     {
-        return $user->hasBrokerageAccess();
+        return in_array($user->role, [UserRole::Encoder, UserRole::Admin], true);
     }
 
     /**
@@ -29,7 +30,7 @@ class ImportTransactionPolicy
     public function update(User $user, ImportTransaction $transaction): bool
     {
         return $user->isAdmin()
-            || ($user->hasBrokerageAccess() && $user->id === $transaction->assigned_user_id);
+            || ($user->role === UserRole::Encoder && $user->id === $transaction->assigned_user_id);
     }
 
     /**

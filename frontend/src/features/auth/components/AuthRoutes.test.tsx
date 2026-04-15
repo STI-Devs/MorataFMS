@@ -40,6 +40,33 @@ const encoderUser = {
     },
 };
 
+const paralegalUser = {
+    role: 'paralegal' as const,
+    departments: ['legal'],
+    permissions: {
+        access_brokerage_module: false,
+        access_legal_module: true,
+    },
+};
+
+const processorUser = {
+    role: 'processor' as const,
+    departments: ['brokerage'],
+    permissions: {
+        access_brokerage_module: true,
+        access_legal_module: false,
+    },
+};
+
+const accountingUser = {
+    role: 'accounting' as const,
+    departments: ['brokerage'],
+    permissions: {
+        access_brokerage_module: true,
+        access_legal_module: false,
+    },
+};
+
 describe('auth route guards', () => {
     beforeEach(() => {
         mockUseAuth.mockReset();
@@ -106,6 +133,69 @@ describe('auth route guards', () => {
         );
 
         expect(screen.getByText('Tracking page')).toBeInTheDocument();
+    });
+
+    it('redirects paralegals without the required role to the paralegal dashboard', () => {
+        mockUseAuth.mockReturnValue({
+            isAuthenticated: true,
+            isLoading: false,
+            user: paralegalUser,
+        });
+
+        render(
+            <MemoryRouter initialEntries={[appRoutes.transactions]}>
+                <Routes>
+                    <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+                        <Route path={appRoutes.transactions} element={<div>Transactions page</div>} />
+                    </Route>
+                    <Route path={appRoutes.paralegalDashboard} element={<div>Paralegal dashboard</div>} />
+                </Routes>
+            </MemoryRouter>,
+        );
+
+        expect(screen.getByText('Paralegal dashboard')).toBeInTheDocument();
+    });
+
+    it('redirects processors without the required role to the processor dashboard', () => {
+        mockUseAuth.mockReturnValue({
+            isAuthenticated: true,
+            isLoading: false,
+            user: processorUser,
+        });
+
+        render(
+            <MemoryRouter initialEntries={[appRoutes.transactions]}>
+                <Routes>
+                    <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+                        <Route path={appRoutes.transactions} element={<div>Transactions page</div>} />
+                    </Route>
+                    <Route path={appRoutes.processorDashboard} element={<div>Processor dashboard</div>} />
+                </Routes>
+            </MemoryRouter>,
+        );
+
+        expect(screen.getByText('Processor dashboard')).toBeInTheDocument();
+    });
+
+    it('redirects accounting users without the required role to the accountant dashboard', () => {
+        mockUseAuth.mockReturnValue({
+            isAuthenticated: true,
+            isLoading: false,
+            user: accountingUser,
+        });
+
+        render(
+            <MemoryRouter initialEntries={[appRoutes.transactions]}>
+                <Routes>
+                    <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+                        <Route path={appRoutes.transactions} element={<div>Transactions page</div>} />
+                    </Route>
+                    <Route path={appRoutes.accountantDashboard} element={<div>Accountant dashboard</div>} />
+                </Routes>
+            </MemoryRouter>,
+        );
+
+        expect(screen.getByText('Accountant dashboard')).toBeInTheDocument();
     });
 
     it('redirects admins away from the encoder documents list to admin document review', () => {

@@ -2,6 +2,11 @@
 
 use App\Models\User;
 
+dataset('brokerage operational roles', [
+    'processor' => ['processor', 'Processor'],
+    'accounting' => ['accounting', 'Accountant'],
+]);
+
 test('creating a paralegal user returns normalized departments and permissions', function () {
     $admin = User::factory()->create(['role' => 'admin']);
 
@@ -24,6 +29,29 @@ test('creating a paralegal user returns normalized departments and permissions',
     $response->assertJsonPath('data.permissions.manage_notarial_entries', true);
     $response->assertJsonPath('data.permissions.manage_notarial_books', false);
 });
+
+test('creating a brokerage operational user returns normalized departments and permissions', function (string $role, string $roleLabel) {
+    $admin = User::factory()->create(['role' => 'admin']);
+
+    $response = $this->actingAs($admin)
+        ->postJson('/api/users', [
+            'name' => "{$roleLabel} User",
+            'email' => strtolower($role).'.user@morata.com',
+            'job_title' => $roleLabel,
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'role' => $role,
+        ])
+        ->assertCreated();
+
+    $response->assertJsonPath('data.role', $role);
+    $response->assertJsonPath('data.role_label', $roleLabel);
+    $response->assertJsonPath('data.departments', ['brokerage']);
+    $response->assertJsonPath('data.permissions.access_brokerage_module', true);
+    $response->assertJsonPath('data.permissions.access_legal_module', false);
+    $response->assertJsonPath('data.permissions.manage_users', false);
+    $response->assertJsonPath('data.permissions.manage_notarial_entries', false);
+})->with('brokerage operational roles');
 
 test('updating a user role re-syncs departments and permission payload', function () {
     $admin = User::factory()->create(['role' => 'admin']);

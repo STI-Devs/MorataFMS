@@ -11,6 +11,11 @@ beforeEach(function () {
     ]);
 });
 
+dataset('operational login roles', [
+    'processor' => ['processor', 'Processor'],
+    'accounting' => ['accounting', 'Accountant'],
+]);
+
 function frontendHeaders(): array
 {
     return [
@@ -67,6 +72,31 @@ test('current user endpoint accepts the authenticated session after login and a 
     $response->assertJsonPath('data.email', $user->email);
     $response->assertJsonPath('data.role', 'encoder');
 });
+
+test('operational roles can authenticate through the cookie login flow', function (string $role, string $roleLabel) {
+    $user = User::factory()->create([
+        'email' => strtolower($role).'@example.com',
+        'password' => bcrypt('password'),
+        'role' => $role,
+    ]);
+
+    $response = $this
+        ->withHeaders(frontendHeaders())
+        ->postJson('/api/auth/login', [
+            'email' => $user->email,
+            'password' => 'password',
+        ])
+        ->assertOk();
+
+    $response->assertJsonPath('user.email', $user->email);
+    $response->assertJsonPath('user.role', $role);
+    $response->assertJsonPath('user.role_label', $roleLabel);
+    $response->assertJsonPath('user.departments', ['brokerage']);
+    $response->assertJsonPath('user.permissions.access_brokerage_module', true);
+    $response->assertJsonPath('user.permissions.access_legal_module', false);
+
+    $this->assertAuthenticatedAs($user);
+})->with('operational login roles');
 
 test('logout invalidates the session and makes the current user endpoint unauthenticated', function () {
     $user = User::factory()->create([

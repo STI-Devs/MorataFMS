@@ -10,6 +10,9 @@ import {
   AdminDashboard,
   AdminDocumentReview,
   AdminLiveTracking,
+  AccountantDashboard,
+  AccountantDocumentsPage,
+  AccountantImpExpPage,
   ArchivesPage,
   AuditLogs,
   AuthPage,
@@ -22,8 +25,13 @@ import {
   Help,
   ImportList,
   LandingPage,
+  LegalDocumentsPage,
   LawFirmPage,
+  ParalegalDashboard,
   Profile,
+  ProcessorDashboard,
+  ProcessorDocumentsPage,
+  ProcessorTransactionPage,
   ReportsAnalytics,
   TrackingDashboard,
   TrackingDetails,
@@ -70,7 +78,7 @@ function App() {
           </Route>
 
           {/* All authenticated users */}
-          <Route element={<ProtectedRoute allowedRoles={['encoder', 'admin', 'paralegal']} />}>
+          <Route element={<ProtectedRoute allowedRoles={['encoder', 'admin', 'paralegal', 'processor', 'accounting']} />}>
             <Route element={<MainLayout />}>
 
               {/* Shared routes — all authenticated roles */}
@@ -107,8 +115,24 @@ function App() {
 
               {/* Legal module - admin + paralegal */}
               <Route element={<ProtectedRoute allowedRoles={['admin', 'paralegal']} />}>
+                <Route path={appRoutes.paralegalDashboard} element={<ParalegalDashboard />} />
                 <Route path={appRoutes.lawFirm} element={<LawFirmPage />} />
                 <Route path={appRoutes.forms} element={<FormsPage />} />
+                <Route path={appRoutes.paralegalDocuments} element={<LegalDocumentsPage />} />
+              </Route>
+
+              {/* Processor module */}
+              <Route element={<ProtectedRoute allowedRoles={['processor']} />}>
+                <Route path={appRoutes.processorDashboard} element={<ProcessorDashboard />} />
+                <Route path={appRoutes.processorTransaction} element={<ProcessorTransactionPage />} />
+                <Route path={appRoutes.processorDocuments} element={<ProcessorDocumentsPage />} />
+              </Route>
+
+              {/* Accounting module */}
+              <Route element={<ProtectedRoute allowedRoles={['accounting']} />}>
+                <Route path={appRoutes.accountantDashboard} element={<AccountantDashboard />} />
+                <Route path={appRoutes.accountantImpExp} element={<AccountantImpExpPage />} />
+                <Route path={appRoutes.accountantDocuments} element={<AccountantDocumentsPage />} />
               </Route>
 
             </Route>

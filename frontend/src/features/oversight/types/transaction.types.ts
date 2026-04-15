@@ -12,8 +12,9 @@ export interface ImportStages {
 export interface ExportStages {
     boc: string;
     bl_generation: string;
-    co: string;
     phytosanitary: string;
+    co: string;
+    cil: string;
     dccci: string;
     billing: string;
 }

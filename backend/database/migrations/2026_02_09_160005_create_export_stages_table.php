@@ -4,7 +4,8 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
         Schema::create('export_stages', function (Blueprint $table) {
@@ -21,7 +22,7 @@ return new class extends Migration {
             $table->timestamp('co_completed_at')->nullable();
             $table->foreignId('co_completed_by')->nullable()->constrained('users')->nullOnDelete();
 
-            // CIL (Certificate of Inspection & Loading) Stage
+            // DCCCI stage (stored on legacy `cil_*` columns)
             $table->enum('cil_status', ['pending', 'in_progress', 'completed'])->default('pending');
             $table->timestamp('cil_completed_at')->nullable();
             $table->foreignId('cil_completed_by')->nullable()->constrained('users')->nullOnDelete();

@@ -27,11 +27,22 @@ class ImportTransactionController extends Controller
     {
         $this->authorize('viewAny', ImportTransaction::class);
 
+        $user = $request->user();
+
         $query = ImportTransaction::query()
-            ->visibleTo($request->user())
             ->with(['importer', 'originCountry', 'stages', 'assignedUser'])
             ->withCount(['remarks as open_remarks_count' => fn ($q) => $q->where('is_resolved', false)])
             ->withCount('documents');
+
+        if (in_array($user->role, [UserRole::Processor, UserRole::Accounting], true)) {
+            if ($request->query('operational_scope') === 'workspace') {
+                $query->relevantToOperationalWorkspace($user);
+            } else {
+                $query->relevantToOperationalQueue($user);
+            }
+        } else {
+            $query->visibleTo($user);
+        }
 
         // Search by customs ref or BL number
         if ($search = $request->query('search')) {
@@ -128,7 +139,14 @@ class ImportTransactionController extends Controller
     {
         $this->authorize('viewAny', ImportTransaction::class);
 
-        $baseQuery = ImportTransaction::query()->visibleTo(request()->user());
+        $user = request()->user();
+        $baseQuery = ImportTransaction::query();
+
+        if (in_array($user->role, [UserRole::Processor, UserRole::Accounting], true)) {
+            $baseQuery->relevantToOperationalQueue($user);
+        } else {
+            $baseQuery->visibleTo($user);
+        }
 
         $counts = [
             'total' => (clone $baseQuery)->count(),
@@ -182,6 +200,13 @@ class ImportTransactionController extends Controller
         }
 
         $import_transaction->loadMissing('stages');
+
+        if ($notApplicable && ! $import_transaction->isDocumentTypeReadyForUpload($stage)) {
+            return response()->json([
+                'message' => 'Complete the earlier required stages before marking this stage as not applicable.',
+            ], 422);
+        }
+
         $import_transaction->setStageApplicability($stage, $notApplicable, $request->user()->id);
         $import_transaction->recalculateStatus();
         $import_transaction->load(['importer', 'originCountry', 'stages', 'assignedUser']);

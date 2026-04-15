@@ -63,7 +63,7 @@ export function mapExportTransaction(t: ApiExportTransaction): ExportTransaction
 
     return {
         id: t.id,
-        ref: `EXP-${String(t.id).padStart(4, '0')}`,
+        ref: t.bl_no || `EXP-${String(t.id).padStart(4, '0')}`,
         bl: t.bl_no,
         status: statusMap[t.status] ?? 'Delayed',
         color: '',
@@ -71,8 +71,8 @@ export function mapExportTransaction(t: ApiExportTransaction): ExportTransaction
         shipper: t.shipper?.name ?? 'Unknown',
 
         vessel: t.vessel ?? '—',
-        departureDate: t.created_at
-            ? new Date(t.created_at).toLocaleDateString('en-US', {
+        departureDate: t.export_date
+            ? new Date(`${t.export_date}T00:00:00`).toLocaleDateString('en-US', {
                 month: 'short',
                 day: 'numeric',
                 year: 'numeric',

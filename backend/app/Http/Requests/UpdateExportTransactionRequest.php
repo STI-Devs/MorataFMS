@@ -26,6 +26,7 @@ class UpdateExportTransactionRequest extends FormRequest
                 'unique:export_transactions,bl_no,'.$id,
             ],
             'vessel' => ['required', 'string', 'min:2', 'max:100'],
+            'export_date' => ['required', 'date'],
             'destination_country_id' => ['required', 'integer', 'exists:countries,id'],
         ];
     }
@@ -41,6 +42,8 @@ class UpdateExportTransactionRequest extends FormRequest
             'bl_no.unique' => 'This BL number already exists. Each shipment must have a unique BL number.',
             'vessel.required' => 'Vessel name is required.',
             'vessel.min' => 'Vessel name must be at least 2 characters.',
+            'export_date.required' => 'Departure date is required.',
+            'export_date.date' => 'Departure date must be a valid date.',
             'destination_country_id.required' => 'Please select a destination country.',
             'destination_country_id.exists' => 'The selected destination country does not exist.',
         ];

@@ -110,10 +110,6 @@ Route::middleware(['auth:sanctum', 'active-session', 'throttle:api-general'])->g
         // Transaction oversight (admin)
         Route::get('transactions', [TransactionController::class, 'index'])
             ->middleware('throttle:api-search');
-        Route::get('transactions/encoders', [TransactionController::class, 'encoders'])
-            ->middleware('throttle:api-search');
-        Route::patch('transactions/import/{importTransaction}/reassign', [TransactionController::class, 'reassignImport']);
-        Route::patch('transactions/export/{exportTransaction}/reassign', [TransactionController::class, 'reassignExport']);
         Route::patch('transactions/import/{importTransaction}/status', [TransactionController::class, 'overrideImportStatus']);
         Route::patch('transactions/export/{exportTransaction}/status', [TransactionController::class, 'overrideExportStatus']);
 

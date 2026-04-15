@@ -242,7 +242,7 @@ export const DocumentsDetail = () => {
 
     const displayRef    = ref ?? '';
     const displayClient = rawImport?.importer?.name ?? rawExport?.shipper?.name ?? '—';
-    const displayDate   = rawImport?.arrival_date ?? rawExport?.created_at.slice(0, 10) ?? '—';
+    const displayDate   = rawImport?.arrival_date ?? rawExport?.export_date ?? '—';
     const displayStatus = txDetail?.mapped.status ?? '—';
     const displayType   = isImport ? 'import' : 'export';
     const locationState = location.state as DocumentDetailLocationState | null;

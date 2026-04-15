@@ -39,7 +39,11 @@ export function hasLegalAccess(user: AccessUser): boolean {
 export function getHomePath(user: AccessUser): string {
   if (!user) return appRoutes.login;
   if (user.role === 'admin') return appRoutes.dashboard;
-  if (hasLegalAccess(user) && !hasBrokerageAccess(user)) return appRoutes.lawFirm;
+  if (user.role === 'processor') return appRoutes.processorDashboard;
+  if (user.role === 'accounting') return appRoutes.accountantDashboard;
+  if (user.role === 'paralegal' || (hasLegalAccess(user) && !hasBrokerageAccess(user))) {
+    return appRoutes.paralegalDashboard;
+  }
 
   return appRoutes.tracking;
 }

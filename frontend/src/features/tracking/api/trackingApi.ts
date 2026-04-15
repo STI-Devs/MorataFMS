@@ -12,6 +12,7 @@ import type {
     DocumentTransactionListResponse,
     DocumentableType,
     PaginatedResponse,
+    OperationalScope,
     TransactionStats,
     UploadDocumentPayload,
     UploadDocumentsPayload,
@@ -114,6 +115,7 @@ export const trackingApi = {
         search?: string;
         status?: string;
         selective_color?: string;
+        operational_scope?: OperationalScope;
         exclude_statuses?: string;
         page?: number;
         per_page?: number;
@@ -144,6 +146,7 @@ export const trackingApi = {
     getExports: async (params?: {
         search?: string;
         status?: string;
+        operational_scope?: OperationalScope;
         exclude_statuses?: string;
         page?: number;
         per_page?: number;
@@ -156,6 +159,7 @@ export const trackingApi = {
         search?: string;
         status?: string;
         selective_color?: string;
+        operational_scope?: OperationalScope;
         exclude_statuses?: string;
     }): Promise<ApiImportTransaction[]> =>
         fetchAllPages((page) =>
@@ -169,6 +173,7 @@ export const trackingApi = {
     getAllExports: async (params?: {
         search?: string;
         status?: string;
+        operational_scope?: OperationalScope;
         exclude_statuses?: string;
     }): Promise<ApiExportTransaction[]> =>
         fetchAllPages((page) =>

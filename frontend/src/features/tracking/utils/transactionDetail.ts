@@ -60,7 +60,9 @@ export async function fetchRecordTransactionDetail(referenceId: string): Promise
     const exportIdMatch = referenceId.match(/^(?:EXP-)?(\d+)$/i);
     const exportId = exportIdMatch ? Number(exportIdMatch[1]) : null;
     const matchedExport = exportsResponse.data.find((transaction) =>
-        exportId !== null ? transaction.id === exportId : false,
+        exportId !== null
+            ? transaction.id === exportId || transaction.bl_no === referenceId
+            : transaction.bl_no === referenceId,
     );
 
     if (matchedExport) {

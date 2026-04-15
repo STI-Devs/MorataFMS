@@ -1,6 +1,8 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { transactionApi } from '../api/transactionApi';
 import type { OversightQueryParams } from '../types/transaction.types';
+import { userApi } from '../../users/api/userApi';
+import type { User } from '../../users/types/user.types';
 
 export const useAllTransactions = (params?: OversightQueryParams) =>
     useQuery({
@@ -11,29 +13,11 @@ export const useAllTransactions = (params?: OversightQueryParams) =>
 
 export const useEncoders = () =>
     useQuery({
-        queryKey: ['admin', 'encoders'],
-        queryFn: () => transactionApi.getEncoders(),
-        select: (res) => res.data ?? [],
-        staleTime: Infinity,
+        queryKey: ['admin', 'users', 'encoders'],
+        queryFn: () => userApi.getUsers(),
+        select: (response): User[] => (response.data ?? []).filter((user) => user.role === 'encoder'),
+        placeholderData: keepPreviousData,
     });
-
-export const useReassignImport = () => {
-    const qc = useQueryClient();
-    return useMutation({
-        mutationFn: ({ id, userId }: { id: number; userId: number }) =>
-            transactionApi.reassignImport(id, userId),
-        onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'transactions'] }),
-    });
-};
-
-export const useReassignExport = () => {
-    const qc = useQueryClient();
-    return useMutation({
-        mutationFn: ({ id, userId }: { id: number; userId: number }) =>
-            transactionApi.reassignExport(id, userId),
-        onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'transactions'] }),
-    });
-};
 
 export const useOverrideImportStatus = () => {
     const qc = useQueryClient();
