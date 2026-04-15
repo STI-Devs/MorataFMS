@@ -335,7 +335,7 @@ class AdminDocumentReviewController extends Controller
             ->with([
                 'importer:id,name',
                 'assignedUser:id,name',
-                'stages:import_transaction_id,billing_completed_at,bonds_not_applicable',
+                'stages:import_transaction_id,billing_completed_at,bonds_not_applicable,ppa_not_applicable,port_charges_not_applicable',
                 'documents:id,documentable_id,documentable_type,type',
                 'remarks:id,remarkble_id,remarkble_type,is_resolved',
             ])
@@ -362,7 +362,7 @@ class AdminDocumentReviewController extends Controller
             ->with([
                 'shipper:id,name',
                 'assignedUser:id,name',
-                'stages:export_transaction_id,billing_completed_at,co_not_applicable,dccci_not_applicable',
+                'stages:export_transaction_id,billing_completed_at,phytosanitary_not_applicable,co_not_applicable,dccci_not_applicable',
                 'documents:id,documentable_id,documentable_type,type',
                 'remarks:id,remarkble_id,remarkble_type,is_resolved',
             ])
@@ -482,7 +482,7 @@ class AdminDocumentReviewController extends Controller
                 ->with([
                     'importer:id,name',
                     'assignedUser:id,name',
-                    'stages:import_transaction_id,billing_completed_at,bonds_not_applicable',
+                    'stages:import_transaction_id,billing_completed_at,bonds_not_applicable,ppa_not_applicable,port_charges_not_applicable',
                     'documents' => function ($query) {
                         $query->select([
                             'id',
@@ -523,7 +523,7 @@ class AdminDocumentReviewController extends Controller
                 ->with([
                     'shipper:id,name',
                     'assignedUser:id,name',
-                    'stages:export_transaction_id,billing_completed_at,co_not_applicable,dccci_not_applicable',
+                    'stages:export_transaction_id,billing_completed_at,phytosanitary_not_applicable,co_not_applicable,dccci_not_applicable',
                     'documents' => function ($query) {
                         $query->select([
                             'id',
@@ -772,8 +772,13 @@ class AdminDocumentReviewController extends Controller
     private function optionalStageColumnsFor(string $type): array
     {
         return match ($type) {
-            'import' => ['bonds' => 'import_stages.bonds_not_applicable'],
+            'import' => [
+                'bonds' => 'import_stages.bonds_not_applicable',
+                'ppa' => 'import_stages.ppa_not_applicable',
+                'port_charges' => 'import_stages.port_charges_not_applicable',
+            ],
             'export' => [
+                'phytosanitary' => 'export_stages.phytosanitary_not_applicable',
                 'co' => 'export_stages.co_not_applicable',
                 'dccci' => 'export_stages.dccci_not_applicable',
             ],

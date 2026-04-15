@@ -76,6 +76,7 @@ class TransactionSeeder extends Seeder
             $colors = [
                 SelectiveColor::Green->value,
                 SelectiveColor::Yellow->value,
+                SelectiveColor::Orange->value,
                 SelectiveColor::Red->value,
             ];
 

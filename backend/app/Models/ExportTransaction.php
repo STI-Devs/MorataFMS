@@ -41,6 +41,7 @@ class ExportTransaction extends Model
     public static function optionalStageFlagMap(): array
     {
         return [
+            'phytosanitary' => 'phytosanitary_not_applicable',
             'co' => 'co_not_applicable',
             'dccci' => 'dccci_not_applicable',
         ];

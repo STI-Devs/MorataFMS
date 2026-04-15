@@ -54,7 +54,7 @@ class ArchiveSeeder extends Seeder
 
     private const EXPORT_STAGES = ['docs_prep', 'bl', 'phytosanitary', 'co', 'cil', 'dccci'];
 
-    private const SELECTIVE_COLORS = ['green', 'green', 'green', 'green', 'yellow', 'yellow', 'red'];
+    private const SELECTIVE_COLORS = ['green', 'green', 'green', 'yellow', 'yellow', 'orange', 'red'];
 
     // Real vessel names that dock at PH ports
     private const VESSELS = [

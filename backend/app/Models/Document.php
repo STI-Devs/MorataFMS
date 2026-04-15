@@ -54,7 +54,7 @@ class Document extends Model
      */
     public static function importOptionalTypeKeys(): array
     {
-        return ['bonds'];
+        return ['bonds', 'ppa', 'port_charges'];
     }
 
     /**
@@ -62,7 +62,7 @@ class Document extends Model
      */
     public static function exportOptionalTypeKeys(): array
     {
-        return ['co', 'dccci'];
+        return ['phytosanitary', 'co', 'dccci'];
     }
 
     /**

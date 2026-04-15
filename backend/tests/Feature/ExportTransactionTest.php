@@ -564,13 +564,22 @@ test('can update using same bl_no (unique validation ignores self)', function ()
     $response->assertOk();
 });
 
-test('marking an optional export stage as not applicable does not advance the live status', function (string $stage, string $flagColumn) {
+test('marking an optional export stage as not applicable does not advance the live status', function (
+    string $stage,
+    string $flagColumn,
+) {
     $user = User::factory()->create(['role' => 'encoder']);
     $transaction = ExportTransaction::factory()->create([
         'assigned_user_id' => $user->id,
         'status' => 'Pending',
     ]);
     $transaction->stages()->update(match ($stage) {
+        'phytosanitary' => [
+            'docs_prep_status' => 'completed',
+            'docs_prep_completed_at' => now()->subHours(2),
+            'bl_status' => 'completed',
+            'bl_completed_at' => now()->subHour(),
+        ],
         'co' => [
             'docs_prep_status' => 'completed',
             'docs_prep_completed_at' => now()->subHours(3),
@@ -607,11 +616,15 @@ test('marking an optional export stage as not applicable does not advance the li
     expect($transaction->status->value)->toBe('Pending');
     expect($transaction->stages->{$flagColumn})->toBeTrue();
 })->with([
+    'phytosanitary certificates' => ['phytosanitary', 'phytosanitary_not_applicable'],
     'co application' => ['co', 'co_not_applicable'],
     'dccci printing' => ['dccci', 'dccci_not_applicable'],
 ]);
 
-test('cannot mark an optional export stage as not applicable before earlier stages are completed', function () {
+test('cannot mark an optional export stage as not applicable before earlier stages are completed', function (
+    string $stage,
+    string $flagColumn,
+) {
     $user = User::factory()->create(['role' => 'encoder']);
     $transaction = ExportTransaction::factory()->create([
         'assigned_user_id' => $user->id,
@@ -620,7 +633,7 @@ test('cannot mark an optional export stage as not applicable before earlier stag
 
     $this->actingAs($user)
         ->patchJson("/api/export-transactions/{$transaction->id}/stage-applicability", [
-            'stage' => 'dccci',
+            'stage' => $stage,
             'not_applicable' => true,
         ])
         ->assertUnprocessable()
@@ -628,5 +641,9 @@ test('cannot mark an optional export stage as not applicable before earlier stag
 
     $transaction->refresh()->load('stages');
 
-    expect($transaction->stages->dccci_not_applicable)->toBeFalse();
-});
+    expect($transaction->stages->{$flagColumn})->toBeFalse();
+})->with([
+    'phytosanitary certificates' => ['phytosanitary', 'phytosanitary_not_applicable'],
+    'co application' => ['co', 'co_not_applicable'],
+    'dccci printing' => ['dccci', 'dccci_not_applicable'],
+]);

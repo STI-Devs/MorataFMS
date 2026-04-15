@@ -23,6 +23,7 @@ class ExportStage extends Model
         'phytosanitary_status',
         'phytosanitary_completed_at',
         'phytosanitary_completed_by',
+        'phytosanitary_not_applicable',
         // CIL
         'cil_status',
         'cil_completed_at',
@@ -58,6 +59,7 @@ class ExportStage extends Model
         'bl_status' => StageStatus::class,
         'billing_status' => StageStatus::class,
         'co_not_applicable' => 'boolean',
+        'phytosanitary_not_applicable' => 'boolean',
         'dccci_not_applicable' => 'boolean',
     ];
 

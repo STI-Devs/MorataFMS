@@ -83,7 +83,7 @@ export interface ApiImportTransaction {
     id: number;
     customs_ref_no: string;
     bl_no: string;
-    selective_color: string;
+    selective_color: 'green' | 'yellow' | 'orange' | 'red';
     importer: { id: number; name: string } | null;
     arrival_date: string;
     origin_country?: { id: number; name: string; code: string };
@@ -167,7 +167,7 @@ export interface PaginatedResponse<T> {
 export interface CreateImportPayload {
     customs_ref_no: string;
     bl_no: string;
-    selective_color: 'green' | 'yellow' | 'red';
+    selective_color: 'green' | 'yellow' | 'orange' | 'red';
     importer_id: number;
     origin_country_id?: number;
     arrival_date: string;

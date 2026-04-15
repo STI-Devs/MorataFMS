@@ -43,6 +43,8 @@ class ImportTransaction extends Model
     {
         return [
             'bonds' => 'bonds_not_applicable',
+            'ppa' => 'ppa_not_applicable',
+            'port_charges' => 'port_charges_not_applicable',
         ];
     }
 

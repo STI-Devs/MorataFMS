@@ -22,6 +22,7 @@ export const ProcessorTransactionPage = () => {
         clientName: string;
         type: 'import' | 'export';
         stages?: ApiImportStages | ApiExportStages;
+        notApplicableStages?: string[];
     } | null>(null);
 
     const importsQuery = useQuery({
@@ -80,10 +81,23 @@ export const ProcessorTransactionPage = () => {
                                     clientName: transaction.importer?.name || 'Unknown Client',
                                     type: 'import',
                                     stages,
+                                    notApplicableStages: transaction.not_applicable_stages,
                                 })}
                                 badges={[
-                                    <DocumentStatusBadge key="ppa" label="PPA" status={stages?.ppa} isActionable={actionability.ppa} />,
-                                    <DocumentStatusBadge key="port-charges" label="Port Charges" status={stages?.port_charges} isActionable={actionability.port_charges} />,
+                                    <DocumentStatusBadge
+                                        key="ppa"
+                                        label="PPA"
+                                        status={stages?.ppa}
+                                        isActionable={actionability.ppa}
+                                        isNotApplicable={transaction.not_applicable_stages?.includes('ppa') === true}
+                                    />,
+                                    <DocumentStatusBadge
+                                        key="port-charges"
+                                        label="Port Charges"
+                                        status={stages?.port_charges}
+                                        isActionable={actionability.port_charges}
+                                        isNotApplicable={transaction.not_applicable_stages?.includes('port_charges') === true}
+                                    />,
                                 ]}
                             />
                         );
@@ -113,10 +127,23 @@ export const ProcessorTransactionPage = () => {
                                     clientName: transaction.importer?.name || 'Unknown Client',
                                     type: 'import',
                                     stages,
+                                    notApplicableStages: transaction.not_applicable_stages,
                                 })}
                                 badges={[
-                                    <DocumentStatusBadge key="ppa" label="PPA" status={stages?.ppa} isActionable={actionability.ppa} />,
-                                    <DocumentStatusBadge key="port-charges" label="Port Charges" status={stages?.port_charges} isActionable={actionability.port_charges} />,
+                                    <DocumentStatusBadge
+                                        key="ppa"
+                                        label="PPA"
+                                        status={stages?.ppa}
+                                        isActionable={actionability.ppa}
+                                        isNotApplicable={transaction.not_applicable_stages?.includes('ppa') === true}
+                                    />,
+                                    <DocumentStatusBadge
+                                        key="port-charges"
+                                        label="Port Charges"
+                                        status={stages?.port_charges}
+                                        isActionable={actionability.port_charges}
+                                        isNotApplicable={transaction.not_applicable_stages?.includes('port_charges') === true}
+                                    />,
                                 ]}
                             />
                         );
@@ -172,10 +199,11 @@ export const ProcessorTransactionPage = () => {
                                     clientName: transaction.shipper?.name || 'Unknown Client',
                                     type: 'export',
                                     stages,
+                                    notApplicableStages: transaction.not_applicable_stages,
                                 })}
                                 badges={[
-                                    <DocumentStatusBadge key="cil" label="CIL" status={stages?.cil} isActionable={actionability.cil} />,
-                                    <DocumentStatusBadge key="dccci" label="DCCCI" status={stages?.dccci} isActionable={actionability.dccci} />,
+                                    <DocumentStatusBadge key="cil" label="CIL" status={stages?.cil} isActionable={actionability.cil} isNotApplicable={false} />,
+                                    <DocumentStatusBadge key="dccci" label="DCCCI" status={stages?.dccci} isActionable={actionability.dccci} isNotApplicable={transaction.not_applicable_stages?.includes('dccci') === true} />,
                                 ]}
                             />
                         );
@@ -205,10 +233,11 @@ export const ProcessorTransactionPage = () => {
                                     clientName: transaction.shipper?.name || 'Unknown Client',
                                     type: 'export',
                                     stages,
+                                    notApplicableStages: transaction.not_applicable_stages,
                                 })}
                                 badges={[
-                                    <DocumentStatusBadge key="cil" label="CIL" status={stages?.cil} isActionable={actionability.cil} />,
-                                    <DocumentStatusBadge key="dccci" label="DCCCI" status={stages?.dccci} isActionable={actionability.dccci} />,
+                                    <DocumentStatusBadge key="cil" label="CIL" status={stages?.cil} isActionable={actionability.cil} isNotApplicable={false} />,
+                                    <DocumentStatusBadge key="dccci" label="DCCCI" status={stages?.dccci} isActionable={actionability.dccci} isNotApplicable={transaction.not_applicable_stages?.includes('dccci') === true} />,
                                 ]}
                             />
                         );
@@ -270,6 +299,7 @@ export const ProcessorTransactionPage = () => {
                     type={selectedTx.type}
                     clientName={selectedTx.clientName}
                     transactionStages={selectedTx.stages}
+                    transactionNotApplicableStages={selectedTx.notApplicableStages}
                 />
             )}
         </div>
@@ -377,15 +407,20 @@ const DocumentStatusBadge = ({
     label,
     status,
     isActionable,
+    isNotApplicable,
 }: {
     label: string;
     status?: string;
     isActionable: boolean;
+    isNotApplicable: boolean;
 }) => {
     let colorClass = 'bg-gray-100 text-gray-600 border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700';
     let displayStatus = isActionable ? 'Ready' : 'Waiting';
     
-    if (status === 'completed') {
+    if (isNotApplicable) {
+        colorClass = 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800/50';
+        displayStatus = 'N/A';
+    } else if (status === 'completed') {
         colorClass = 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800/50';
         displayStatus = 'Uploaded';
     } else if (status === 'in_progress' || status === 'review') {

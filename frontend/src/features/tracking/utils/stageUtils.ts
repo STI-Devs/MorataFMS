@@ -15,9 +15,9 @@ export interface StageDefinition {
 export const IMPORT_STAGES: StageDefinition[] = [
     { title: 'BOC Document Processing',  icon: 'file-text',    description: 'Submit and process customs declaration at the Bureau of Customs.',    type: 'boc' },
     { title: 'BONDS',                    icon: 'check-circle', description: 'Process customs bonds when the shipment requires them.',               type: 'bonds', supportsNotApplicable: true },
-    { title: 'Payment for PPA Charges',  icon: 'truck',        description: 'Settle port and pier authority charges.',                              type: 'ppa' },
+    { title: 'Payment for PPA Charges',  icon: 'truck',        description: 'Settle port and pier authority charges.',                              type: 'ppa', supportsNotApplicable: true },
     { title: 'Delivery Order Request',   icon: 'file-text',    description: 'Request delivery order from the shipping line or agent.',             type: 'do' },
-    { title: 'Payment for Port Charges', icon: 'file-text',    description: 'Pay remaining port storage and handling fees.',                       type: 'port_charges' },
+    { title: 'Payment for Port Charges', icon: 'file-text',    description: 'Pay remaining port storage and handling fees.',                       type: 'port_charges', supportsNotApplicable: true },
     { title: 'Releasing of Documents',   icon: 'check-circle', description: 'Collect released documents from customs and shipping line.',          type: 'releasing' },
     { title: 'Liquidation and Billing',  icon: 'file-text',    description: 'Finalize billing and liquidate all charges with the client.',         type: 'billing' },
 ];
@@ -25,7 +25,7 @@ export const IMPORT_STAGES: StageDefinition[] = [
 export const EXPORT_STAGES: StageDefinition[] = [
     { title: 'BOC Document Processing',    icon: 'file-text',    description: 'Submit export declaration at the Bureau of Customs.',             type: 'boc' },
     { title: 'Bill of Lading',             icon: 'file-text',    description: 'Coordinate with the shipping line to issue the Bill of Lading.',  type: 'bl_generation' },
-    { title: 'Phytosanitary Certificates', icon: 'file-text',    description: 'Prepare phytosanitary certificates for export shipments.',        type: 'phytosanitary' },
+    { title: 'Phytosanitary Certificates', icon: 'file-text',    description: 'Prepare phytosanitary certificates for export shipments.',        type: 'phytosanitary', supportsNotApplicable: true },
     { title: 'CO Application',             icon: 'check-circle', description: 'Apply for the Certificate of Origin when required.',              type: 'co', supportsNotApplicable: true },
     { title: 'CIL',                        icon: 'file-text',    description: 'Certificate of Inspection and Loading for export release.',       type: 'cil' },
     { title: 'DCCCI Printing',             icon: 'file-text',    description: 'Print documents from DCCCI for export compliance.',                type: 'dccci', supportsNotApplicable: true },

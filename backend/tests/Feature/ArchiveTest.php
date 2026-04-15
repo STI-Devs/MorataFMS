@@ -948,7 +948,11 @@ test('archive export accepts more than 10 uploaded documents when they are split
         ->count())->toBe(12);
 });
 
-test('archive import rejects files for optional stages marked as not applicable', function () {
+test('archive import rejects files for optional stages marked as not applicable', function (
+    string $stage,
+    string $filename,
+    string $expectedMessage,
+) {
     $user = User::factory()->create(['role' => 'admin']);
     $client = Client::factory()->importer()->create();
 
@@ -957,11 +961,11 @@ test('archive import rejects files for optional stages marked as not applicable'
         'selective_color' => 'green',
         'importer_id' => $client->id,
         'file_date' => '2023-06-15',
-        'not_applicable_stages' => ['bonds'],
+        'not_applicable_stages' => [$stage],
         'documents' => [
             [
-                'file' => UploadedFile::fake()->create('archive-bonds.pdf', 100, 'application/pdf'),
-                'stage' => 'bonds',
+                'file' => UploadedFile::fake()->create($filename, 100, 'application/pdf'),
+                'stage' => $stage,
             ],
         ],
     ]);
@@ -969,9 +973,13 @@ test('archive import rejects files for optional stages marked as not applicable'
     $response->assertUnprocessable()->assertJsonValidationErrors(['not_applicable_stages']);
     $response->assertJsonPath(
         'errors.not_applicable_stages.0',
-        'You cannot upload files for the BONDS stage while it is marked as not applicable.',
+        $expectedMessage,
     );
-});
+})->with([
+    'bonds' => ['bonds', 'archive-bonds.pdf', 'You cannot upload files for the BONDS stage while it is marked as not applicable.'],
+    'ppa' => ['ppa', 'archive-ppa.pdf', 'You cannot upload files for the Payment for PPA Charges stage while it is marked as not applicable.'],
+    'port charges' => ['port_charges', 'archive-port-charges.pdf', 'You cannot upload files for the Payment for Port Charges stage while it is marked as not applicable.'],
+]);
 
 test('archive export rejects files for optional stages marked as not applicable', function (
     string $stage,
@@ -1002,6 +1010,7 @@ test('archive export rejects files for optional stages marked as not applicable'
         $expectedMessage,
     );
 })->with([
+    'phytosanitary certificates' => ['phytosanitary', 'archive-phytosanitary.pdf', 'You cannot upload files for the Phytosanitary Certificates stage while it is marked as not applicable.'],
     'co application' => ['co', 'archive-co.pdf', 'You cannot upload files for the CO Application stage while it is marked as not applicable.'],
     'dccci printing' => ['dccci', 'archive-dccci.pdf', 'You cannot upload files for the DCCCI Printing stage while it is marked as not applicable.'],
 ]);

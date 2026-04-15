@@ -28,6 +28,8 @@ vi.mock('../../../tracking/api/trackingApi', () => ({
         deleteDocument: vi.fn(),
         downloadDocument: vi.fn(),
         uploadDocuments: vi.fn(),
+        updateImportStageApplicability: vi.fn(),
+        updateExportStageApplicability: vi.fn(),
     },
 }));
 
@@ -135,5 +137,30 @@ describe('ProcessorUploadModal', () => {
 
         expect(screen.getByTestId('stage-PPA')).toHaveTextContent('completed');
         expect(screen.getByTestId('stage-Port Charges')).toHaveTextContent('active');
+    });
+
+    it('treats a not-applicable processor stage as completed', () => {
+        renderWithProviders(
+            <ProcessorUploadModal
+                isOpen
+                onClose={vi.fn()}
+                transactionId={1}
+                reference="REF-IMP-001"
+                type="import"
+                clientName="Acme Imports"
+                transactionStages={{
+                    boc: 'completed',
+                    bonds: 'completed',
+                    ppa: 'completed',
+                    do: 'pending',
+                    port_charges: 'pending',
+                    releasing: 'pending',
+                    billing: 'pending',
+                }}
+                transactionNotApplicableStages={['ppa']}
+            />,
+        );
+
+        expect(screen.getByTestId('stage-PPA')).toHaveTextContent('completed');
     });
 });

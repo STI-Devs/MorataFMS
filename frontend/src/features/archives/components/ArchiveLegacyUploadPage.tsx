@@ -216,7 +216,7 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
                 ? await trackingApi.createArchiveImportWithDocuments({
                     customs_ref_no: form.refNo || undefined,
                     bl_no: form.bl,
-                    selective_color: (form.blsc as 'green' | 'yellow' | 'red') || 'green',
+                    selective_color: (form.blsc as 'green' | 'yellow' | 'orange' | 'red') || 'green',
                     importer_id: clientId,
                     file_date: fileDate,
                     notes: `Legacy archive (${year})`,

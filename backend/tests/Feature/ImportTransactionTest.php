@@ -422,6 +422,22 @@ test('creating import transaction fails with invalid selective color', function 
         ->assertJsonValidationErrors(['selective_color']);
 });
 
+test('creating import transaction accepts orange selective color', function () {
+    $user = User::factory()->create();
+    $client = Client::factory()->importer()->create();
+
+    $this->actingAs($user)
+        ->postJson('/api/import-transactions', [
+            'customs_ref_no' => 'REF-ORANGE-001',
+            'bl_no' => 'BL-ORANGE-001',
+            'selective_color' => 'orange',
+            'importer_id' => $client->id,
+            'arrival_date' => '2025-06-15',
+        ])
+        ->assertCreated()
+        ->assertJsonPath('data.selective_color', 'orange');
+});
+
 test('creating import transaction fails with non-existent importer', function () {
     $user = User::factory()->create();
 
@@ -645,33 +661,70 @@ test('can update using same bl_no (unique validation ignores self)', function ()
     $response->assertOk();
 });
 
-test('marking an optional import stage as not applicable does not advance the live status', function () {
+test('marking an optional import stage as not applicable does not advance the live status', function (
+    string $stage,
+    string $flagColumn,
+    array $stageUpdates,
+) {
     $user = User::factory()->create(['role' => 'encoder']);
     $transaction = ImportTransaction::factory()->create([
         'assigned_user_id' => $user->id,
         'status' => 'Pending',
     ]);
-    $transaction->stages()->update([
-        'boc_status' => 'completed',
-        'boc_completed_at' => now(),
-    ]);
+    $transaction->stages()->update($stageUpdates);
 
     $this->actingAs($user)
         ->patchJson("/api/import-transactions/{$transaction->id}/stage-applicability", [
-            'stage' => 'bonds',
+            'stage' => $stage,
             'not_applicable' => true,
         ])
         ->assertOk()
         ->assertJsonPath('data.status', 'Pending')
-        ->assertJsonPath('data.not_applicable_stages.0', 'bonds');
+        ->assertJsonFragment(['not_applicable_stages' => [$stage]]);
 
     $transaction->refresh()->load('stages');
 
     expect($transaction->status->value)->toBe('Pending');
-    expect($transaction->stages->bonds_not_applicable)->toBeTrue();
-});
+    expect($transaction->stages->{$flagColumn})->toBeTrue();
+})->with([
+    'bonds' => [
+        'bonds',
+        'bonds_not_applicable',
+        [
+            'boc_status' => 'completed',
+            'boc_completed_at' => now(),
+        ],
+    ],
+    'ppa' => [
+        'ppa',
+        'ppa_not_applicable',
+        [
+            'boc_status' => 'completed',
+            'boc_completed_at' => now()->subHour(),
+            'bonds_status' => 'completed',
+            'bonds_completed_at' => now(),
+        ],
+    ],
+    'port charges' => [
+        'port_charges',
+        'port_charges_not_applicable',
+        [
+            'boc_status' => 'completed',
+            'boc_completed_at' => now()->subHours(3),
+            'bonds_status' => 'completed',
+            'bonds_completed_at' => now()->subHours(2),
+            'ppa_status' => 'completed',
+            'ppa_completed_at' => now()->subHour(),
+            'do_status' => 'completed',
+            'do_completed_at' => now(),
+        ],
+    ],
+]);
 
-test('cannot mark an optional import stage as not applicable before earlier stages are completed', function () {
+test('cannot mark an optional import stage as not applicable before earlier stages are completed', function (
+    string $stage,
+    string $flagColumn,
+) {
     $user = User::factory()->create(['role' => 'encoder']);
     $transaction = ImportTransaction::factory()->create([
         'assigned_user_id' => $user->id,
@@ -680,7 +733,7 @@ test('cannot mark an optional import stage as not applicable before earlier stag
 
     $this->actingAs($user)
         ->patchJson("/api/import-transactions/{$transaction->id}/stage-applicability", [
-            'stage' => 'bonds',
+            'stage' => $stage,
             'not_applicable' => true,
         ])
         ->assertUnprocessable()
@@ -688,30 +741,43 @@ test('cannot mark an optional import stage as not applicable before earlier stag
 
     $transaction->refresh()->load('stages');
 
-    expect($transaction->stages->bonds_not_applicable)->toBeFalse();
-});
+    expect($transaction->stages->{$flagColumn})->toBeFalse();
+})->with([
+    'bonds' => ['bonds', 'bonds_not_applicable'],
+    'ppa' => ['ppa', 'ppa_not_applicable'],
+    'port charges' => ['port_charges', 'port_charges_not_applicable'],
+]);
 
-test('document uploads are rejected for import stages marked as not applicable', function () {
+test('document uploads are rejected for import stages marked as not applicable', function (
+    string $stage,
+    string $flagColumn,
+    string $statusColumn,
+    string $expectedMessage,
+) {
     $user = User::factory()->create(['role' => 'encoder']);
     $transaction = ImportTransaction::factory()->create([
         'assigned_user_id' => $user->id,
     ]);
     $transaction->stages()->update([
-        'bonds_not_applicable' => true,
-        'bonds_status' => 'completed',
+        $flagColumn => true,
+        $statusColumn => 'completed',
     ]);
 
     $this->actingAs($user)
         ->postJson('/api/documents', [
-            'file' => UploadedFile::fake()->create('bonds.pdf', 100, 'application/pdf'),
-            'type' => 'bonds',
+            'file' => UploadedFile::fake()->create("{$stage}.pdf", 100, 'application/pdf'),
+            'type' => $stage,
             'documentable_type' => ImportTransaction::class,
             'documentable_id' => $transaction->id,
         ])
         ->assertUnprocessable()
         ->assertJsonValidationErrors(['type'])
-        ->assertJsonPath('errors.type.0', 'The BONDS stage is marked as not applicable for this transaction.');
-});
+        ->assertJsonPath('errors.type.0', $expectedMessage);
+})->with([
+    'bonds' => ['bonds', 'bonds_not_applicable', 'bonds_status', 'The BONDS stage is marked as not applicable for this transaction.'],
+    'ppa' => ['ppa', 'ppa_not_applicable', 'ppa_status', 'The Payment for PPA Charges stage is marked as not applicable for this transaction.'],
+    'port charges' => ['port_charges', 'port_charges_not_applicable', 'port_charges_status', 'The Payment for Port Charges stage is marked as not applicable for this transaction.'],
+]);
 
 test('updating an import transaction fails when customs reference number belongs to another transaction', function () {
     $user = User::factory()->create(['role' => 'encoder']);

@@ -78,7 +78,7 @@ export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type,
                 await onSave({
                     customs_ref_no: ref,
                     bl_no: bl,
-                    selective_color: blsc as 'green' | 'yellow' | 'red',
+                    selective_color: blsc as 'green' | 'yellow' | 'orange' | 'red',
                     importer_id: clientId as number,
                     arrival_date: arrivalDate,
                 } satisfies CreateImportPayload);
@@ -156,6 +156,7 @@ export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type,
                                         <option value="">Select Color</option>
                                         <option value="green">Green</option>
                                         <option value="yellow">Yellow</option>
+                                        <option value="orange">Orange</option>
                                         <option value="red">Red</option>
                                     </select>
                                     <Icon name="chevron-down" className="w-4 h-4 absolute right-4 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />

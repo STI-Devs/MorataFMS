@@ -25,13 +25,14 @@ interface ProcessorUploadModalProps {
     type: 'import' | 'export';
     clientName: string;
     transactionStages?: ApiImportStages | ApiExportStages;
+    transactionNotApplicableStages?: string[];
 }
 
 type ProcessorStageStatuses = Partial<ApiImportStages & ApiExportStages>;
 
 const IMPORT_PROCESSOR_STAGES: StageDefinition[] = [
-    { type: 'ppa', title: 'PPA', description: 'Philippine Ports Authority clearance.', icon: 'file-text', supportsNotApplicable: false },
-    { type: 'port_charges', title: 'Port Charges', description: 'Port charges and related fee documents.', icon: 'file-text', supportsNotApplicable: false },
+    { type: 'ppa', title: 'PPA', description: 'Philippine Ports Authority clearance.', icon: 'file-text', supportsNotApplicable: true },
+    { type: 'port_charges', title: 'Port Charges', description: 'Port charges and related fee documents.', icon: 'file-text', supportsNotApplicable: true },
 ];
 
 const EXPORT_PROCESSOR_STAGES: StageDefinition[] = [
@@ -47,6 +48,7 @@ export const ProcessorUploadModal = ({
     type,
     clientName,
     transactionStages,
+    transactionNotApplicableStages,
 }: ProcessorUploadModalProps) => {
     const queryClient = useQueryClient();
     const addDocToCache = useAddDocumentToCache();
@@ -69,10 +71,13 @@ export const ProcessorUploadModal = ({
     const [replacingDoc, setReplacingDoc] = useState<ApiDocument | null>(null);
     const [uploadError, setUploadError] = useState<string | null>(null);
     const [localStageStatuses, setLocalStageStatuses] = useState<ProcessorStageStatuses>(() => (transactionStages ?? {}) as ProcessorStageStatuses);
+    const [localNotApplicableStages, setLocalNotApplicableStages] = useState<string[]>(transactionNotApplicableStages ?? []);
+    const [applicabilityStage, setApplicabilityStage] = useState<string | null>(null);
 
     useEffect(() => {
         setLocalStageStatuses((transactionStages ?? {}) as ProcessorStageStatuses);
-    }, [transactionStages, isOpen]);
+        setLocalNotApplicableStages(transactionNotApplicableStages ?? []);
+    }, [transactionStages, transactionNotApplicableStages, isOpen]);
 
     const importActionability = getImportProcessorActionability(localStageStatuses);
     const exportActionability = getExportProcessorActionability(localStageStatuses);
@@ -134,6 +139,45 @@ export const ProcessorUploadModal = ({
             queryClient.invalidateQueries({ queryKey: isImport ? trackingKeys.imports.list() : trackingKeys.exports.list() });
         } finally {
             setDeletingDocId(null);
+        }
+    };
+
+    const handleStageApplicabilityChange = async (stageType: string, notApplicable: boolean) => {
+        setApplicabilityStage(stageType);
+
+        try {
+            if (isImport) {
+                await trackingApi.updateImportStageApplicability(transactionId, {
+                    stage: stageType,
+                    not_applicable: notApplicable,
+                });
+            } else {
+                await trackingApi.updateExportStageApplicability(transactionId, {
+                    stage: stageType,
+                    not_applicable: notApplicable,
+                });
+            }
+
+            setLocalNotApplicableStages((previous) => (
+                notApplicable
+                    ? [...new Set([...previous, stageType])]
+                    : previous.filter((stage) => stage !== stageType)
+            ));
+            setLocalStageStatuses((previous) => ({
+                ...previous,
+                [stageType]: notApplicable ? 'completed' : 'pending',
+            }));
+            queryClient.invalidateQueries({ queryKey: isImport ? trackingKeys.imports.list() : trackingKeys.exports.list() });
+            toast.success(
+                notApplicable
+                    ? `${stages.find((stage) => stage.type === stageType)?.title ?? 'Stage'} marked as not applicable.`
+                    : `${stages.find((stage) => stage.type === stageType)?.title ?? 'Stage'} restored to required.`,
+            );
+        } catch (err: unknown) {
+            const apiErr = err as { response?: { data?: { message?: string } } };
+            toast.error(apiErr?.response?.data?.message ?? 'Failed to update the stage setting.');
+        } finally {
+            setApplicabilityStage(null);
         }
     };
 
@@ -214,7 +258,10 @@ export const ProcessorUploadModal = ({
                                 {stages.map((stage, i) => {
                                     const docs = stageDocuments[i] ?? [];
                                     const isActionable = isStageActionable(stage.type);
-                                    const stageStatus = getOperationalStageStatus(docs.length > 0, isActionable);
+                                    const isNotApplicable = localNotApplicableStages.includes(stage.type);
+                                    const stageStatus = isNotApplicable
+                                        ? 'completed'
+                                        : getOperationalStageStatus(docs.length > 0, isActionable);
                                     
                                     return (
                                         <StageRow
@@ -224,16 +271,16 @@ export const ProcessorUploadModal = ({
                                             isLast={i === stages.length - 1}
                                             stageStatus={stageStatus}
                                             docs={docs}
-                                            isNotApplicable={false}
+                                            isNotApplicable={isNotApplicable}
                                             isUploading={uploadingStage === i}
-                                            isApplicabilityUpdating={false}
+                                            isApplicabilityUpdating={applicabilityStage === stage.type}
                                             deletingDocId={deletingDocId}
-                                            uploadDisabledReason={!docs.length && !isActionable ? 'Waiting for earlier stages to be completed first.' : null}
+                                            uploadDisabledReason={!docs.length && !isActionable && !isNotApplicable ? 'Waiting for earlier stages to be completed first.' : null}
                                             onUploadClick={handleStageUploadClick}
                                             onPreviewDoc={handlePreviewDoc}
                                             onDeleteDoc={handleDeleteDoc}
                                             onReplaceDoc={handleReplaceDoc}
-                                            onNotApplicableChange={() => {}}
+                                            onNotApplicableChange={handleStageApplicabilityChange}
                                         />
                                     );
                                 })}

@@ -145,7 +145,7 @@ export const BLFolderRow = ({ blNo, blDocs, drill, nav, COL, color }: BLFolderRo
             <span className="text-xs text-text-secondary truncate">{toTitleCase(firstDoc?.client ?? '—')}</span>
             {isImport ? (
                 <span className="inline-flex items-center gap-1.5 text-xs font-semibold truncate">
-                    <span className={`w-2 h-2 rounded-full shrink-0 ${firstDoc?.selective_color === 'red' ? 'bg-red-500' : firstDoc?.selective_color === 'yellow' ? 'bg-yellow-400' : 'bg-green-500'}`} />
+                    <span className={`w-2 h-2 rounded-full shrink-0 ${firstDoc?.selective_color === 'red' ? 'bg-red-500' : firstDoc?.selective_color === 'orange' ? 'bg-orange-500' : firstDoc?.selective_color === 'yellow' ? 'bg-yellow-400' : 'bg-green-500'}`} />
                     <span className="capitalize text-text-secondary">{firstDoc?.selective_color ?? 'Green'}</span>
                 </span>
             ) : (

@@ -83,7 +83,7 @@ type ArchiveDocumentUpload = {
 
 type CreateArchiveImportPayload = {
     bl_no: string;
-    selective_color: 'green' | 'yellow' | 'red';
+    selective_color: 'green' | 'yellow' | 'orange' | 'red';
     importer_id: number;
     file_date: string;
     customs_ref_no?: string;

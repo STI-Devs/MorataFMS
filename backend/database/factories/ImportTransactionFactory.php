@@ -26,7 +26,7 @@ class ImportTransactionFactory extends Factory
         return [
             'customs_ref_no' => 'REF-'.$faker->unique()->numerify('####-###'),
             'bl_no' => 'BL-'.$faker->unique()->numerify('########'),
-            'selective_color' => $faker->randomElement(['green', 'yellow', 'red']),
+            'selective_color' => $faker->randomElement(['green', 'yellow', 'orange', 'red']),
             'importer_id' => Client::factory(),
             'origin_country_id' => Country::factory()->importOrigin(),
             'arrival_date' => $faker->dateTimeBetween('-2 years', 'now'),

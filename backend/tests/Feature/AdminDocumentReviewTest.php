@@ -280,10 +280,12 @@ test('admin review detail treats optional stages marked not applicable as satisf
     $transaction->stages()->update([
         'billing_completed_at' => Carbon::parse('2026-03-25 12:00:00', 'UTC'),
         'bonds_not_applicable' => true,
+        'ppa_not_applicable' => true,
+        'port_charges_not_applicable' => true,
     ]);
     attachReviewDocuments(
         $transaction,
-        Document::requiredTypeKeysFor(ImportTransaction::class, ['bonds']),
+        Document::requiredTypeKeysFor(ImportTransaction::class, ['bonds', 'ppa', 'port_charges']),
         $uploader,
     );
 
@@ -299,8 +301,18 @@ test('admin review detail treats optional stages marked not applicable as satisf
         'not_applicable' => true,
     ]);
     expect($requiredDocuments->get('bonds')['files'])->toBe([]);
-    expect($response->json('summary.required_total'))->toBe(6);
-    expect($response->json('summary.required_completed'))->toBe(6);
+    expect($requiredDocuments->get('ppa'))->toMatchArray([
+        'type_key' => 'ppa',
+        'uploaded' => false,
+        'not_applicable' => true,
+    ]);
+    expect($requiredDocuments->get('port_charges'))->toMatchArray([
+        'type_key' => 'port_charges',
+        'uploaded' => false,
+        'not_applicable' => true,
+    ]);
+    expect($response->json('summary.required_total'))->toBe(4);
+    expect($response->json('summary.required_completed'))->toBe(4);
     expect($response->json('summary.missing_count'))->toBe(0);
     expect($response->json('summary.archive_ready'))->toBeTrue();
 });

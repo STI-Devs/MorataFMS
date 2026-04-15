@@ -30,7 +30,7 @@ export interface ArchiveDocument {
     bl_no: string;                   // Bill of Lading — from path segment
     month: number;                   // Archive period month (1-12)
     client: string;                  // Client name (importer/shipper)
-    selective_color?: 'green' | 'yellow' | 'red' | null; // Import only — BLSC
+    selective_color?: 'green' | 'yellow' | 'orange' | 'red' | null; // Import only — BLSC
     destination_country?: string | null;                  // Export only — destination
     transaction_date: string;        // ISO date string (YYYY-MM-DD)
     transaction_id: number;          // Parent transaction ID (for document uploads)
@@ -237,9 +237,9 @@ export interface ArchiveStageDefinition {
 export const IMPORT_STAGES: readonly ArchiveStageDefinition[] = [
     { key: 'boc', label: 'BOC Processing' },
     { key: 'bonds', label: 'BONDS', optional: true },
-    { key: 'ppa', label: 'PPA Processing' },
+    { key: 'ppa', label: 'PPA Processing', optional: true },
     { key: 'do', label: 'DO Request' },
-    { key: 'port_charges', label: 'Port Charges' },
+    { key: 'port_charges', label: 'Port Charges', optional: true },
     { key: 'releasing', label: 'Releasing' },
     { key: 'billing', label: 'Billing' },
     { key: 'others', label: 'Others' },
@@ -248,7 +248,7 @@ export const IMPORT_STAGES: readonly ArchiveStageDefinition[] = [
 export const EXPORT_STAGES: readonly ArchiveStageDefinition[] = [
     { key: 'boc', label: 'BOC Processing' },
     { key: 'bl_generation', label: 'Bill of Lading' },
-    { key: 'phytosanitary', label: 'Phytosanitary Certificates' },
+    { key: 'phytosanitary', label: 'Phytosanitary Certificates', optional: true },
     { key: 'co', label: 'CO Application', optional: true },
     { key: 'cil', label: 'CIL' },
     { key: 'dccci', label: 'DCCCI Printing', optional: true },
@@ -278,5 +278,6 @@ export const ARCHIVE_YEARS: number[] = Array.from(
 export const BLSC_OPTIONS = [
     { value: 'green', label: 'Green' },
     { value: 'yellow', label: 'Yellow' },
+    { value: 'orange', label: 'Orange' },
     { value: 'red', label: 'Red' },
 ] as const;

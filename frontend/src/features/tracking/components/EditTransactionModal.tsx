@@ -71,7 +71,7 @@ export default function EditTransactionModal({ isOpen, onClose, type, transactio
                 const payload: CreateImportPayload = {
                     customs_ref_no: refNo.trim(),
                     bl_no: blNo.trim(),
-                    selective_color: blsc as 'green' | 'yellow' | 'red',
+                    selective_color: blsc as 'green' | 'yellow' | 'orange' | 'red',
                     importer_id: Number(importerId),
                     origin_country_id: Number(originCountryId),
                     arrival_date: arrivalDate,
@@ -170,6 +170,7 @@ export default function EditTransactionModal({ isOpen, onClose, type, transactio
                                         >
                                             <option value="green">Green</option>
                                             <option value="yellow">Yellow</option>
+                                            <option value="orange">Orange</option>
                                             <option value="red">Red</option>
                                         </select>
                                         {isEncoder && (
