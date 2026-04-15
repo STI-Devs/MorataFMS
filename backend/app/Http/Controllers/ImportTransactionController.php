@@ -30,7 +30,7 @@ class ImportTransactionController extends Controller
         $user = $request->user();
 
         $query = ImportTransaction::query()
-            ->with(['importer', 'originCountry', 'stages', 'assignedUser'])
+            ->with(['importer', 'originCountry', 'locationOfGoods', 'stages', 'assignedUser'])
             ->withCount(['remarks as open_remarks_count' => fn ($q) => $q->where('is_resolved', false)])
             ->withCount('documents');
 
@@ -99,7 +99,7 @@ class ImportTransactionController extends Controller
         $transaction->status = ImportStatus::Pending;
         $transaction->save();
 
-        $transaction->load(['importer', 'originCountry', 'stages', 'assignedUser']);
+        $transaction->load(['importer', 'originCountry', 'locationOfGoods', 'stages', 'assignedUser']);
         $this->transactionSyncBroadcaster->transactionChanged($transaction, $request->user(), 'created');
 
         return (new ImportTransactionResource($transaction))
@@ -117,15 +117,9 @@ class ImportTransactionController extends Controller
 
         $data = $request->validated();
 
-        // Encoders cannot change the selectivity color — it is a BOC classification
-        // that must be updated by an admin or paralegal.
-        if ($request->user()->role === UserRole::Encoder) {
-            unset($data['selective_color']);
-        }
-
         $import_transaction->update($data);
 
-        $import_transaction->load(['importer', 'originCountry', 'stages', 'assignedUser']);
+        $import_transaction->load(['importer', 'originCountry', 'locationOfGoods', 'stages', 'assignedUser']);
         $this->transactionSyncBroadcaster->transactionChanged($import_transaction, $request->user(), 'updated');
 
         return new ImportTransactionResource($import_transaction);
@@ -177,7 +171,7 @@ class ImportTransactionController extends Controller
         $import_transaction->notes = $request->validated()['reason'];
         $import_transaction->save();
 
-        $import_transaction->load(['importer', 'originCountry', 'stages', 'assignedUser']);
+        $import_transaction->load(['importer', 'originCountry', 'locationOfGoods', 'stages', 'assignedUser']);
         $this->transactionSyncBroadcaster->transactionChanged($import_transaction, $request->user(), 'cancelled');
 
         return new ImportTransactionResource($import_transaction);
@@ -209,7 +203,7 @@ class ImportTransactionController extends Controller
 
         $import_transaction->setStageApplicability($stage, $notApplicable, $request->user()->id);
         $import_transaction->recalculateStatus();
-        $import_transaction->load(['importer', 'originCountry', 'stages', 'assignedUser']);
+        $import_transaction->load(['importer', 'originCountry', 'locationOfGoods', 'stages', 'assignedUser']);
 
         $this->transactionSyncBroadcaster->transactionChanged(
             $import_transaction,

@@ -2,9 +2,10 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { EncodeModal } from './EncodeModal';
 
-const { mockUseClients, mockUseCountries } = vi.hoisted(() => ({
+const { mockUseClients, mockUseCountries, mockUseLocationsOfGoods } = vi.hoisted(() => ({
     mockUseClients: vi.fn(),
     mockUseCountries: vi.fn(),
+    mockUseLocationsOfGoods: vi.fn(),
 }));
 
 vi.mock('../hooks/useClients', () => ({
@@ -15,10 +16,15 @@ vi.mock('../hooks/useCountries', () => ({
     useCountries: mockUseCountries,
 }));
 
+vi.mock('../hooks/useLocationsOfGoods', () => ({
+    useLocationsOfGoods: mockUseLocationsOfGoods,
+}));
+
 describe('EncodeModal', () => {
     beforeEach(() => {
         mockUseClients.mockReset();
         mockUseCountries.mockReset();
+        mockUseLocationsOfGoods.mockReset();
 
         mockUseClients.mockReturnValue({
             data: [{ id: 1, name: 'AKTIV MULTI TRADING CORP', type: 'importer' }],
@@ -26,6 +32,10 @@ describe('EncodeModal', () => {
         });
         mockUseCountries.mockReturnValue({
             data: [],
+            isLoading: false,
+        });
+        mockUseLocationsOfGoods.mockReturnValue({
+            data: [{ id: 4, name: 'South Harbor Warehouse' }],
             isLoading: false,
         });
     });
@@ -90,6 +100,34 @@ describe('EncodeModal', () => {
                 vessel: 'MV Pacific',
                 export_date: '2026-04-20',
                 destination_country_id: 9,
+            });
+        });
+    });
+
+    it('includes vessel name and location of goods when encoding an import transaction', async () => {
+        const onSave = vi.fn().mockResolvedValue(undefined);
+
+        render(<EncodeModal isOpen onClose={vi.fn()} type="import" onSave={onSave} />);
+
+        fireEvent.change(screen.getByLabelText(/blsc/i), { target: { value: 'orange' } });
+        fireEvent.change(screen.getByLabelText(/customs ref no/i), { target: { value: 'REF-IMP-909' } });
+        fireEvent.change(screen.getByLabelText(/importer/i), { target: { value: '1' } });
+        fireEvent.change(screen.getByLabelText(/bill of lading/i), { target: { value: 'BL-IMP-909' } });
+        fireEvent.change(screen.getByLabelText(/vessel name/i), { target: { value: 'MV Golden Tide' } });
+        fireEvent.change(screen.getByLabelText(/location of goods/i), { target: { value: '4' } });
+        fireEvent.change(screen.getByLabelText(/arrival date/i), { target: { value: '2026-04-15' } });
+
+        fireEvent.click(screen.getByRole('button', { name: /encode/i }));
+
+        await waitFor(() => {
+            expect(onSave).toHaveBeenCalledWith({
+                customs_ref_no: 'REF-IMP-909',
+                bl_no: 'BL-IMP-909',
+                vessel_name: 'MV Golden Tide',
+                selective_color: 'orange',
+                importer_id: 1,
+                location_of_goods_id: 4,
+                arrival_date: '2026-04-15',
             });
         });
     });

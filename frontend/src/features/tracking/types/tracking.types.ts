@@ -11,6 +11,9 @@ export interface ImportTransaction {
     colorLabel: string;
     importer: string;
     date: string;
+    originCountry?: string;
+    vesselName?: string;
+    locationOfGoods?: string;
     open_remarks_count: number;
 }
 
@@ -83,10 +86,12 @@ export interface ApiImportTransaction {
     id: number;
     customs_ref_no: string;
     bl_no: string;
+    vessel_name?: string | null;
     selective_color: 'green' | 'yellow' | 'orange' | 'red';
     importer: { id: number; name: string } | null;
     arrival_date: string;
     origin_country?: { id: number; name: string; code: string };
+    location_of_goods?: { id: number; name: string } | null;
     assigned_user?: { id: number; name: string };
     status: string;
     is_archive?: boolean;
@@ -148,6 +153,12 @@ export interface ApiCountry {
     code: string;
 }
 
+export interface ApiLocationOfGoods {
+    id: number;
+    name: string;
+    is_active?: boolean;
+}
+
 export interface PaginatedResponse<T> {
     data: T[];
     meta: {
@@ -167,9 +178,11 @@ export interface PaginatedResponse<T> {
 export interface CreateImportPayload {
     customs_ref_no: string;
     bl_no: string;
+    vessel_name?: string;
     selective_color: 'green' | 'yellow' | 'orange' | 'red';
     importer_id: number;
     origin_country_id?: number;
+    location_of_goods_id?: number;
     arrival_date: string;
     notes?: string;
 }

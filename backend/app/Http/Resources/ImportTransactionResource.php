@@ -13,6 +13,7 @@ class ImportTransactionResource extends JsonResource
             'id' => $this->id,
             'customs_ref_no' => $this->customs_ref_no,
             'bl_no' => $this->bl_no,
+            'vessel_name' => $this->vessel_name,
             'selective_color' => $this->selective_color,
             'importer' => [
                 'id' => $this->importer?->id,
@@ -22,6 +23,10 @@ class ImportTransactionResource extends JsonResource
                 'id' => $this->originCountry->id,
                 'name' => $this->originCountry->name,
                 'code' => $this->originCountry->code,
+            ]),
+            'location_of_goods' => $this->whenLoaded('locationOfGoods', fn () => [
+                'id' => $this->locationOfGoods->id,
+                'name' => $this->locationOfGoods->name,
             ]),
             'arrival_date' => $this->arrival_date?->format('Y-m-d'),
             'assigned_user' => $this->whenLoaded('assignedUser', fn () => [

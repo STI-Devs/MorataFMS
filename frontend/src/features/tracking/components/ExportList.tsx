@@ -6,6 +6,8 @@ import { mapExportTransaction } from '../utils/mappers';
 import { RemarkViewerModal } from './RemarkViewerModal';
 import { TransactionListPage } from './TransactionListPage';
 
+const CANCELLABLE_EXPORT_STATUSES = new Set(['Pending', 'In Transit', 'Departure', 'Processing', 'In Progress']);
+
 export const ExportList = () => {
     const [remarkTarget, setRemarkTarget] = useState<ExportTransaction | null>(null);
 
@@ -16,7 +18,7 @@ export const ExportList = () => {
                 title="Export Transactions"
                 subtitle="Track and manage all export shipments"
                 encodeButtonLabel="Encode Export"
-                gridTemplateColumns="1.5fr 1.2fr 1.5fr 1.2fr 110px 1.5fr 60px"
+                gridTemplateColumns="1.5fr 1.2fr 1.5fr 1.2fr 120px 1.5fr 60px"
                 mapResponseData={data => (data as ApiExportTransaction[]).map(mapExportTransaction)}
                 renderHeaders={() => (
                     <>
@@ -62,18 +64,18 @@ export const ExportList = () => {
                             </button>
                             <button
                                 className={`p-1.5 rounded-md transition-colors ${
-                                    row.status === 'Processing' || row.status === 'In Transit'
+                                    CANCELLABLE_EXPORT_STATUSES.has(row.status)
                                         ? 'text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 cursor-pointer'
                                         : 'text-text-muted/30 cursor-not-allowed'
                                 }`}
                                 onClick={e => {
                                     e.stopPropagation();
-                                    if (row.status === 'Processing' || row.status === 'In Transit') {
+                                    if (CANCELLABLE_EXPORT_STATUSES.has(row.status)) {
                                         onCancel(row.id, row.ref);
                                     }
                                 }}
-                                disabled={row.status !== 'Processing' && row.status !== 'In Transit'}
-                                title={row.status === 'Processing' || row.status === 'In Transit' ? 'Cancel Transaction' : 'Cannot cancel'}
+                                disabled={!CANCELLABLE_EXPORT_STATUSES.has(row.status)}
+                                title={CANCELLABLE_EXPORT_STATUSES.has(row.status) ? 'Cancel Transaction' : 'Cannot cancel'}
                             >
                                 <Icon name="x" className="w-4 h-4" />
                             </button>

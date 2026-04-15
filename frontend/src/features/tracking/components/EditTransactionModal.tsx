@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Icon } from '../../../components/Icon';
 import { Spinner } from '../../../components/Spinner';
-import { useAuth } from '../../auth/hooks/useAuth';
 import { useClients } from '../hooks/useClients';
 import { useCountries } from '../hooks/useCountries';
+import { useLocationsOfGoods } from '../hooks/useLocationsOfGoods';
 import { useUpdateTransaction } from '../hooks/useUpdateTransaction';
 import type { ApiExportTransaction, ApiImportTransaction, CreateExportPayload, CreateImportPayload } from '../types';
 
@@ -14,66 +14,49 @@ interface EditTransactionModalProps {
     transaction: ApiImportTransaction | ApiExportTransaction | null;
 }
 
+type SelectiveColor = 'green' | 'yellow' | 'orange' | 'red';
+
 export default function EditTransactionModal({ isOpen, onClose, type, transaction }: EditTransactionModalProps) {
-    const { user } = useAuth();
-    const isEncoder = user?.role === 'encoder';
+    const importTransaction = type === 'import' ? transaction as ApiImportTransaction | null : null;
+    const exportTransaction = type === 'export' ? transaction as ApiExportTransaction | null : null;
 
     const { data: importerClients } = useClients('importer');
     const { data: exporterClients } = useClients('exporter');
-    const { data: countries } = useCountries('export_destination', isOpen);
+    const { data: importCountries } = useCountries('import_origin', isOpen && type === 'import');
+    const { data: exportCountries } = useCountries('export_destination', isOpen && type === 'export');
+    const { data: locationsOfGoods } = useLocationsOfGoods(isOpen && type === 'import');
 
     const updateMutation = useUpdateTransaction(type);
 
-    // Form state - initialized directly from props
-    // The component stays mounted or remounts based on parent, but to ensure 
-    // it resets cleanly if the transaction changes while open, we can derive it or rely on the parent's remount behavior.
-    const [refNo, setRefNo] = useState('');
-    const [blNo, setBlNo] = useState('');
-    const [blsc, setBlsc] = useState('yellow');
-    const [importerId, setImporterId] = useState('');
-    const [shipperId, setShipperId] = useState('');
-    const [originCountryId, setOriginCountryId] = useState('');
-    const [destCountryId, setDestCountryId] = useState('');
-    const [vessel, setVessel] = useState('');
-    const [arrivalDate, setArrivalDate] = useState('');
-    const [departureDate, setDepartureDate] = useState('');
+    const [refNo, setRefNo] = useState(() => importTransaction?.customs_ref_no || '');
+    const [blNo, setBlNo] = useState(() => (type === 'import' ? importTransaction?.bl_no : exportTransaction?.bl_no) || '');
+    const [blsc, setBlsc] = useState<SelectiveColor>(() => importTransaction?.selective_color || 'yellow');
+    const [importerId, setImporterId] = useState(() => importTransaction?.importer?.id?.toString() || '');
+    const [shipperId, setShipperId] = useState(() => exportTransaction?.shipper?.id?.toString() || '');
+    const [originCountryId, setOriginCountryId] = useState(() => importTransaction?.origin_country?.id?.toString() || '');
+    const [destCountryId, setDestCountryId] = useState(() => exportTransaction?.destination_country?.id?.toString() || '');
+    const [vessel, setVessel] = useState(() => (type === 'import' ? importTransaction?.vessel_name : exportTransaction?.vessel) || '');
+    const [locationOfGoodsId, setLocationOfGoodsId] = useState(() => importTransaction?.location_of_goods?.id?.toString() || '');
+    const [arrivalDate, setArrivalDate] = useState(() => importTransaction?.arrival_date || '');
+    const [departureDate, setDepartureDate] = useState(() => exportTransaction?.export_date || '');
 
-    // Sync state if transaction changes
-    const [prevTxnId, setPrevTxnId] = useState<number | null>(null);
-
-    if (transaction && transaction.id !== prevTxnId) {
-        setPrevTxnId(transaction.id);
-        if (type === 'import') {
-            const t = transaction as ApiImportTransaction;
-            setRefNo(t.customs_ref_no || '');
-            setBlNo(t.bl_no || '');
-            setBlsc(t.selective_color || 'yellow');
-            setImporterId(t.importer?.id?.toString() || '');
-            setOriginCountryId(t.origin_country?.id?.toString() || '');
-            setArrivalDate(t.arrival_date || '');
-        } else {
-            const t = transaction as ApiExportTransaction;
-            setBlNo(t.bl_no || '');
-            setShipperId(t.shipper?.id?.toString() || '');
-            setVessel(t.vessel || '');
-            setDepartureDate(t.export_date || '');
-            setDestCountryId(t.destination_country?.id?.toString() || '');
-        }
+    if (!isOpen || !transaction) {
+        return null;
     }
 
-    if (!isOpen || !transaction) return null;
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSubmit = async (event: React.FormEvent) => {
+        event.preventDefault();
 
         try {
             if (type === 'import') {
                 const payload: CreateImportPayload = {
                     customs_ref_no: refNo.trim(),
                     bl_no: blNo.trim(),
+                    ...(vessel.trim() && { vessel_name: vessel.trim() }),
                     selective_color: blsc as 'green' | 'yellow' | 'orange' | 'red',
                     importer_id: Number(importerId),
-                    origin_country_id: Number(originCountryId),
+                    ...(originCountryId && { origin_country_id: Number(originCountryId) }),
+                    ...(locationOfGoodsId && { location_of_goods_id: Number(locationOfGoodsId) }),
                     arrival_date: arrivalDate,
                 };
                 await updateMutation.mutateAsync({ id: transaction.id, data: payload });
@@ -94,9 +77,7 @@ export default function EditTransactionModal({ isOpen, onClose, type, transactio
     };
 
     const isPending = updateMutation.isPending;
-    
-    // Type-safe error extraction
-    const errorMessage = updateMutation.error 
+    const errorMessage = updateMutation.error
         ? (updateMutation.error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to update transaction. Please check the inputs.'
         : '';
 
@@ -128,158 +109,183 @@ export default function EditTransactionModal({ isOpen, onClose, type, transactio
                         {type === 'import' ? (
                             <>
                                 <div className="space-y-1.5">
-                                    <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">Customs Ref No</label>
+                                    <label htmlFor="edit-import-customs-ref" className="text-xs font-bold text-text-secondary uppercase tracking-wider">Customs Ref No</label>
                                     <input
+                                        id="edit-import-customs-ref"
                                         type="text"
                                         required
                                         value={refNo}
-                                        onChange={(e) => setRefNo(e.target.value)}
+                                        onChange={(event) => setRefNo(event.target.value)}
                                         className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                                         placeholder="e.g. REF-2024-001"
                                     />
                                 </div>
-                                <div className="grid grid-cols-2 gap-4">
+
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                     <div className="space-y-1.5">
-                                        <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">Bill of Lading (BL)</label>
+                                        <label htmlFor="edit-import-bl" className="text-xs font-bold text-text-secondary uppercase tracking-wider">Bill of Lading (BL)</label>
                                         <input
+                                            id="edit-import-bl"
                                             type="text"
                                             required
                                             value={blNo}
-                                            onChange={(e) => setBlNo(e.target.value)}
+                                            onChange={(event) => setBlNo(event.target.value)}
                                             className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                                             placeholder="e.g. BL-12345"
                                         />
                                     </div>
                                     <div className="space-y-1.5">
-                                        <div className="flex items-center gap-1.5">
-                                            <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">Selective Color</label>
-                                            {isEncoder && (
-                                                <span
-                                                    title="Selectivity color is a BOC classification. Only admins can change this."
-                                                    className="text-text-muted cursor-help"
-                                                >
-                                                    <Icon name="lock" className="w-3 h-3" />
-                                                </span>
-                                            )}
-                                        </div>
+                                        <label htmlFor="edit-import-selective-color" className="text-xs font-bold text-text-secondary uppercase tracking-wider">Selective Color</label>
                                         <select
+                                            id="edit-import-selective-color"
                                             value={blsc}
-                                            disabled={isEncoder}
-                                            onChange={(e) => setBlsc(e.target.value)}
-                                            className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            onChange={(event) => setBlsc(event.target.value as SelectiveColor)}
+                                            className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                                         >
                                             <option value="green">Green</option>
                                             <option value="yellow">Yellow</option>
                                             <option value="orange">Orange</option>
                                             <option value="red">Red</option>
                                         </select>
-                                        {isEncoder && (
-                                            <p className="text-xs text-text-muted">
-                                                Set by BOC — contact an admin to update.
-                                            </p>
-                                        )}
                                     </div>
                                 </div>
+
                                 <div className="space-y-1.5">
-                                    <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">Importer</label>
+                                    <label htmlFor="edit-import-importer" className="text-xs font-bold text-text-secondary uppercase tracking-wider">Importer</label>
                                     <select
+                                        id="edit-import-importer"
                                         required
                                         value={importerId}
-                                        onChange={(e) => setImporterId(e.target.value)}
+                                        onChange={(event) => setImporterId(event.target.value)}
                                         className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                                     >
                                         <option value="">Select an importer</option>
-                                        {importerClients?.map(c => (
-                                            <option key={c.id} value={c.id}>{c.name}</option>
+                                        {importerClients?.map((client) => (
+                                            <option key={client.id} value={client.id}>{client.name}</option>
                                         ))}
                                     </select>
                                 </div>
-                                <div className="grid grid-cols-2 gap-4">
+
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                     <div className="space-y-1.5">
-                                        <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">Origin</label>
+                                        <label htmlFor="edit-import-origin" className="text-xs font-bold text-text-secondary uppercase tracking-wider">Origin</label>
                                         <select
-                                            required
+                                            id="edit-import-origin"
                                             value={originCountryId}
-                                            onChange={(e) => setOriginCountryId(e.target.value)}
+                                            onChange={(event) => setOriginCountryId(event.target.value)}
                                             className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                                         >
                                             <option value="">Select origin</option>
-                                            {countries?.map(c => (
-                                                <option key={c.id} value={c.id}>{c.name}</option>
+                                            {importCountries?.map((country) => (
+                                                <option key={country.id} value={country.id}>{country.name}</option>
                                             ))}
                                         </select>
                                     </div>
                                     <div className="space-y-1.5">
-                                        <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">Arrival Date</label>
+                                        <label htmlFor="edit-import-arrival-date" className="text-xs font-bold text-text-secondary uppercase tracking-wider">Arrival Date</label>
                                         <input
+                                            id="edit-import-arrival-date"
                                             type="date"
                                             required
                                             value={arrivalDate}
-                                            onChange={(e) => setArrivalDate(e.target.value)}
+                                            onChange={(event) => setArrivalDate(event.target.value)}
                                             className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500/50 [color-scheme:light] dark:[color-scheme:dark]"
                                         />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                    <div className="space-y-1.5">
+                                        <label htmlFor="edit-import-vessel-name" className="text-xs font-bold text-text-secondary uppercase tracking-wider">Vessel Name</label>
+                                        <input
+                                            id="edit-import-vessel-name"
+                                            type="text"
+                                            value={vessel}
+                                            onChange={(event) => setVessel(event.target.value)}
+                                            className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                                            placeholder="e.g. MV Pacific Star"
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label htmlFor="edit-import-location-of-goods" className="text-xs font-bold text-text-secondary uppercase tracking-wider">Location of Goods</label>
+                                        <select
+                                            id="edit-import-location-of-goods"
+                                            value={locationOfGoodsId}
+                                            onChange={(event) => setLocationOfGoodsId(event.target.value)}
+                                            className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                                        >
+                                            <option value="">Select location of goods</option>
+                                            {locationsOfGoods?.map((location) => (
+                                                <option key={location.id} value={location.id}>{location.name}</option>
+                                            ))}
+                                        </select>
                                     </div>
                                 </div>
                             </>
                         ) : (
                             <>
                                 <div className="space-y-1.5">
-                                    <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">Bill of Lading (BL)</label>
+                                    <label htmlFor="edit-export-bl" className="text-xs font-bold text-text-secondary uppercase tracking-wider">Bill of Lading (BL)</label>
                                     <input
+                                        id="edit-export-bl"
                                         type="text"
                                         required
                                         value={blNo}
-                                        onChange={(e) => setBlNo(e.target.value)}
+                                        onChange={(event) => setBlNo(event.target.value)}
                                         className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                                         placeholder="e.g. BL-12345"
                                     />
                                 </div>
                                 <div className="space-y-1.5">
-                                    <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">Shipper</label>
+                                    <label htmlFor="edit-export-shipper" className="text-xs font-bold text-text-secondary uppercase tracking-wider">Shipper</label>
                                     <select
+                                        id="edit-export-shipper"
                                         required
                                         value={shipperId}
-                                        onChange={(e) => setShipperId(e.target.value)}
+                                        onChange={(event) => setShipperId(event.target.value)}
                                         className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                                     >
                                         <option value="">Select a shipper</option>
-                                        {exporterClients?.map(c => (
-                                            <option key={c.id} value={c.id}>{c.name}</option>
+                                        {exporterClients?.map((client) => (
+                                            <option key={client.id} value={client.id}>{client.name}</option>
                                         ))}
                                     </select>
                                 </div>
                                 <div className="space-y-1.5">
-                                    <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">Vessel</label>
+                                    <label htmlFor="edit-export-vessel" className="text-xs font-bold text-text-secondary uppercase tracking-wider">Vessel</label>
                                     <input
+                                        id="edit-export-vessel"
                                         type="text"
                                         required
                                         value={vessel}
-                                        onChange={(e) => setVessel(e.target.value)}
+                                        onChange={(event) => setVessel(event.target.value)}
                                         className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                                         placeholder="e.g. MV Pacific Star"
                                     />
                                 </div>
                                 <div className="space-y-1.5">
-                                    <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">Departure Date</label>
+                                    <label htmlFor="edit-export-departure-date" className="text-xs font-bold text-text-secondary uppercase tracking-wider">Departure Date</label>
                                     <input
+                                        id="edit-export-departure-date"
                                         type="date"
                                         required
                                         value={departureDate}
-                                        onChange={(e) => setDepartureDate(e.target.value)}
+                                        onChange={(event) => setDepartureDate(event.target.value)}
                                         className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500/50 [color-scheme:light] dark:[color-scheme:dark]"
                                     />
                                 </div>
                                 <div className="space-y-1.5">
-                                    <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">Destination</label>
+                                    <label htmlFor="edit-export-destination" className="text-xs font-bold text-text-secondary uppercase tracking-wider">Destination</label>
                                     <select
+                                        id="edit-export-destination"
                                         required
                                         value={destCountryId}
-                                        onChange={(e) => setDestCountryId(e.target.value)}
+                                        onChange={(event) => setDestCountryId(event.target.value)}
                                         className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                                     >
                                         <option value="">Select destination</option>
-                                        {countries?.map(c => (
-                                            <option key={c.id} value={c.id}>{c.name}</option>
+                                        {exportCountries?.map((country) => (
+                                            <option key={country.id} value={country.id}>{country.name}</option>
                                         ))}
                                     </select>
                                 </div>

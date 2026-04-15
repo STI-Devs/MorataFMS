@@ -25,6 +25,12 @@ export const usePrefetchEncodeData = (type: 'import' | 'export') => {
                 queryFn: () => trackingApi.getCountries('export_destination'),
                 staleTime: Infinity,
             });
+        } else {
+            queryClient.prefetchQuery({
+                queryKey: ['locations-of-goods'],
+                queryFn: () => trackingApi.getLocationsOfGoods(),
+                staleTime: Infinity,
+            });
         }
     }, [queryClient, type]);
 };

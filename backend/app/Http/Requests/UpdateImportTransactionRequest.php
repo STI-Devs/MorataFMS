@@ -34,9 +34,11 @@ class UpdateImportTransactionRequest extends FormRequest
                 'regex:/^[A-Za-z0-9\-]+$/',
                 Rule::unique('import_transactions', 'bl_no')->ignore($id),
             ],
+            'vessel_name' => ['nullable', 'string', 'max:150'],
             'selective_color' => ['required', new Enum(SelectiveColor::class)],
             'importer_id' => ['required', 'integer', 'exists:clients,id'],
             'origin_country_id' => ['nullable', 'integer', 'exists:countries,id'],
+            'location_of_goods_id' => ['nullable', 'integer', 'exists:locations_of_goods,id'],
             'arrival_date' => ['required', 'date', 'after_or_equal:2000-01-01'],
         ];
     }
@@ -55,6 +57,7 @@ class UpdateImportTransactionRequest extends FormRequest
             'importer_id.required' => 'Please select an importer.',
             'importer_id.exists' => 'The selected importer does not exist.',
             'origin_country_id.exists' => 'The selected country of origin does not exist.',
+            'location_of_goods_id.exists' => 'The selected location of goods does not exist.',
             'arrival_date.required' => 'Arrival date is required.',
             'arrival_date.date' => 'Arrival date must be a valid date.',
             'arrival_date.after_or_equal' => 'Arrival date cannot be before year 2000.',

@@ -6,6 +6,7 @@ use App\Enums\ImportStatus;
 use App\Models\Client;
 use App\Models\Country;
 use App\Models\ImportTransaction;
+use App\Models\LocationOfGoods;
 use Faker\Factory as FakerFactory;
 use Faker\Generator;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -26,9 +27,11 @@ class ImportTransactionFactory extends Factory
         return [
             'customs_ref_no' => 'REF-'.$faker->unique()->numerify('####-###'),
             'bl_no' => 'BL-'.$faker->unique()->numerify('########'),
+            'vessel_name' => $faker->optional()->words(2, true),
             'selective_color' => $faker->randomElement(['green', 'yellow', 'orange', 'red']),
             'importer_id' => Client::factory(),
             'origin_country_id' => Country::factory()->importOrigin(),
+            'location_of_goods_id' => $faker->boolean(70) ? LocationOfGoods::factory() : null,
             'arrival_date' => $faker->dateTimeBetween('-2 years', 'now'),
             'status' => $faker->randomElement([ImportStatus::Pending, ImportStatus::Processing, ImportStatus::Completed]),
             'notes' => $faker->optional()->sentence(),

@@ -44,6 +44,10 @@ export const CountryManagement = lazy(() =>
     import('../features/countries/components/CountryManagement').then((module) => ({ default: module.CountryManagement })),
 );
 
+export const LocationOfGoodsManagement = lazy(() =>
+    import('../features/locations-of-goods/components/LocationOfGoodsManagement').then((module) => ({ default: module.LocationOfGoodsManagement })),
+);
+
 export const Documents = lazy(() =>
     import('../features/documents/components/document-list/Documents').then((module) => ({ default: module.Documents })),
 );

@@ -448,6 +448,7 @@ export const TrackingDetails = () => {
             />
 
             <EditTransactionModal
+                key={`${isImport ? 'import' : 'export'}-${displayTxDetail.raw?.id ?? 'new'}-${isEditModalOpen ? 'open' : 'closed'}`}
                 isOpen={isEditModalOpen}
                 onClose={() => {
                     setIsEditModalOpen(false);

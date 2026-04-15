@@ -67,7 +67,7 @@ export const TrackingDashboard = () => {
                     <div className="overflow-x-auto">
                         <div
                             className="shrink-0 grid gap-2 px-4 py-3 border-b border-border bg-surface-secondary/50 items-center"
-                            style={{ gridTemplateColumns: '32px 140px 130px 100px 284px 95px', width: 'max-content', minWidth: '100%' }}
+                            style={{ gridTemplateColumns: '32px 140px 130px 128px 284px 95px', width: 'max-content', minWidth: '100%' }}
                         >
                             <ColHeader>SC</ColHeader>
                             <ColHeader className="whitespace-nowrap">Customs Ref No.</ColHeader>
@@ -83,7 +83,7 @@ export const TrackingDashboard = () => {
                                         <div
                                             key={i}
                                             className={`grid gap-2 px-4 py-3.5 items-center ${i % 2 !== 0 ? 'bg-surface-secondary/30' : ''}`}
-                                            style={{ gridTemplateColumns: '32px 140px 130px 100px 284px 95px', width: 'max-content', minWidth: '100%' }}
+                                            style={{ gridTemplateColumns: '32px 140px 130px 128px 284px 95px', width: 'max-content', minWidth: '100%' }}
                                         >
                                             <div className="w-2.5 h-2.5 rounded-full skeleton-shimmer self-center mx-auto" />
                                             <div className="h-4 skeleton-shimmer rounded-md" style={{ width: '80px' }} />
@@ -102,7 +102,7 @@ export const TrackingDashboard = () => {
                                         key={row.id}
                                         onClick={() => navigate(appRoutes.trackingDetail.replace(':referenceId', encodeURIComponent(row.ref)))}
                                         className={`grid gap-2 px-4 py-3.5 items-center cursor-pointer hover:bg-hover/60 transition-colors border-b border-border/30 ${i % 2 !== 0 ? 'bg-surface-secondary/30' : ''}`}
-                                        style={{ gridTemplateColumns: '32px 140px 130px 100px 284px 95px', width: 'max-content', minWidth: '100%' }}
+                                        style={{ gridTemplateColumns: '32px 140px 130px 128px 284px 95px', width: 'max-content', minWidth: '100%' }}
                                     >
                                         <span
                                             className="w-2.5 h-2.5 rounded-full shrink-0 self-center mx-auto"
@@ -134,7 +134,7 @@ export const TrackingDashboard = () => {
                     <div className="overflow-x-auto">
                         <div
                             className="shrink-0 grid gap-2 px-4 py-3 border-b border-border bg-surface-secondary/50 items-center"
-                            style={{ gridTemplateColumns: '300px 130px 185px 95px 100px 150px', width: 'max-content', minWidth: '100%' }}
+                            style={{ gridTemplateColumns: '300px 130px 185px 95px 120px 150px', width: 'max-content', minWidth: '100%' }}
                         >
                             <ColHeader>Shipper</ColHeader>
                             <ColHeader className="text-center whitespace-nowrap">Bill of Lading</ColHeader>
@@ -150,7 +150,7 @@ export const TrackingDashboard = () => {
                                         <div
                                             key={i}
                                             className={`grid gap-2 px-4 py-3.5 items-center ${i % 2 !== 0 ? 'bg-surface-secondary/30' : ''}`}
-                                            style={{ gridTemplateColumns: '300px 130px 185px 95px 100px 150px', width: 'max-content', minWidth: '100%' }}
+                                            style={{ gridTemplateColumns: '300px 130px 185px 95px 120px 150px', width: 'max-content', minWidth: '100%' }}
                                         >
                                             <div className="h-4 skeleton-shimmer rounded-md" style={{ width: '150px' }} />
                                             <div className="h-4 skeleton-shimmer rounded-md mx-auto" style={{ width: '60px' }} />
@@ -169,7 +169,7 @@ export const TrackingDashboard = () => {
                                         key={row.id}
                                         onClick={() => navigate(appRoutes.trackingDetail.replace(':referenceId', encodeURIComponent(row.ref)))}
                                         className={`grid gap-2 px-4 py-3.5 items-center cursor-pointer hover:bg-hover/60 transition-colors border-b border-border/30 ${i % 2 !== 0 ? 'bg-surface-secondary/30' : ''}`}
-                                        style={{ gridTemplateColumns: '300px 130px 185px 95px 100px 150px', width: 'max-content', minWidth: '100%' }}
+                                        style={{ gridTemplateColumns: '300px 130px 185px 95px 120px 150px', width: 'max-content', minWidth: '100%' }}
                                     >
                                         <p className="text-xs font-bold text-text-primary">{row.shipper}</p>
                                         <p className="text-xs text-text-secondary truncate text-center">{row.bl || '—'}</p>

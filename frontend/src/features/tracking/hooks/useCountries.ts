@@ -2,7 +2,7 @@
 import { trackingApi } from '../api/trackingApi';
 import type { ApiCountry } from '../types';
 
-export const useCountries = (type?: 'export_destination', enabled = true) => {
+export const useCountries = (type?: 'import_origin' | 'export_destination', enabled = true) => {
     return useQuery<ApiCountry[]>({
         queryKey: ['countries', type],
         queryFn: () => trackingApi.getCountries(type),

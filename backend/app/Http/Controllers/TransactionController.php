@@ -43,7 +43,7 @@ class TransactionController extends Controller
 
         $importTransaction = ImportTransaction::query()
             ->visibleTo($request->user())
-            ->with(['importer', 'originCountry', 'stages', 'assignedUser'])
+            ->with(['importer', 'originCountry', 'locationOfGoods', 'stages', 'assignedUser'])
             ->withCount(['remarks as open_remarks_count' => fn ($query) => $query->where('is_resolved', false)])
             ->withCount('documents')
             ->where('customs_ref_no', $referenceId)

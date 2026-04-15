@@ -9,6 +9,7 @@ use App\Http\Controllers\CountryController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\ExportTransactionController;
 use App\Http\Controllers\ImportTransactionController;
+use App\Http\Controllers\LocationOfGoodsController;
 use App\Http\Controllers\NotarialBookController;
 use App\Http\Controllers\NotarialEntryController;
 use App\Http\Controllers\ProfileController;
@@ -49,6 +50,7 @@ Route::middleware(['auth:sanctum', 'active-session', 'throttle:api-general'])->g
     // Clients (read for all, write for admin)
     Route::get('/clients', [ClientController::class, 'index']);
     Route::get('/countries', [CountryController::class, 'index']);
+    Route::get('/locations-of-goods', [LocationOfGoodsController::class, 'index']);
 
     // Document management
     Route::get('documents/transactions', [DocumentController::class, 'transactions'])
@@ -93,6 +95,11 @@ Route::middleware(['auth:sanctum', 'active-session', 'throttle:api-general'])->g
         Route::post('countries', [CountryController::class, 'store']);
         Route::put('countries/{country}', [CountryController::class, 'update']);
         Route::post('countries/{country}/toggle-active', [CountryController::class, 'toggleActive']);
+
+        // Location of goods management (write operations)
+        Route::post('locations-of-goods', [LocationOfGoodsController::class, 'store']);
+        Route::put('locations-of-goods/{location_of_goods}', [LocationOfGoodsController::class, 'update']);
+        Route::post('locations-of-goods/{location_of_goods}/toggle-active', [LocationOfGoodsController::class, 'toggleActive']);
 
         // Audit logs (read-only, admin)
         Route::get('audit-logs/actions', [AuditLogController::class, 'actions'])

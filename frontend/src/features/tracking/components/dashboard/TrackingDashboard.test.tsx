@@ -77,8 +77,7 @@ describe('TrackingDashboard', () => {
         expect(screen.getByText('Acme Imports')).toBeInTheDocument();
         expect(screen.getByText('Bravo Exports')).toBeInTheDocument();
         expect(screen.getByText('MV Pacific')).toBeInTheDocument();
-        expect(screen.getByText('Cleared')).toBeInTheDocument();
-        expect(screen.getByText('Shipped')).toBeInTheDocument();
+        expect(screen.getAllByText('Completed')).toHaveLength(2);
 
         fireEvent.click(screen.getByText('IMP/2026 001'));
 

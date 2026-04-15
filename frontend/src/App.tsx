@@ -27,6 +27,7 @@ import {
   ImportList,
   LandingPage,
   LegalDocumentsPage,
+  LocationOfGoodsManagement,
   LawFirmPage,
   ParalegalDashboard,
   Profile,
@@ -109,6 +110,7 @@ function App() {
                 <Route path={appRoutes.users} element={<UserManagement />} />
                 <Route path={appRoutes.clients} element={<ClientManagement />} />
                 <Route path={appRoutes.countries} element={<CountryManagement />} />
+                <Route path={appRoutes.locationsOfGoods} element={<LocationOfGoodsManagement />} />
                 <Route path={appRoutes.transactions} element={<TransactionOversight />} />
                 <Route path={appRoutes.reports} element={<ReportsAnalytics />} />
                 <Route path={appRoutes.auditLogs} element={<AuditLogs />} />

@@ -75,9 +75,11 @@ class ImportTransaction extends Model
     protected $fillable = [
         'customs_ref_no',
         'bl_no',
+        'vessel_name',
         'selective_color',
         'importer_id',
         'origin_country_id',
+        'location_of_goods_id',
         'arrival_date',
         'notes',
     ];
@@ -100,6 +102,11 @@ class ImportTransaction extends Model
     public function originCountry(): BelongsTo
     {
         return $this->belongsTo(Country::class, 'origin_country_id');
+    }
+
+    public function locationOfGoods(): BelongsTo
+    {
+        return $this->belongsTo(LocationOfGoods::class);
     }
 
     public function assignedUser(): BelongsTo

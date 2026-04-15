@@ -62,6 +62,23 @@ export const TransactionInfoCard = ({
                 </div>
             </div>
 
+            {isImport && (
+                <div className="grid grid-cols-1 border-b border-border sm:grid-cols-3 sm:divide-x divide-border">
+                    <div className="px-5 py-4">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted mb-0.5">Origin</p>
+                        <p className="text-sm font-bold text-text-primary truncate">{importTx?.originCountry || '—'}</p>
+                    </div>
+                    <div className="px-5 py-4">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted mb-0.5">Vessel Name</p>
+                        <p className="text-sm font-bold text-text-primary truncate">{importTx?.vesselName || '—'}</p>
+                    </div>
+                    <div className="px-5 py-4">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted mb-0.5">Location of Goods</p>
+                        <p className="text-sm font-bold text-text-primary truncate">{importTx?.locationOfGoods || '—'}</p>
+                    </div>
+                </div>
+            )}
+
             {/* Progress bar */}
             <div className="px-5 py-4">
                 <div className="flex items-center justify-between mb-2">

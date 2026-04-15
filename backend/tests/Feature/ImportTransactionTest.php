@@ -3,6 +3,7 @@
 use App\Models\Client;
 use App\Models\Country;
 use App\Models\ImportTransaction;
+use App\Models\LocationOfGoods;
 use App\Models\User;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\UploadedFile;
@@ -305,13 +306,16 @@ test('authenticated users can create import transactions with valid data', funct
     $user = User::factory()->create();
     $client = Client::factory()->importer()->create();
     $country = Country::factory()->importOrigin()->create();
+    $locationOfGoods = LocationOfGoods::factory()->create(['name' => 'South Harbor Warehouse']);
 
     $payload = [
         'customs_ref_no' => 'REF-2026-001',
         'bl_no' => 'BL-12345678',
+        'vessel_name' => 'MV Pacific Horizon',
         'selective_color' => 'green',
         'importer_id' => $client->id,
         'origin_country_id' => $country->id,
+        'location_of_goods_id' => $locationOfGoods->id,
         'arrival_date' => '2025-06-15',
     ];
 
@@ -321,18 +325,23 @@ test('authenticated users can create import transactions with valid data', funct
     $response->assertCreated()
         ->assertJsonPath('data.customs_ref_no', 'REF-2026-001')
         ->assertJsonPath('data.bl_no', 'BL-12345678')
+        ->assertJsonPath('data.vessel_name', 'MV Pacific Horizon')
         ->assertJsonPath('data.selective_color', 'green')
         ->assertJsonPath('data.status', 'Pending')
         ->assertJsonPath('data.importer.id', $client->id)
         ->assertJsonPath('data.importer.name', $client->name)
         ->assertJsonPath('data.origin_country.id', $country->id)
-        ->assertJsonPath('data.origin_country.name', $country->name);
+        ->assertJsonPath('data.origin_country.name', $country->name)
+        ->assertJsonPath('data.location_of_goods.id', $locationOfGoods->id)
+        ->assertJsonPath('data.location_of_goods.name', 'South Harbor Warehouse');
 
     $this->assertDatabaseHas('import_transactions', [
         'customs_ref_no' => 'REF-2026-001',
         'bl_no' => 'BL-12345678',
+        'vessel_name' => 'MV Pacific Horizon',
         'assigned_user_id' => $user->id,
         'origin_country_id' => $country->id,
+        'location_of_goods_id' => $locationOfGoods->id,
     ]);
 });
 
@@ -472,6 +481,24 @@ test('creating import transaction fails with non-existent origin country', funct
         ->assertJsonValidationErrors(['origin_country_id']);
 });
 
+test('creating import transaction fails with non-existent location of goods', function () {
+    $user = User::factory()->create();
+    $client = Client::factory()->importer()->create();
+
+    $response = $this->actingAs($user)
+        ->postJson('/api/import-transactions', [
+            'customs_ref_no' => 'REF-001',
+            'bl_no' => 'BL-001',
+            'selective_color' => 'green',
+            'importer_id' => $client->id,
+            'location_of_goods_id' => 99999,
+            'arrival_date' => '2025-06-15',
+        ]);
+
+    $response->assertUnprocessable()
+        ->assertJsonValidationErrors(['location_of_goods_id']);
+});
+
 test('creating import transaction fails with duplicate customs reference number', function () {
     $user = User::factory()->create();
     $client = Client::factory()->importer()->create();
@@ -540,6 +567,7 @@ test('assigned user can update their import transaction', function () {
     $user = User::factory()->create(['role' => 'encoder']);
     $client = Client::factory()->importer()->create();
     $country = Country::factory()->importOrigin()->create();
+    $locationOfGoods = LocationOfGoods::factory()->create(['name' => 'Manila International Container Port']);
     $transaction = ImportTransaction::factory()->create([
         'assigned_user_id' => $user->id,
         'selective_color' => 'yellow',
@@ -548,9 +576,11 @@ test('assigned user can update their import transaction', function () {
     $payload = [
         'customs_ref_no' => 'REF-UPDATED-001',
         'bl_no' => 'BL-UPDATED-001',
+        'vessel_name' => 'MV Red Horizon',
         'selective_color' => 'red',
         'importer_id' => $client->id,
         'origin_country_id' => $country->id,
+        'location_of_goods_id' => $locationOfGoods->id,
         'arrival_date' => '2025-06-20',
     ];
 
@@ -559,12 +589,17 @@ test('assigned user can update their import transaction', function () {
 
     $response->assertOk()
         ->assertJsonPath('data.customs_ref_no', 'REF-UPDATED-001')
-        ->assertJsonPath('data.selective_color', 'yellow');
+        ->assertJsonPath('data.vessel_name', 'MV Red Horizon')
+        ->assertJsonPath('data.selective_color', 'red')
+        ->assertJsonPath('data.location_of_goods.id', $locationOfGoods->id)
+        ->assertJsonPath('data.location_of_goods.name', 'Manila International Container Port');
 
     $this->assertDatabaseHas('import_transactions', [
         'id' => $transaction->id,
         'customs_ref_no' => 'REF-UPDATED-001',
-        'selective_color' => 'yellow',
+        'vessel_name' => 'MV Red Horizon',
+        'selective_color' => 'red',
+        'location_of_goods_id' => $locationOfGoods->id,
     ]);
 });
 

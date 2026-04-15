@@ -6,6 +6,7 @@ import type {
     ApiDocument,
     ApiExportTransaction,
     ApiImportTransaction,
+    ApiLocationOfGoods,
     ApiTrackingDetail,
     CreateExportPayload,
     CreateImportPayload,
@@ -240,10 +241,15 @@ export const trackingApi = {
     },
 
     // --- Countries (for dropdowns) ---
-    getCountries: async (type?: 'export_destination'): Promise<ApiCountry[]> => {
+    getCountries: async (type?: 'import_origin' | 'export_destination'): Promise<ApiCountry[]> => {
         const response = await api.get('/api/countries', {
             params: type ? { type } : undefined,
         });
+        return response.data.data;
+    },
+
+    getLocationsOfGoods: async (): Promise<ApiLocationOfGoods[]> => {
+        const response = await api.get('/api/locations-of-goods');
         return response.data.data;
     },
 
