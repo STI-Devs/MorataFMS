@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ConfirmationModal } from '../../../components/ConfirmationModal';
 import { Icon } from '../../../components/Icon';
 import { MAX_MULTI_UPLOAD_FILES } from '../../../lib/uploads';
+import { useAuth } from '../../auth';
 import { StageUploadRow } from '../../documents/components/StageUploadRow';
 import type {
     ArchiveFormState,
@@ -14,7 +15,7 @@ import {
     IMPORT_STAGES,
 } from '../../documents/types/document.types';
 import { trackingApi } from '../../tracking/api/trackingApi';
-import type { ApiClient, ApiCountry } from '../../tracking/types';
+import type { ApiClient, ApiCountry, ApiLocationOfGoods } from '../../tracking/types';
 import type { ArchiveUploadSuccessTarget } from '../utils/archive.utils';
 import { ArchiveTypeCard } from './ArchiveTypeCard';
 
@@ -37,6 +38,14 @@ const SectionHeader = ({ step, label }: { step: number; label: string }) => (
 );
 
 const EMPTY_STAGE_UPLOAD: StageUpload = { files: [], notApplicable: false };
+const PROCESSOR_OWNED_OPTIONAL_ARCHIVE_STAGES: Record<TransactionType, Set<string>> = {
+    import: new Set(['ppa', 'port_charges']),
+    export: new Set(['dccci']),
+};
+const ENCODER_OWNED_OPTIONAL_ARCHIVE_STAGES: Record<TransactionType, Set<string>> = {
+    import: new Set(['bonds']),
+    export: new Set(['phytosanitary', 'co']),
+};
 
 const makeInitialForm = (year: number): ArchiveFormState => ({
     type: 'import',
@@ -49,6 +58,54 @@ const makeInitialForm = (year: number): ArchiveFormState => ({
     fileDate: '',
 });
 
+const getStageSupportText = (type: TransactionType, stageKey: string): string | null => {
+    if (type === 'import') {
+        if (stageKey === 'ppa' || stageKey === 'port_charges') {
+            return 'If unavailable now, this can be completed later by processor.';
+        }
+
+        if (stageKey === 'billing') {
+            return 'If unavailable now, this can be completed later by accounting.';
+        }
+
+        return null;
+    }
+
+    if (stageKey === 'cil') {
+        return 'Certificate of Inspection and Loading for export release. If unavailable now, this can be completed later by processor.';
+    }
+
+    if (stageKey === 'billing') {
+        return 'If unavailable now, this can be completed later by accounting.';
+    }
+
+    return null;
+};
+
+const canArchiveUploaderMarkStageNotApplicable = (
+    type: TransactionType,
+    stageKey: string,
+    userRole?: string,
+): boolean => {
+    if (userRole === 'admin') {
+        return true;
+    }
+
+    return !PROCESSOR_OWNED_OPTIONAL_ARCHIVE_STAGES[type].has(stageKey);
+};
+
+const archiveStageIsResolvedForSave = (
+    type: TransactionType,
+    stageKey: string,
+    upload: StageUpload | undefined,
+): boolean => {
+    if (!ENCODER_OWNED_OPTIONAL_ARCHIVE_STAGES[type].has(stageKey)) {
+        return true;
+    }
+
+    return (upload?.files.length ?? 0) > 0 || upload?.notApplicable === true;
+};
+
 interface Props {
     defaultYear?: number;
     onBack: () => void;
@@ -56,6 +113,7 @@ interface Props {
 }
 
 export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, onBack, onSubmit }) => {
+    const { user } = useAuth();
     const [form, setForm] = useState<ArchiveFormState>(makeInitialForm(defaultYear));
     const [stageUploads, setStageUploads] = useState<Record<string, StageUpload>>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -67,10 +125,11 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
 
     const [clients, setClients] = useState<ApiClient[]>([]);
     const [selectedClientId, setSelectedClientId] = useState<number | ''>('');
-    const [useCustomClient, setUseCustomClient] = useState(false);
 
     const [countries, setCountries] = useState<ApiCountry[]>([]);
     const [selectedCountryId, setSelectedCountryId] = useState<number | ''>('');
+    const [locationsOfGoods, setLocationsOfGoods] = useState<ApiLocationOfGoods[]>([]);
+    const [selectedLocationOfGoodsId, setSelectedLocationOfGoodsId] = useState<number | ''>('');
 
     const isImport = form.type === 'import';
 
@@ -78,7 +137,6 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
         const clientType = isImport ? 'importer' : 'exporter';
         trackingApi.getClients(clientType).then(setClients).catch(() => setClients([]));
         setSelectedClientId('');
-        setUseCustomClient(false);
         set('client', '');
     }, [isImport]);
 
@@ -86,6 +144,16 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
         if (!isImport) {
             trackingApi.getCountries('export_destination').then(setCountries).catch(() => setCountries([]));
         }
+    }, [isImport]);
+
+    useEffect(() => {
+        if (isImport) {
+            trackingApi.getLocationsOfGoods().then(setLocationsOfGoods).catch(() => setLocationsOfGoods([]));
+            return;
+        }
+
+        setLocationsOfGoods([]);
+        setSelectedLocationOfGoodsId('');
     }, [isImport]);
 
     const set = <K extends keyof ArchiveFormState>(key: K, value: ArchiveFormState[K]) =>
@@ -132,6 +200,7 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
         set('type', type);
         setStageUploads({});
         setSelectedCountryId('');
+        setSelectedLocationOfGoodsId('');
     };
 
     const handleClientSelect = (event: React.ChangeEvent<HTMLSelectElement>) => {
@@ -149,13 +218,22 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
     const hasInvalidStageUpload = Object.values(stageUploads).some(
         (upload) => upload.files.length > MAX_MULTI_UPLOAD_FILES,
     );
+    const unresolvedOptionalArchiveStages = stages.filter((stage) =>
+        ENCODER_OWNED_OPTIONAL_ARCHIVE_STAGES[form.type].has(stage.key)
+        && !archiveStageIsResolvedForSave(form.type, stage.key, stageUploads[stage.key]),
+    );
 
-    const hasClient = useCustomClient ? form.client.trim().length > 0 : selectedClientId !== '';
+    const hasClient = selectedClientId !== '';
     const hasBl = form.bl.trim().length >= 4;
     const blValid = /^[A-Za-z0-9-]+$/.test(form.bl.trim());
     const hasCountry = isImport || selectedCountryId !== '';
     const hasBlsc = !isImport || form.blsc !== '';
     const hasDate = dateMode === 'month' ? monthYear.length > 0 : form.fileDate.length > 0;
+    const hasStartedDraft = uploadedCount > 0
+        || form.bl.trim().length > 0
+        || selectedClientId !== ''
+        || selectedCountryId !== ''
+        || dateMode === 'exact';
 
     const canSubmit = hasClient
         && hasBl
@@ -164,8 +242,26 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
         && hasBlsc
         && hasDate
         && uploadedCount > 0
+        && unresolvedOptionalArchiveStages.length === 0
         && !hasInvalidStageUpload
         && !isSubmitting;
+
+    const submissionIssues = [
+        !hasClient ? `Select an ${isImport ? 'importer' : 'shipper'} from the list.` : null,
+        form.bl.trim().length === 0
+            ? 'Enter a Bill of Lading number.'
+            : form.bl.trim().length < 4
+                ? 'Bill of Lading must be at least 4 characters.'
+                : !blValid
+                    ? 'Bill of Lading may only contain letters, numbers, and hyphens.'
+                    : null,
+        !hasBlsc ? 'Select a BLSC color.' : null,
+        !hasDate ? `Select an archive ${dateMode === 'month' ? 'month' : 'date'}.` : null,
+        !hasCountry ? 'Select a destination country.' : null,
+        uploadedCount === 0 ? 'Attach at least one file to save the archive record.' : null,
+        ...unresolvedOptionalArchiveStages.map((stage) => `Upload files for ${stage.label} or mark it as N/A before saving the archive.`),
+        hasInvalidStageUpload ? `Reduce any stage that exceeds ${MAX_MULTI_UPLOAD_FILES} files.` : null,
+    ].filter((issue): issue is string => issue !== null);
 
     const handleSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
@@ -178,18 +274,7 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
         setError(null);
 
         try {
-            let clientId: number;
-
-            if (useCustomClient) {
-                const clientType = isImport ? 'importer' : 'exporter';
-                const newClient = await trackingApi.createClient({
-                    name: form.client.trim(),
-                    type: clientType,
-                });
-                clientId = newClient.id;
-            } else {
-                clientId = Number(selectedClientId);
-            }
+            const clientId = Number(selectedClientId);
 
             const [year, month] = monthYear.split('-').map(Number);
             let fileDate: string;
@@ -216,8 +301,10 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
                 ? await trackingApi.createArchiveImportWithDocuments({
                     customs_ref_no: form.refNo || undefined,
                     bl_no: form.bl,
+                    vessel_name: form.vessel || undefined,
                     selective_color: (form.blsc as 'green' | 'yellow' | 'orange' | 'red') || 'green',
                     importer_id: clientId,
+                    location_of_goods_id: selectedLocationOfGoodsId === '' ? undefined : Number(selectedLocationOfGoodsId),
                     file_date: fileDate,
                     notes: `Legacy archive (${year})`,
                     documents,
@@ -246,9 +333,7 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
             if (err && typeof err === 'object' && 'response' in err) {
                 const response = (err as { response: { status: number; data?: { message?: string } } }).response;
 
-                if (response.status === 403) {
-                    setError('You don\'t have permission to create new clients. Please select from the dropdown or ask an admin to add the client first.');
-                } else if (response.status === 422) {
+                if (response.status === 422) {
                     setError(response.data?.message || 'Validation error. Please check your inputs.');
                 } else {
                     setError(response.data?.message || 'Upload failed. Please try again.');
@@ -355,7 +440,7 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
 
                         {isImport && (
                             <div className="space-y-2">
-                                <label className={labelClass}>Customs Ref No. <span className="normal-case font-normal opacity-60">(optional)</span></label>
+                                <label className={labelClass}>Customs Ref No.</label>
                                 <input
                                     type="text"
                                     value={form.refNo}
@@ -389,6 +474,38 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
 
                         {isImport && (
                             <div className="space-y-2">
+                                <label className={labelClass}>Vessel Name</label>
+                                <input
+                                    type="text"
+                                    value={form.vessel}
+                                    onChange={(event) => set('vessel', event.target.value)}
+                                    placeholder="e.g. MV Golden Tide"
+                                    className={inputClass}
+                                />
+                            </div>
+                        )}
+
+                        {isImport && (
+                            <div className="space-y-2">
+                                <label className={labelClass}>Location of Goods</label>
+                                <div className="relative">
+                                    <select
+                                        value={selectedLocationOfGoodsId}
+                                        onChange={(event) => setSelectedLocationOfGoodsId(Number(event.target.value) || '')}
+                                        className={selectClass}
+                                    >
+                                        <option value="">Select location of goods</option>
+                                        {locationsOfGoods.map((location) => (
+                                            <option key={location.id} value={location.id}>{location.name}</option>
+                                        ))}
+                                    </select>
+                                    <Icon name="chevron-down" className="w-4 h-4 absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                </div>
+                            </div>
+                        )}
+
+                        {isImport && (
+                            <div className="space-y-2">
                                 <label className={labelClass}>BLSC (Selective Color) <span className="text-red-400">*</span></label>
                                 <div className="relative">
                                     <select
@@ -408,54 +525,25 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
 
                         <div className="space-y-2">
                             <label className={labelClass}>{isImport ? 'Importer' : 'Shipper'} <span className="text-red-400">*</span></label>
-                            {!useCustomClient && (
-                                <div className="relative">
-                                    <select
-                                        value={selectedClientId}
-                                        onChange={handleClientSelect}
-                                        disabled={useCustomClient}
-                                        className={selectClass}
-                                    >
-                                        <option value="">Select {isImport ? 'importer' : 'shipper'}</option>
-                                        {clients.map((client) => (
-                                            <option key={client.id} value={client.id}>{client.name}</option>
-                                        ))}
-                                    </select>
-                                    <Icon name="chevron-down" className="w-4 h-4 absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                                </div>
-                            )}
-                            <label className="flex items-center gap-2 cursor-pointer mt-1.5 select-none">
-                                <input
-                                    type="checkbox"
-                                    checked={useCustomClient}
-                                    onChange={(event) => {
-                                        setUseCustomClient(event.target.checked);
-
-                                        if (!event.target.checked) {
-                                            setSelectedClientId('');
-                                            set('client', '');
-                                        }
-                                    }}
-                                    className="w-3.5 h-3.5 rounded accent-amber-500 cursor-pointer"
-                                />
-                                <span className="text-xs text-text-muted font-semibold">Not in list - enter name manually</span>
-                            </label>
-                            {useCustomClient && (
-                                <input
-                                    type="text"
-                                    required
-                                    value={form.client}
-                                    onChange={(event) => set('client', event.target.value)}
-                                    placeholder={`Enter ${isImport ? 'importer' : 'shipper'} name`}
-                                    className={inputClass}
-                                    autoFocus
-                                />
-                            )}
+                            <div className="relative">
+                                <select
+                                    value={selectedClientId}
+                                    onChange={handleClientSelect}
+                                    className={selectClass}
+                                >
+                                    <option value="">Select {isImport ? 'importer' : 'shipper'}</option>
+                                    {clients.map((client) => (
+                                        <option key={client.id} value={client.id}>{client.name}</option>
+                                    ))}
+                                </select>
+                                <Icon name="chevron-down" className="w-4 h-4 absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                            </div>
+                            <p className="mt-1.5 text-xs font-semibold text-text-muted">Not in list? Contact Admin</p>
                         </div>
 
                         {!isImport && (
                             <div className="space-y-2">
-                                <label className={labelClass}>Vessel <span className="normal-case font-normal opacity-60">(optional)</span></label>
+                                <label className={labelClass}>Vessel</label>
                                 <input
                                     type="text"
                                     value={form.vessel}
@@ -499,6 +587,15 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
                             </span>
                         )}
                     </p>
+                    <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50/70 p-4">
+                        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-amber-700">Archive Workflow</p>
+                        <p className="mt-2 text-sm font-semibold text-amber-950">
+                            You can save this archive with only the files currently on hand.
+                        </p>
+                        <p className="mt-1 text-xs text-amber-800">
+                            Missing processor- or accounting-owned files can be added later from their archive task pages.
+                        </p>
+                    </div>
                     <div className="space-y-3">
                         {stages.map((stage) => (
                             <StageUploadRow
@@ -506,7 +603,8 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
                                 stageKey={stage.key}
                                 label={stage.label}
                                 upload={stageUploads[stage.key] ?? EMPTY_STAGE_UPLOAD}
-                                allowNotApplicable={stage.optional === true}
+                                allowNotApplicable={stage.optional === true && canArchiveUploaderMarkStageNotApplicable(form.type, stage.key, user?.role)}
+                                supportingText={getStageSupportText(form.type, stage.key) ?? undefined}
                                 onChange={(next) => setStageUpload(stage.key, next)}
                             />
                         ))}
@@ -517,6 +615,20 @@ export const ArchiveLegacyUploadPage: React.FC<Props> = ({ defaultYear = 2024, o
                     <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
                         <Icon name="alert-circle" className="w-4 h-4 text-red-500 shrink-0" />
                         <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                    </div>
+                )}
+
+                {hasStartedDraft && !canSubmit && submissionIssues.length > 0 && (
+                    <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-4">
+                        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-blue-700">Before You Save</p>
+                        <ul className="mt-2 space-y-1.5 text-sm text-blue-950">
+                            {submissionIssues.map((issue) => (
+                                <li key={issue} className="flex items-start gap-2">
+                                    <span className="mt-1 h-1.5 w-1.5 rounded-full bg-blue-600" />
+                                    <span>{issue}</span>
+                                </li>
+                            ))}
+                        </ul>
                     </div>
                 )}
 

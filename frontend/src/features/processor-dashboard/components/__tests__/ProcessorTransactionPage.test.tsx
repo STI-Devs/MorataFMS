@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
 import { ProcessorTransactionPage } from '../ProcessorTransactionPage';
 import { renderWithProviders } from '../../../../test/renderWithProviders';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -36,6 +36,9 @@ describe('ProcessorTransactionPage', () => {
         expect(screen.getByText('Processor Task Queue')).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /Imports/i })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /Exports/i })).toBeInTheDocument();
+        expect(screen.getByPlaceholderText(/search bl, ref, client, vessel, blocker/i)).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /all/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /ready/i })).toBeInTheDocument();
 
         // Verify it doesn't render generic headers
         expect(screen.queryByText(/Full Import List/i)).not.toBeInTheDocument();
@@ -47,7 +50,7 @@ describe('ProcessorTransactionPage', () => {
         });
     });
 
-    it('shows ready and waiting processor stages for imports', async () => {
+    it('shows compact ready and waiting processor rows for imports and supports queue filters', async () => {
         const readyImport = makeApiImportTransaction({
             id: 1,
             customs_ref_no: 'REF-IMP-001',
@@ -88,9 +91,24 @@ describe('ProcessorTransactionPage', () => {
         expect(screen.getByText('Ready to Upload')).toBeInTheDocument();
         expect(screen.getByText('Waiting / Monitoring')).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /Open Upload Tasks/i })).toBeInTheDocument();
-        expect(screen.getByText('Ready')).toBeInTheDocument();
-        expect(screen.getAllByText('Waiting').length).toBeGreaterThan(0);
+        expect(screen.getByRole('button', { name: /View Details/i })).toBeInTheDocument();
+        expect(screen.getByText('PPA Ready')).toBeInTheDocument();
+        expect(screen.getAllByText('Port Charges Waiting').length).toBeGreaterThan(0);
         expect(screen.getByText('Waiting 2 days')).toBeInTheDocument();
         expect(screen.getByText('Waiting for BONDS.')).toBeInTheDocument();
+        expect(screen.getAllByText('Overdue').length).toBeGreaterThan(0);
+
+        fireEvent.click(screen.getByRole('button', { name: /^Overdue/i }));
+
+        expect(screen.getByText('REF-IMP-002')).toBeInTheDocument();
+        expect(screen.queryByText('REF-IMP-001')).not.toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole('button', { name: /^All/i }));
+        fireEvent.change(screen.getByPlaceholderText(/search bl, ref, client, vessel, blocker/i), {
+            target: { value: '002' },
+        });
+
+        expect(screen.getByText('REF-IMP-002')).toBeInTheDocument();
+        expect(screen.queryByText('REF-IMP-001')).not.toBeInTheDocument();
     });
 });

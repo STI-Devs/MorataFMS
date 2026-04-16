@@ -19,7 +19,7 @@ export const IMPORT_STAGES: StageDefinition[] = [
     { title: 'Delivery Order Request',   icon: 'file-text',    description: 'Request delivery order from the shipping line or agent.',             type: 'do' },
     { title: 'Payment for Port Charges', icon: 'file-text',    description: 'Pay remaining port storage and handling fees.',                       type: 'port_charges', supportsNotApplicable: true },
     { title: 'Releasing of Documents',   icon: 'check-circle', description: 'Collect released documents from customs and shipping line.',          type: 'releasing' },
-    { title: 'Liquidation and Billing',  icon: 'file-text',    description: 'Finalize billing and liquidate all charges with the client.',         type: 'billing' },
+    { title: 'Billing and Liquidation',  icon: 'file-text',    description: 'Finalize billing and liquidate all charges with the client.',         type: 'billing' },
 ];
 
 export const EXPORT_STAGES: StageDefinition[] = [
@@ -29,7 +29,7 @@ export const EXPORT_STAGES: StageDefinition[] = [
     { title: 'CO Application',             icon: 'check-circle', description: 'Apply for the Certificate of Origin when required.',              type: 'co', supportsNotApplicable: true },
     { title: 'CIL',                        icon: 'file-text',    description: 'Certificate of Inspection and Loading for export release.',       type: 'cil' },
     { title: 'DCCCI Printing',             icon: 'file-text',    description: 'Print documents from DCCCI for export compliance.',                type: 'dccci', supportsNotApplicable: true },
-    { title: 'Billing of Liquidation',     icon: 'file-text',    description: 'Finalize billing and close out the export transaction.',           type: 'billing' },
+    { title: 'Billing and Liquidation',    icon: 'file-text',    description: 'Finalize billing and close out the export transaction.',           type: 'billing' },
 ];
 
 /**

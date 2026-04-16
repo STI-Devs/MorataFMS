@@ -23,6 +23,7 @@ import { exportArchiveCSV } from '../utils/export.utils';
 import { AddArchiveDocumentModal } from './AddArchiveDocumentModal';
 import { ArchiveDocumentRow } from './ArchiveDocumentRow';
 import { ArchiveLegacyUploadPage } from './ArchiveLegacyUploadPage';
+import { ArchiveRecordOverview } from './ArchiveRecordOverview';
 import { ArchivesFolderView } from './ArchivesFolderView';
 import { ArchivesBLView, ArchivesDocumentView, GlobalSearchResults } from './ArchivesViews';
 import { Breadcrumb } from './ui/Breadcrumb';
@@ -492,6 +493,7 @@ export const ArchivesPage = () => {
                     if (fileDocs.length === 0) return <EmptyState icon="file-text" title="No files in this folder" />;
                     return (
                         <div>
+                            <ArchiveRecordOverview docs={fileDocs} />
                             <div className="grid items-center gap-4 px-4 py-2.5 border-b border-border bg-surface sticky top-0 z-10"
                                 style={{ gridTemplateColumns: '32px 1fr 1.4fr 80px 32px 56px' }}>
                                 <span />

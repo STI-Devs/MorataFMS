@@ -130,8 +130,10 @@ describe('trackingApi.createArchiveImportWithDocuments', () => {
 
         const result = await trackingApi.createArchiveImportWithDocuments({
             bl_no: 'BL-123',
+            vessel_name: 'MV Legacy Aurora',
             selective_color: 'green',
             importer_id: 9,
+            location_of_goods_id: 51,
             file_date: '2026-04-13',
             not_applicable_stages: ['bonds'],
             documents: [
@@ -142,8 +144,10 @@ describe('trackingApi.createArchiveImportWithDocuments', () => {
 
         expect(createArchiveSpy).toHaveBeenCalledWith({
             bl_no: 'BL-123',
+            vessel_name: 'MV Legacy Aurora',
             selective_color: 'green',
             importer_id: 9,
+            location_of_goods_id: 51,
             file_date: '2026-04-13',
             not_applicable_stages: ['bonds'],
         });

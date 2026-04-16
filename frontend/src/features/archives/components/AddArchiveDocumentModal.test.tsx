@@ -56,7 +56,7 @@ describe('AddArchiveDocumentModal', () => {
             </QueryClientProvider>,
         );
 
-        fireEvent.click(screen.getByRole('button', { name: /ppa processing/i }));
+        fireEvent.click(screen.getByRole('button', { name: /payment for ppa charges/i }));
 
         const input = document.querySelector('input[type="file"]') as HTMLInputElement;
         const firstFile = new File(['first'], 'ppa-1.pdf', { type: 'application/pdf' });
@@ -120,7 +120,7 @@ describe('AddArchiveDocumentModal', () => {
             </QueryClientProvider>,
         );
 
-        fireEvent.click(screen.getByRole('button', { name: /boc processing/i }));
+        fireEvent.click(screen.getByRole('button', { name: /boc document processing/i }));
 
         const input = document.querySelector('input[type="file"]') as HTMLInputElement;
         const files = Array.from({ length: 11 }, (_, index) => new File([`${index}`], `archive-${index}.pdf`, { type: 'application/pdf' }));

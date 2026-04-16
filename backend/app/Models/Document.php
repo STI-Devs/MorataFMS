@@ -165,10 +165,18 @@ class Document extends Model
                 $documentQuery
                     ->where('uploaded_by', $user->id)
                     ->orWhereHasMorph('documentable', [ImportTransaction::class], function ($transactionQuery) use ($user) {
-                        $transactionQuery->relevantToOperationalQueue($user);
+                        $transactionQuery
+                            ->relevantToOperationalQueue($user)
+                            ->orWhere(function ($archiveQuery) use ($user) {
+                                $archiveQuery->relevantToOperationalArchive($user);
+                            });
                     })
                     ->orWhereHasMorph('documentable', [ExportTransaction::class], function ($transactionQuery) use ($user) {
-                        $transactionQuery->relevantToOperationalQueue($user);
+                        $transactionQuery
+                            ->relevantToOperationalQueue($user)
+                            ->orWhere(function ($archiveQuery) use ($user) {
+                                $archiveQuery->relevantToOperationalArchive($user);
+                            });
                     });
             });
         }
@@ -230,7 +238,7 @@ class Document extends Model
             'do' => 'Delivery Order Request',
             'port_charges' => 'Payment for Port Charges',
             'releasing' => 'Releasing of Documents',
-            'billing' => 'Liquidation and Billing',
+            'billing' => 'Billing and Liquidation',
             // Export stages
             'bl_generation' => 'Bill of Lading',
             'cil' => 'CIL',

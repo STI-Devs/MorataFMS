@@ -24,7 +24,7 @@ class DocumentPolicy
      */
     public function view(User $user, Document $document): bool
     {
-        return $this->canAccessTransactionDocument($user, $document->documentable, $document);
+        return $this->canViewTransactionDocument($user, $document->documentable, $document);
     }
 
     /**
@@ -40,7 +40,7 @@ class DocumentPolicy
             return true;
         }
 
-        return $this->canAccessTransactionDocument($user, $documentable);
+        return $this->canCreateTransactionDocument($user, $documentable);
     }
 
     /**
@@ -49,10 +49,10 @@ class DocumentPolicy
     public function delete(User $user, Document $document): bool
     {
         return $user->isAdmin()
-            || ($document->uploaded_by === $user->id && $this->canAccessTransactionDocument($user, $document->documentable, $document));
+            || ($document->uploaded_by === $user->id && $this->canViewTransactionDocument($user, $document->documentable, $document));
     }
 
-    private function canAccessTransactionDocument(
+    private function canViewTransactionDocument(
         User $user,
         ImportTransaction|ExportTransaction|Model|null $documentable,
         ?Document $document = null,
@@ -78,6 +78,37 @@ class DocumentPolicy
                 return true;
             }
 
+            if ($documentable->isRelevantToOperationalArchive($user)) {
+                return true;
+            }
+
+            return $documentable->isRelevantToOperationalQueue($user);
+        }
+
+        return false;
+    }
+
+    private function canCreateTransactionDocument(
+        User $user,
+        ImportTransaction|ExportTransaction|Model|null $documentable,
+    ): bool {
+        if (! $documentable instanceof ImportTransaction && ! $documentable instanceof ExportTransaction) {
+            return false;
+        }
+
+        if ($user->isAdmin()) {
+            return true;
+        }
+
+        if (! $user->hasBrokerageAccess()) {
+            return false;
+        }
+
+        if ($user->role === UserRole::Encoder) {
+            return $documentable->assigned_user_id === $user->id;
+        }
+
+        if (in_array($user->role, [UserRole::Processor, UserRole::Accounting], true)) {
             return $documentable->isRelevantToOperationalQueue($user);
         }
 

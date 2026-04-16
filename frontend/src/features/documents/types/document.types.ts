@@ -32,6 +32,8 @@ export interface ArchiveDocument {
     client: string;                  // Client name (importer/shipper)
     selective_color?: 'green' | 'yellow' | 'orange' | 'red' | null; // Import only — BLSC
     destination_country?: string | null;                  // Export only — destination
+    vessel_name?: string | null;
+    location_of_goods?: string | null;
     transaction_date: string;        // ISO date string (YYYY-MM-DD)
     transaction_id: number;          // Parent transaction ID (for document uploads)
     documentable_type: string;       // 'App\\Models\\ImportTransaction' | 'App\\Models\\ExportTransaction'
@@ -235,24 +237,24 @@ export interface ArchiveStageDefinition {
 }
 
 export const IMPORT_STAGES: readonly ArchiveStageDefinition[] = [
-    { key: 'boc', label: 'BOC Processing' },
+    { key: 'boc', label: 'BOC Document Processing' },
     { key: 'bonds', label: 'BONDS', optional: true },
-    { key: 'ppa', label: 'PPA Processing', optional: true },
-    { key: 'do', label: 'DO Request' },
-    { key: 'port_charges', label: 'Port Charges', optional: true },
-    { key: 'releasing', label: 'Releasing' },
-    { key: 'billing', label: 'Billing' },
+    { key: 'ppa', label: 'Payment for PPA Charges', optional: true },
+    { key: 'do', label: 'Delivery Order Request' },
+    { key: 'port_charges', label: 'Payment for Port Charges', optional: true },
+    { key: 'releasing', label: 'Releasing of Documents' },
+    { key: 'billing', label: 'Billing and Liquidation' },
     { key: 'others', label: 'Others' },
 ] as const;
 
 export const EXPORT_STAGES: readonly ArchiveStageDefinition[] = [
-    { key: 'boc', label: 'BOC Processing' },
+    { key: 'boc', label: 'BOC Document Processing' },
     { key: 'bl_generation', label: 'Bill of Lading' },
     { key: 'phytosanitary', label: 'Phytosanitary Certificates', optional: true },
     { key: 'co', label: 'CO Application', optional: true },
     { key: 'cil', label: 'CIL' },
     { key: 'dccci', label: 'DCCCI Printing', optional: true },
-    { key: 'billing', label: 'Billing' },
+    { key: 'billing', label: 'Billing and Liquidation' },
     { key: 'others', label: 'Others' },
 ] as const;
 

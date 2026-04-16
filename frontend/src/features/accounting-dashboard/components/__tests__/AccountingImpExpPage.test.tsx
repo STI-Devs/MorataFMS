@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
 import { AccountingImpExpPage } from '../AccountingImpExpPage';
 import { renderWithProviders } from '../../../../test/renderWithProviders';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -36,6 +36,8 @@ describe('AccountingImpExpPage', () => {
         expect(screen.getByText('Finance & Accounting Tasks')).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /Imports/i })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /Exports/i })).toBeInTheDocument();
+        expect(screen.getByPlaceholderText(/search bl, ref, client, vessel, blocker/i)).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /Ready/i })).toBeInTheDocument();
 
         expect(trackingApi.trackingApi.getAllImports).toHaveBeenCalledWith({
             exclude_statuses: 'completed,cancelled',
@@ -43,7 +45,7 @@ describe('AccountingImpExpPage', () => {
         });
     });
 
-    it('displays shared transactions for billing', async () => {
+    it('displays compact billing rows and supports queue filtering', async () => {
         const mockImport = makeApiImportTransaction({
             id: 2,
             customs_ref_no: 'REF-ACT-002',
@@ -65,10 +67,22 @@ describe('AccountingImpExpPage', () => {
         renderWithProviders(<AccountingImpExpPage />);
 
         expect(await screen.findByText('REF-ACT-002')).toBeInTheDocument();
-        expect(screen.getByText('Billing & Liquidation:')).toBeInTheDocument();
+        expect(screen.getByText('Billing Waiting')).toBeInTheDocument();
         expect(screen.getByText('Ready to Upload')).toBeInTheDocument();
         expect(screen.getByText('Waiting / Monitoring')).toBeInTheDocument();
         expect(screen.getByText('Waiting 3 days')).toBeInTheDocument();
         expect(screen.getByText('Waiting for Payment for Port Charges.')).toBeInTheDocument();
+        expect(screen.getAllByText('Overdue').length).toBeGreaterThan(0);
+
+        fireEvent.click(screen.getByRole('button', { name: /^Overdue/i }));
+
+        expect(screen.getByText('REF-ACT-002')).toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole('button', { name: /^All/i }));
+        fireEvent.change(screen.getByPlaceholderText(/search bl, ref, client, vessel, blocker/i), {
+            target: { value: 'ACT-002' },
+        });
+
+        expect(screen.getByText('REF-ACT-002')).toBeInTheDocument();
     });
 });

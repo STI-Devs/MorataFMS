@@ -285,6 +285,14 @@ class ExportTransaction extends Model
         };
     }
 
+    public function scopeRelevantToOperationalArchive(Builder $query, User $user): Builder
+    {
+        return match ($user->role) {
+            UserRole::Processor, UserRole::Accounting => $query->where('is_archive', true),
+            default => $query->whereRaw('1 = 0'),
+        };
+    }
+
     /**
      * @return list<string>
      */
@@ -305,6 +313,12 @@ class ExportTransaction extends Model
     public function isRelevantToOperationalQueue(User $user): bool
     {
         return $this->operationalDocumentTypesFor($user) !== [];
+    }
+
+    public function isRelevantToOperationalArchive(User $user): bool
+    {
+        return $this->is_archive
+            && in_array($user->role, [UserRole::Processor, UserRole::Accounting], true);
     }
 
     public function waitingSinceForOperationalRole(User $user): ?Carbon

@@ -6,6 +6,7 @@ use App\Models\Country;
 use App\Models\Document;
 use App\Models\ExportTransaction;
 use App\Models\ImportTransaction;
+use App\Models\LocationOfGoods;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
@@ -101,6 +102,33 @@ test('archive import is accepted when file_date is in the past', function () {
         ->assertJsonPath('data.importer.id', $client->id)
         ->assertJsonPath('data.origin_country.id', $country->id)
         ->assertJsonPath('data.archive_origin', ArchiveOrigin::DirectArchiveUpload->value);
+});
+
+test('archive import stores vessel name and location of goods like the live import workflow', function () {
+    $user = User::factory()->create(['role' => 'admin']);
+    $client = Client::factory()->importer()->create();
+    $locationOfGoods = LocationOfGoods::factory()->create(['name' => 'South Harbor Warehouse']);
+
+    $this->actingAs($user)->postJson('/api/archives/import', [
+        'customs_ref_no' => 'ARCH-IMP-2023-LOC-001',
+        'bl_no' => 'BL-ARCH-IMPORT-LOC-001',
+        'vessel_name' => 'MV Legacy Aurora',
+        'selective_color' => 'green',
+        'importer_id' => $client->id,
+        'location_of_goods_id' => $locationOfGoods->id,
+        'file_date' => '2023-06-15',
+    ])->assertCreated()
+        ->assertJsonPath('data.vessel_name', 'MV Legacy Aurora')
+        ->assertJsonPath('data.location_of_goods.id', $locationOfGoods->id)
+        ->assertJsonPath('data.location_of_goods.name', 'South Harbor Warehouse');
+
+    $transaction = ImportTransaction::query()
+        ->where('bl_no', 'BL-ARCH-IMPORT-LOC-001')
+        ->first();
+
+    expect($transaction)->not->toBeNull();
+    expect($transaction?->vessel_name)->toBe('MV Legacy Aurora');
+    expect($transaction?->location_of_goods_id)->toBe($locationOfGoods->id);
 });
 
 // ─── Import Archive: Required Fields ──────────────────────────────────────────
@@ -376,6 +404,10 @@ test('document upload accepts valid export stage keys', function () {
             'documentable_id' => $transaction->id,
         ])->assertCreated();
     }
+});
+
+test('archive document type labels use billing and liquidation for billing stages', function () {
+    expect(Document::getTypeLabels()['billing'])->toBe('Billing and Liquidation');
 });
 
 test('document upload rejects export-only stage keys for import transactions', function () {
@@ -787,6 +819,68 @@ test('admin can access archive documents uploaded by every user', function () {
         ->toContain('BL-ADMIN-VIEW-IMP-001', 'BL-ADMIN-VIEW-EXP-001');
 });
 
+test('archive listing exposes vessel name and location of goods metadata for archived records', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $importer = Client::factory()->importer()->create();
+    $shipper = Client::factory()->exporter()->create();
+    $country = Country::factory()->create(['name' => 'Japan']);
+    $locationOfGoods = LocationOfGoods::factory()->create(['name' => 'North Harbor Yard']);
+
+    $import = ImportTransaction::factory()->create([
+        'bl_no' => 'BL-ARCH-META-IMP-001',
+        'importer_id' => $importer->id,
+        'arrival_date' => '2024-08-10',
+        'vessel_name' => 'MV Archive Pearl',
+        'location_of_goods_id' => $locationOfGoods->id,
+        'status' => 'Completed',
+        'is_archive' => true,
+        'archived_at' => now(),
+        'archive_origin' => ArchiveOrigin::DirectArchiveUpload,
+        'assigned_user_id' => $admin->id,
+    ]);
+    Document::factory()->create([
+        'documentable_type' => ImportTransaction::class,
+        'documentable_id' => $import->id,
+        'type' => 'boc',
+        'uploaded_by' => $admin->id,
+    ]);
+
+    $export = ExportTransaction::factory()->create([
+        'bl_no' => 'BL-ARCH-META-EXP-001',
+        'shipper_id' => $shipper->id,
+        'destination_country_id' => $country->id,
+        'export_date' => '2024-08-11',
+        'vessel' => 'MV Archive Horizon',
+        'status' => 'Completed',
+        'is_archive' => true,
+        'archived_at' => now(),
+        'archive_origin' => ArchiveOrigin::DirectArchiveUpload,
+        'assigned_user_id' => $admin->id,
+    ]);
+    Document::factory()->create([
+        'documentable_type' => ExportTransaction::class,
+        'documentable_id' => $export->id,
+        'type' => 'boc',
+        'uploaded_by' => $admin->id,
+    ]);
+
+    $response = $this->actingAs($admin)
+        ->getJson('/api/archives')
+        ->assertOk();
+
+    $documents = collect($response->json('data'))
+        ->pluck('documents')
+        ->flatten(1);
+
+    $importDocument = $documents->firstWhere('bl_no', 'BL-ARCH-META-IMP-001');
+    $exportDocument = $documents->firstWhere('bl_no', 'BL-ARCH-META-EXP-001');
+
+    expect($importDocument['vessel_name'])->toBe('MV Archive Pearl');
+    expect($importDocument['location_of_goods'])->toBe('North Harbor Yard');
+    expect($exportDocument['vessel_name'])->toBe('MV Archive Horizon');
+    expect($exportDocument['destination_country'])->toBe('Japan');
+});
+
 test('archive import stores uploaded archive documents', function () {
     Storage::fake($this->documentDisk);
 
@@ -798,6 +892,7 @@ test('archive import stores uploaded archive documents', function () {
         'selective_color' => 'green',
         'importer_id' => $client->id,
         'file_date' => '2023-06-15',
+        'not_applicable_stages' => ['bonds'],
         'documents' => [
             [
                 'file' => UploadedFile::fake()->create('archive-boc.pdf', 100, 'application/pdf'),
@@ -837,6 +932,7 @@ test('archive import rejects more than 10 uploaded documents in a single stage',
         'selective_color' => 'green',
         'importer_id' => $client->id,
         'file_date' => '2023-06-15',
+        'not_applicable_stages' => ['bonds'],
         'documents' => $documents,
     ]);
 
@@ -862,6 +958,7 @@ test('archive export rejects more than 10 uploaded documents in a single stage',
         'shipper_id' => $client->id,
         'destination_country_id' => $country->id,
         'file_date' => '2023-06-15',
+        'not_applicable_stages' => ['phytosanitary', 'co'],
         'documents' => $documents,
     ]);
 
@@ -897,6 +994,7 @@ test('archive import accepts more than 10 uploaded documents when they are split
         'selective_color' => 'green',
         'importer_id' => $client->id,
         'file_date' => '2023-06-15',
+        'not_applicable_stages' => ['bonds'],
         'documents' => $documents,
     ])->assertCreated();
 
@@ -937,6 +1035,7 @@ test('archive export accepts more than 10 uploaded documents when they are split
         'shipper_id' => $client->id,
         'destination_country_id' => $country->id,
         'file_date' => '2023-06-15',
+        'not_applicable_stages' => ['phytosanitary', 'co'],
         'documents' => $documents,
     ])->assertCreated();
 
@@ -1014,6 +1113,118 @@ test('archive export rejects files for optional stages marked as not applicable'
     'co application' => ['co', 'archive-co.pdf', 'You cannot upload files for the CO Application stage while it is marked as not applicable.'],
     'dccci printing' => ['dccci', 'archive-dccci.pdf', 'You cannot upload files for the DCCCI Printing stage while it is marked as not applicable.'],
 ]);
+
+test('encoder archive import rejects processor-owned not applicable stages during archive upload', function () {
+    $user = User::factory()->create(['role' => 'encoder']);
+    $client = Client::factory()->importer()->create();
+
+    $response = $this->actingAs($user)->postJson('/api/archives/import', [
+        'bl_no' => 'BL-ARCH-ENC-NA-IMP-001',
+        'selective_color' => 'green',
+        'importer_id' => $client->id,
+        'file_date' => '2024-06-15',
+        'not_applicable_stages' => ['ppa'],
+    ]);
+
+    $response->assertUnprocessable()->assertJsonValidationErrors(['not_applicable_stages']);
+    $response->assertJsonPath(
+        'errors.not_applicable_stages.0',
+        'Only processor users can mark the Payment for PPA Charges stage as not applicable during archive upload.',
+    );
+});
+
+test('encoder archive export rejects processor-owned not applicable stages during archive upload', function () {
+    $user = User::factory()->create(['role' => 'encoder']);
+    $client = Client::factory()->exporter()->create();
+    $country = Country::factory()->create();
+
+    $response = $this->actingAs($user)->postJson('/api/archives/export', [
+        'bl_no' => 'BL-ARCH-ENC-NA-EXP-001',
+        'shipper_id' => $client->id,
+        'destination_country_id' => $country->id,
+        'file_date' => '2024-06-15',
+        'not_applicable_stages' => ['dccci'],
+    ]);
+
+    $response->assertUnprocessable()->assertJsonValidationErrors(['not_applicable_stages']);
+    $response->assertJsonPath(
+        'errors.not_applicable_stages.0',
+        'Only processor users can mark the DCCCI Printing stage as not applicable during archive upload.',
+    );
+});
+
+test('processor can mark owned optional archive import stages as not applicable', function () {
+    $user = User::factory()->create(['role' => 'processor']);
+    $client = Client::factory()->importer()->create();
+
+    $transaction = ImportTransaction::factory()->create([
+        'bl_no' => 'BL-ARCH-PROC-NA-IMP-001',
+        'importer_id' => $client->id,
+        'arrival_date' => '2024-06-15',
+        'status' => 'Completed',
+        'is_archive' => true,
+        'archived_at' => now(),
+        'archive_origin' => ArchiveOrigin::DirectArchiveUpload,
+    ]);
+
+    $this->actingAs($user)
+        ->patchJson("/api/archives/import/{$transaction->id}/stage-applicability", [
+            'stage' => 'ppa',
+            'not_applicable' => true,
+        ])
+        ->assertOk()
+        ->assertJsonFragment(['not_applicable_stages' => ['ppa']]);
+
+    $transaction->refresh()->load('stages');
+
+    expect($transaction->stages->ppa_not_applicable)->toBeTrue();
+});
+
+test('encoder cannot update processor-owned archive stage applicability', function () {
+    $user = User::factory()->create(['role' => 'encoder']);
+    $client = Client::factory()->importer()->create();
+
+    $transaction = ImportTransaction::factory()->create([
+        'bl_no' => 'BL-ARCH-ENC-NA-IMP-002',
+        'importer_id' => $client->id,
+        'arrival_date' => '2024-06-15',
+        'status' => 'Completed',
+        'is_archive' => true,
+        'archived_at' => now(),
+        'archive_origin' => ArchiveOrigin::DirectArchiveUpload,
+    ]);
+
+    $this->actingAs($user)
+        ->patchJson("/api/archives/import/{$transaction->id}/stage-applicability", [
+            'stage' => 'ppa',
+            'not_applicable' => true,
+        ])
+        ->assertForbidden();
+});
+
+test('archive import requires encoder-owned optional stages to be uploaded or marked not applicable', function () {
+    $user = User::factory()->create(['role' => 'encoder']);
+    $client = Client::factory()->importer()->create();
+
+    $response = $this->actingAs($user)->post('/api/archives/import', [
+        'bl_no' => 'BL-ARCH-BONDS-REQ-001',
+        'selective_color' => 'green',
+        'importer_id' => $client->id,
+        'file_date' => '2024-06-15',
+        'documents' => [
+            [
+                'file' => UploadedFile::fake()->create('archive-boc.pdf', 100, 'application/pdf'),
+                'stage' => 'boc',
+            ],
+        ],
+    ]);
+
+    $response->assertUnprocessable()->assertJsonValidationErrors(['documents']);
+    $response->assertJsonPath(
+        'errors.documents.0',
+        'Upload files for the BONDS stage or mark it as not applicable before saving the archive.',
+    );
+});
 
 test('archive import rollback deletes the created transaction and uploaded documents', function () {
     Storage::fake($this->documentDisk);
@@ -1154,6 +1365,7 @@ test('archive document uploads keep the archive file date month in S3 paths', fu
         'selective_color' => 'green',
         'importer_id' => $client->id,
         'file_date' => '2023-06-15',
+        'not_applicable_stages' => ['bonds'],
         'documents' => [
             [
                 'file' => UploadedFile::fake()->create('archive-boc.pdf', 100, 'application/pdf'),

@@ -25,9 +25,11 @@ class CreateArchiveImport
                 $transaction->customs_ref_no = $validated['customs_ref_no']
                     ?? 'ARCH-'.$validated['file_date'].'-'.strtoupper(substr(uniqid(), -6));
                 $transaction->bl_no = $validated['bl_no'];
+                $transaction->vessel_name = $validated['vessel_name'] ?? null;
                 $transaction->selective_color = $validated['selective_color'];
                 $transaction->importer_id = $validated['importer_id'];
                 $transaction->origin_country_id = $validated['origin_country_id'] ?? null;
+                $transaction->location_of_goods_id = $validated['location_of_goods_id'] ?? null;
                 $transaction->arrival_date = $validated['file_date'];
                 $transaction->notes = $validated['notes'] ?? null;
                 $transaction->is_archive = true;
@@ -72,7 +74,7 @@ class CreateArchiveImport
             throw $exception;
         }
 
-        $transaction->load(['importer', 'originCountry', 'stages', 'assignedUser']);
+        $transaction->load(['importer', 'originCountry', 'locationOfGoods', 'stages', 'assignedUser']);
 
         return $transaction;
     }

@@ -8,6 +8,7 @@ interface StageUploadRowProps {
     label: string;
     upload: StageUpload;
     allowNotApplicable?: boolean;
+    supportingText?: string;
     onChange: (next: StageUpload) => void;
 }
 
@@ -22,6 +23,7 @@ export const StageUploadRow: React.FC<StageUploadRowProps> = ({
     label,
     upload,
     allowNotApplicable = false,
+    supportingText,
     onChange,
 }) => {
     const inputId = `stage-file-${stageKey}`;
@@ -56,12 +58,19 @@ export const StageUploadRow: React.FC<StageUploadRowProps> = ({
             : 'border-border-strong bg-input-bg'
         }`}>
             {/* Stage label */}
-            <div className="flex items-center gap-3 px-4 pt-3.5 pb-2">
+            <div className="flex items-start gap-3 px-4 pt-3.5 pb-2">
                 <div
                     className={`w-2 h-2 rounded-full shrink-0 ${hasFiles ? '' : 'bg-border-strong'}`}
                     style={hasFiles ? { backgroundColor: '#ff9f0a' } : {}}
                 />
-                <span className="text-sm font-bold text-text-primary flex-1">{label}</span>
+                <div className="min-w-0 flex-1">
+                    <span className="text-sm font-bold text-text-primary">{label}</span>
+                    {supportingText && (
+                        <p className="mt-1 text-[11px] font-medium text-text-secondary">
+                            {supportingText}
+                        </p>
+                    )}
+                </div>
                 {hasFiles && (
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-500">
                         {upload.files.length} file{upload.files.length === 1 ? '' : 's'}

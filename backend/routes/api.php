@@ -64,8 +64,11 @@ Route::middleware(['auth:sanctum', 'active-session', 'throttle:api-general'])->g
     // Archive uploads (legacy)
     Route::prefix('archives')->group(function () {
         Route::get('/', [ArchiveController::class, 'index']);
+        Route::get('operational', [ArchiveController::class, 'operationalQueue']);
         Route::post('import', [ArchiveController::class, 'storeImport'])->middleware('throttle:archive-uploads');
         Route::post('export', [ArchiveController::class, 'storeExport'])->middleware('throttle:archive-uploads');
+        Route::patch('import/{importTransaction}/stage-applicability', [ArchiveController::class, 'updateImportStageApplicability']);
+        Route::patch('export/{exportTransaction}/stage-applicability', [ArchiveController::class, 'updateExportStageApplicability']);
         Route::delete('import/{importTransaction}', [ArchiveController::class, 'rollbackImport'])->middleware('throttle:archive-uploads');
         Route::delete('export/{exportTransaction}', [ArchiveController::class, 'rollbackExport'])->middleware('throttle:archive-uploads');
     });

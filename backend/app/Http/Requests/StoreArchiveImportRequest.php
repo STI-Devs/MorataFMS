@@ -38,7 +38,9 @@ class StoreArchiveImportRequest extends FormRequest
             ],
             'selective_color' => ['required', new Enum(SelectiveColor::class)],
             'importer_id' => ['required', 'integer', 'exists:clients,id'],
+            'vessel_name' => ['nullable', 'string', 'max:100'],
             'origin_country_id' => ['nullable', 'integer', 'exists:countries,id'],
+            'location_of_goods_id' => ['nullable', 'integer', 'exists:locations_of_goods,id'],
 
             // Archive-specific: must be past/present date, and not older than year 2000
             'file_date' => ['required', 'date', 'after_or_equal:2000-01-01', 'before_or_equal:today'],
@@ -80,7 +82,9 @@ class StoreArchiveImportRequest extends FormRequest
             'selective_color.required' => 'Selective Color (BLSC) is required.',
             'importer_id.required' => 'Please select an importer.',
             'importer_id.exists' => 'The selected importer does not exist.',
+            'vessel_name.max' => 'Vessel name must not exceed 100 characters.',
             'origin_country_id.exists' => 'The selected country of origin does not exist.',
+            'location_of_goods_id.exists' => 'The selected location of goods does not exist.',
             'file_date.required' => 'Archive period is required.',
             'file_date.date' => 'Archive period must be a valid date.',
             'file_date.after_or_equal' => 'Archive period cannot be before year 2000.',
@@ -96,15 +100,48 @@ class StoreArchiveImportRequest extends FormRequest
         return [
             function (Validator $validator): void {
                 $documents = collect($this->input('documents', []));
+                $stageLabels = Document::getTypeLabels();
+                $notApplicableStages = collect($this->input('not_applicable_stages', []))
+                    ->filter(fn ($stage) => is_string($stage))
+                    ->values();
+                $uploadedStages = $documents
+                    ->pluck('stage')
+                    ->filter(fn ($stage) => is_string($stage))
+                    ->values();
+
+                if ($this->user()?->role?->value === 'encoder') {
+                    $processorOwnedOptionalStages = array_values(array_intersect(
+                        ImportTransaction::processorOperationalDocumentTypes(),
+                        ImportTransaction::optionalStageKeys(),
+                    ));
+
+                    $notApplicableStages
+                        ->filter(fn (string $stage): bool => in_array($stage, $processorOwnedOptionalStages, true))
+                        ->each(function (string $stage) use ($validator, $stageLabels): void {
+                            $label = $stageLabels[$stage] ?? str($stage)->replace('_', ' ')->title()->value();
+
+                            $validator->errors()->add(
+                                'not_applicable_stages',
+                                "Only processor users can mark the {$label} stage as not applicable during archive upload.",
+                            );
+                        });
+                }
 
                 if ($documents->isEmpty()) {
                     return;
                 }
 
-                $stageLabels = Document::getTypeLabels();
-                $notApplicableStages = collect($this->input('not_applicable_stages', []))
-                    ->filter(fn ($stage) => is_string($stage))
-                    ->values();
+                foreach (['bonds'] as $stage) {
+                    if ($uploadedStages->contains($stage) || $notApplicableStages->contains($stage)) {
+                        continue;
+                    }
+
+                    $label = $stageLabels[$stage] ?? str($stage)->replace('_', ' ')->title()->value();
+                    $validator->errors()->add(
+                        'documents',
+                        "Upload files for the {$label} stage or mark it as not applicable before saving the archive.",
+                    );
+                }
 
                 $notApplicableStages->each(function (string $stage) use ($validator, $stageLabels, $documents): void {
                     if (! $documents->contains('stage', $stage)) {

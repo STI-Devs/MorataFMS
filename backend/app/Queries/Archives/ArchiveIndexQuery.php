@@ -19,6 +19,7 @@ class ArchiveIndexQuery
                 'documents' => fn ($query) => $userId ? $query->where('uploaded_by', $userId) : $query,
                 'documents.uploadedBy',
                 'importer',
+                'locationOfGoods',
             ])
             ->lazyById(100) as $transaction) {
             if ($userId && $transaction->documents->isEmpty()) {
@@ -43,6 +44,8 @@ class ArchiveIndexQuery
                     'month' => $transaction->arrival_date?->month ?? $transaction->created_at->month,
                     'client' => $transaction->importer?->name ?? 'Unknown',
                     'selective_color' => $transaction->selective_color,
+                    'vessel_name' => $transaction->vessel_name,
+                    'location_of_goods' => $transaction->locationOfGoods?->name,
                     'transaction_date' => ($transaction->arrival_date ?? $transaction->created_at)->toDateString(),
                     'transaction_id' => $transaction->id,
                     'documentable_type' => ImportTransaction::class,
@@ -93,6 +96,7 @@ class ArchiveIndexQuery
                     'month' => $transaction->export_date?->month ?? $transaction->created_at->month,
                     'client' => $transaction->shipper?->name ?? 'Unknown',
                     'destination_country' => $transaction->destinationCountry?->name,
+                    'vessel_name' => $transaction->vessel,
                     'transaction_date' => ($transaction->export_date ?? $transaction->created_at)->toDateString(),
                     'transaction_id' => $transaction->id,
                     'documentable_type' => ExportTransaction::class,

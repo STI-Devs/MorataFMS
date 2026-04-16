@@ -1,1 +1,1 @@
-export { Documents as ProcessorDocumentsPage } from '../../documents/components/document-list/Documents';
+export { ProcessorArchivePage as ProcessorDocumentsPage } from './ProcessorArchivePage';

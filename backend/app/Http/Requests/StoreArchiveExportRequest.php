@@ -85,15 +85,48 @@ class StoreArchiveExportRequest extends FormRequest
         return [
             function (Validator $validator): void {
                 $documents = collect($this->input('documents', []));
+                $stageLabels = Document::getTypeLabels();
+                $notApplicableStages = collect($this->input('not_applicable_stages', []))
+                    ->filter(fn ($stage) => is_string($stage))
+                    ->values();
+                $uploadedStages = $documents
+                    ->pluck('stage')
+                    ->filter(fn ($stage) => is_string($stage))
+                    ->values();
+
+                if ($this->user()?->role?->value === 'encoder') {
+                    $processorOwnedOptionalStages = array_values(array_intersect(
+                        ExportTransaction::processorOperationalDocumentTypes(),
+                        ExportTransaction::optionalStageKeys(),
+                    ));
+
+                    $notApplicableStages
+                        ->filter(fn (string $stage): bool => in_array($stage, $processorOwnedOptionalStages, true))
+                        ->each(function (string $stage) use ($validator, $stageLabels): void {
+                            $label = $stageLabels[$stage] ?? str($stage)->replace('_', ' ')->title()->value();
+
+                            $validator->errors()->add(
+                                'not_applicable_stages',
+                                "Only processor users can mark the {$label} stage as not applicable during archive upload.",
+                            );
+                        });
+                }
 
                 if ($documents->isEmpty()) {
                     return;
                 }
 
-                $stageLabels = Document::getTypeLabels();
-                $notApplicableStages = collect($this->input('not_applicable_stages', []))
-                    ->filter(fn ($stage) => is_string($stage))
-                    ->values();
+                foreach (['phytosanitary', 'co'] as $stage) {
+                    if ($uploadedStages->contains($stage) || $notApplicableStages->contains($stage)) {
+                        continue;
+                    }
+
+                    $label = $stageLabels[$stage] ?? str($stage)->replace('_', ' ')->title()->value();
+                    $validator->errors()->add(
+                        'documents',
+                        "Upload files for the {$label} stage or mark it as not applicable before saving the archive.",
+                    );
+                }
 
                 $notApplicableStages->each(function (string $stage) use ($validator, $stageLabels, $documents): void {
                     if (! $documents->contains('stage', $stage)) {

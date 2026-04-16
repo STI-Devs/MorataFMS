@@ -1,23 +1,27 @@
 import type { ArchiveDocument } from '../../documents/types/document.types';
 import { trackingApi } from '../../tracking/api/trackingApi';
 
-const STAGE_LABELS: Record<string, string> = {
-    boc:           'BOC Processing',
+const IMPORT_STAGE_LABELS: Record<string, string> = {
+    boc:           'BOC Document Processing',
     bonds:         'BONDS',
-    phytosanitary: 'Phytosanitary Certificates',
-    ppa:           'PPA Processing',
-    do:            'DO Request',
-    port_charges:  'Port Charges',
-    releasing:     'Releasing',
-    billing:       'Billing',
-    // Export stages
-    docs_prep:     'BOC Processing',
+    ppa:           'Payment for PPA Charges',
+    do:            'Delivery Order Request',
+    port_charges:  'Payment for Port Charges',
+    releasing:     'Releasing of Documents',
+    billing:       'Billing and Liquidation',
+    others:        'Other Documents',
+};
+
+const EXPORT_STAGE_LABELS: Record<string, string> = {
+    boc:           'BOC Document Processing',
+    docs_prep:     'BOC Document Processing',
     bl_generation: 'Bill of Lading',
     bl:            'Bill of Lading',
+    phytosanitary: 'Phytosanitary Certificates',
     co:            'CO Application',
-    cil:           'DCCCI Printing',
+    cil:           'CIL',
     dccci:         'DCCCI Printing',
-    // Shared catch-all
+    billing:       'Billing and Liquidation',
     others:        'Other Documents',
 };
 
@@ -60,6 +64,12 @@ const formatDate = (iso: string) => {
 const getInitials = (name: string) =>
     name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
 
+const getStageLabel = (doc: ArchiveDocument): string => {
+    const stageLabels = doc.type === 'import' ? IMPORT_STAGE_LABELS : EXPORT_STAGE_LABELS;
+
+    return stageLabels[doc.stage] ?? doc.stage;
+};
+
 interface Props {
     doc: ArchiveDocument;
     onDelete?: (id: number) => void;
@@ -71,7 +81,7 @@ export const ArchiveDocumentRow = ({ doc, onDelete, canDelete = true }: Props) =
     const c = extStyle(ext);
     const stageKey = doc.stage in STAGE_COLORS ? doc.stage : '_';
     const sc = STAGE_COLORS[stageKey] ?? { color: '#9ca3af', bg: 'rgba(156,163,175,0.1)' };
-    const stage = STAGE_LABELS[doc.stage] ?? doc.stage;
+    const stage = getStageLabel(doc);
     const initials = doc.uploader ? getInitials(doc.uploader.name) : '??';
 
     const handleDownload = () => trackingApi.downloadDocument(doc.id, doc.filename);

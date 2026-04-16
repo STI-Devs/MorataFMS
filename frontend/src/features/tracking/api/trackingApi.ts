@@ -84,11 +84,13 @@ type ArchiveDocumentUpload = {
 
 type CreateArchiveImportPayload = {
     bl_no: string;
+    vessel_name?: string;
     selective_color: 'green' | 'yellow' | 'orange' | 'red';
     importer_id: number;
     file_date: string;
     customs_ref_no?: string;
     origin_country_id?: number;
+    location_of_goods_id?: number;
     notes?: string;
     documents?: ArchiveDocumentUpload[];
     not_applicable_stages?: string[];

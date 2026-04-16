@@ -196,6 +196,6 @@ describe('DocumentsDetail', () => {
             [],
         );
 
-        expect(screen.getByText('Port Charges')).toBeInTheDocument();
+        expect(screen.getByText('Payment for Port Charges')).toBeInTheDocument();
     });
 });

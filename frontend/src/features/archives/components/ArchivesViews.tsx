@@ -39,7 +39,14 @@ export const ArchivesDocumentView = ({ flatDocumentList, nav, setViewMode }: Arc
                         style={{ gridTemplateColumns: '60px 1fr 1fr 80px 100px 80px' }}>
                         <span className="text-xs font-bold text-text-secondary tabular-nums">{r.year}</span>
                         <span className="font-mono text-sm font-bold text-text-primary truncate group-hover:underline underline-offset-2">{r.blNo}</span>
-                        <span className="text-xs text-text-secondary truncate">{toTitleCase(r.client || '—')}</span>
+                        <span className="min-w-0">
+                            <span className="block truncate text-xs text-text-secondary">{toTitleCase(r.client || '—')}</span>
+                            <span className="mt-0.5 block truncate text-[10px] text-text-muted">
+                                {r.type === 'import'
+                                    ? `Vessel: ${r.docs[0]?.vessel_name ?? '—'} • Location: ${r.docs[0]?.location_of_goods ?? '—'}`
+                                    : `Vessel: ${r.docs[0]?.vessel_name ?? '—'} • Destination: ${r.docs[0]?.destination_country ?? '—'}`}
+                            </span>
+                        </span>
                         <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-md w-fit ${r.type === 'import' ? 'bg-green-500/10 text-green-600 border border-green-500/30' : 'bg-blue-500/10 text-blue-500 border border-blue-500/30'}`}>
                             {r.type === 'import' ? 'IMP' : 'EXP'}
                         </span>
@@ -142,7 +149,14 @@ export const BLFolderRow = ({ blNo, blDocs, drill, nav, COL, color }: BLFolderRo
                 className="text-sm font-bold text-text-primary truncate text-left font-mono group-hover:underline underline-offset-2 decoration-border-strong">
                 {blNo}/
             </button>
-            <span className="text-xs text-text-secondary truncate">{toTitleCase(firstDoc?.client ?? '—')}</span>
+            <span className="min-w-0">
+                <span className="block truncate text-xs text-text-secondary">{toTitleCase(firstDoc?.client ?? '—')}</span>
+                <span className="mt-0.5 block truncate text-[10px] text-text-muted">
+                    {isImport
+                        ? `Vessel: ${firstDoc?.vessel_name ?? '—'} • Location: ${firstDoc?.location_of_goods ?? '—'}`
+                        : `Vessel: ${firstDoc?.vessel_name ?? '—'} • Destination: ${firstDoc?.destination_country ?? '—'}`}
+                </span>
+            </span>
             {isImport ? (
                 <span className="inline-flex items-center gap-1.5 text-xs font-semibold truncate">
                     <span className={`w-2 h-2 rounded-full shrink-0 ${firstDoc?.selective_color === 'red' ? 'bg-red-500' : firstDoc?.selective_color === 'orange' ? 'bg-orange-500' : firstDoc?.selective_color === 'yellow' ? 'bg-yellow-400' : 'bg-green-500'}`} />
