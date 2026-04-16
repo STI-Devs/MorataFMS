@@ -8,6 +8,8 @@ use App\Enums\ArchiveOrigin;
 use App\Enums\UserRole;
 use App\Http\Requests\StoreArchiveExportRequest;
 use App\Http\Requests\StoreArchiveImportRequest;
+use App\Http\Requests\UpdateArchiveExportRequest;
+use App\Http\Requests\UpdateArchiveImportRequest;
 use App\Http\Requests\UpdateExportStageApplicabilityRequest;
 use App\Http\Requests\UpdateImportStageApplicabilityRequest;
 use App\Http\Resources\ExportTransactionResource;
@@ -127,6 +129,63 @@ class ArchiveController extends Controller
             ->setStatusCode(201);
     }
 
+    public function updateImport(
+        UpdateArchiveImportRequest $request,
+        ImportTransaction $importTransaction,
+    ): ImportTransactionResource {
+        $this->authorizeArchiveUpdate($request->user(), $importTransaction);
+
+        $validated = $request->validated();
+
+        $importTransaction->update([
+            'customs_ref_no' => $validated['customs_ref_no'] ?? null,
+            'bl_no' => $validated['bl_no'],
+            'vessel_name' => $validated['vessel_name'] ?? null,
+            'selective_color' => $validated['selective_color'],
+            'importer_id' => $validated['importer_id'],
+            'origin_country_id' => $validated['origin_country_id'] ?? null,
+            'location_of_goods_id' => $validated['location_of_goods_id'] ?? null,
+            'arrival_date' => $validated['file_date'],
+        ]);
+
+        $importTransaction->load(['importer', 'originCountry', 'locationOfGoods', 'stages', 'assignedUser']);
+
+        $this->transactionSyncBroadcaster->transactionChanged(
+            $importTransaction,
+            $request->user(),
+            'archive_updated',
+        );
+
+        return new ImportTransactionResource($importTransaction);
+    }
+
+    public function updateExport(
+        UpdateArchiveExportRequest $request,
+        ExportTransaction $exportTransaction,
+    ): ExportTransactionResource {
+        $this->authorizeArchiveUpdate($request->user(), $exportTransaction);
+
+        $validated = $request->validated();
+
+        $exportTransaction->update([
+            'bl_no' => $validated['bl_no'],
+            'vessel' => $validated['vessel'] ?? null,
+            'shipper_id' => $validated['shipper_id'],
+            'destination_country_id' => $validated['destination_country_id'],
+            'export_date' => $validated['file_date'],
+        ]);
+
+        $exportTransaction->load(['shipper', 'stages', 'assignedUser', 'destinationCountry']);
+
+        $this->transactionSyncBroadcaster->transactionChanged(
+            $exportTransaction,
+            $request->user(),
+            'archive_updated',
+        );
+
+        return new ExportTransactionResource($exportTransaction);
+    }
+
     public function updateImportStageApplicability(
         UpdateImportStageApplicabilityRequest $request,
         ImportTransaction $importTransaction,
@@ -240,6 +299,23 @@ class ArchiveController extends Controller
         if (! $user->hasBrokerageAccess() || $transaction->assigned_user_id !== $user->id) {
             abort(403, 'You are not allowed to roll back this archive upload.');
         }
+    }
+
+    private function authorizeArchiveUpdate(
+        User $user,
+        ImportTransaction|ExportTransaction $transaction,
+    ): void {
+        if (! $transaction->is_archive) {
+            abort(404, 'Archive transaction not found.');
+        }
+
+        if ($transaction instanceof ImportTransaction) {
+            $this->authorize('update', $transaction);
+
+            return;
+        }
+
+        $this->authorize('update', $transaction);
     }
 
     private function authorizeArchiveStageApplicability(

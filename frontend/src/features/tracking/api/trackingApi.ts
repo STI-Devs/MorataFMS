@@ -1,5 +1,10 @@
 import api from '../../../lib/axios';
-import { getMaxFilesErrorMessage, MAX_MULTI_UPLOAD_FILES } from '../../../lib/uploads';
+import {
+    getMaxFileSizeErrorMessage,
+    getMaxFilesErrorMessage,
+    MAX_MULTI_UPLOAD_FILES,
+    MAX_UPLOAD_FILE_SIZE_BYTES,
+} from '../../../lib/uploads';
 import type {
     ApiClient,
     ApiCountry,
@@ -105,6 +110,25 @@ type CreateArchiveExportPayload = {
     notes?: string;
     documents?: ArchiveDocumentUpload[];
     not_applicable_stages?: string[];
+};
+
+type UpdateArchiveImportPayload = {
+    customs_ref_no?: string | null;
+    bl_no: string;
+    vessel_name?: string | null;
+    selective_color: 'green' | 'yellow' | 'orange' | 'red';
+    importer_id: number;
+    origin_country_id?: number;
+    location_of_goods_id?: number;
+    file_date: string;
+};
+
+type UpdateArchiveExportPayload = {
+    bl_no: string;
+    vessel?: string | null;
+    shipper_id: number;
+    destination_country_id: number;
+    file_date: string;
 };
 
 export const trackingApi = {
@@ -304,6 +328,16 @@ export const trackingApi = {
         await api.delete(`/api/archives/export/${id}`);
     },
 
+    updateArchiveImport: async (id: number, data: UpdateArchiveImportPayload): Promise<ApiImportTransaction> => {
+        const response = await api.put(`/api/archives/import/${id}`, data);
+        return response.data.data;
+    },
+
+    updateArchiveExport: async (id: number, data: UpdateArchiveExportPayload): Promise<ApiExportTransaction> => {
+        const response = await api.put(`/api/archives/export/${id}`, data);
+        return response.data.data;
+    },
+
     createArchiveImportWithDocuments: async (data: CreateArchiveImportPayload): Promise<ApiImportTransaction> => {
         const { documents = [], ...archivePayload } = data;
         const transaction = await trackingApi.createArchiveImport(archivePayload);
@@ -400,6 +434,10 @@ export const trackingApi = {
     },
 
     uploadDocument: async (payload: UploadDocumentPayload): Promise<ApiDocument> => {
+        if (payload.file.size > MAX_UPLOAD_FILE_SIZE_BYTES) {
+            throw new Error(getMaxFileSizeErrorMessage());
+        }
+
         const formData = new FormData();
         formData.append('file', payload.file);
         formData.append('type', payload.type);
@@ -475,6 +513,19 @@ export const trackingApi = {
 
     deleteDocument: async (id: number): Promise<void> => {
         await api.delete(`/api/documents/${id}`);
+    },
+
+    replaceDocument: async (id: number, file: File): Promise<ApiDocument> => {
+        if (file.size > MAX_UPLOAD_FILE_SIZE_BYTES) {
+            throw new Error(getMaxFileSizeErrorMessage());
+        }
+
+        const formData = new FormData();
+        formData.append('file', file);
+        const response = await api.post(`/api/documents/${id}/replace`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        return response.data.data;
     },
 };
 

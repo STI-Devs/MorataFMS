@@ -1,9 +1,11 @@
+import type { QueryClient } from '@tanstack/react-query';
 import {
     getRequiredArchiveStages,
     type ArchiveDocument,
     type ArchiveYear,
     type TransactionType,
 } from '../../documents/types/document.types';
+import { trackingApi } from '../../tracking/api/trackingApi';
 
 export type DrillState =
     | { level: 'years' }
@@ -144,6 +146,111 @@ export const resolveArchiveDrillTarget = (
         type: target.type,
         month: target.month,
         bl: normalizedBl,
+    };
+};
+
+export const prefetchArchiveEditLookups = async (
+    queryClient: QueryClient,
+    record: ArchiveDocument,
+): Promise<void> => {
+    const tasks: Promise<unknown>[] = [
+        queryClient.prefetchQuery({
+            queryKey: ['clients', record.type === 'import' ? 'importer' : 'exporter'],
+            queryFn: () => trackingApi.getClients(record.type === 'import' ? 'importer' : 'exporter'),
+            staleTime: Infinity,
+        }),
+    ];
+
+    if (record.type === 'import') {
+        tasks.push(
+            queryClient.prefetchQuery({
+                queryKey: ['countries', 'import_origin'],
+                queryFn: () => trackingApi.getCountries('import_origin'),
+                staleTime: Infinity,
+            }),
+            queryClient.prefetchQuery({
+                queryKey: ['locations-of-goods'],
+                queryFn: () => trackingApi.getLocationsOfGoods(),
+                staleTime: Infinity,
+            }),
+        );
+    } else {
+        tasks.push(
+            queryClient.prefetchQuery({
+                queryKey: ['countries', 'export_destination'],
+                queryFn: () => trackingApi.getCountries('export_destination'),
+                staleTime: Infinity,
+            }),
+        );
+    }
+
+    await Promise.allSettled(tasks);
+};
+
+export const syncArchiveDrillState = (
+    current: DrillState,
+    archiveData: ArchiveYear[],
+): DrillState => {
+    if (current.level === 'years') {
+        return current;
+    }
+
+    const refreshedYear = archiveData.find((yearData) => yearData.year === current.year.year);
+
+    if (!refreshedYear) {
+        return { level: 'years' };
+    }
+
+    if (current.level === 'types') {
+        return refreshedYear === current.year
+            ? current
+            : { ...current, year: refreshedYear };
+    }
+
+    if (current.level === 'months') {
+        return refreshedYear === current.year
+            ? current
+            : { ...current, year: refreshedYear };
+    }
+
+    if (current.level === 'bls') {
+        return refreshedYear === current.year
+            ? current
+            : { ...current, year: refreshedYear };
+    }
+
+    const matchingDocumentExists = refreshedYear.documents.some((doc) =>
+        doc.type === current.type
+        && doc.month === current.month
+        && (doc.bl_no || '(no BL)') === current.bl,
+    );
+
+    if (matchingDocumentExists) {
+        return refreshedYear === current.year
+            ? current
+            : { ...current, year: refreshedYear };
+    }
+
+    const trackedTransactionId = current.year.documents.find((doc) =>
+        doc.type === current.type
+        && doc.month === current.month
+        && (doc.bl_no || '(no BL)') === current.bl,
+    )?.transaction_id;
+
+    const relocatedDocument = archiveData
+        .flatMap((yearData) => yearData.documents.map((doc) => ({ yearData, doc })))
+        .find(({ doc }) => trackedTransactionId !== undefined && doc.transaction_id === trackedTransactionId);
+
+    if (!relocatedDocument) {
+        return { level: 'years' };
+    }
+
+    return {
+        level: 'files',
+        year: relocatedDocument.yearData,
+        type: current.type,
+        month: relocatedDocument.doc.month,
+        bl: relocatedDocument.doc.bl_no || '(no BL)',
     };
 };
 

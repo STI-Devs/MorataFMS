@@ -881,6 +881,170 @@ test('archive listing exposes vessel name and location of goods metadata for arc
     expect($exportDocument['destination_country'])->toBe('Japan');
 });
 
+test('archive listing exposes transaction identifiers needed for archive editing', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $importer = Client::factory()->importer()->create();
+    $shipper = Client::factory()->exporter()->create();
+    $originCountry = Country::factory()->importOrigin()->create();
+    $destinationCountry = Country::factory()->create();
+    $locationOfGoods = LocationOfGoods::factory()->create();
+
+    $import = ImportTransaction::factory()->create([
+        'customs_ref_no' => 'ARCH-EDIT-IMP-001',
+        'bl_no' => 'BL-ARCH-EDIT-IMP-001',
+        'importer_id' => $importer->id,
+        'origin_country_id' => $originCountry->id,
+        'location_of_goods_id' => $locationOfGoods->id,
+        'arrival_date' => '2024-08-12',
+        'status' => 'Completed',
+        'is_archive' => true,
+        'archived_at' => now(),
+        'archive_origin' => ArchiveOrigin::DirectArchiveUpload,
+        'assigned_user_id' => $admin->id,
+    ]);
+    Document::factory()->create([
+        'documentable_type' => ImportTransaction::class,
+        'documentable_id' => $import->id,
+        'type' => 'boc',
+        'uploaded_by' => $admin->id,
+    ]);
+
+    $export = ExportTransaction::factory()->create([
+        'bl_no' => 'BL-ARCH-EDIT-EXP-001',
+        'shipper_id' => $shipper->id,
+        'destination_country_id' => $destinationCountry->id,
+        'export_date' => '2024-08-13',
+        'status' => 'Completed',
+        'is_archive' => true,
+        'archived_at' => now(),
+        'archive_origin' => ArchiveOrigin::DirectArchiveUpload,
+        'assigned_user_id' => $admin->id,
+    ]);
+    Document::factory()->create([
+        'documentable_type' => ExportTransaction::class,
+        'documentable_id' => $export->id,
+        'type' => 'boc',
+        'uploaded_by' => $admin->id,
+    ]);
+
+    $response = $this->actingAs($admin)
+        ->getJson('/api/archives')
+        ->assertOk();
+
+    $documents = collect($response->json('data'))
+        ->pluck('documents')
+        ->flatten(1);
+
+    $importDocument = $documents->firstWhere('bl_no', 'BL-ARCH-EDIT-IMP-001');
+    $exportDocument = $documents->firstWhere('bl_no', 'BL-ARCH-EDIT-EXP-001');
+
+    expect($importDocument['customs_ref_no'])->toBe('ARCH-EDIT-IMP-001');
+    expect($importDocument['client_id'])->toBe($importer->id);
+    expect($importDocument['origin_country'])->toBe($originCountry->name);
+    expect($importDocument['origin_country_id'])->toBe($originCountry->id);
+    expect($importDocument['location_of_goods_id'])->toBe($locationOfGoods->id);
+    expect($exportDocument['client_id'])->toBe($shipper->id);
+    expect($exportDocument['destination_country_id'])->toBe($destinationCountry->id);
+});
+
+test('admin can update archive import metadata without a customs reference number', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $importer = Client::factory()->importer()->create();
+    $replacementImporter = Client::factory()->importer()->create();
+    $locationOfGoods = LocationOfGoods::factory()->create();
+
+    $transaction = ImportTransaction::factory()->create([
+        'customs_ref_no' => null,
+        'bl_no' => 'BL-ARCH-UPDATE-IMP-001',
+        'importer_id' => $importer->id,
+        'arrival_date' => '2024-08-12',
+        'status' => 'Completed',
+        'is_archive' => true,
+        'archived_at' => now(),
+        'archive_origin' => ArchiveOrigin::DirectArchiveUpload,
+        'assigned_user_id' => $admin->id,
+    ]);
+
+    $this->actingAs($admin)
+        ->putJson("/api/archives/import/{$transaction->id}", [
+            'customs_ref_no' => '',
+            'bl_no' => 'BL-ARCH-UPDATE-IMP-002',
+            'selective_color' => 'yellow',
+            'importer_id' => $replacementImporter->id,
+            'vessel_name' => '',
+            'location_of_goods_id' => $locationOfGoods->id,
+            'file_date' => '2024-08-20',
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.customs_ref_no', null)
+        ->assertJsonPath('data.bl_no', 'BL-ARCH-UPDATE-IMP-002')
+        ->assertJsonPath('data.importer.id', $replacementImporter->id)
+        ->assertJsonPath('data.location_of_goods.id', $locationOfGoods->id)
+        ->assertJsonPath('data.arrival_date', '2024-08-20');
+});
+
+test('encoder can update their own archive export metadata without a vessel name', function () {
+    $encoder = User::factory()->create(['role' => 'encoder']);
+    $shipper = Client::factory()->exporter()->create();
+    $replacementShipper = Client::factory()->exporter()->create();
+    $country = Country::factory()->create();
+    $replacementCountry = Country::factory()->create();
+
+    $transaction = ExportTransaction::factory()->create([
+        'bl_no' => 'BL-ARCH-UPDATE-EXP-001',
+        'vessel' => null,
+        'shipper_id' => $shipper->id,
+        'destination_country_id' => $country->id,
+        'export_date' => '2024-08-13',
+        'status' => 'Completed',
+        'is_archive' => true,
+        'archived_at' => now(),
+        'archive_origin' => ArchiveOrigin::DirectArchiveUpload,
+        'assigned_user_id' => $encoder->id,
+    ]);
+
+    $this->actingAs($encoder)
+        ->putJson("/api/archives/export/{$transaction->id}", [
+            'bl_no' => 'BL-ARCH-UPDATE-EXP-002',
+            'vessel' => '',
+            'shipper_id' => $replacementShipper->id,
+            'destination_country_id' => $replacementCountry->id,
+            'file_date' => '2024-08-21',
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.bl_no', 'BL-ARCH-UPDATE-EXP-002')
+        ->assertJsonPath('data.vessel', null)
+        ->assertJsonPath('data.shipper.id', $replacementShipper->id)
+        ->assertJsonPath('data.destination_country.id', $replacementCountry->id)
+        ->assertJsonPath('data.export_date', '2024-08-21');
+});
+
+test('encoder cannot update another encoders archive import metadata', function () {
+    $owner = User::factory()->create(['role' => 'encoder']);
+    $otherEncoder = User::factory()->create(['role' => 'encoder']);
+    $importer = Client::factory()->importer()->create();
+
+    $transaction = ImportTransaction::factory()->create([
+        'bl_no' => 'BL-ARCH-UPDATE-IMP-LOCKED-001',
+        'importer_id' => $importer->id,
+        'arrival_date' => '2024-08-12',
+        'status' => 'Completed',
+        'is_archive' => true,
+        'archived_at' => now(),
+        'archive_origin' => ArchiveOrigin::DirectArchiveUpload,
+        'assigned_user_id' => $owner->id,
+    ]);
+
+    $this->actingAs($otherEncoder)
+        ->putJson("/api/archives/import/{$transaction->id}", [
+            'bl_no' => 'BL-ARCH-UPDATE-IMP-LOCKED-002',
+            'selective_color' => 'green',
+            'importer_id' => $importer->id,
+            'file_date' => '2024-08-20',
+        ])
+        ->assertForbidden();
+});
+
 test('archive import stores uploaded archive documents', function () {
     Storage::fake($this->documentDisk);
 

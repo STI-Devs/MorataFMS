@@ -74,9 +74,11 @@ interface Props {
     doc: ArchiveDocument;
     onDelete?: (id: number) => void;
     canDelete?: boolean;
+    onReplace?: (doc: ArchiveDocument) => void;
+    canReplace?: boolean;
 }
 
-export const ArchiveDocumentRow = ({ doc, onDelete, canDelete = true }: Props) => {
+export const ArchiveDocumentRow = ({ doc, onDelete, canDelete = true, onReplace, canReplace = false }: Props) => {
     const ext = extFromFilename(doc.filename);
     const c = extStyle(ext);
     const stageKey = doc.stage in STAGE_COLORS ? doc.stage : '_';
@@ -88,7 +90,7 @@ export const ArchiveDocumentRow = ({ doc, onDelete, canDelete = true }: Props) =
 
     return (
         <div className="grid items-center gap-4 px-4 py-3.5 border-b border-border/40 hover:bg-hover transition-colors"
-            style={{ gridTemplateColumns: '32px 1fr 1.4fr 80px 32px 56px' }}>
+            style={{ gridTemplateColumns: '32px 1fr 1.4fr 80px 32px 80px' }}>
 
             {/* File type icon */}
             <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
@@ -140,6 +142,16 @@ export const ArchiveDocumentRow = ({ doc, onDelete, canDelete = true }: Props) =
                             d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                     </svg>
                 </button>
+                {canReplace && onReplace && (
+                    <button
+                        title="Replace"
+                        className="p-1.5 rounded-md text-text-muted hover:text-text-primary hover:bg-surface-hover transition-colors"
+                        onClick={e => { e.stopPropagation(); onReplace(doc); }}>
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                    </button>
+                )}
                 {canDelete && onDelete && (
                     <button
                         title="Delete"

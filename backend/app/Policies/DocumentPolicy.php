@@ -52,6 +52,15 @@ class DocumentPolicy
             || ($document->uploaded_by === $user->id && $this->canViewTransactionDocument($user, $document->documentable, $document));
     }
 
+    /**
+     * Determine if the user can replace the document.
+     */
+    public function replace(User $user, Document $document): bool
+    {
+        return $user->isAdmin()
+            || ($document->uploaded_by === $user->id && $this->canViewTransactionDocument($user, $document->documentable, $document));
+    }
+
     private function canViewTransactionDocument(
         User $user,
         ImportTransaction|ExportTransaction|Model|null $documentable,

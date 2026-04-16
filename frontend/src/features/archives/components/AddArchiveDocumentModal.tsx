@@ -1,7 +1,13 @@
 import { useQueryClient } from '@tanstack/react-query';
 import React, { useRef, useState } from 'react';
 import { Icon } from '../../../components/Icon';
-import { getMaxFilesErrorMessage, MAX_MULTI_UPLOAD_FILES } from '../../../lib/uploads';
+import {
+    getMaxFileSizeErrorMessage,
+    getMaxFilesErrorMessage,
+    MAX_MULTI_UPLOAD_FILES,
+    MAX_UPLOAD_FILE_SIZE_BYTES,
+    MAX_UPLOAD_FILE_SIZE_MB,
+} from '../../../lib/uploads';
 import type { ArchiveDocument, TransactionType } from '../../documents/types/document.types';
 import { EXPORT_STAGES, IMPORT_STAGES } from '../../documents/types/document.types';
 import { trackingApi } from '../../tracking/api/trackingApi';
@@ -41,6 +47,19 @@ export const AddArchiveDocumentModal: React.FC<AddArchiveDocumentModalProps> = (
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const nextFiles = Array.from(e.target.files ?? []);
+
+        const oversizedFile = nextFiles.find((file) => file.size > MAX_UPLOAD_FILE_SIZE_BYTES);
+
+        if (oversizedFile) {
+            setFiles([]);
+            setError(`${oversizedFile.name}: ${getMaxFileSizeErrorMessage()}`);
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
+
+            return;
+        }
+
         setFiles(nextFiles);
         setError(nextFiles.length > MAX_MULTI_UPLOAD_FILES ? getMaxFilesErrorMessage() : null);
     };
@@ -207,7 +226,7 @@ export const AddArchiveDocumentModal: React.FC<AddArchiveDocumentModalProps> = (
                                     {files.length > 0 ? `${files.length} file${files.length === 1 ? '' : 's'} selected` : 'Click to choose files'}
                                 </p>
                                 <p className="text-[10px] text-text-muted mt-0.5">
-                                    PDF, DOCX, JPG, PNG, XLSX accepted, {MAX_MULTI_UPLOAD_FILES} files max
+                                    PDF, DOCX, JPG, PNG, XLSX accepted, up to {MAX_UPLOAD_FILE_SIZE_MB}MB each, {MAX_MULTI_UPLOAD_FILES} files max
                                 </p>
                             </div>
                             {files.length > 0 && (

@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { CurrentDateTime } from '../../../components/CurrentDateTime';
 import { ConfirmationModal } from '../../../components/ConfirmationModal';
 import { Icon } from '../../../components/Icon';
@@ -17,10 +17,14 @@ import {
     computeGlobalCompleteness, countIncompleteBLs,
     FOLDER_LABEL, MONTH_NAMES,
     getArchiveBlCompletion,
+    prefetchArchiveEditLookups,
     resolveArchiveDrillTarget,
+    syncArchiveDrillState,
 } from '../utils/archive.utils';
 import { exportArchiveCSV } from '../utils/export.utils';
 import { AddArchiveDocumentModal } from './AddArchiveDocumentModal';
+import { EditArchiveRecordModal } from './EditArchiveRecordModal';
+import { ReplaceArchiveDocumentModal } from './ReplaceArchiveDocumentModal';
 import { ArchiveDocumentRow } from './ArchiveDocumentRow';
 import { ArchiveLegacyUploadPage } from './ArchiveLegacyUploadPage';
 import { ArchiveRecordOverview } from './ArchiveRecordOverview';
@@ -58,6 +62,14 @@ export const ArchivesPage = () => {
         isOpen: boolean; title: string; message: string;
         confirmText?: string; confirmButtonClass?: string; onConfirm: () => void;
     }>({ isOpen: false, title: '', message: '', onConfirm: () => { } });
+
+    const [replaceDocModal, setReplaceDocModal] = useState<{
+        isOpen: boolean; document: ArchiveDocument | null;
+    }>({ isOpen: false, document: null });
+
+    const [editRecordModal, setEditRecordModal] = useState<{
+        isOpen: boolean; record: ArchiveDocument | null;
+    }>({ isOpen: false, record: null });
 
     const toggleYear = (year: number) =>
         setExpandedYears(prev => {
@@ -101,6 +113,38 @@ export const ArchivesPage = () => {
             queryClient.invalidateQueries({ queryKey: ['archives'] });
         });
 
+    const handleReplaceArchiveDoc = (doc: ArchiveDocument) => {
+        setReplaceDocModal({ isOpen: true, document: doc });
+    };
+
+    const handleEditArchiveRecord = (doc: ArchiveDocument) => {
+        void prefetchArchiveEditLookups(queryClient, doc);
+        setEditRecordModal({ isOpen: true, record: doc });
+    };
+
+    const currentDrill = useMemo(
+        () => syncArchiveDrillState(drill, archiveData),
+        [drill, archiveData],
+    );
+
+    useEffect(() => {
+        if (currentDrill.level !== 'files') {
+            return;
+        }
+
+        const currentRecord = currentDrill.year.documents.find((doc) =>
+            doc.type === currentDrill.type
+            && doc.month === currentDrill.month
+            && (doc.bl_no || '(no BL)') === currentDrill.bl,
+        );
+
+        if (!currentRecord) {
+            return;
+        }
+
+        void prefetchArchiveEditLookups(queryClient, currentRecord);
+    }, [currentDrill, queryClient]);
+
     const nav = (next: DrillState) => { setDrill(next); setSearch(''); setGlobalSearch(''); setIncompleteFilterActive(false); };
 
     const globalResults = useMemo(() => {
@@ -142,7 +186,7 @@ export const ArchivesPage = () => {
     }, [archiveData, globalSearch, filterYear, filterType, filterStatus, incompleteFilterActive]);
 
     if (showLegacyUpload) {
-        const currentYear = drill.level !== 'years' ? drill.year.year : new Date().getFullYear() - 1;
+        const currentYear = currentDrill.level !== 'years' ? currentDrill.year.year : new Date().getFullYear() - 1;
         return (
             <div className="flex justify-center py-10 px-6">
                 <div className="w-full max-w-2xl">
@@ -185,13 +229,13 @@ export const ArchivesPage = () => {
         setExpandedYears(prev => new Set([...prev, yr.year]));
     };
 
-    const baseCrumb = { label: 'Archives', onClick: drill.level !== 'years' ? () => nav({ level: 'years' }) : undefined };
+    const baseCrumb = { label: 'Archives', onClick: currentDrill.level !== 'years' ? () => nav({ level: 'years' }) : undefined };
     const breadcrumbParts = (() => {
-        if (drill.level === 'years') return [baseCrumb];
-        if (drill.level === 'types') return [baseCrumb, { label: String(drill.year.year) }];
-        if (drill.level === 'months') return [baseCrumb, { label: String(drill.year.year), onClick: () => navToYear(drill.year) }, { label: FOLDER_LABEL[drill.type as keyof typeof FOLDER_LABEL] + '/' }];
-        if (drill.level === 'bls') return [baseCrumb, { label: String(drill.year.year), onClick: () => navToYear(drill.year) }, { label: FOLDER_LABEL[drill.type as keyof typeof FOLDER_LABEL] + '/', onClick: () => navToYear(drill.year) }, { label: MONTH_NAMES[drill.month - 1] + '/' }];
-        return [baseCrumb, { label: String(drill.year.year), onClick: () => navToYear(drill.year) }, { label: FOLDER_LABEL[drill.type as keyof typeof FOLDER_LABEL] + '/', onClick: () => navToYear(drill.year) }, { label: MONTH_NAMES[drill.month - 1] + '/', onClick: () => nav({ level: 'bls', year: drill.year, type: drill.type, month: drill.month }) }, { label: drill.bl + '/' }];
+        if (currentDrill.level === 'years') return [baseCrumb];
+        if (currentDrill.level === 'types') return [baseCrumb, { label: String(currentDrill.year.year) }];
+        if (currentDrill.level === 'months') return [baseCrumb, { label: String(currentDrill.year.year), onClick: () => navToYear(currentDrill.year) }, { label: FOLDER_LABEL[currentDrill.type as keyof typeof FOLDER_LABEL] + '/' }];
+        if (currentDrill.level === 'bls') return [baseCrumb, { label: String(currentDrill.year.year), onClick: () => navToYear(currentDrill.year) }, { label: FOLDER_LABEL[currentDrill.type as keyof typeof FOLDER_LABEL] + '/', onClick: () => navToYear(currentDrill.year) }, { label: MONTH_NAMES[currentDrill.month - 1] + '/' }];
+        return [baseCrumb, { label: String(currentDrill.year.year), onClick: () => navToYear(currentDrill.year) }, { label: FOLDER_LABEL[currentDrill.type as keyof typeof FOLDER_LABEL] + '/', onClick: () => navToYear(currentDrill.year) }, { label: MONTH_NAMES[currentDrill.month - 1] + '/', onClick: () => nav({ level: 'bls', year: currentDrill.year, type: currentDrill.type, month: currentDrill.month }) }, { label: currentDrill.bl + '/' }];
     })();
 
     return (
@@ -362,7 +406,7 @@ export const ArchivesPage = () => {
                     {/* Toolbar: breadcrumb + search + sort + view toggle */}
                     <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-surface-subtle">
                         {/* Breadcrumb — only shown when drilled or in document view */}
-                        {(viewMode === 'document' || drill.level !== 'years') && (
+                        {(viewMode === 'document' || currentDrill.level !== 'years') && (
                             <div className="flex items-center gap-2 shrink-0 pr-1 border-r border-border mr-1">
                                 {viewMode === 'document' ? (
                                     <>
@@ -403,7 +447,7 @@ export const ArchivesPage = () => {
                             )}
                         </div>
                         {/* Sort — only at BL level */}
-                        {drill.level === 'bls' && viewMode === 'folder' && (
+                        {currentDrill.level === 'bls' && viewMode === 'folder' && (
                             <select value={`${sortKey}:${sortDir}`}
                                 onChange={e => { const [k, d] = e.target.value.split(':'); setSortKey(k as SortKey); setSortDir(d as 'asc' | 'desc'); }}
                                 className="h-9 px-2 rounded-md border border-border-strong bg-input-bg text-text-secondary text-xs focus:outline-none focus:ring-1 focus:ring-blue-500/40 shrink-0">
@@ -475,9 +519,9 @@ export const ArchivesPage = () => {
                 )}
 
                 {/* BL folder view (drill level: bls) */}
-                {viewMode === 'folder' && !globalSearch.trim() && drill.level === 'bls' && (
+                {viewMode === 'folder' && !globalSearch.trim() && currentDrill.level === 'bls' && (
                     <ArchivesBLView
-                        drill={drill as Extract<DrillState, { level: 'bls' }>}
+                        drill={currentDrill as Extract<DrillState, { level: 'bls' }>}
                         search={search}
                         sortKey={sortKey}
                         sortDir={sortDir}
@@ -486,16 +530,16 @@ export const ArchivesPage = () => {
                 )}
 
                 {/* File view (drill level: files) */}
-                {drill.level === 'files' && (() => {
-                    const d = drill as Extract<DrillState, { level: 'files' }>;
+                {currentDrill.level === 'files' && (() => {
+                    const d = currentDrill as Extract<DrillState, { level: 'files' }>;
                     const fileDocs = d.year.documents
                         .filter((doc: ArchiveDocument) => doc.type === d.type && doc.month === d.month && (doc.bl_no || '(no BL)') === d.bl);
                     if (fileDocs.length === 0) return <EmptyState icon="file-text" title="No files in this folder" />;
                     return (
                         <div>
-                            <ArchiveRecordOverview docs={fileDocs} />
+                            <ArchiveRecordOverview docs={fileDocs} canEdit onEdit={handleEditArchiveRecord} />
                             <div className="grid items-center gap-4 px-4 py-2.5 border-b border-border bg-surface sticky top-0 z-10"
-                                style={{ gridTemplateColumns: '32px 1fr 1.4fr 80px 32px 56px' }}>
+                                style={{ gridTemplateColumns: '32px 1fr 1.4fr 80px 32px 80px' }}>
                                 <span />
                                 <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest">File</span>
                                 <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest text-center">Stage</span>
@@ -504,7 +548,7 @@ export const ArchivesPage = () => {
                                 <span />
                             </div>
                             {fileDocs.map((doc: ArchiveDocument) => (
-                                <ArchiveDocumentRow key={doc.id} doc={doc} onDelete={handleDeleteArchiveDoc} />
+                                <ArchiveDocumentRow key={doc.id} doc={doc} onDelete={handleDeleteArchiveDoc} onReplace={handleReplaceArchiveDoc} canReplace={true} />
                             ))}
                             <button
                                 onClick={() => setAddDocModal({ isOpen: true, blNo: d.bl, type: d.type, docs: fileDocs })}
@@ -536,6 +580,16 @@ export const ArchivesPage = () => {
                 blNo={addDocModal.blNo}
                 type={addDocModal.type}
                 existingDocs={addDocModal.docs}
+            />
+            <ReplaceArchiveDocumentModal
+                isOpen={replaceDocModal.isOpen}
+                onClose={() => setReplaceDocModal(m => ({ ...m, isOpen: false }))}
+                document={replaceDocModal.document}
+            />
+            <EditArchiveRecordModal
+                isOpen={editRecordModal.isOpen}
+                onClose={() => setEditRecordModal(m => ({ ...m, isOpen: false }))}
+                record={editRecordModal.record}
             />
         </div>
     );

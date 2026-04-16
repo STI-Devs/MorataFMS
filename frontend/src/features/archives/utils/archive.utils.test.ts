@@ -5,6 +5,7 @@ import {
     countIncompleteBLs,
     getArchiveBlCompletion,
     resolveArchiveDrillTarget,
+    syncArchiveDrillState,
 } from './archive.utils';
 
 const buildArchiveYear = (
@@ -90,6 +91,31 @@ describe('archive completeness', () => {
         })).toEqual({
             level: 'files',
             year: archiveData[0],
+            type: 'import',
+            month: 4,
+            bl: 'BL-1234567',
+        });
+    });
+
+    it('refreshes the file drill snapshot when archive data changes', () => {
+        const oldYear = buildArchiveYear(['boc']);
+        const refreshedYear = buildArchiveYear(['boc']);
+        refreshedYear.documents[0] = {
+            ...refreshedYear.documents[0],
+            client: 'Updated Archive Client',
+        };
+
+        const nextDrill = syncArchiveDrillState({
+            level: 'files',
+            year: oldYear,
+            type: 'import',
+            month: 4,
+            bl: 'BL-1234567',
+        }, [refreshedYear]);
+
+        expect(nextDrill).toEqual({
+            level: 'files',
+            year: refreshedYear,
             type: 'import',
             month: 4,
             bl: 'BL-1234567',

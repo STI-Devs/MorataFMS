@@ -1,6 +1,12 @@
 import { useRef, useState } from 'react';
 import { Icon } from '../Icon';
-import { getMaxFilesErrorMessage, MAX_MULTI_UPLOAD_FILES } from '../../lib/uploads';
+import {
+    getMaxFileSizeErrorMessage,
+    getMaxFilesErrorMessage,
+    MAX_MULTI_UPLOAD_FILES,
+    MAX_UPLOAD_FILE_SIZE_BYTES,
+    MAX_UPLOAD_FILE_SIZE_MB,
+} from '../../lib/uploads';
 
 interface UploadModalProps {
     isOpen: boolean;
@@ -33,6 +39,14 @@ export const UploadModal: React.FC<UploadModalProps> = ({
 
     const applySelectedFiles = (files: File[]) => {
         if (files.length === 0) {
+            return;
+        }
+
+        const oversizedFile = files.find((file) => file.size > MAX_UPLOAD_FILE_SIZE_BYTES);
+
+        if (oversizedFile) {
+            setSelectionError(`${oversizedFile.name}: ${getMaxFileSizeErrorMessage()}`);
+
             return;
         }
 
@@ -138,7 +152,7 @@ export const UploadModal: React.FC<UploadModalProps> = ({
                             {isDragging ? 'Drop files here' : 'Click or drag & drop files'}
                         </span>
                         <span className="text-xs text-text-muted mt-1">
-                            PDF, DOCX, JPG, PNG up to 10 MB each, {MAX_MULTI_UPLOAD_FILES} files max
+                            PDF, DOCX, JPG, PNG up to {MAX_UPLOAD_FILE_SIZE_MB} MB each, {MAX_MULTI_UPLOAD_FILES} files max
                         </span>
                     </div>
 

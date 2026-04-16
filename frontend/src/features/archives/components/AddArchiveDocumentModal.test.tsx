@@ -134,4 +134,54 @@ describe('AddArchiveDocumentModal', () => {
         expect(screen.getByText('You can upload up to 10 files at a time.')).toBeInTheDocument();
         expect(trackingApiMock.uploadDocuments).not.toHaveBeenCalled();
     });
+
+    it('blocks files larger than 20MB before upload', async () => {
+        const queryClient = createTestQueryClient();
+
+        render(
+            <QueryClientProvider client={queryClient}>
+                <AddArchiveDocumentModal
+                    isOpen
+                    onClose={vi.fn()}
+                    blNo="BL-ARCH-001"
+                    type="import"
+                    existingDocs={[{
+                        id: 1,
+                        type: 'import',
+                        bl_no: 'BL-ARCH-001',
+                        month: 4,
+                        client: 'ACME IMPORTS',
+                        selective_color: 'green',
+                        destination_country: null,
+                        transaction_date: '2026-04-01',
+                        transaction_id: 42,
+                        documentable_type: 'App\\Models\\ImportTransaction',
+                        stage: 'boc',
+                        filename: 'existing.pdf',
+                        formatted_size: '1.2 MB',
+                        size_bytes: 1200,
+                        archive_origin: 'direct_archive_upload',
+                        archived_at: '2026-04-02T00:00:00Z',
+                        uploaded_at: '2026-04-02T00:00:00Z',
+                        uploader: { id: 7, name: 'Encoder User' },
+                    }]}
+                />
+            </QueryClientProvider>,
+        );
+
+        fireEvent.click(screen.getByRole('button', { name: /boc document processing/i }));
+
+        const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+        const largeFile = new File([new Uint8Array(1)], 'too-large.pdf', { type: 'application/pdf' });
+        Object.defineProperty(largeFile, 'size', { value: 21 * 1024 * 1024 });
+
+        fireEvent.change(input, {
+            target: {
+                files: [largeFile],
+            },
+        });
+
+        expect(screen.getByText('too-large.pdf: Each file must be 20MB or less.')).toBeInTheDocument();
+        expect(trackingApiMock.uploadDocuments).not.toHaveBeenCalled();
+    });
 });

@@ -56,6 +56,7 @@ Route::middleware(['auth:sanctum', 'active-session', 'throttle:api-general'])->g
     Route::get('documents/transactions', [DocumentController::class, 'transactions'])
         ->middleware('throttle:api-search');
     Route::apiResource('documents', DocumentController::class)->except(['update']);
+    Route::post('documents/{document}/replace', [DocumentController::class, 'replace']);
     Route::get('documents/{document}/download', [DocumentController::class, 'download'])
         ->middleware('throttle:api-documents');
     Route::get('documents/{document}/preview', [DocumentController::class, 'preview'])
@@ -67,6 +68,8 @@ Route::middleware(['auth:sanctum', 'active-session', 'throttle:api-general'])->g
         Route::get('operational', [ArchiveController::class, 'operationalQueue']);
         Route::post('import', [ArchiveController::class, 'storeImport'])->middleware('throttle:archive-uploads');
         Route::post('export', [ArchiveController::class, 'storeExport'])->middleware('throttle:archive-uploads');
+        Route::put('import/{importTransaction}', [ArchiveController::class, 'updateImport']);
+        Route::put('export/{exportTransaction}', [ArchiveController::class, 'updateExport']);
         Route::patch('import/{importTransaction}/stage-applicability', [ArchiveController::class, 'updateImportStageApplicability']);
         Route::patch('export/{exportTransaction}/stage-applicability', [ArchiveController::class, 'updateExportStageApplicability']);
         Route::delete('import/{importTransaction}', [ArchiveController::class, 'rollbackImport'])->middleware('throttle:archive-uploads');

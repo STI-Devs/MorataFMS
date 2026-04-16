@@ -17,7 +17,7 @@ class StoreDocumentRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true; // Authorization handled by controller via policy
+        return true;
     }
 
     /**
@@ -29,7 +29,7 @@ class StoreDocumentRequest extends FormRequest
             'file' => [
                 'required',
                 'file',
-                'max:10240', // 10 MB in kilobytes
+                'max:20480',
                 'mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png',
             ],
             'type' => [
@@ -71,9 +71,9 @@ class StoreDocumentRequest extends FormRequest
     {
         return [
             'file.required' => 'Please select a file to upload.',
-            'file.uploaded' => 'The file could not be uploaded by the server. If the file is within the 10 MB app limit, increase the PHP upload limit and try again.',
-            'file.file' => 'The file could not be uploaded by the server. If the file is within the 10 MB app limit, increase the PHP upload limit and try again.',
-            'file.max' => 'The file must not be larger than 10 MB.',
+            'file.uploaded' => 'The file could not be uploaded by the server. If the file is within the 20 MB app limit, increase the PHP upload limit and try again.',
+            'file.file' => 'The file could not be uploaded by the server. If the file is within the 20 MB app limit, increase the PHP upload limit and try again.',
+            'file.max' => 'The file must not be larger than 20 MB.',
             'file.mimes' => 'Only PDF, Office documents, and images are allowed.',
             'type.in' => 'Invalid document type selected.',
             'documentable_type.in' => 'Invalid transaction type.',

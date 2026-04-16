@@ -14,7 +14,7 @@ class StoreArchiveImportRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true; // Auth handled by middleware; policy checked in controller
+        return true;
     }
 
     public function rules(): array
@@ -52,7 +52,7 @@ class StoreArchiveImportRequest extends FormRequest
             'documents.*.file' => [
                 'required_with:documents',
                 'file',
-                'max:10240',
+                'max:20480',
                 'mimes:pdf,jpg,jpeg,png,docx,xlsx,csv',
             ],
             'documents.*.stage' => [
@@ -89,7 +89,7 @@ class StoreArchiveImportRequest extends FormRequest
             'file_date.date' => 'Archive period must be a valid date.',
             'file_date.after_or_equal' => 'Archive period cannot be before year 2000.',
             'file_date.before_or_equal' => 'Archive date cannot be in the future. Archives are for past documents only.',
-            'documents.*.file.max' => 'Each file must be 10MB or less.',
+            'documents.*.file.max' => 'Each file must be 20MB or less.',
             'documents.*.file.mimes' => 'Only PDF, JPG, PNG, DOCX, XLSX, and CSV files are accepted.',
             'not_applicable_stages.*.distinct' => 'Each optional stage can only be marked once.',
         ];

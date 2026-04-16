@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Documents\StoreTransactionDocument;
+use App\Http\Requests\ReplaceDocumentRequest;
 use App\Http\Requests\StoreDocumentRequest;
 use App\Http\Resources\DocumentResource;
 use App\Models\Document;
@@ -231,6 +232,38 @@ class DocumentController extends Controller
         }
 
         return response()->noContent();
+    }
+
+    /**
+     * POST /api/documents/{document}/replace
+     * Replace an existing document with a new file.
+     */
+    public function replace(ReplaceDocumentRequest $request, Document $document): JsonResponse
+    {
+        $this->authorize('replace', $document);
+
+        $parent = $document->documentable;
+
+        $newDocument = $this->storeTransactionDocument->handle(
+            $parent,
+            $request->file('file'),
+            $document->type,
+            $request->user()->id,
+        );
+
+        self::documentDisk()->delete($document->path);
+        $document->delete();
+
+        if ($parent && method_exists($parent, 'recalculateStatus')) {
+            $parent->recalculateStatus();
+        }
+        if ($parent instanceof ImportTransaction || $parent instanceof ExportTransaction) {
+            $this->transactionSyncBroadcaster->transactionChanged($parent, $request->user(), 'document_uploaded');
+        }
+
+        return (new DocumentResource($newDocument))
+            ->response()
+            ->setStatusCode(201);
     }
 
     private function resolveDocumentable(string $documentableType, int $documentableId): ImportTransaction|ExportTransaction

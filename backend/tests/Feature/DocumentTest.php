@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Documents\StoreTransactionDocument;
 use App\Models\Document;
 use App\Models\ExportTransaction;
 use App\Models\ImportTransaction;
@@ -429,7 +430,7 @@ test('file upload validates file type', function () {
 test('file upload validates file size limit', function () {
     $user = User::factory()->create(['role' => 'encoder']);
     $import = ImportTransaction::factory()->create(['assigned_user_id' => $user->id]);
-    $file = UploadedFile::fake()->create('large.pdf', 11000, 'application/pdf'); // 11 MB
+    $file = UploadedFile::fake()->create('large.pdf', 21000, 'application/pdf');
 
     $this->actingAs($user);
 
@@ -475,7 +476,7 @@ test('file upload returns a clear message when php rejects the uploaded file bef
     $response->assertStatus(422);
     $response->assertJsonPath(
         'errors.file.0',
-        'The file could not be uploaded by the server. If the file is within the 10 MB app limit, increase the PHP upload limit and try again.',
+        'The file could not be uploaded by the server. If the file is within the 20 MB app limit, increase the PHP upload limit and try again.',
     );
 });
 
@@ -831,4 +832,170 @@ test('document generates correct S3 path', function () {
 
     expect($pathWithBl)->toContain('transaction-documents/exports/2025/month-07-July/BL-78542136/bl_bill_of_lading_');
     expect($pathWithBl)->toContain('.pdf');
+});
+
+test('admin can replace any archive document', function () {
+    $encoder = User::factory()->create(['role' => 'encoder']);
+    $admin = User::factory()->create(['role' => 'admin']);
+    $import = ImportTransaction::factory()->create(['assigned_user_id' => $encoder->id]);
+
+    Storage::fake($this->documentDisk);
+
+    $this->actingAs($encoder);
+    $file = UploadedFile::fake()->create('old.pdf', 100, 'application/pdf');
+    $uploadResponse = $this->postJson('/api/documents', [
+        'file' => $file,
+        'type' => 'boc',
+        'documentable_type' => 'App\Models\ImportTransaction',
+        'documentable_id' => $import->id,
+    ]);
+
+    $documentId = $uploadResponse->json('data.id');
+    $document = Document::find($documentId);
+
+    $this->actingAs($admin);
+    $newFile = UploadedFile::fake()->create('new.pdf', 100, 'application/pdf');
+    $response = $this->postJson("/api/documents/{$documentId}/replace", [
+        'file' => $newFile,
+    ]);
+
+    $response->assertStatus(201);
+    $newDocumentId = $response->json('data.id');
+
+    $this->assertDatabaseMissing('documents', ['id' => $documentId]);
+    Storage::disk($this->documentDisk)->assertMissing($document->path);
+
+    $this->assertDatabaseHas('documents', ['id' => $newDocumentId]);
+    $newDocument = Document::find($newDocumentId);
+    Storage::disk($this->documentDisk)->assertExists($newDocument->path);
+});
+
+test('encoder can replace their own archive document', function () {
+    $encoder = User::factory()->create(['role' => 'encoder']);
+    $import = ImportTransaction::factory()->create(['assigned_user_id' => $encoder->id]);
+
+    Storage::fake($this->documentDisk);
+
+    $this->actingAs($encoder);
+    $file = UploadedFile::fake()->create('old.pdf', 100, 'application/pdf');
+    $uploadResponse = $this->postJson('/api/documents', [
+        'file' => $file,
+        'type' => 'boc',
+        'documentable_type' => 'App\Models\ImportTransaction',
+        'documentable_id' => $import->id,
+    ]);
+
+    $documentId = $uploadResponse->json('data.id');
+
+    $newFile = UploadedFile::fake()->create('new.pdf', 100, 'application/pdf');
+    $response = $this->postJson("/api/documents/{$documentId}/replace", [
+        'file' => $newFile,
+    ]);
+
+    $response->assertStatus(201);
+    $newDocumentId = $response->json('data.id');
+    expect($newDocumentId)->not->toBe($documentId);
+    $this->assertDatabaseMissing('documents', ['id' => $documentId]);
+    $this->assertDatabaseHas('documents', ['id' => $newDocumentId]);
+});
+
+test('encoder cannot replace another users archive document', function () {
+    $encoder1 = User::factory()->create(['role' => 'encoder']);
+    $encoder2 = User::factory()->create(['role' => 'encoder']);
+    $import = ImportTransaction::factory()->create(['assigned_user_id' => $encoder1->id]);
+
+    Storage::fake($this->documentDisk);
+
+    $this->actingAs($encoder1);
+    $file = UploadedFile::fake()->create('old.pdf', 100, 'application/pdf');
+    $uploadResponse = $this->postJson('/api/documents', [
+        'file' => $file,
+        'type' => 'boc',
+        'documentable_type' => 'App\Models\ImportTransaction',
+        'documentable_id' => $import->id,
+    ]);
+
+    $documentId = $uploadResponse->json('data.id');
+
+    $this->actingAs($encoder2);
+    $newFile = UploadedFile::fake()->create('new.pdf', 100, 'application/pdf');
+    $response = $this->postJson("/api/documents/{$documentId}/replace", [
+        'file' => $newFile,
+    ]);
+
+    $response->assertStatus(403);
+});
+
+test('replace validates file is required', function () {
+    $encoder = User::factory()->create(['role' => 'encoder']);
+    $import = ImportTransaction::factory()->create(['assigned_user_id' => $encoder->id]);
+
+    $this->actingAs($encoder);
+    $file = UploadedFile::fake()->create('old.pdf', 100, 'application/pdf');
+    $uploadResponse = $this->postJson('/api/documents', [
+        'file' => $file,
+        'type' => 'boc',
+        'documentable_type' => 'App\Models\ImportTransaction',
+        'documentable_id' => $import->id,
+    ]);
+    $documentId = $uploadResponse->json('data.id');
+
+    $response = $this->postJson("/api/documents/{$documentId}/replace", []);
+
+    $response->assertStatus(422);
+    $response->assertJsonValidationErrors(['file']);
+});
+
+test('replace validates file size', function () {
+    $encoder = User::factory()->create(['role' => 'encoder']);
+    $import = ImportTransaction::factory()->create(['assigned_user_id' => $encoder->id]);
+
+    $this->actingAs($encoder);
+    $file = UploadedFile::fake()->create('old.pdf', 100, 'application/pdf');
+    $uploadResponse = $this->postJson('/api/documents', [
+        'file' => $file,
+        'type' => 'boc',
+        'documentable_type' => 'App\Models\ImportTransaction',
+        'documentable_id' => $import->id,
+    ]);
+    $documentId = $uploadResponse->json('data.id');
+
+    $largeFile = UploadedFile::fake()->create('large.pdf', 21000, 'application/pdf');
+    $response = $this->postJson("/api/documents/{$documentId}/replace", [
+        'file' => $largeFile,
+    ]);
+
+    $response->assertStatus(422);
+    $response->assertJsonValidationErrors(['file']);
+});
+
+test('replace keeps the original archive document when storing the new file fails', function () {
+    $encoder = User::factory()->create(['role' => 'encoder']);
+    $import = ImportTransaction::factory()->create(['assigned_user_id' => $encoder->id]);
+    $document = Document::factory()->create([
+        'type' => 'boc',
+        'documentable_type' => ImportTransaction::class,
+        'documentable_id' => $import->id,
+        'uploaded_by' => $encoder->id,
+        'path' => 'transaction-documents/imports/2026/month-04-April/BL-REPLACE-001/boc_old.pdf',
+        'filename' => 'old.pdf',
+    ]);
+
+    Storage::disk($this->documentDisk)->put($document->path, 'original file contents');
+
+    $storeTransactionDocument = Mockery::mock(StoreTransactionDocument::class);
+    $storeTransactionDocument
+        ->shouldReceive('handle')
+        ->once()
+        ->andThrow(new RuntimeException('Unable to write document to the [s3] disk.'));
+
+    $this->app->instance(StoreTransactionDocument::class, $storeTransactionDocument);
+    $this->withoutExceptionHandling();
+
+    expect(fn () => $this->actingAs($encoder)->postJson("/api/documents/{$document->id}/replace", [
+        'file' => UploadedFile::fake()->create('new.pdf', 100, 'application/pdf'),
+    ]))->toThrow(RuntimeException::class, 'Unable to write document to the [s3] disk.');
+
+    $this->assertDatabaseHas('documents', ['id' => $document->id]);
+    Storage::disk($this->documentDisk)->assertExists($document->path);
 });

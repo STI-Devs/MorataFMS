@@ -10,21 +10,23 @@ class ArchiveIndexQuery
 {
     public function handle(User $user, bool $mine = false): array
     {
-        $userId = $mine ? $user->id : null;
         $archivesByYear = [];
 
-        foreach (ImportTransaction::where('is_archive', true)
+        $importQuery = ImportTransaction::where('is_archive', true)
             ->with([
                 'stages',
-                'documents' => fn ($query) => $userId ? $query->where('uploaded_by', $userId) : $query,
+                'documents',
                 'documents.uploadedBy',
                 'importer',
+                'originCountry',
                 'locationOfGoods',
-            ])
-            ->lazyById(100) as $transaction) {
-            if ($userId && $transaction->documents->isEmpty()) {
-                continue;
-            }
+            ]);
+
+        if ($mine) {
+            $importQuery->where('assigned_user_id', $user->id);
+        }
+
+        foreach ($importQuery->lazyById(100) as $transaction) {
 
             $year = $transaction->arrival_date?->year ?? $transaction->created_at->year;
             $entry = &$archivesByYear[$year];
@@ -41,11 +43,16 @@ class ArchiveIndexQuery
                     'id' => $document->id,
                     'type' => 'import',
                     'bl_no' => $transaction->bl_no,
+                    'customs_ref_no' => $transaction->customs_ref_no,
                     'month' => $transaction->arrival_date?->month ?? $transaction->created_at->month,
                     'client' => $transaction->importer?->name ?? 'Unknown',
+                    'client_id' => $transaction->importer?->id,
                     'selective_color' => $transaction->selective_color,
                     'vessel_name' => $transaction->vessel_name,
+                    'origin_country' => $transaction->originCountry?->name,
+                    'origin_country_id' => $transaction->origin_country_id,
                     'location_of_goods' => $transaction->locationOfGoods?->name,
+                    'location_of_goods_id' => $transaction->location_of_goods_id,
                     'transaction_date' => ($transaction->arrival_date ?? $transaction->created_at)->toDateString(),
                     'transaction_id' => $transaction->id,
                     'documentable_type' => ImportTransaction::class,
@@ -65,18 +72,20 @@ class ArchiveIndexQuery
             }
         }
 
-        foreach (ExportTransaction::where('is_archive', true)
+        $exportQuery = ExportTransaction::where('is_archive', true)
             ->with([
                 'stages',
-                'documents' => fn ($query) => $userId ? $query->where('uploaded_by', $userId) : $query,
+                'documents',
                 'documents.uploadedBy',
                 'shipper',
                 'destinationCountry',
-            ])
-            ->lazyById(100) as $transaction) {
-            if ($userId && $transaction->documents->isEmpty()) {
-                continue;
-            }
+            ]);
+
+        if ($mine) {
+            $exportQuery->where('assigned_user_id', $user->id);
+        }
+
+        foreach ($exportQuery->lazyById(100) as $transaction) {
 
             $year = $transaction->export_date?->year ?? $transaction->created_at->year;
             $entry = &$archivesByYear[$year];
@@ -95,7 +104,9 @@ class ArchiveIndexQuery
                     'bl_no' => $transaction->bl_no,
                     'month' => $transaction->export_date?->month ?? $transaction->created_at->month,
                     'client' => $transaction->shipper?->name ?? 'Unknown',
+                    'client_id' => $transaction->shipper?->id,
                     'destination_country' => $transaction->destinationCountry?->name,
+                    'destination_country_id' => $transaction->destination_country_id,
                     'vessel_name' => $transaction->vessel,
                     'transaction_date' => ($transaction->export_date ?? $transaction->created_at)->toDateString(),
                     'transaction_id' => $transaction->id,

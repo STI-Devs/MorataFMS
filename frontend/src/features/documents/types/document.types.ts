@@ -28,12 +28,18 @@ export interface ArchiveDocument {
     id: number;
     type: TransactionType;           // 'import' | 'export' — from path segment
     bl_no: string;                   // Bill of Lading — from path segment
+    customs_ref_no?: string | null;
     month: number;                   // Archive period month (1-12)
     client: string;                  // Client name (importer/shipper)
+    client_id?: number | null;
     selective_color?: 'green' | 'yellow' | 'orange' | 'red' | null; // Import only — BLSC
+    origin_country?: string | null;
+    origin_country_id?: number | null;
     destination_country?: string | null;                  // Export only — destination
+    destination_country_id?: number | null;
     vessel_name?: string | null;
     location_of_goods?: string | null;
+    location_of_goods_id?: number | null;
     transaction_date: string;        // ISO date string (YYYY-MM-DD)
     transaction_id: number;          // Parent transaction ID (for document uploads)
     documentable_type: string;       // 'App\\Models\\ImportTransaction' | 'App\\Models\\ExportTransaction'

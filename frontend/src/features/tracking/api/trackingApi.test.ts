@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import api from '../../../lib/axios';
 import { trackingApi } from './trackingApi';
 
 describe('trackingApi.uploadDocuments', () => {
@@ -104,6 +105,23 @@ describe('trackingApi.uploadDocuments', () => {
         ).rejects.toThrow('You can upload up to 10 files at a time.');
 
         expect(uploadDocumentSpy).not.toHaveBeenCalled();
+    });
+
+    it('rejects oversized files before sending requests', async () => {
+        const oversizedFile = new File([new Uint8Array(1)], 'large.png', { type: 'image/png' });
+        Object.defineProperty(oversizedFile, 'size', { value: 21 * 1024 * 1024 });
+        const postSpy = vi.spyOn(api, 'post');
+
+        await expect(
+            trackingApi.uploadDocuments({
+                files: [oversizedFile],
+                type: 'boc',
+                documentable_type: 'App\\Models\\ImportTransaction',
+                documentable_id: 42,
+            }),
+        ).rejects.toThrow('Each file must be 20MB or less.');
+
+        expect(postSpy).not.toHaveBeenCalled();
     });
 });
 
@@ -212,5 +230,47 @@ describe('trackingApi.createArchiveImportWithDocuments', () => {
         });
 
         expect(rollbackSpy).toHaveBeenCalledWith(77);
+    });
+});
+
+describe('trackingApi.replaceDocument', () => {
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
+    it('posts the replacement file as multipart form data', async () => {
+        const file = new File(['replacement'], 'replacement.pdf', { type: 'application/pdf' });
+        const postSpy = vi.spyOn(api, 'post').mockResolvedValue({
+            data: {
+                data: {
+                    id: 91,
+                    filename: 'replacement.pdf',
+                },
+            },
+        });
+
+        await trackingApi.replaceDocument(91, file);
+
+        expect(postSpy).toHaveBeenCalledWith(
+            '/api/documents/91/replace',
+            expect.any(FormData),
+            {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            },
+        );
+
+        const sentFormData = postSpy.mock.calls[0]?.[1];
+        expect(sentFormData).toBeInstanceOf(FormData);
+        expect((sentFormData as FormData).get('file')).toBe(file);
+    });
+
+    it('rejects oversized replacement files before posting', async () => {
+        const oversizedFile = new File([new Uint8Array(1)], 'replacement.pdf', { type: 'application/pdf' });
+        Object.defineProperty(oversizedFile, 'size', { value: 21 * 1024 * 1024 });
+        const postSpy = vi.spyOn(api, 'post');
+
+        await expect(trackingApi.replaceDocument(91, oversizedFile)).rejects.toThrow('Each file must be 20MB or less.');
+
+        expect(postSpy).not.toHaveBeenCalled();
     });
 });
