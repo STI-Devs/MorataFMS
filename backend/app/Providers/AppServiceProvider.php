@@ -38,10 +38,6 @@ class AppServiceProvider extends ServiceProvider
             return $user->isAdmin();
         });
 
-        Gate::define('transactions.reassign', function (User $user): bool {
-            return $user->isAdmin();
-        });
-
         Gate::define('transactions.overrideStatus', function (User $user): bool {
             return $user->isAdmin();
         });

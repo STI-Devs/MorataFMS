@@ -3,6 +3,7 @@ import type { ExportStages, ImportStages, OversightTransaction } from '../types/
 
 const IMPORT_STAGE_LABELS: Record<keyof ImportStages, string> = {
     boc: 'BOC',
+    bonds: 'Bonds',
     ppa: 'PPA',
     do: 'D/O',
     port_charges: 'Port Chg.',
@@ -11,10 +12,13 @@ const IMPORT_STAGE_LABELS: Record<keyof ImportStages, string> = {
 };
 
 const EXPORT_STAGE_LABELS: Record<keyof ExportStages, string> = {
-    docs_prep: 'Docs Prep',
+    boc: 'BOC',
+    bl_generation: 'B/L',
+    phytosanitary: 'Phyto',
     co: 'C/O',
     cil: 'CIL',
-    bl: 'B/L',
+    dccci: 'DCCCI',
+    billing: 'Billing',
 };
 
 const STATUS_CFG: Record<string, { color: string; bg: string; icon: string }> = {
@@ -40,11 +44,13 @@ export const StagePipeline = ({ transaction }: StagePipelineProps) => {
             key,
             label,
             status: (transaction.stages as ImportStages)[key as keyof ImportStages],
+            notApplicable: transaction.not_applicable_stages?.includes(key) ?? false,
         }))
         : Object.entries(EXPORT_STAGE_LABELS).map(([key, label]) => ({
             key,
             label,
             status: (transaction.stages as ExportStages)[key as keyof ExportStages],
+            notApplicable: transaction.not_applicable_stages?.includes(key) ?? false,
         }));
 
     return (
@@ -66,10 +72,11 @@ export const StagePipeline = ({ transaction }: StagePipelineProps) => {
                         <div
                             className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold"
                             style={{ color: cfg.color, backgroundColor: cfg.bg }}
-                            title={`${stage.label}: ${stage.status}`}
+                            title={`${stage.label}: ${stage.notApplicable ? 'not applicable' : stage.status}`}
                         >
                             <span className="text-[9px]">{cfg.icon}</span>
                             {stage.label}
+                            {stage.notApplicable ? ' (N/A)' : ''}
                         </div>
                     </div>
                 );

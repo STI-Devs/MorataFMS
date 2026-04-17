@@ -5,8 +5,8 @@ on:
     paths:
       - "backend/**"
       - "docker-compose.yml"
-      - "railway.toml"
-      - ".dockerignore"
+      - "backend/railway.toml"
+      - "backend/.dockerignore"
       - ".github/workflows/backend-ci.yml"
   push:
     branches:
@@ -14,8 +14,8 @@ on:
     paths:
       - "backend/**"
       - "docker-compose.yml"
-      - "railway.toml"
-      - ".dockerignore"
+      - "backend/railway.toml"
+      - "backend/.dockerignore"
       - ".github/workflows/backend-ci.yml"
 
 jobs:
@@ -57,4 +57,4 @@ jobs:
         run: docker compose config
 
       - name: Build backend image
-        run: docker build -f backend/Dockerfile -t morata-backend:test .
+        run: docker build -f backend/Dockerfile -t morata-backend:test backend

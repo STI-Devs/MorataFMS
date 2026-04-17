@@ -21,6 +21,16 @@ const roleConfig: Record<string, { label: string; color: string; icon: string }>
         color: '#64d2ff',
         icon: 'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z',
     },
+    processor: {
+        label: 'Processor',
+        color: '#0a84ff',
+        icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4',
+    },
+    accounting: {
+        label: 'Accountant',
+        color: '#30d158',
+        icon: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4',
+    },
 };
 
 function RoleBadge({ role }: { role: string }) {
@@ -112,13 +122,13 @@ export const UserManagement = () => {
                 const active = users.filter(u => u.is_active).length;
                 const inactive = total - active;
                 const admins = users.filter(u => u.role === 'admin').length;
-                const fieldStaff = users.filter(u => u.role === 'encoder' || u.role === 'paralegal').length;
+                const staff = users.filter(u => u.role !== 'admin').length;
 
                 const cards = [
                     {
                         label: 'Total Users',
                         value: total,
-                        sub: `${admins} admin · ${fieldStaff} staff`,
+                        sub: `${admins} admin · ${staff} staff`,
                         dot: null as string | null,
                     },
                     {

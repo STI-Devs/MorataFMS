@@ -1,23 +1,35 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { CurrentDateTime } from '../../../components/CurrentDateTime';
 import { Icon } from '../../../components/Icon';
 import type { ArchiveDocument, ArchiveYear, TransactionType } from '../../documents/types/document.types';
 import { useMyArchives } from '../hooks/useMyArchives';
-import type { DrillState, SortKey, ViewMode } from '../utils/archive.utils';
-import { FOLDER_LABEL, MONTH_NAMES } from '../utils/archive.utils';
+import { useAuth } from '../../auth/hooks/useAuth';
+import { trackingApi } from '../../tracking/api/trackingApi';
+import type { ArchiveUploadSuccessTarget, DrillState, SortKey, ViewMode } from '../utils/archive.utils';
+import {
+    FOLDER_LABEL,
+    MONTH_NAMES,
+    prefetchArchiveEditLookups,
+    resolveArchiveDrillTarget,
+    syncArchiveDrillState,
+} from '../utils/archive.utils';
 import { AddArchiveDocumentModal } from './AddArchiveDocumentModal';
 import { ArchiveDocumentRow } from './ArchiveDocumentRow';
 import { ArchiveLegacyUploadPage } from './ArchiveLegacyUploadPage';
+import { ArchiveRecordOverview } from './ArchiveRecordOverview';
 import { ArchivesFolderView } from './ArchivesFolderView';
 import { ArchivesBLView, ArchivesDocumentView, GlobalSearchResults } from './ArchivesViews';
 import { Breadcrumb } from './ui/Breadcrumb';
-
+import { ConfirmationModal } from '../../../components/ConfirmationModal';
+import { ReplaceArchiveDocumentModal } from './ReplaceArchiveDocumentModal';
+import { EditArchiveRecordModal } from './EditArchiveRecordModal';
 import { EmptyState } from './ui/EmptyState';
 import { ViewToggle } from './ui/ViewToggle';
 
 export const EncoderArchivePage = () => {
     const queryClient = useQueryClient();
+    const { user } = useAuth();
     const { data: archiveData = [], isLoading, isError } = useMyArchives();
 
     const [drill, setDrill] = useState<DrillState>({ level: 'years' });
@@ -35,6 +47,60 @@ export const EncoderArchivePage = () => {
     const [addDocModal, setAddDocModal] = useState<{
         isOpen: boolean; blNo: string; type: TransactionType; docs: ArchiveDocument[];
     }>({ isOpen: false, blNo: '', type: 'import', docs: [] });
+    const [confirmModal, setConfirmModal] = useState<{
+        isOpen: boolean; title: string; message: string; confirmText: string;
+        confirmButtonClass: string; onConfirm: () => void | Promise<void>;
+    }>({ isOpen: false, title: '', message: '', confirmText: 'Confirm', confirmButtonClass: 'bg-red-600 hover:bg-red-700', onConfirm: () => {} });
+    const [replaceDocModal, setReplaceDocModal] = useState<{ isOpen: boolean; document: ArchiveDocument | null }>({
+        isOpen: false, document: null,
+    });
+    const [editRecordModal, setEditRecordModal] = useState<{ isOpen: boolean; record: ArchiveDocument | null }>({
+        isOpen: false, record: null,
+    });
+
+    const handleDeleteArchiveDoc = (docId: number) => {
+        setConfirmModal({
+            isOpen: true,
+            title: 'Delete Document',
+            message: 'Are you sure you want to delete this document? This action cannot be undone.',
+            confirmText: 'Delete',
+            confirmButtonClass: 'bg-red-600 hover:bg-red-700',
+            onConfirm: async () => {
+                await trackingApi.deleteDocument(docId);
+                await queryClient.invalidateQueries({ queryKey: ['my-archives'] });
+            },
+        });
+    };
+    const handleReplaceArchiveDoc = (doc: ArchiveDocument) => {
+        setReplaceDocModal({ isOpen: true, document: doc });
+    };
+    const handleEditArchiveRecord = (record: ArchiveDocument) => {
+        void prefetchArchiveEditLookups(queryClient, record);
+        setEditRecordModal({ isOpen: true, record });
+    };
+
+    const currentDrill = useMemo(
+        () => syncArchiveDrillState(drill, archiveData),
+        [drill, archiveData],
+    );
+
+    useEffect(() => {
+        if (currentDrill.level !== 'files') {
+            return;
+        }
+
+        const currentRecord = currentDrill.year.documents.find((doc) =>
+            doc.type === currentDrill.type
+            && doc.month === currentDrill.month
+            && (doc.bl_no || '(no BL)') === currentDrill.bl,
+        );
+
+        if (!currentRecord) {
+            return;
+        }
+
+        void prefetchArchiveEditLookups(queryClient, currentRecord);
+    }, [currentDrill, queryClient]);
 
     const toggleYear = (year: number) =>
         setExpandedYears(prev => {
@@ -45,6 +111,32 @@ export const EncoderArchivePage = () => {
         });
 
     const nav = (next: DrillState) => { setDrill(next); setSearch(''); setGlobalSearch(''); };
+
+    const handleArchiveUploadSuccess = async (target: ArchiveUploadSuccessTarget) => {
+        await queryClient.invalidateQueries({ queryKey: ['my-archives'] });
+
+        const refreshedArchiveData =
+            queryClient.getQueriesData<ArchiveYear[]>({ queryKey: ['my-archives'] })
+                .map(([, data]) => data)
+                .find((data): data is ArchiveYear[] => Array.isArray(data))
+            ?? [];
+        const nextDrill = resolveArchiveDrillTarget(refreshedArchiveData, target);
+
+        setShowLegacyUpload(false);
+        setViewMode('folder');
+        setGlobalSearch('');
+        setSearch('');
+        setFilterYear(String(target.year));
+        setFilterType(target.type);
+        setExpandedYears(new Set([target.year]));
+
+        if (nextDrill) {
+            setDrill(nextDrill);
+            return;
+        }
+
+        setDrill({ level: 'years' });
+    };
 
     const globalResults = useMemo(() => {
         const q = globalSearch.trim().toLowerCase();
@@ -62,13 +154,13 @@ export const EncoderArchivePage = () => {
     }, [globalSearch, archiveData]);
 
     const flatDocumentList = useMemo(() => {
-        const blMap = new Map<string, { blNo: string; client: string; type: TransactionType; year: number; month: number; stages: Set<string>; yearData: ArchiveYear }>();
+        const blMap = new Map<string, { blNo: string; client: string; type: TransactionType; year: number; month: number; docs: ArchiveDocument[]; yearData: ArchiveYear }>();
         for (const yearData of archiveData) {
             for (const doc of yearData.documents) {
                 const blNo = doc.bl_no || '(no BL)';
                 const key = `${blNo}|${doc.type}|${yearData.year}`;
-                if (!blMap.has(key)) blMap.set(key, { blNo, client: doc.client, type: doc.type, year: yearData.year, month: doc.month, stages: new Set(), yearData });
-                blMap.get(key)!.stages.add(doc.stage);
+                if (!blMap.has(key)) blMap.set(key, { blNo, client: doc.client, type: doc.type, year: yearData.year, month: doc.month, docs: [], yearData });
+                blMap.get(key)!.docs.push(doc);
             }
         }
         return [...blMap.values()].filter(r => {
@@ -81,14 +173,14 @@ export const EncoderArchivePage = () => {
     }, [archiveData, globalSearch, filterYear, filterType]);
 
     if (showLegacyUpload) {
-        const currentYear = drill.level !== 'years' ? drill.year.year : new Date().getFullYear() - 1;
+        const currentYear = currentDrill.level !== 'years' ? currentDrill.year.year : new Date().getFullYear() - 1;
         return (
             <div className="flex justify-center py-10 px-6">
                 <div className="w-full max-w-2xl">
                     <ArchiveLegacyUploadPage
                         defaultYear={currentYear}
                         onBack={() => setShowLegacyUpload(false)}
-                        onSubmit={() => { setShowLegacyUpload(false); queryClient.invalidateQueries({ queryKey: ['my-archives'] }); }}
+                        onSubmit={handleArchiveUploadSuccess}
                     />
                 </div>
             </div>
@@ -100,12 +192,17 @@ export const EncoderArchivePage = () => {
     );
 
     // ── Encoder-specific stats ───────────────────────────────────────────────────
-    const totalMyUploads = archiveData.reduce((s, y) => s + y.documents.length, 0);
+    // Count only docs the encoder personally uploaded — the response now also includes
+    // accounting/processor uploads on the same assigned transactions.
+    const totalMyUploads = archiveData.reduce(
+        (s, y) => s + y.documents.filter(d => d.uploader?.id === user?.id).length, 0,
+    );
     const uniqueBLs = new Set(archiveData.flatMap(y => y.documents.map(d => `${d.bl_no}|${d.type}|${y.year}`))).size;
 
     const now = new Date();
     const thisMonthUploads = archiveData.reduce((s, y) =>
         s + y.documents.filter(d => {
+            if (d.uploader?.id !== user?.id) return false;
             try {
                 const dt = new Date(d.uploaded_at);
                 return dt.getMonth() === now.getMonth() && dt.getFullYear() === now.getFullYear();
@@ -128,13 +225,13 @@ export const EncoderArchivePage = () => {
         setExpandedYears(prev => new Set([...prev, yr.year]));
     };
 
-    const baseCrumb = { label: 'My Archive', onClick: drill.level !== 'years' ? () => nav({ level: 'years' }) : undefined };
+    const baseCrumb = { label: 'My Archive', onClick: currentDrill.level !== 'years' ? () => nav({ level: 'years' }) : undefined };
     const breadcrumbParts = (() => {
-        if (drill.level === 'years') return [baseCrumb];
-        if (drill.level === 'types') return [baseCrumb, { label: String(drill.year.year) }];
-        if (drill.level === 'months') return [baseCrumb, { label: String(drill.year.year), onClick: () => navToYear(drill.year) }, { label: FOLDER_LABEL[drill.type as keyof typeof FOLDER_LABEL] + '/' }];
-        if (drill.level === 'bls') return [baseCrumb, { label: String(drill.year.year), onClick: () => navToYear(drill.year) }, { label: FOLDER_LABEL[drill.type as keyof typeof FOLDER_LABEL] + '/', onClick: () => navToYear(drill.year) }, { label: MONTH_NAMES[drill.month - 1] + '/' }];
-        return [baseCrumb, { label: String(drill.year.year), onClick: () => navToYear(drill.year) }, { label: FOLDER_LABEL[drill.type as keyof typeof FOLDER_LABEL] + '/', onClick: () => navToYear(drill.year) }, { label: MONTH_NAMES[drill.month - 1] + '/', onClick: () => nav({ level: 'bls', year: drill.year, type: drill.type, month: drill.month }) }, { label: drill.bl + '/' }];
+        if (currentDrill.level === 'years') return [baseCrumb];
+        if (currentDrill.level === 'types') return [baseCrumb, { label: String(currentDrill.year.year) }];
+        if (currentDrill.level === 'months') return [baseCrumb, { label: String(currentDrill.year.year), onClick: () => navToYear(currentDrill.year) }, { label: FOLDER_LABEL[currentDrill.type as keyof typeof FOLDER_LABEL] + '/' }];
+        if (currentDrill.level === 'bls') return [baseCrumb, { label: String(currentDrill.year.year), onClick: () => navToYear(currentDrill.year) }, { label: FOLDER_LABEL[currentDrill.type as keyof typeof FOLDER_LABEL] + '/', onClick: () => navToYear(currentDrill.year) }, { label: MONTH_NAMES[currentDrill.month - 1] + '/' }];
+        return [baseCrumb, { label: String(currentDrill.year.year), onClick: () => navToYear(currentDrill.year) }, { label: FOLDER_LABEL[currentDrill.type as keyof typeof FOLDER_LABEL] + '/', onClick: () => navToYear(currentDrill.year) }, { label: MONTH_NAMES[currentDrill.month - 1] + '/', onClick: () => nav({ level: 'bls', year: currentDrill.year, type: currentDrill.type, month: currentDrill.month }) }, { label: currentDrill.bl + '/' }];
     })();
 
     return (
@@ -276,7 +373,7 @@ export const EncoderArchivePage = () => {
 
                     {/* Toolbar: breadcrumb + search + sort + view toggle */}
                     <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-surface-subtle">
-                        {(viewMode === 'document' || drill.level !== 'years') && (
+                        {(viewMode === 'document' || currentDrill.level !== 'years') && (
                             <div className="flex items-center gap-2 shrink-0 pr-1 border-r border-border mr-1">
                                 {viewMode === 'document' ? (
                                     <>
@@ -317,7 +414,7 @@ export const EncoderArchivePage = () => {
                             )}
                         </div>
                         {/* Sort — only at BL level */}
-                        {drill.level === 'bls' && viewMode === 'folder' && (
+                        {currentDrill.level === 'bls' && viewMode === 'folder' && (
                             <select value={`${sortKey}:${sortDir}`}
                                 onChange={e => { const [k, d] = e.target.value.split(':'); setSortKey(k as SortKey); setSortDir(d as 'asc' | 'desc'); }}
                                 className="h-9 px-2 rounded-md border border-border-strong bg-input-bg text-text-secondary text-xs focus:outline-none focus:ring-1 focus:ring-blue-500/40 shrink-0">
@@ -389,9 +486,9 @@ export const EncoderArchivePage = () => {
                     )}
 
                     {/* BL folder view (drill level: bls) */}
-                    {viewMode === 'folder' && !globalSearch.trim() && drill.level === 'bls' && (
+                    {viewMode === 'folder' && !globalSearch.trim() && currentDrill.level === 'bls' && (
                         <ArchivesBLView
-                            drill={drill as Extract<DrillState, { level: 'bls' }>}
+                            drill={currentDrill as Extract<DrillState, { level: 'bls' }>}
                             search={search}
                             sortKey={sortKey}
                             sortDir={sortDir}
@@ -400,15 +497,16 @@ export const EncoderArchivePage = () => {
                     )}
 
                     {/* File view (drill level: files) — no delete for encoder */}
-                    {drill.level === 'files' && (() => {
-                        const d = drill as Extract<DrillState, { level: 'files' }>;
+                    {currentDrill.level === 'files' && (() => {
+                        const d = currentDrill as Extract<DrillState, { level: 'files' }>;
                         const fileDocs = d.year.documents
                             .filter((doc: ArchiveDocument) => doc.type === d.type && doc.month === d.month && (doc.bl_no || '(no BL)') === d.bl);
                         if (fileDocs.length === 0) return <EmptyState icon="file-text" title="No files in this folder" />;
                         return (
                             <div>
+                                <ArchiveRecordOverview docs={fileDocs} canEdit onEdit={handleEditArchiveRecord} />
                                 <div className="grid items-center gap-4 px-4 py-2.5 border-b border-border bg-surface sticky top-0 z-10"
-                                    style={{ gridTemplateColumns: '32px 1fr 1.4fr 80px 32px 56px' }}>
+                                    style={{ gridTemplateColumns: '32px 1fr 1.4fr 80px 32px 80px' }}>
                                     <span />
                                     <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest">File</span>
                                     <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest text-center">Stage</span>
@@ -416,9 +514,19 @@ export const EncoderArchivePage = () => {
                                     <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest text-center">By</span>
                                     <span />
                                 </div>
-                                {fileDocs.map((doc: ArchiveDocument) => (
-                                    <ArchiveDocumentRow key={doc.id} doc={doc} canDelete={false} />
-                                ))}
+                                {fileDocs.map((doc: ArchiveDocument) => {
+                                    const isOwner = user?.id === doc.uploader?.id;
+                                    return (
+                                        <ArchiveDocumentRow
+                                            key={doc.id}
+                                            doc={doc}
+                                            canDelete={isOwner}
+                                            onDelete={handleDeleteArchiveDoc}
+                                            canReplace={isOwner}
+                                            onReplace={handleReplaceArchiveDoc}
+                                        />
+                                    );
+                                })}
                                 <button
                                     onClick={() => setAddDocModal({ isOpen: true, blNo: d.bl, type: d.type, docs: fileDocs })}
                                     className="w-full flex items-center justify-center gap-2.5 px-4 py-4 border-t-2 border-dashed border-border text-sm font-bold text-text-muted hover:text-blue-500 hover:border-blue-400/50 hover:bg-blue-500/5 transition-all group">
@@ -440,6 +548,25 @@ export const EncoderArchivePage = () => {
                 blNo={addDocModal.blNo}
                 type={addDocModal.type}
                 existingDocs={addDocModal.docs}
+            />
+            <ConfirmationModal
+                isOpen={confirmModal.isOpen}
+                onClose={() => setConfirmModal(m => ({ ...m, isOpen: false }))}
+                onConfirm={confirmModal.onConfirm}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                confirmText={confirmModal.confirmText}
+                confirmButtonClass={confirmModal.confirmButtonClass}
+            />
+            <ReplaceArchiveDocumentModal
+                isOpen={replaceDocModal.isOpen}
+                onClose={() => setReplaceDocModal(m => ({ ...m, isOpen: false }))}
+                document={replaceDocModal.document}
+            />
+            <EditArchiveRecordModal
+                isOpen={editRecordModal.isOpen}
+                onClose={() => setEditRecordModal(m => ({ ...m, isOpen: false }))}
+                record={editRecordModal.record}
             />
         </div>
     );

@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { toast } from 'sonner';
 import { Icon } from '../../../components/Icon';
 import { FilePreviewModal } from '../../../components/modals/FilePreviewModal';
 import { UploadModal } from '../../../components/modals/UploadModal';
-import { useAuth } from '../../auth';
 import { useTransactionSyncSubscription } from '../../../hooks/useTransactionSyncSubscription';
 import { appRoutes } from '../../../lib/appRoutes';
 import { trackingApi } from '../api/trackingApi';
@@ -27,14 +27,15 @@ type CompletionRedirectTarget = {
     route: string;
 };
 
+type StageDocumentsByIndex = Record<number, ApiDocument[]>;
+
 type CompletionSnapshot = {
     txDetail: TransactionDetailResult;
-    stageDocuments: Record<number, ApiDocument>;
+    stageDocuments: StageDocumentsByIndex;
 };
 
 export const TrackingDetails = () => {
     const navigate       = useNavigate();
-    const { user }       = useAuth();
     const { referenceId } = useParams();
     const queryClient    = useQueryClient();
     const addDocToCache  = useAddDocumentToCache();
@@ -45,6 +46,7 @@ export const TrackingDetails = () => {
     const [isUploadOpen,       setIsUploadOpen]       = useState(false);
     const [selectedStageIndex, setSelectedStageIndex] = useState<number | null>(null);
     const [uploadingStage,     setUploadingStage]     = useState<number | null>(null);
+    const [applicabilityStage, setApplicabilityStage] = useState<string | null>(null);
     const [deletingDocId,      setDeletingDocId]      = useState<number | null>(null);
     const [replacingDoc,       setReplacingDoc]       = useState<ApiDocument | null>(null);
     const [uploadError,        setUploadError]        = useState<string | null>(null);
@@ -135,43 +137,99 @@ export const TrackingDetails = () => {
         }
     };
 
-    const handleUpload = async (file: File) => {
-        if (selectedStageIndex === null || !txDetail || !docableType) return;
+    const handleStageApplicabilityChange = async (stageType: string, notApplicable: boolean) => {
+        if (!txDetail) {
+            return;
+        }
+
+        setApplicabilityStage(stageType);
+
+        try {
+            if (txDetail.isImport) {
+                await trackingApi.updateImportStageApplicability(txDetail.raw.id, {
+                    stage: stageType,
+                    not_applicable: notApplicable,
+                });
+            } else {
+                await trackingApi.updateExportStageApplicability(txDetail.raw.id, {
+                    stage: stageType,
+                    not_applicable: notApplicable,
+                });
+            }
+
+            await queryClient.invalidateQueries({ queryKey: trackingKeys.detail(referenceId) });
+            toast.success(
+                notApplicable
+                    ? `${stages.find((stage) => stage.type === stageType)?.title ?? 'Stage'} marked as not applicable.`
+                    : `${stages.find((stage) => stage.type === stageType)?.title ?? 'Stage'} restored to required.`,
+            );
+        } catch (error: unknown) {
+            const message = error && typeof error === 'object' && 'response' in error
+                ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
+                : undefined;
+            toast.error(message ?? 'Failed to update the stage setting.');
+        } finally {
+            setApplicabilityStage(null);
+        }
+    };
+
+    const handleUpload = async (files: File[]) => {
+        if (selectedStageIndex === null || !txDetail || !docableType) {
+            return;
+        }
 
         setUploadingStage(selectedStageIndex);
         setUploadError(null);
 
         try {
-            const doc = await trackingApi.uploadDocument({
-                file,
-                type:              stages[selectedStageIndex].type,
+            const uploadedDocuments = await trackingApi.uploadDocuments({
+                files,
+                type: stages[selectedStageIndex].type,
                 documentable_type: docableType,
-                documentable_id:   txDetail.raw.id,
+                documentable_id: txDetail.raw.id,
             });
 
-            // If replacing, delete old doc silently after new one is saved
-            if (replacingDoc) {
-                await trackingApi.deleteDocument(replacingDoc.id);
-                // Update cache: remove old, add new
-                queryClient.setQueryData<ApiDocument[]>(
-                    trackingKeys.documents.list(docableType, txDetail.raw.id),
-                    (prev = []) => [doc, ...prev.filter(d => d.id !== replacingDoc.id && d.type !== doc.type)],
-                );
-            } else {
-                addDocToCache(docableType, txDetail.raw.id, doc);
+            if (uploadedDocuments.length === 0) {
+                return;
             }
 
-            // Refresh transaction so status badge reflects backend recalculation
+            if (replacingDoc) {
+                await trackingApi.deleteDocument(replacingDoc.id);
+                queryClient.setQueryData<ApiDocument[]>(
+                    trackingKeys.documents.list(docableType, txDetail.raw.id),
+                    (previousDocuments = []) => [
+                        ...uploadedDocuments,
+                        ...previousDocuments.filter((document) => document.id !== replacingDoc.id),
+                    ],
+                );
+            } else {
+                uploadedDocuments.forEach((document) => {
+                    addDocToCache(docableType, txDetail.raw.id, document);
+                });
+            }
+
             queryClient.invalidateQueries({ queryKey: trackingKeys.detail(referenceId) });
 
-            // Check if this upload completed the final stage — trigger countdown
-            const nextStageDocuments = {
-                ...stageDocuments,
-                [selectedStageIndex]: doc,
-            };
-            const uploadedTypes = new Set(Object.values(nextStageDocuments).map(document => document.type));
-            uploadedTypes.add(doc.type);
-            const allComplete = stages.every(stage => uploadedTypes.has(stage.type));
+            const nextStageDocuments: StageDocumentsByIndex = Object.entries(stageDocuments).reduce<StageDocumentsByIndex>(
+                (carry, [index, documents]) => {
+                    carry[Number(index)] = [...documents];
+                    return carry;
+                },
+                {},
+            );
+            nextStageDocuments[selectedStageIndex] = replacingDoc
+                ? [...uploadedDocuments, ...(nextStageDocuments[selectedStageIndex] ?? []).filter((document) => document.id !== replacingDoc.id)]
+                : [...uploadedDocuments, ...(nextStageDocuments[selectedStageIndex] ?? [])];
+
+            const uploadedTypes = new Set(
+                stages
+                    .filter((stage, index) => {
+                        const documents = nextStageDocuments[index] ?? [];
+                        return documents.length > 0 || (txDetail.raw.not_applicable_stages ?? []).includes(stage.type);
+                    })
+                    .map((stage) => stage.type),
+            );
+            const allComplete = stages.every((stage) => uploadedTypes.has(stage.type));
             if (allComplete) {
                 setCompletionSnapshot({
                     txDetail,
@@ -190,6 +248,7 @@ export const TrackingDetails = () => {
         } catch (err: unknown) {
             const apiErr = err as { response?: { data?: { message?: string } } };
             setUploadError(apiErr?.response?.data?.message ?? 'Upload failed. Please try again.');
+            throw err;
         } finally {
             setUploadingStage(null);
         }
@@ -251,19 +310,36 @@ export const TrackingDetails = () => {
 
     // Derive the badge label from uploaded doc types — instant reactivity,
     // and matches exactly what the backend saves after the enum migration.
-    const uploadedDocTypes = Object.values(displayStageDocuments).map(d => d.type);
+    const notApplicableStages = new Set(displayTxDetail.raw.not_applicable_stages ?? []);
+    const uploadedStageTypes = displayStages
+        .filter((_, index) => (displayStageDocuments[index]?.length ?? 0) > 0)
+        .map((stage) => stage.type);
     const displayStatus    = isImport
-        ? getImportDisplayStatus(uploadedDocTypes)
-        : getExportDisplayStatus(uploadedDocTypes);
+        ? getImportDisplayStatus(uploadedStageTypes)
+        : getExportDisplayStatus(uploadedStageTypes);
 
     const s = getStatusStyle(displayStatus);
 
     // Derive stage statuses from document presence (document-driven, not status-string-driven)
-    const firstEmptyIdx  = displayStages.findIndex((_, i) => !displayStageDocuments[i]);
-    const stageStatuses  = displayStages.map((_, i) =>
-        getStageStatusFromDoc(!!displayStageDocuments[i], i === firstEmptyIdx),
+    const firstEmptyIdx  = displayStages.findIndex((stage, i) => {
+        const documents = displayStageDocuments[i] ?? [];
+        return documents.length === 0 && !notApplicableStages.has(stage.type);
+    });
+    const stageStatuses  = displayStages.map((stage, i) =>
+        getStageStatusFromDoc(
+            (displayStageDocuments[i]?.length ?? 0) > 0 || notApplicableStages.has(stage.type),
+            i === firstEmptyIdx,
+        ),
     );
-    const activeIndex    = stageStatuses.findIndex(s => s === 'active');
+    const stageUploadDisabledReasons = displayStages.map((stage, i) => {
+        const hasDocuments = (displayStageDocuments[i]?.length ?? 0) > 0;
+
+        if (hasDocuments || notApplicableStages.has(stage.type) || stageStatuses[i] === 'active') {
+            return null;
+        }
+
+        return 'Complete the earlier required stages before uploading this document.';
+    });
     const importTx       = isImport  ? (transaction as ImportTransaction)  : null;
     const exportTx       = !isImport ? (transaction as ExportTransaction)  : null;
 
@@ -305,15 +381,17 @@ export const TrackingDetails = () => {
                             index={i}
                             isLast={i === displayStages.length - 1}
                             stageStatus={stageStatuses[i]}
-                            doc={displayStageDocuments[i]}
+                            docs={displayStageDocuments[i] ?? []}
+                            isNotApplicable={notApplicableStages.has(stage.type)}
                             isUploading={uploadingStage === i}
-                            isDeleting={deletingDocId === displayStageDocuments[i]?.id}
-                            activeIndex={activeIndex}
-                            allowEdit={['accounting', 'processor'].includes(user?.role || '') ? ['billing', 'cil', 'ppa', 'port_charges'].includes(stage.type) : true}
+                            isApplicabilityUpdating={applicabilityStage === stage.type}
+                            deletingDocId={deletingDocId}
+                            uploadDisabledReason={stageUploadDisabledReasons[i]}
                             onUploadClick={handleStageUploadClick}
                             onPreviewDoc={handlePreviewDoc}
                             onDeleteDoc={handleDeleteDoc}
                             onReplaceDoc={handleReplaceDoc}
+                            onNotApplicableChange={handleStageApplicabilityChange}
                         />
                     ))}
                 </div>
@@ -370,6 +448,7 @@ export const TrackingDetails = () => {
             />
 
             <EditTransactionModal
+                key={`${isImport ? 'import' : 'export'}-${displayTxDetail.raw?.id ?? 'new'}-${isEditModalOpen ? 'open' : 'closed'}`}
                 isOpen={isEditModalOpen}
                 onClose={() => {
                     setIsEditModalOpen(false);

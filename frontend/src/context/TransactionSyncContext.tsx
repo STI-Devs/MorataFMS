@@ -72,7 +72,7 @@ export function TransactionSyncProvider({ children }: { children: ReactNode }) {
             return;
         }
 
-        if (!isAuthenticated || !user || !['admin', 'encoder'].includes(user.role)) {
+        if (!isAuthenticated || !user || !['admin', 'encoder', 'processor', 'accounting'].includes(user.role)) {
             disconnectEcho();
 
             return;

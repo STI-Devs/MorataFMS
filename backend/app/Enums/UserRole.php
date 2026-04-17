@@ -24,7 +24,7 @@ enum UserRole: string
             self::Processor->value => 2,
             self::Accounting->value => 2,
             self::Paralegal->value => 3,
-            self::Admin->value => 3,
+            self::Admin->value => 4,
         ];
 
         return ($hierarchy[$this->value] ?? 0) >= ($hierarchy[$minimum->value] ?? 0);

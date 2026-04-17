@@ -28,10 +28,18 @@ export interface ArchiveDocument {
     id: number;
     type: TransactionType;           // 'import' | 'export' — from path segment
     bl_no: string;                   // Bill of Lading — from path segment
+    customs_ref_no?: string | null;
     month: number;                   // Archive period month (1-12)
     client: string;                  // Client name (importer/shipper)
-    selective_color?: 'green' | 'yellow' | 'red' | null; // Import only — BLSC
+    client_id?: number | null;
+    selective_color?: 'green' | 'yellow' | 'orange' | 'red' | null; // Import only — BLSC
+    origin_country?: string | null;
+    origin_country_id?: number | null;
     destination_country?: string | null;                  // Export only — destination
+    destination_country_id?: number | null;
+    vessel_name?: string | null;
+    location_of_goods?: string | null;
+    location_of_goods_id?: number | null;
     transaction_date: string;        // ISO date string (YYYY-MM-DD)
     transaction_id: number;          // Parent transaction ID (for document uploads)
     documentable_type: string;       // 'App\\Models\\ImportTransaction' | 'App\\Models\\ExportTransaction'
@@ -42,6 +50,7 @@ export interface ArchiveDocument {
     archive_origin: ArchiveOrigin | null;
     archived_at: string | null;
     uploaded_at: string;             // ISO timestamp
+    not_applicable_stages?: string[];
     uploader: { id: number; name: string } | null;
 }
 
@@ -149,7 +158,8 @@ export interface AdminReviewRequiredDocument {
     type_key: string;
     label: string;
     uploaded: boolean;
-    file: AdminReviewDocumentFile | null;
+    not_applicable: boolean;
+    files: AdminReviewDocumentFile[];
 }
 
 export interface AdminReviewUploadedDocument {
@@ -210,7 +220,8 @@ export interface AdminReviewArchiveResponse {
 
 /** Per-stage file attachment used in the legacy upload form */
 export interface StageUpload {
-    file: File | null;
+    files: File[];
+    notApplicable?: boolean;
 }
 
 /** Top-level form state for ArchiveLegacyUploadPage */
@@ -225,31 +236,45 @@ export interface ArchiveFormState {
     fileDate: string;
 }
 
+export interface ArchiveStageDefinition {
+    key: string;
+    label: string;
+    optional?: boolean;
+}
 
-export const IMPORT_STAGES = [
-    { key: 'boc', label: 'BOC Processing' },
-    { key: 'ppa', label: 'PPA Processing' },
-    { key: 'do', label: 'DO Request' },
-    { key: 'port_charges', label: 'Port Charges' },
-    { key: 'releasing', label: 'Releasing' },
-    { key: 'billing', label: 'Billing' },
+export const IMPORT_STAGES: readonly ArchiveStageDefinition[] = [
+    { key: 'boc', label: 'BOC Document Processing' },
+    { key: 'bonds', label: 'BONDS', optional: true },
+    { key: 'ppa', label: 'Payment for PPA Charges', optional: true },
+    { key: 'do', label: 'Delivery Order Request' },
+    { key: 'port_charges', label: 'Payment for Port Charges', optional: true },
+    { key: 'releasing', label: 'Releasing of Documents' },
+    { key: 'billing', label: 'Billing and Liquidation' },
     { key: 'others', label: 'Others' },
 ] as const;
 
-export const EXPORT_STAGES = [
-    { key: 'boc', label: 'BOC Processing' },
-    { key: 'bl_generation', label: 'BL Generation' },
-    { key: 'co', label: 'CO Processing' },
-    { key: 'dccci', label: 'DCCCI Printing' },
-    { key: 'billing', label: 'Billing' },
+export const EXPORT_STAGES: readonly ArchiveStageDefinition[] = [
+    { key: 'boc', label: 'BOC Document Processing' },
+    { key: 'bl_generation', label: 'Bill of Lading' },
+    { key: 'phytosanitary', label: 'Phytosanitary Certificates', optional: true },
+    { key: 'co', label: 'CO Application', optional: true },
+    { key: 'cil', label: 'CIL' },
+    { key: 'dccci', label: 'DCCCI Printing', optional: true },
+    { key: 'billing', label: 'Billing and Liquidation' },
     { key: 'others', label: 'Others' },
 ] as const;
 
 export const REQUIRED_IMPORT_STAGES = IMPORT_STAGES.filter((stage) => stage.key !== 'others');
 export const REQUIRED_EXPORT_STAGES = EXPORT_STAGES.filter((stage) => stage.key !== 'others');
 
-export const getRequiredArchiveStages = (type: TransactionType) =>
-    type === 'import' ? REQUIRED_IMPORT_STAGES : REQUIRED_EXPORT_STAGES;
+export const getRequiredArchiveStages = (
+    type: TransactionType,
+    notApplicableStages: string[] = [],
+) => {
+    const requiredStages = type === 'import' ? REQUIRED_IMPORT_STAGES : REQUIRED_EXPORT_STAGES;
+
+    return requiredStages.filter((stage) => !notApplicableStages.includes(stage.key));
+};
 
 // Dynamic: 2015 → current year, newest first. Auto-expands each year without code changes.
 const _currentYear = new Date().getFullYear();
@@ -261,5 +286,6 @@ export const ARCHIVE_YEARS: number[] = Array.from(
 export const BLSC_OPTIONS = [
     { value: 'green', label: 'Green' },
     { value: 'yellow', label: 'Yellow' },
+    { value: 'orange', label: 'Orange' },
     { value: 'red', label: 'Red' },
 ] as const;

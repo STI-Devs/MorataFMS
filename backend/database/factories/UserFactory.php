@@ -33,6 +33,8 @@ class UserFactory extends Factory
         return [
             'name' => $faker->name(),
             'email' => $faker->unique()->safeEmail(),
+            'role' => 'encoder',
+            'is_active' => true,
             'job_title' => $faker->randomElement(['Administrator', 'Lawyer', 'Paralegal', 'Encoder']),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),

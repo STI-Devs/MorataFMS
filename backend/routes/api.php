@@ -9,6 +9,7 @@ use App\Http\Controllers\CountryController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\ExportTransactionController;
 use App\Http\Controllers\ImportTransactionController;
+use App\Http\Controllers\LocationOfGoodsController;
 use App\Http\Controllers\NotarialBookController;
 use App\Http\Controllers\NotarialEntryController;
 use App\Http\Controllers\ProfileController;
@@ -16,25 +17,21 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\TransactionRemarkController;
 use App\Http\Controllers\UserController;
-use App\Http\Resources\UserResource;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->group(function () {
     require __DIR__.'/auth.php';
 });
 
-// Document management (protected by signed URLs for preview/download)
+// Document management
 Route::get('documents/{document}/stream', [DocumentController::class, 'stream'])
     ->name('documents.stream')
-    ->middleware(['signed', 'throttle:public-documents']);
+    ->middleware(['auth:sanctum', 'active-session', 'throttle:api-documents']);
 
-Route::middleware(['auth:sanctum', 'throttle:api-general'])->group(function () {
+Route::middleware(['auth:sanctum', 'active-session', 'throttle:api-general'])->group(function () {
 
     // Current user
-    Route::get('/user', function (Request $request) {
-        return new UserResource($request->user());
-    });
+    Route::get('/user', [ProfileController::class, 'show']);
 
     // Self-service profile update (any authenticated user)
     Route::put('/user/profile', [ProfileController::class, 'update']);
@@ -45,17 +42,21 @@ Route::middleware(['auth:sanctum', 'throttle:api-general'])->group(function () {
     Route::get('export-transactions/stats', [ExportTransactionController::class, 'stats']);
     Route::patch('import-transactions/{import_transaction}/cancel', [ImportTransactionController::class, 'cancel']);
     Route::patch('export-transactions/{export_transaction}/cancel', [ExportTransactionController::class, 'cancel']);
+    Route::patch('import-transactions/{import_transaction}/stage-applicability', [ImportTransactionController::class, 'updateStageApplicability']);
+    Route::patch('export-transactions/{export_transaction}/stage-applicability', [ExportTransactionController::class, 'updateStageApplicability']);
     Route::apiResource('import-transactions', ImportTransactionController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::apiResource('export-transactions', ExportTransactionController::class)->only(['index', 'store', 'update', 'destroy']);
 
     // Clients (read for all, write for admin)
     Route::get('/clients', [ClientController::class, 'index']);
     Route::get('/countries', [CountryController::class, 'index']);
+    Route::get('/locations-of-goods', [LocationOfGoodsController::class, 'index']);
 
     // Document management
     Route::get('documents/transactions', [DocumentController::class, 'transactions'])
         ->middleware('throttle:api-search');
     Route::apiResource('documents', DocumentController::class)->except(['update']);
+    Route::post('documents/{document}/replace', [DocumentController::class, 'replace']);
     Route::get('documents/{document}/download', [DocumentController::class, 'download'])
         ->middleware('throttle:api-documents');
     Route::get('documents/{document}/preview', [DocumentController::class, 'preview'])
@@ -64,8 +65,15 @@ Route::middleware(['auth:sanctum', 'throttle:api-general'])->group(function () {
     // Archive uploads (legacy)
     Route::prefix('archives')->group(function () {
         Route::get('/', [ArchiveController::class, 'index']);
+        Route::get('operational', [ArchiveController::class, 'operationalQueue']);
         Route::post('import', [ArchiveController::class, 'storeImport'])->middleware('throttle:archive-uploads');
         Route::post('export', [ArchiveController::class, 'storeExport'])->middleware('throttle:archive-uploads');
+        Route::put('import/{importTransaction}', [ArchiveController::class, 'updateImport']);
+        Route::put('export/{exportTransaction}', [ArchiveController::class, 'updateExport']);
+        Route::patch('import/{importTransaction}/stage-applicability', [ArchiveController::class, 'updateImportStageApplicability']);
+        Route::patch('export/{exportTransaction}/stage-applicability', [ArchiveController::class, 'updateExportStageApplicability']);
+        Route::delete('import/{importTransaction}', [ArchiveController::class, 'rollbackImport'])->middleware('throttle:archive-uploads');
+        Route::delete('export/{exportTransaction}', [ArchiveController::class, 'rollbackExport'])->middleware('throttle:archive-uploads');
     });
 
     // Notarial (Law Firm) module
@@ -89,6 +97,16 @@ Route::middleware(['auth:sanctum', 'throttle:api-general'])->group(function () {
         Route::get('clients/{client}/transactions', [ClientController::class, 'transactions'])
             ->middleware('throttle:api-search');
 
+        // Country management (write operations)
+        Route::post('countries', [CountryController::class, 'store']);
+        Route::put('countries/{country}', [CountryController::class, 'update']);
+        Route::post('countries/{country}/toggle-active', [CountryController::class, 'toggleActive']);
+
+        // Location of goods management (write operations)
+        Route::post('locations-of-goods', [LocationOfGoodsController::class, 'store']);
+        Route::put('locations-of-goods/{location_of_goods}', [LocationOfGoodsController::class, 'update']);
+        Route::post('locations-of-goods/{location_of_goods}/toggle-active', [LocationOfGoodsController::class, 'toggleActive']);
+
         // Audit logs (read-only, admin)
         Route::get('audit-logs/actions', [AuditLogController::class, 'actions'])
             ->middleware('throttle:api-search');
@@ -110,10 +128,6 @@ Route::middleware(['auth:sanctum', 'throttle:api-general'])->group(function () {
         // Transaction oversight (admin)
         Route::get('transactions', [TransactionController::class, 'index'])
             ->middleware('throttle:api-search');
-        Route::get('transactions/encoders', [TransactionController::class, 'encoders'])
-            ->middleware('throttle:api-search');
-        Route::patch('transactions/import/{importTransaction}/reassign', [TransactionController::class, 'reassignImport']);
-        Route::patch('transactions/export/{exportTransaction}/reassign', [TransactionController::class, 'reassignExport']);
         Route::patch('transactions/import/{importTransaction}/status', [TransactionController::class, 'overrideImportStatus']);
         Route::patch('transactions/export/{exportTransaction}/status', [TransactionController::class, 'overrideExportStatus']);
 

@@ -131,7 +131,9 @@ export const Documents = () => {
                 isOpen={isUploadOpen}
                 onClose={() => setIsUploadOpen(false)}
                 title="Select a transaction first"
-                onUpload={() => setIsUploadOpen(false)}
+                onUpload={() => {
+                    setIsUploadOpen(false);
+                }}
             />
         </div>
     );

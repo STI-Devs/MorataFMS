@@ -5,7 +5,7 @@ interface FilePreviewModalProps {
     onClose: () => void;
     /**
      * - `File`   → local file selected by user (before upload)
-     * - `string` → pre-signed S3 URL returned by `/api/documents/{id}/preview`
+     * - `string` → authenticated preview URL returned by app routing
      * - `null`   → nothing to preview
      */
     file: File | string | null;
@@ -32,18 +32,14 @@ function classifyFile(name: string, isLocal: boolean): PreviewType {
     return isLocal ? 'local-raw' : 'unsupported';
 }
 
-function googleDocsUrl(presignedUrl: string) {
-    return `https://docs.google.com/viewer?url=${encodeURIComponent(presignedUrl)}&embedded=true`;
-}
-
 export const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
     isOpen, onClose, file, fileName, onDownload,
 }) => {
     if (!isOpen) return null;
 
     const isLocalFile  = file instanceof File;
-    // blob: URLs are created client-side (local disk path) and are not publicly
-    // accessible — Google Docs Viewer cannot load them, so treat them as "local".
+    // blob: URLs are created client-side and are not remotely accessible,
+    // so treat them as local content.
     const isBlobUrl    = typeof file === 'string' && file.startsWith('blob:');
     const isRemoteUrl  = typeof file === 'string' && !isBlobUrl;
 
@@ -63,12 +59,12 @@ export const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
         }
         if (isBlobUrl) {
             // Local disk stream — same treatment as a local File; blob: URLs are
-            // not publicly accessible so Google Docs Viewer cannot use them.
+            // not remotely accessible, so treat them as local-only content.
             return file as string;
         }
         if (isRemoteUrl) {
-            if (previewType === 'office') return googleDocsUrl(file as string);
-            return file as string; // image or pdf — use the pre-signed URL directly
+            if (previewType === 'office') return null;
+            return file as string;
         }
         return null;
     })();
@@ -127,14 +123,6 @@ export const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
                         />
                     )}
 
-                    {previewType === 'office' && viewerUrl && (
-                        <iframe
-                            src={viewerUrl}
-                            className="w-full h-[78vh] border-none"
-                            title="Document Preview (Google Docs Viewer)"
-                        />
-                    )}
-
                     {previewType === 'unsupported' && (
                         <UnsupportedPreview name={displayName ?? ''} onDownload={onDownload} />
                     )}
@@ -144,16 +132,6 @@ export const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
                     )}
                 </div>
 
-                {/* Google Docs Viewer note */}
-                {previewType === 'office' && (
-                    <div className="px-4 py-2 border-t border-border bg-surface shrink-0">
-                        <p className="text-xs text-text-muted text-center">
-                            Powered by{' '}
-                            <span className="font-semibold text-blue-600 dark:text-blue-400">Google Docs Viewer</span>
-                            {' '}· Preview may take a few seconds to load
-                        </p>
-                    </div>
-                )}
             </div>
         </div>
     );

@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { Icon } from '../../../components/Icon';
 import { StatusBadge } from '../../../components/StatusBadge';
-import { useAuth } from '../../auth';
 import type { ApiImportTransaction, ImportTransaction } from '../types';
 import { mapImportTransaction } from '../utils/mappers';
 import { RemarkViewerModal } from './RemarkViewerModal';
 import { TransactionListPage } from './TransactionListPage';
 
+const CANCELLABLE_IMPORT_STATUSES = new Set(['Pending', 'Vessel Arrived', 'Processing', 'In Progress']);
+
 export const ImportList = () => {
-    const { user } = useAuth();
     const [remarkTarget, setRemarkTarget] = useState<ImportTransaction | null>(null);
 
     return (
@@ -18,17 +18,18 @@ export const ImportList = () => {
                 title="Import Transactions"
                 subtitle="Track and manage all import shipments"
                 encodeButtonLabel="Encode Import"
-                hideEncode={user?.role === 'accounting' || user?.role === 'processor'}
-                gridTemplateColumns="90px 1.2fr 1fr 120px 2fr 1.2fr 60px"
+                gridTemplateColumns="90px 1.2fr 1fr 1fr 1.3fr 120px 1.4fr 1fr 60px"
                 mapResponseData={data => (data as ApiImportTransaction[]).map(mapImportTransaction)}
                 renderHeaders={() => (
                     <>
                         <span className="text-[10px] font-bold text-text-muted uppercase tracking-[0.08em] text-center">Selectivity</span>
                         <span className="text-[10px] font-bold text-text-muted uppercase tracking-[0.08em] text-left">Customs Ref No.</span>
                         <span className="text-[10px] font-bold text-text-muted uppercase tracking-[0.08em] text-left">Bill of Lading</span>
+                        <span className="text-[10px] font-bold text-text-muted uppercase tracking-[0.08em] text-left">Vessel Name</span>
+                        <span className="text-[10px] font-bold text-text-muted uppercase tracking-[0.08em] text-left">Location of Goods</span>
                         <span className="text-[10px] font-bold text-text-muted uppercase tracking-[0.08em] text-center">Status</span>
-                        <span className="text-[10px] font-bold text-text-muted uppercase tracking-[0.08em] text-left pl-4">Importer</span>
                         <span className="text-[10px] font-bold text-text-muted uppercase tracking-[0.08em] text-center">Arrival Date</span>
+                        <span className="text-[10px] font-bold text-text-muted uppercase tracking-[0.08em] text-left pl-4">Importer</span>
                         <span className="text-[10px] font-bold text-text-muted uppercase tracking-[0.08em] text-center"></span>
                     </>
                 )}
@@ -52,11 +53,13 @@ export const ImportList = () => {
                             )}
                         </div>
                         <p className="text-sm text-text-secondary font-bold truncate text-left" title={row.bl || ''}>{row.bl || '—'}</p>
+                        <p className="text-sm text-text-secondary font-bold truncate text-left" title={row.vesselName || ''}>{row.vesselName || '—'}</p>
+                        <p className="text-sm text-text-secondary font-bold truncate text-left" title={row.locationOfGoods || ''}>{row.locationOfGoods || '—'}</p>
                         <div className="flex justify-center flex-shrink-0">
                             <StatusBadge status={row.status} />
                         </div>
-                        <p className="text-sm text-text-secondary font-bold truncate text-left pl-4" title={row.importer}>{row.importer}</p>
                         <p className="text-sm text-text-muted font-semibold truncate text-center" title={row.date || ''}>{row.date || '—'}</p>
+                        <p className="text-sm text-text-secondary font-bold truncate text-left pl-4" title={row.importer}>{row.importer}</p>
                         <div className="flex justify-center gap-1.5">
                             <button
                                 className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-md transition-colors"
@@ -67,18 +70,18 @@ export const ImportList = () => {
                             </button>
                             <button
                                 className={`p-1.5 rounded-md transition-colors ${
-                                    row.status === 'Pending' || row.status === 'In Transit'
+                                    CANCELLABLE_IMPORT_STATUSES.has(row.status)
                                         ? 'text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 cursor-pointer'
                                         : 'text-text-muted/30 cursor-not-allowed'
                                 }`}
                                 onClick={e => {
                                     e.stopPropagation();
-                                    if (row.status === 'Pending' || row.status === 'In Transit') {
+                                    if (CANCELLABLE_IMPORT_STATUSES.has(row.status)) {
                                         onCancel(row.id, row.ref);
                                     }
                                 }}
-                                disabled={row.status !== 'Pending' && row.status !== 'In Transit'}
-                                title={row.status === 'Pending' || row.status === 'In Transit' ? 'Cancel Transaction' : 'Cannot cancel'}
+                                disabled={!CANCELLABLE_IMPORT_STATUSES.has(row.status)}
+                                title={CANCELLABLE_IMPORT_STATUSES.has(row.status) ? 'Cancel Transaction' : 'Cannot cancel'}
                             >
                                 <Icon name="x" className="w-4 h-4" />
                             </button>

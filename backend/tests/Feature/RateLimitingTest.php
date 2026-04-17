@@ -12,5 +12,5 @@ test('sensitive routes use the named rate limiters', function () {
     expect($loginRoute->gatherMiddleware())->toContain('throttle:auth-login');
     expect($currentUserRoute->gatherMiddleware())->toContain('throttle:api-general');
     expect($adminDashboardRoute->gatherMiddleware())->toContain('throttle:api-admin', 'throttle:api-search');
-    expect($documentStreamRoute->gatherMiddleware())->toContain('throttle:public-documents');
+    expect($documentStreamRoute->gatherMiddleware())->toContain('auth:sanctum', 'active-session', 'throttle:api-documents');
 });

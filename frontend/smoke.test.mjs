@@ -44,6 +44,19 @@ test('login flow supports optional Cloudflare Turnstile protection', () => {
     assert.match(envExample, /VITE_TURNSTILE_SITE_KEY=/);
 });
 
+test('login route csp allows Turnstile inline challenge scripts without loosening the whole app', () => {
+    const vercelConfig = JSON.parse(read('vercel.json'));
+    const loginHeaders = vercelConfig.headers.find(({ source }) => source === '/login');
+    const globalHeaders = vercelConfig.headers.find(({ source }) => source === '/(.*)');
+    const loginCsp = loginHeaders.headers.find(({ key }) => key === 'Content-Security-Policy').value;
+    const globalCsp = globalHeaders.headers.find(({ key }) => key === 'Content-Security-Policy').value;
+
+    assert.match(loginCsp, /script-src[^;]*'unsafe-inline'/);
+    assert.match(loginCsp, /script-src-attr 'none'/);
+    assert.doesNotMatch(globalCsp, /script-src[^;]*'unsafe-inline'/);
+    assert.match(globalCsp, /script-src-attr 'none'/);
+});
+
 test('document preview does not leak signed URLs to Google Docs Viewer', () => {
     const previewHook = read('src/features/tracking/hooks/useDocumentPreview.ts');
     assert.doesNotMatch(previewHook, /docs\.google/);

@@ -68,11 +68,11 @@ class OverrideTransactionStatus
         if ($transaction instanceof ExportTransaction && $status === ExportStatusWorkflow::completed()) {
             $transaction->loadMissing('stages');
 
-            if ($transaction->stages && $transaction->stages->bl_completed_at === null) {
+            if ($transaction->stages && $transaction->stages->billing_completed_at === null) {
                 $transaction->stages->update([
-                    'bl_status' => StageStatus::Completed->value,
-                    'bl_completed_at' => now(),
-                    'bl_completed_by' => $actor->id,
+                    'billing_status' => StageStatus::Completed->value,
+                    'billing_completed_at' => now(),
+                    'billing_completed_by' => $actor->id,
                 ]);
             }
         }

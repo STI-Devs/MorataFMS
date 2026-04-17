@@ -1,1 +1,1 @@
-export { Documents as AccountingDocumentsPage } from '../../documents/components/document-list/Documents';
+export { AccountingArchivePage as AccountingDocumentsPage } from './AccountingArchivePage';

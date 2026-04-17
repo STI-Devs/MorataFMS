@@ -1,6 +1,10 @@
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { CurrentDateTime } from '../../../components/CurrentDateTime';
 import { appRoutes } from '../../../lib/appRoutes';
+import { trackingApi } from '../../tracking/api/trackingApi';
+import { trackingKeys } from '../../tracking/utils/queryKeys';
+import { getExportProcessorActionability, getImportProcessorActionability } from '../../tracking/utils/stageUtils';
 
 type ModuleCard = {
     label: string;
@@ -12,15 +16,15 @@ type ModuleCard = {
 
 const moduleCards: ModuleCard[] = [
     {
-        label: 'Transaction',
-        description: 'Track and manage import/export transactions assigned to the processor.',
+        label: 'Transaction Tasks',
+        description: 'Track and manage shared processor-stage queues for imports and exports.',
         path: appRoutes.processorTransaction,
         accent: '#0a84ff',
         icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4',
     },
     {
         label: 'Documents',
-        description: 'Access and manage processor-related documents and attachments.',
+        description: 'Access and view your historical processor documents.',
         path: appRoutes.processorDocuments,
         accent: '#64d2ff',
         icon: 'M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2',
@@ -30,6 +34,57 @@ const moduleCards: ModuleCard[] = [
 export const ProcessorDashboard = () => {
     const navigate = useNavigate();
 
+    const importsQuery = useQuery({
+        queryKey: [...trackingKeys.imports.list(), 'processor-dashboard-imports'],
+        queryFn: () => trackingApi.getAllImports({ exclude_statuses: 'completed,cancelled' }),
+    });
+
+    const exportsQuery = useQuery({
+        queryKey: [...trackingKeys.exports.list(), 'processor-dashboard-exports'],
+        queryFn: () => trackingApi.getAllExports({ exclude_statuses: 'completed,cancelled' }),
+    });
+
+    const calculateMetrics = () => {
+        let pendingPPA = 0;
+        let pendingPortCharges = 0;
+        let pendingCIL = 0;
+        let pendingDCCCI = 0;
+
+        importsQuery.data?.forEach(tx => {
+            const actionability = getImportProcessorActionability(tx.stages);
+
+            if (actionability.ppa) {
+                pendingPPA++;
+            }
+
+            if (actionability.port_charges) {
+                pendingPortCharges++;
+            }
+        });
+
+        exportsQuery.data?.forEach(tx => {
+            const actionability = getExportProcessorActionability(tx.stages);
+
+            if (actionability.cil) {
+                pendingCIL++;
+            }
+
+            if (actionability.dccci) {
+                pendingDCCCI++;
+            }
+        });
+
+        return {
+            pendingPPA,
+            pendingPortCharges,
+            pendingCIL,
+            pendingDCCCI,
+            totalTasks: pendingPPA + pendingPortCharges + pendingCIL + pendingDCCCI,
+        };
+    };
+
+    const metrics = calculateMetrics();
+
     return (
         <div className="space-y-8 px-6 py-6">
             <header className="flex flex-col gap-4 border-b border-border pb-6 sm:flex-row sm:items-end sm:justify-between">
@@ -37,7 +92,7 @@ export const ProcessorDashboard = () => {
                     <p className="text-xs font-bold uppercase tracking-[0.28em] text-text-muted">Processor Workspace</p>
                     <h1 className="mt-2 text-4xl font-bold tracking-tight text-text-primary">Processor Dashboard</h1>
                     <p className="mt-3 max-w-2xl text-sm text-text-secondary">
-                        Manage transactions, port charges, and processor documents from one place.
+                        Manage shared processor uploads for active transactions while encoder ownership stays in place.
                     </p>
                 </div>
                 <CurrentDateTime
@@ -46,6 +101,33 @@ export const ProcessorDashboard = () => {
                     dateClassName="mt-1 text-xs font-mono uppercase tracking-[0.25em] text-text-secondary"
                 />
             </header>
+
+            <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="flex flex-col rounded-xl border border-border bg-surface p-5 shadow-sm">
+                    <p className="text-xs font-bold uppercase tracking-wider text-text-secondary">Pending PPA</p>
+                    <div className="mt-2 text-3xl font-bold text-text-primary">
+                        {importsQuery.isLoading ? '...' : metrics.pendingPPA}
+                    </div>
+                </div>
+                <div className="flex flex-col rounded-xl border border-border bg-surface p-5 shadow-sm">
+                    <p className="text-xs font-bold uppercase tracking-wider text-text-secondary">Pending Port Charges</p>
+                    <div className="mt-2 text-3xl font-bold text-text-primary">
+                        {importsQuery.isLoading ? '...' : metrics.pendingPortCharges}
+                    </div>
+                </div>
+                <div className="flex flex-col rounded-xl border border-border bg-surface p-5 shadow-sm">
+                    <p className="text-xs font-bold uppercase tracking-wider text-text-secondary">Pending CIL</p>
+                    <div className="mt-2 text-3xl font-bold text-text-primary">
+                        {exportsQuery.isLoading ? '...' : metrics.pendingCIL}
+                    </div>
+                </div>
+                <div className="flex flex-col rounded-xl border border-border bg-surface p-5 shadow-sm">
+                    <p className="text-xs font-bold uppercase tracking-wider text-text-secondary">Pending DCCCI</p>
+                    <div className="mt-2 text-3xl font-bold text-text-primary">
+                        {exportsQuery.isLoading ? '...' : metrics.pendingDCCCI}
+                    </div>
+                </div>
+            </section>
 
             <section>
                 <div className="mb-4 flex items-center gap-3">

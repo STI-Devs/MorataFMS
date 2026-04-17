@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\UserRole;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -21,6 +22,7 @@ class Document extends Model
     {
         return [
             'boc',
+            'bonds',
             'ppa',
             'do',
             'port_charges',
@@ -38,11 +40,29 @@ class Document extends Model
         return [
             'boc',
             'bl_generation',
+            'phytosanitary',
             'co',
+            'cil',
             'dccci',
             'billing',
             'others',
         ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function importOptionalTypeKeys(): array
+    {
+        return ['bonds', 'ppa', 'port_charges'];
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function exportOptionalTypeKeys(): array
+    {
+        return ['phytosanitary', 'co', 'dccci'];
     }
 
     /**
@@ -60,6 +80,33 @@ class Document extends Model
     public static function isAllowedTypeFor(?string $documentableType, string $type): bool
     {
         return in_array($type, self::allowedTypeKeysFor($documentableType), true);
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function optionalTypeKeysFor(?string $documentableType): array
+    {
+        return match ($documentableType) {
+            ImportTransaction::class => self::importOptionalTypeKeys(),
+            ExportTransaction::class => self::exportOptionalTypeKeys(),
+            default => [],
+        };
+    }
+
+    /**
+     * @param  list<string>  $notApplicableStageKeys
+     * @return list<string>
+     */
+    public static function requiredTypeKeysFor(
+        ?string $documentableType,
+        array $notApplicableStageKeys = [],
+    ): array {
+        return array_values(array_filter(
+            self::allowedTypeKeysFor($documentableType),
+            fn (string $typeKey): bool => $typeKey !== 'others'
+                && ! in_array($typeKey, $notApplicableStageKeys, true),
+        ));
     }
 
     /**
@@ -97,15 +144,44 @@ class Document extends Model
             return $query->whereRaw('1 = 0');
         }
 
-        return $query->where(function ($documentQuery) use ($user) {
-            $documentQuery
-                ->whereHasMorph('documentable', [ImportTransaction::class], function ($transactionQuery) use ($user) {
-                    $transactionQuery->visibleTo($user);
-                })
-                ->orWhereHasMorph('documentable', [ExportTransaction::class], function ($transactionQuery) use ($user) {
-                    $transactionQuery->visibleTo($user);
-                });
-        });
+        if ($user->isAdmin()) {
+            return $query;
+        }
+
+        if ($user->role === UserRole::Encoder) {
+            return $query->where(function ($documentQuery) use ($user) {
+                $documentQuery
+                    ->whereHasMorph('documentable', [ImportTransaction::class], function ($transactionQuery) use ($user) {
+                        $transactionQuery->visibleTo($user);
+                    })
+                    ->orWhereHasMorph('documentable', [ExportTransaction::class], function ($transactionQuery) use ($user) {
+                        $transactionQuery->visibleTo($user);
+                    });
+            });
+        }
+
+        if (in_array($user->role, [UserRole::Processor, UserRole::Accounting], true)) {
+            return $query->where(function ($documentQuery) use ($user) {
+                $documentQuery
+                    ->where('uploaded_by', $user->id)
+                    ->orWhereHasMorph('documentable', [ImportTransaction::class], function ($transactionQuery) use ($user) {
+                        $transactionQuery
+                            ->relevantToOperationalQueue($user)
+                            ->orWhere(function ($archiveQuery) use ($user) {
+                                $archiveQuery->relevantToOperationalArchive($user);
+                            });
+                    })
+                    ->orWhereHasMorph('documentable', [ExportTransaction::class], function ($transactionQuery) use ($user) {
+                        $transactionQuery
+                            ->relevantToOperationalQueue($user)
+                            ->orWhere(function ($archiveQuery) use ($user) {
+                                $archiveQuery->relevantToOperationalArchive($user);
+                            });
+                    });
+            });
+        }
+
+        return $query->whereRaw('1 = 0');
     }
 
     // Helper to get human-readable file size
@@ -156,14 +232,17 @@ class Document extends Model
         return [
             // Import stages
             'boc' => 'BOC Document Processing',
+            'bonds' => 'BONDS',
+            'phytosanitary' => 'Phytosanitary Certificates',
             'ppa' => 'Payment for PPA Charges',
             'do' => 'Delivery Order Request',
             'port_charges' => 'Payment for Port Charges',
             'releasing' => 'Releasing of Documents',
-            'billing' => 'Liquidation and Billing',
+            'billing' => 'Billing and Liquidation',
             // Export stages
-            'bl_generation' => 'Bill of Lading Generation',
-            'co' => 'CO Application and Releasing',
+            'bl_generation' => 'Bill of Lading',
+            'cil' => 'CIL',
+            'co' => 'CO Application',
             'dccci' => 'DCCCI Printing',
             // Shared — catch-all for additional documents
             'others' => 'Other Documents',

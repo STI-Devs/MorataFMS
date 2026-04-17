@@ -76,7 +76,9 @@ class AdminDocumentReviewController extends Controller
         $this->authorize('transactions.viewOversight');
 
         $transaction = $this->resolveReviewTransaction($type, $id);
-        $requiredTypes = $this->requiredTypeKeysFor($type);
+        $requiredTypes = $this->requiredTypeKeysFor($type, $transaction);
+        $displayStageTypes = $this->displayTypeKeysFor($type);
+        $notApplicableStages = $transaction->notApplicableStageKeys();
         $labels = Document::getTypeLabels();
         $documents = $transaction->documents;
         $requiredCompleted = $this->countUploadedRequiredTypes($documents, $requiredTypes);
@@ -85,24 +87,26 @@ class AdminDocumentReviewController extends Controller
 
         return response()->json([
             'transaction' => $this->mapDetailTransaction($transaction, $type),
-            'required_documents' => collect($requiredTypes)
-                ->map(function (string $typeKey) use ($documents, $labels): array {
-                    $document = $documents
+            'required_documents' => collect($displayStageTypes)
+                ->map(function (string $typeKey) use ($documents, $labels, $notApplicableStages): array {
+                    $stageDocuments = $documents
                         ->where('type', $typeKey)
                         ->sortByDesc(fn (Document $file) => $file->created_at?->getTimestamp() ?? 0)
-                        ->first();
+                        ->values();
+                    $notApplicable = in_array($typeKey, $notApplicableStages, true);
 
                     return [
                         'type_key' => $typeKey,
                         'label' => $labels[$typeKey] ?? $typeKey,
-                        'uploaded' => $document !== null,
-                        'file' => $document ? [
-                            'id' => $document->id,
-                            'filename' => $document->filename,
-                            'size' => $document->formatted_size,
-                            'uploaded_by' => $document->uploadedBy?->name,
-                            'uploaded_at' => $this->formatDateTime($document->created_at),
-                        ] : null,
+                        'uploaded' => $stageDocuments->isNotEmpty(),
+                        'not_applicable' => $notApplicable,
+                        'files' => $stageDocuments->map(fn (Document $file) => [
+                            'id' => $file->id,
+                            'filename' => $file->filename,
+                            'size' => $file->formatted_size,
+                            'uploaded_by' => $file->uploadedBy?->name,
+                            'uploaded_at' => $this->formatDateTime($file->created_at),
+                        ])->all(),
                     ];
                 })
                 ->values()
@@ -151,10 +155,12 @@ class AdminDocumentReviewController extends Controller
         $this->authorize('transactions.viewOversight');
 
         $importTerminalQuery = ImportTransaction::query()
+            ->leftJoin('import_stages', 'import_stages.import_transaction_id', '=', 'import_transactions.id')
             ->where('is_archive', false)
             ->whereIn('status', $this->importStatusValues('all'));
 
         $exportTerminalQuery = ExportTransaction::query()
+            ->leftJoin('export_stages', 'export_stages.export_transaction_id', '=', 'export_transactions.id')
             ->where('is_archive', false)
             ->whereIn('status', $this->exportStatusValues('all'));
 
@@ -176,16 +182,16 @@ class AdminDocumentReviewController extends Controller
                 ->where('status', ExportStatus::Cancelled->value)
                 ->count();
 
-        $completeImportsCount = $this->countWithAllRequiredDocuments(clone $importTerminalQuery, $this->requiredTypeKeysFor('import'));
-        $completeExportsCount = $this->countWithAllRequiredDocuments(clone $exportTerminalQuery, $this->requiredTypeKeysFor('export'));
+        $completeImportsCount = $this->countWithAllRequiredDocuments(clone $importTerminalQuery, 'import');
+        $completeExportsCount = $this->countWithAllRequiredDocuments(clone $exportTerminalQuery, 'export');
 
         $missingDocsCount = (clone $importTerminalQuery)->count()
             + (clone $exportTerminalQuery)->count()
             - $completeImportsCount
             - $completeExportsCount;
 
-        $archiveReadyCount = $this->countArchiveReady(clone $importTerminalQuery, $this->requiredTypeKeysFor('import'))
-            + $this->countArchiveReady(clone $exportTerminalQuery, $this->requiredTypeKeysFor('export'));
+        $archiveReadyCount = $this->countArchiveReady(clone $importTerminalQuery, 'import')
+            + $this->countArchiveReady(clone $exportTerminalQuery, 'export');
 
         return response()->json([
             'completed_count' => $completedCount,
@@ -203,7 +209,7 @@ class AdminDocumentReviewController extends Controller
         $this->authorize('transactions.viewOversight');
 
         $transaction = $this->resolveReviewTransaction($type, $id);
-        $requiredTypes = $this->requiredTypeKeysFor($type);
+        $requiredTypes = $this->requiredTypeKeysFor($type, $transaction);
         $requiredCompleted = $this->countUploadedRequiredTypes($transaction->documents, $requiredTypes);
         $hasUnresolvedRemarks = $this->hasUnresolvedRemarks($transaction->remarks);
 
@@ -285,7 +291,7 @@ class AdminDocumentReviewController extends Controller
                 export_transactions.id,
                 'export' as type,
                 export_transactions.created_at as created_at,
-                COALESCE(export_stages.bl_completed_at, export_transactions.updated_at) as finalized_at
+                COALESCE(export_stages.billing_completed_at, export_transactions.updated_at) as finalized_at
             ")
             ->where('export_transactions.is_archive', false)
             ->whereIn('export_transactions.status', $this->exportStatusValues($statusFilter));
@@ -329,7 +335,7 @@ class AdminDocumentReviewController extends Controller
             ->with([
                 'importer:id,name',
                 'assignedUser:id,name',
-                'stages:import_transaction_id,billing_completed_at',
+                'stages:import_transaction_id,billing_completed_at,bonds_not_applicable,ppa_not_applicable,port_charges_not_applicable',
                 'documents:id,documentable_id,documentable_type,type',
                 'remarks:id,remarkble_id,remarkble_type,is_resolved',
             ])
@@ -356,7 +362,7 @@ class AdminDocumentReviewController extends Controller
             ->with([
                 'shipper:id,name',
                 'assignedUser:id,name',
-                'stages:export_transaction_id,bl_completed_at',
+                'stages:export_transaction_id,billing_completed_at,phytosanitary_not_applicable,co_not_applicable,dccci_not_applicable',
                 'documents:id,documentable_id,documentable_type,type',
                 'remarks:id,remarkble_id,remarkble_type,is_resolved',
             ])
@@ -377,7 +383,7 @@ class AdminDocumentReviewController extends Controller
                     continue;
                 }
 
-                $requiredTypes = $this->requiredTypeKeysFor('import');
+                $requiredTypes = $this->requiredTypeKeysFor('import', $transaction);
                 $hasExceptions = $this->hasUnresolvedRemarks($transaction->remarks);
                 $requiredCompleted = $this->countUploadedRequiredTypes($transaction->documents, $requiredTypes);
                 $archiveReady = $requiredCompleted === count($requiredTypes) && ! $hasExceptions;
@@ -408,7 +414,7 @@ class AdminDocumentReviewController extends Controller
                 continue;
             }
 
-            $requiredTypes = $this->requiredTypeKeysFor('export');
+            $requiredTypes = $this->requiredTypeKeysFor('export', $transaction);
             $hasExceptions = $this->hasUnresolvedRemarks($transaction->remarks);
             $requiredCompleted = $this->countUploadedRequiredTypes($transaction->documents, $requiredTypes);
             $archiveReady = $requiredCompleted === count($requiredTypes) && ! $hasExceptions;
@@ -476,7 +482,7 @@ class AdminDocumentReviewController extends Controller
                 ->with([
                     'importer:id,name',
                     'assignedUser:id,name',
-                    'stages:import_transaction_id,billing_completed_at',
+                    'stages:import_transaction_id,billing_completed_at,bonds_not_applicable,ppa_not_applicable,port_charges_not_applicable',
                     'documents' => function ($query) {
                         $query->select([
                             'id',
@@ -517,7 +523,7 @@ class AdminDocumentReviewController extends Controller
                 ->with([
                     'shipper:id,name',
                     'assignedUser:id,name',
-                    'stages:export_transaction_id,bl_completed_at',
+                    'stages:export_transaction_id,billing_completed_at,phytosanitary_not_applicable,co_not_applicable,dccci_not_applicable',
                     'documents' => function ($query) {
                         $query->select([
                             'id',
@@ -547,13 +553,28 @@ class AdminDocumentReviewController extends Controller
         };
     }
 
-    private function requiredTypeKeysFor(string $type): array
+    /**
+     * @return list<string>
+     */
+    private function displayTypeKeysFor(string $type): array
     {
-        $typeKeys = $type === 'import'
-            ? Document::importTypeKeys()
-            : Document::exportTypeKeys();
+        return Document::requiredTypeKeysFor(
+            $type === 'import' ? ImportTransaction::class : ExportTransaction::class,
+        );
+    }
 
-        return array_values(array_filter($typeKeys, fn (string $typeKey) => $typeKey !== 'others'));
+    /**
+     * @return list<string>
+     */
+    private function requiredTypeKeysFor(
+        string $type,
+        ImportTransaction|ExportTransaction|null $transaction = null,
+    ): array {
+        if ($transaction) {
+            return $transaction->requiredDocumentTypeKeys();
+        }
+
+        return $this->displayTypeKeysFor($type);
     }
 
     private function normalizeTypeFilter(mixed $value): string
@@ -642,7 +663,7 @@ class AdminDocumentReviewController extends Controller
 
     private function finalizedDateForExport(ExportTransaction $transaction): mixed
     {
-        return $transaction->stages?->bl_completed_at ?? $transaction->updated_at;
+        return $transaction->stages?->billing_completed_at ?? $transaction->updated_at;
     }
 
     private function formatDateTime(mixed $value): ?string
@@ -654,14 +675,14 @@ class AdminDocumentReviewController extends Controller
         return $value->format(DateTimeInterface::ATOM);
     }
 
-    private function countWithAllRequiredDocuments(Builder $query, array $requiredTypes): int
+    private function countWithAllRequiredDocuments(Builder $query, string $type): int
     {
-        return $this->applyRequiredDocumentsConstraint($query, $requiredTypes)->count();
+        return $this->applyRequiredDocumentsConstraint($query, $type)->count();
     }
 
-    private function countArchiveReady(Builder $query, array $requiredTypes): int
+    private function countArchiveReady(Builder $query, string $type): int
     {
-        return $this->applyRequiredDocumentsConstraint($query, $requiredTypes)
+        return $this->applyRequiredDocumentsConstraint($query, $type)
             ->whereDoesntHave('remarks', function (Builder $remarkQuery) {
                 $remarkQuery->where('is_resolved', false);
             })
@@ -670,10 +691,8 @@ class AdminDocumentReviewController extends Controller
 
     private function applyReadinessFilter(Builder $query, string $type, string $readinessFilter): Builder
     {
-        $requiredTypes = $this->requiredTypeKeysFor($type);
-
         return match ($readinessFilter) {
-            'ready' => $this->applyRequiredDocumentsConstraint($query, $requiredTypes)
+            'ready' => $this->applyRequiredDocumentsConstraint($query, $type)
                 ->whereDoesntHave('remarks', function (Builder $remarkQuery) {
                     $remarkQuery->where('is_resolved', false);
                 }),
@@ -681,13 +700,7 @@ class AdminDocumentReviewController extends Controller
                 ->whereDoesntHave('remarks', function (Builder $remarkQuery) {
                     $remarkQuery->where('is_resolved', false);
                 })
-                ->where(function (Builder $missingQuery) use ($requiredTypes) {
-                    foreach ($requiredTypes as $typeKey) {
-                        $missingQuery->orWhereDoesntHave('documents', function (Builder $documentQuery) use ($typeKey) {
-                            $documentQuery->where('type', $typeKey);
-                        });
-                    }
-                }),
+                ->where(fn (Builder $missingQuery) => $this->applyMissingRequiredDocumentsConstraint($missingQuery, $type)),
             'flagged' => $query->whereHas('remarks', function (Builder $remarkQuery) {
                 $remarkQuery->where('is_resolved', false);
             }),
@@ -695,15 +708,82 @@ class AdminDocumentReviewController extends Controller
         };
     }
 
-    private function applyRequiredDocumentsConstraint(Builder $query, array $requiredTypes): Builder
+    private function applyRequiredDocumentsConstraint(Builder $query, string $type): Builder
     {
-        foreach ($requiredTypes as $typeKey) {
+        $optionalStageColumns = $this->optionalStageColumnsFor($type);
+
+        foreach ($this->requiredTypeKeysFor($type) as $typeKey) {
+            $optionalStageColumn = $optionalStageColumns[$typeKey] ?? null;
+
+            if ($optionalStageColumn !== null) {
+                $query->where(function (Builder $stageQuery) use ($optionalStageColumn, $typeKey) {
+                    $stageQuery
+                        ->where($optionalStageColumn, true)
+                        ->orWhereHas('documents', function (Builder $documentQuery) use ($typeKey) {
+                            $documentQuery->where('type', $typeKey);
+                        });
+                });
+
+                continue;
+            }
+
             $query->whereHas('documents', function (Builder $documentQuery) use ($typeKey) {
                 $documentQuery->where('type', $typeKey);
             });
         }
 
         return $query;
+    }
+
+    private function applyMissingRequiredDocumentsConstraint(Builder $query, string $type): Builder
+    {
+        $optionalStageColumns = $this->optionalStageColumnsFor($type);
+
+        foreach ($this->requiredTypeKeysFor($type) as $typeKey) {
+            $optionalStageColumn = $optionalStageColumns[$typeKey] ?? null;
+
+            if ($optionalStageColumn !== null) {
+                $query->orWhere(function (Builder $missingStageQuery) use ($optionalStageColumn, $typeKey) {
+                    $missingStageQuery
+                        ->where(function (Builder $applicableStageQuery) use ($optionalStageColumn) {
+                            $applicableStageQuery
+                                ->whereNull($optionalStageColumn)
+                                ->orWhere($optionalStageColumn, false);
+                        })
+                        ->whereDoesntHave('documents', function (Builder $documentQuery) use ($typeKey) {
+                            $documentQuery->where('type', $typeKey);
+                        });
+                });
+
+                continue;
+            }
+
+            $query->orWhereDoesntHave('documents', function (Builder $documentQuery) use ($typeKey) {
+                $documentQuery->where('type', $typeKey);
+            });
+        }
+
+        return $query;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function optionalStageColumnsFor(string $type): array
+    {
+        return match ($type) {
+            'import' => [
+                'bonds' => 'import_stages.bonds_not_applicable',
+                'ppa' => 'import_stages.ppa_not_applicable',
+                'port_charges' => 'import_stages.port_charges_not_applicable',
+            ],
+            'export' => [
+                'phytosanitary' => 'export_stages.phytosanitary_not_applicable',
+                'co' => 'export_stages.co_not_applicable',
+                'dccci' => 'export_stages.dccci_not_applicable',
+            ],
+            default => [],
+        };
     }
 
     private function exportReferenceExpression(): string

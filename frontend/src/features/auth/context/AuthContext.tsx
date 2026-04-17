@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { createContext, useEffect, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { authApi } from '../api/authApi';
 import { restoreSession, syncRestoreSessionPromise } from './authProviderState';
@@ -16,6 +17,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export { AuthContext };
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient();
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
     isAuthenticated: false,
@@ -29,6 +31,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const handleUnauthorized = () => {
+      queryClient.clear();
+
       if (wasAuthenticatedRef.current) {
         toast.error('You have been signed out. Please log in again to continue.', {
           duration: 6000,
@@ -46,7 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.addEventListener('auth:unauthorized', handleUnauthorized as EventListener);
 
     return () => window.removeEventListener('auth:unauthorized', handleUnauthorized as EventListener);
-  }, []);
+  }, [queryClient]);
 
   useEffect(() => {
     let isMounted = true;
@@ -84,6 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const response = await authApi.login(credentials);
 
+      queryClient.clear();
       syncRestoreSessionPromise(response.user);
       setAuthState({
         user: response.user,
@@ -104,6 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('Logout API call failed:', error);
     } finally {
+      queryClient.clear();
       syncRestoreSessionPromise(null);
       setAuthState({
         user: null,

@@ -70,7 +70,7 @@ class User extends Authenticatable
     }
 
     // --- Role Helpers ---
-    // Final auth roles: encoder < paralegal < admin
+    // Auth roles: encoder, processor, accounting, paralegal, admin
 
     public const ROLE_HIERARCHY = [
         'encoder' => 1,

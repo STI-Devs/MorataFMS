@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { appRoutes } from '../../../lib/appRoutes';
 import {
     makeApiDocument,
+    makeExportDetailResult,
     makeImportDetailResult,
 } from '../../../test/fixtures/tracking';
 import { createTestQueryClient, renderWithProviders } from '../../../test/renderWithProviders';
@@ -12,7 +13,9 @@ import { TrackingDetails } from './TrackingDetails';
 const {
     mockDeleteDocument,
     mockDownloadDocument,
-    mockUploadDocument,
+    mockUploadDocuments,
+    mockUpdateExportStageApplicability,
+    mockUpdateImportStageApplicability,
     mockUseAddDocumentToCache,
     mockUseDocumentPreview,
     mockUseTransactionDetail,
@@ -21,7 +24,9 @@ const {
 } = vi.hoisted(() => ({
     mockDeleteDocument: vi.fn(),
     mockDownloadDocument: vi.fn(),
-    mockUploadDocument: vi.fn(),
+    mockUploadDocuments: vi.fn(),
+    mockUpdateExportStageApplicability: vi.fn(),
+    mockUpdateImportStageApplicability: vi.fn(),
     mockUseAddDocumentToCache: vi.fn(),
     mockUseDocumentPreview: vi.fn(),
     mockUseTransactionDetail: vi.fn(),
@@ -46,7 +51,9 @@ vi.mock('../api/trackingApi', () => ({
     trackingApi: {
         deleteDocument: mockDeleteDocument,
         downloadDocument: mockDownloadDocument,
-        uploadDocument: mockUploadDocument,
+        uploadDocuments: mockUploadDocuments,
+        updateExportStageApplicability: mockUpdateExportStageApplicability,
+        updateImportStageApplicability: mockUpdateImportStageApplicability,
     },
 }));
 
@@ -86,7 +93,8 @@ vi.mock('./StageRow', () => ({
         index,
         stage,
         stageStatus,
-        doc,
+        docs,
+        uploadDisabledReason,
         onUploadClick,
         onPreviewDoc,
         onDeleteDoc,
@@ -95,7 +103,8 @@ vi.mock('./StageRow', () => ({
         index: number;
         stage: { title: string };
         stageStatus: string;
-        doc?: { filename: string };
+        docs: Array<{ filename: string }>;
+        uploadDisabledReason?: string | null;
         onUploadClick: (index: number) => void;
         onPreviewDoc: (doc: { filename: string }) => void;
         onDeleteDoc: (doc: { filename: string }) => void;
@@ -104,15 +113,17 @@ vi.mock('./StageRow', () => ({
         <div data-testid={`stage-row-${index}`}>
             <span>{stage.title}</span>
             <span data-testid={`stage-status-${index}`}>{stageStatus}</span>
-            {doc ? (
+            {docs.length > 0 ? (
                 <>
-                    <span>{doc.filename}</span>
-                    <button onClick={() => onPreviewDoc(doc)}>Preview {index}</button>
-                    <button onClick={() => onDeleteDoc(doc)}>Delete {index}</button>
-                    <button onClick={() => onReplaceDoc(index, doc)}>Replace {index}</button>
+                    <span>{docs[0].filename}</span>
+                    <button onClick={() => onPreviewDoc(docs[0])}>Preview {index}</button>
+                    <button onClick={() => onDeleteDoc(docs[0])}>Delete {index}</button>
+                    <button onClick={() => onReplaceDoc(index, docs[0])}>Replace {index}</button>
                 </>
             ) : (
-                <button onClick={() => onUploadClick(index)}>Upload {index}</button>
+                <button disabled={!!uploadDisabledReason} onClick={() => onUploadClick(index)}>
+                    Upload {index}
+                </button>
             )}
         </div>
     ),
@@ -128,12 +139,12 @@ vi.mock('../../../components/modals/UploadModal', () => ({
         isOpen: boolean;
         title: string;
         onClose: () => void;
-        onUpload: (file: File) => void;
+        onUpload: (files: File[]) => Promise<void> | void;
     }) => (
         isOpen ? (
             <div>
                 <span>Upload modal: {title}</span>
-                <button onClick={() => onUpload(new File(['document'], 'replacement.pdf', { type: 'application/pdf' }))}>
+                <button onClick={() => onUpload([new File(['document'], 'replacement.pdf', { type: 'application/pdf' })])}>
                     Confirm upload
                 </button>
                 <button onClick={onClose}>Close upload</button>
@@ -202,7 +213,9 @@ describe('TrackingDetails', () => {
     beforeEach(() => {
         mockDeleteDocument.mockReset();
         mockDownloadDocument.mockReset();
-        mockUploadDocument.mockReset();
+        mockUploadDocuments.mockReset();
+        mockUpdateExportStageApplicability.mockReset();
+        mockUpdateImportStageApplicability.mockReset();
         mockUseAddDocumentToCache.mockReset();
         mockUseDocumentPreview.mockReset();
         mockUseTransactionDetail.mockReset();
@@ -289,8 +302,8 @@ describe('TrackingDetails', () => {
         mockUseTransactionDetail.mockReturnValue({ data: detail, isLoading: false });
         mockUseTransactionDocuments.mockReturnValue({
             byStageIndex: {
-                0: makeApiDocument({ id: 701, type: 'boc', filename: 'boc.pdf' }),
-                1: makeApiDocument({ id: 702, type: 'ppa', filename: 'ppa.pdf' }),
+                0: [makeApiDocument({ id: 701, type: 'boc', filename: 'boc.pdf' })],
+                1: [makeApiDocument({ id: 702, type: 'bonds', filename: 'bond.pdf' })],
             },
             isLoading: false,
         });
@@ -306,6 +319,52 @@ describe('TrackingDetails', () => {
         expect(screen.getByTestId('stage-status-2')).toHaveTextContent('active');
     });
 
+    it('does not advance the display status when only an optional stage is marked as N/A', () => {
+        const detail = makeImportDetailResult({
+            customs_ref_no: 'IMP-2026-003',
+            status: 'Pending',
+            not_applicable_stages: ['bonds'],
+        });
+
+        mockUseTransactionDetail.mockReturnValue({ data: detail, isLoading: false });
+        mockUseTransactionDocuments.mockReturnValue({
+            byStageIndex: {
+                0: [makeApiDocument({ id: 720, type: 'boc', filename: 'boc.pdf' })],
+            },
+            isLoading: false,
+        });
+
+        renderWithProviders(<TrackingDetails />, {
+            route: '/tracking/IMP-2026-003',
+            path: appRoutes.trackingDetail,
+        });
+
+        expect(screen.getByTestId('tracking-status')).toHaveTextContent('Vessel Arrived');
+    });
+
+    it('shows the export bill of lading as the visible reference and keeps future stages locked', () => {
+        const detail = makeExportDetailResult({
+            bl_no: 'BL-EXPORT-900',
+            status: 'Pending',
+            export_date: '2026-04-20',
+        });
+
+        mockUseTransactionDetail.mockReturnValue({ data: detail, isLoading: false });
+        mockUseTransactionDocuments.mockReturnValue({
+            byStageIndex: {},
+            isLoading: false,
+        });
+
+        renderWithProviders(<TrackingDetails />, {
+            route: '/tracking/BL-EXPORT-900',
+            path: appRoutes.trackingDetail,
+        });
+
+        expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('BL-EXPORT-900');
+        expect(screen.getByRole('button', { name: 'Upload 0' })).toBeEnabled();
+        expect(screen.getByRole('button', { name: 'Upload 1' })).toBeDisabled();
+    });
+
     it('opens and closes the remarks, edit, upload, and preview flows through the screen wiring', async () => {
         const previewHandler = vi.fn();
         const clearPreview = vi.fn();
@@ -314,7 +373,9 @@ describe('TrackingDetails', () => {
         mockUseTransactionDetail.mockReturnValue({ data: makeImportDetailResult(), isLoading: false });
         mockUseTransactionDocuments.mockReturnValue({
             byStageIndex: {
-                0: doc,
+                0: [doc],
+                1: [makeApiDocument({ id: 801, type: 'bonds', filename: 'bonds.pdf' })],
+                2: [makeApiDocument({ id: 803, type: 'ppa', filename: 'ppa.pdf' })],
             },
             isLoading: false,
         });
@@ -343,7 +404,7 @@ describe('TrackingDetails', () => {
             expect(screen.queryByText('Edit modal open')).not.toBeInTheDocument();
         });
 
-        fireEvent.click(screen.getByText('Upload 2'));
+        fireEvent.click(screen.getByText('Upload 3'));
         expect(screen.getByText('Upload modal: Delivery Order Request')).toBeInTheDocument();
         fireEvent.click(screen.getByText('Close upload'));
         await waitFor(() => {
@@ -367,7 +428,7 @@ describe('TrackingDetails', () => {
         mockDeleteDocument.mockResolvedValue(undefined);
         mockUseTransactionDetail.mockReturnValue({ data: detail, isLoading: false });
         mockUseTransactionDocuments.mockReturnValue({
-            byStageIndex: { 0: doc },
+            byStageIndex: { 0: [doc] },
             isLoading: false,
         });
 
@@ -398,11 +459,13 @@ describe('TrackingDetails', () => {
         const queryClient = createTestQueryClient();
         const invalidateQueriesSpy = vi.spyOn(queryClient, 'invalidateQueries');
 
-        mockUploadDocument.mockResolvedValue(uploadedDoc);
+        mockUploadDocuments.mockResolvedValue([uploadedDoc]);
         mockUseTransactionDetail.mockReturnValue({ data: detail, isLoading: false });
         mockUseTransactionDocuments.mockReturnValue({
             byStageIndex: {
-                0: makeApiDocument({ id: 706, type: 'boc', filename: 'boc.pdf' }),
+                0: [makeApiDocument({ id: 706, type: 'boc', filename: 'boc.pdf' })],
+                1: [makeApiDocument({ id: 717, type: 'bonds', filename: 'bonds.pdf' })],
+                2: [makeApiDocument({ id: 719, type: 'ppa', filename: 'ppa.pdf' })],
             },
             isLoading: false,
         });
@@ -413,12 +476,13 @@ describe('TrackingDetails', () => {
             queryClient,
         });
 
-        fireEvent.click(screen.getByText('Upload 2'));
+        fireEvent.click(screen.getByText('Upload 3'));
         fireEvent.click(screen.getByText('Confirm upload'));
 
         await waitFor(() => {
-            expect(mockUploadDocument).toHaveBeenCalledWith(
+            expect(mockUploadDocuments).toHaveBeenCalledWith(
                 expect.objectContaining({
+                    files: expect.arrayContaining([expect.any(File)]),
                     type: 'do',
                     documentable_type: 'App\\Models\\ImportTransaction',
                     documentable_id: detail.raw.id,
@@ -441,10 +505,10 @@ describe('TrackingDetails', () => {
         const uploadedDoc = makeApiDocument({ id: 709, type: 'billing', filename: 'billing.pdf' });
         let isRefreshingAfterCompletion = false;
 
-        mockUploadDocument.mockImplementation(async () => {
+        mockUploadDocuments.mockImplementation(async () => {
             trackingDetail = null as never;
             isRefreshingAfterCompletion = true;
-            return uploadedDoc;
+            return [uploadedDoc];
         });
         mockUseTransactionDetail.mockImplementation((_referenceId: string | undefined, options?: { scope?: 'tracking' | 'record' }) => {
             if (options?.scope === 'record') {
@@ -455,11 +519,12 @@ describe('TrackingDetails', () => {
         });
         mockUseTransactionDocuments.mockImplementation(() => ({
             byStageIndex: isRefreshingAfterCompletion ? {} : {
-                0: makeApiDocument({ id: 710, type: 'boc', filename: 'boc.pdf' }),
-                1: makeApiDocument({ id: 711, type: 'ppa', filename: 'ppa.pdf' }),
-                2: makeApiDocument({ id: 712, type: 'do', filename: 'do.pdf' }),
-                3: makeApiDocument({ id: 713, type: 'port_charges', filename: 'port-charges.pdf' }),
-                4: makeApiDocument({ id: 714, type: 'releasing', filename: 'releasing.pdf' }),
+                0: [makeApiDocument({ id: 710, type: 'boc', filename: 'boc.pdf' })],
+                1: [makeApiDocument({ id: 711, type: 'bonds', filename: 'bonds.pdf' })],
+                2: [makeApiDocument({ id: 713, type: 'ppa', filename: 'ppa.pdf' })],
+                3: [makeApiDocument({ id: 714, type: 'do', filename: 'do.pdf' })],
+                4: [makeApiDocument({ id: 715, type: 'port_charges', filename: 'port-charges.pdf' })],
+                5: [makeApiDocument({ id: 716, type: 'releasing', filename: 'releasing.pdf' })],
             },
             isLoading: isRefreshingAfterCompletion,
         }));
@@ -475,7 +540,7 @@ describe('TrackingDetails', () => {
             ],
         });
 
-        fireEvent.click(screen.getByText('Upload 5'));
+        fireEvent.click(screen.getByText('Upload 6'));
         fireEvent.click(screen.getByText('Confirm upload'));
 
         await waitFor(() => {
@@ -506,11 +571,11 @@ describe('TrackingDetails', () => {
         const queryClient = createTestQueryClient();
         const setQueryDataSpy = vi.spyOn(queryClient, 'setQueryData');
 
-        mockUploadDocument.mockResolvedValue(replacement);
+        mockUploadDocuments.mockResolvedValue([replacement]);
         mockDeleteDocument.mockResolvedValue(undefined);
         mockUseTransactionDetail.mockReturnValue({ data: detail, isLoading: false });
         mockUseTransactionDocuments.mockReturnValue({
-            byStageIndex: { 0: doc },
+            byStageIndex: { 0: [doc] },
             isLoading: false,
         });
         mockUseDocumentPreview.mockReturnValue({
@@ -532,8 +597,9 @@ describe('TrackingDetails', () => {
         fireEvent.click(screen.getByText('Confirm upload'));
 
         await waitFor(() => {
-            expect(mockUploadDocument).toHaveBeenCalledWith(
+            expect(mockUploadDocuments).toHaveBeenCalledWith(
                 expect.objectContaining({
+                    files: expect.arrayContaining([expect.any(File)]),
                     type: 'boc',
                     documentable_type: 'App\\Models\\ImportTransaction',
                     documentable_id: detail.raw.id,

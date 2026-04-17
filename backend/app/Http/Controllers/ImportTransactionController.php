@@ -6,12 +6,15 @@ use App\Enums\ImportStatus;
 use App\Enums\UserRole;
 use App\Http\Requests\CancelTransactionRequest;
 use App\Http\Requests\StoreImportTransactionRequest;
+use App\Http\Requests\UpdateImportStageApplicabilityRequest;
 use App\Http\Requests\UpdateImportTransactionRequest;
 use App\Http\Resources\ImportTransactionResource;
 use App\Models\ImportTransaction;
 use App\Support\Transactions\ImportStatusWorkflow;
 use App\Support\Transactions\TransactionSyncBroadcaster;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 class ImportTransactionController extends Controller
 {
@@ -25,11 +28,22 @@ class ImportTransactionController extends Controller
     {
         $this->authorize('viewAny', ImportTransaction::class);
 
+        $user = $request->user();
+
         $query = ImportTransaction::query()
-            ->visibleTo($request->user())
-            ->with(['importer', 'originCountry', 'stages', 'assignedUser'])
+            ->with(['importer', 'originCountry', 'locationOfGoods', 'stages', 'assignedUser'])
             ->withCount(['remarks as open_remarks_count' => fn ($q) => $q->where('is_resolved', false)])
             ->withCount('documents');
+
+        if (in_array($user->role, [UserRole::Processor, UserRole::Accounting], true)) {
+            if ($request->query('operational_scope') === 'workspace') {
+                $query->relevantToOperationalWorkspace($user);
+            } else {
+                $query->relevantToOperationalQueue($user);
+            }
+        } else {
+            $query->visibleTo($user);
+        }
 
         // Search by customs ref or BL number
         if ($search = $request->query('search')) {
@@ -86,7 +100,7 @@ class ImportTransactionController extends Controller
         $transaction->status = ImportStatus::Pending;
         $transaction->save();
 
-        $transaction->load(['importer', 'originCountry', 'stages', 'assignedUser']);
+        $transaction->load(['importer', 'originCountry', 'locationOfGoods', 'stages', 'assignedUser']);
         $this->transactionSyncBroadcaster->transactionChanged($transaction, $request->user(), 'created');
 
         return (new ImportTransactionResource($transaction))
@@ -104,15 +118,9 @@ class ImportTransactionController extends Controller
 
         $data = $request->validated();
 
-        // Encoders cannot change the selectivity color — it is a BOC classification
-        // that must be updated by an admin or paralegal.
-        if ($request->user()->role === UserRole::Encoder) {
-            unset($data['selective_color']);
-        }
-
         $import_transaction->update($data);
 
-        $import_transaction->load(['importer', 'originCountry', 'stages', 'assignedUser']);
+        $import_transaction->load(['importer', 'originCountry', 'locationOfGoods', 'stages', 'assignedUser']);
         $this->transactionSyncBroadcaster->transactionChanged($import_transaction, $request->user(), 'updated');
 
         return new ImportTransactionResource($import_transaction);
@@ -126,7 +134,14 @@ class ImportTransactionController extends Controller
     {
         $this->authorize('viewAny', ImportTransaction::class);
 
-        $baseQuery = ImportTransaction::query()->visibleTo(request()->user());
+        $user = request()->user();
+        $baseQuery = ImportTransaction::query();
+
+        if (in_array($user->role, [UserRole::Processor, UserRole::Accounting], true)) {
+            $baseQuery->relevantToOperationalQueue($user);
+        } else {
+            $baseQuery->visibleTo($user);
+        }
 
         $counts = [
             'total' => (clone $baseQuery)->count(),
@@ -157,8 +172,45 @@ class ImportTransactionController extends Controller
         $import_transaction->notes = $request->validated()['reason'];
         $import_transaction->save();
 
-        $import_transaction->load(['importer', 'originCountry', 'stages', 'assignedUser']);
+        $import_transaction->load(['importer', 'originCountry', 'locationOfGoods', 'stages', 'assignedUser']);
         $this->transactionSyncBroadcaster->transactionChanged($import_transaction, $request->user(), 'cancelled');
+
+        return new ImportTransactionResource($import_transaction);
+    }
+
+    public function updateStageApplicability(
+        UpdateImportStageApplicabilityRequest $request,
+        ImportTransaction $import_transaction,
+    ): ImportTransactionResource|JsonResponse {
+        $this->authorize('update', $import_transaction);
+
+        $validated = $request->validated();
+        $stage = $validated['stage'];
+        $notApplicable = (bool) $validated['not_applicable'];
+
+        if ($notApplicable && $import_transaction->documents()->where('type', $stage)->exists()) {
+            return response()->json([
+                'message' => 'You cannot mark this stage as not applicable after files have been uploaded to it.',
+            ], 422);
+        }
+
+        $import_transaction->loadMissing('stages');
+
+        if ($notApplicable && ! $import_transaction->isDocumentTypeReadyForUpload($stage)) {
+            return response()->json([
+                'message' => 'Complete the earlier required stages before marking this stage as not applicable.',
+            ], 422);
+        }
+
+        $import_transaction->setStageApplicability($stage, $notApplicable, $request->user()->id);
+        $import_transaction->recalculateStatus();
+        $import_transaction->load(['importer', 'originCountry', 'locationOfGoods', 'stages', 'assignedUser']);
+
+        $this->transactionSyncBroadcaster->transactionChanged(
+            $import_transaction,
+            $request->user(),
+            'stage_applicability_updated',
+        );
 
         return new ImportTransactionResource($import_transaction);
     }
@@ -167,9 +219,15 @@ class ImportTransactionController extends Controller
      * DELETE /api/import-transactions/{import_transaction}
      * Delete an import transaction.
      */
-    public function destroy(ImportTransaction $import_transaction)
+    public function destroy(ImportTransaction $import_transaction): Response
     {
         $this->authorize('delete', $import_transaction);
+
+        if ($import_transaction->status !== ImportStatus::Cancelled) {
+            return response()->json([
+                'message' => 'Only cancelled transactions can be deleted.',
+            ], 422);
+        }
 
         $import_transaction->delete();
 

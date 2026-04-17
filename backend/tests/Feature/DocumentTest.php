@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Documents\StoreTransactionDocument;
 use App\Models\Document;
 use App\Models\ExportTransaction;
 use App\Models\ImportTransaction;
@@ -186,11 +187,167 @@ test('encoder can upload a document to an import transaction', function () {
     Storage::disk($this->documentDisk)->assertExists($document->path);
 });
 
+test('operational roles can upload only their allowed stage documents', function (
+    string $role,
+    string $transactionClass,
+    string $documentType,
+) {
+    $user = User::factory()->create(['role' => $role]);
+    $encoder = User::factory()->create(['role' => 'encoder']);
+    $transaction = $transactionClass::factory()->pending()->create(['assigned_user_id' => $encoder->id]);
+    $file = UploadedFile::fake()->create('task-document.pdf', 100, 'application/pdf');
+
+    if ($transaction instanceof ImportTransaction) {
+        $transaction->stages()->update(match ($documentType) {
+            'ppa' => [
+                'boc_status' => 'completed',
+                'bonds_status' => 'completed',
+                'ppa_status' => 'pending',
+            ],
+            'billing' => [
+                'boc_status' => 'completed',
+                'bonds_status' => 'completed',
+                'ppa_status' => 'completed',
+                'do_status' => 'completed',
+                'port_charges_status' => 'completed',
+                'releasing_status' => 'completed',
+                'billing_status' => 'pending',
+            ],
+            default => [],
+        });
+    }
+
+    if ($transaction instanceof ExportTransaction) {
+        $transaction->stages()->update(match ($documentType) {
+            'cil' => [
+                'docs_prep_status' => 'completed',
+                'bl_status' => 'completed',
+                'phytosanitary_status' => 'completed',
+                'co_status' => 'completed',
+                'cil_status' => 'pending',
+                'dccci_status' => 'pending',
+            ],
+            'dccci' => [
+                'docs_prep_status' => 'completed',
+                'bl_status' => 'completed',
+                'phytosanitary_status' => 'completed',
+                'co_status' => 'completed',
+                'cil_status' => 'completed',
+                'dccci_status' => 'pending',
+            ],
+            'billing' => [
+                'docs_prep_status' => 'completed',
+                'bl_status' => 'completed',
+                'phytosanitary_status' => 'completed',
+                'co_status' => 'completed',
+                'cil_status' => 'completed',
+                'dccci_status' => 'completed',
+                'billing_status' => 'pending',
+            ],
+            default => [],
+        });
+    }
+
+    $this->actingAs($user)
+        ->postJson('/api/documents', [
+            'file' => $file,
+            'type' => $documentType,
+            'documentable_type' => $transactionClass,
+            'documentable_id' => $transaction->id,
+        ])
+        ->assertCreated();
+
+    $this->assertDatabaseHas('documents', [
+        'type' => $documentType,
+        'documentable_type' => $transactionClass,
+        'documentable_id' => $transaction->id,
+        'uploaded_by' => $user->id,
+    ]);
+})->with([
+    'processor import ppa' => ['processor', ImportTransaction::class, 'ppa'],
+    'processor export cil' => ['processor', ExportTransaction::class, 'cil'],
+    'processor export dccci' => ['processor', ExportTransaction::class, 'dccci'],
+    'accounting import billing' => ['accounting', ImportTransaction::class, 'billing'],
+    'accounting export billing' => ['accounting', ExportTransaction::class, 'billing'],
+]);
+
+test('operational roles cannot upload document types outside their workflow stages', function (
+    string $role,
+    string $transactionClass,
+    string $documentType,
+) {
+    $user = User::factory()->create(['role' => $role]);
+    $encoder = User::factory()->create(['role' => 'encoder']);
+    $transaction = $transactionClass::factory()->create(['assigned_user_id' => $encoder->id]);
+    $file = UploadedFile::fake()->create('restricted-document.pdf', 100, 'application/pdf');
+
+    $this->actingAs($user)
+        ->postJson('/api/documents', [
+            'file' => $file,
+            'type' => $documentType,
+            'documentable_type' => $transactionClass,
+            'documentable_id' => $transaction->id,
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['type'])
+        ->assertJsonPath('errors.type.0', 'You are not allowed to upload this document type for the selected transaction.');
+})->with([
+    'processor import boc' => ['processor', ImportTransaction::class, 'boc'],
+    'processor export billing' => ['processor', ExportTransaction::class, 'billing'],
+    'accounting import ppa' => ['accounting', ImportTransaction::class, 'ppa'],
+    'accounting export cil' => ['accounting', ExportTransaction::class, 'cil'],
+    'accounting export dccci' => ['accounting', ExportTransaction::class, 'dccci'],
+]);
+
+test('operational roles cannot upload their stage before it is ready', function () {
+    $processor = User::factory()->create(['role' => 'processor']);
+    $encoder = User::factory()->create(['role' => 'encoder']);
+    $transaction = ImportTransaction::factory()->pending()->create(['assigned_user_id' => $encoder->id]);
+
+    $transaction->stages()->update([
+        'boc_status' => 'completed',
+        'bonds_status' => 'pending',
+        'ppa_status' => 'pending',
+    ]);
+
+    $this->actingAs($processor)
+        ->postJson('/api/documents', [
+            'file' => UploadedFile::fake()->create('ppa.pdf', 100, 'application/pdf'),
+            'type' => 'ppa',
+            'documentable_type' => ImportTransaction::class,
+            'documentable_id' => $transaction->id,
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['type'])
+        ->assertJsonPath('errors.type.0', 'This stage is not ready for upload yet.');
+});
+
+test('encoder cannot upload a later export stage before the earlier required stage is complete', function () {
+    $encoder = User::factory()->create(['role' => 'encoder']);
+    $transaction = ExportTransaction::factory()->pending()->create(['assigned_user_id' => $encoder->id]);
+
+    $transaction->stages()->update([
+        'docs_prep_status' => 'pending',
+        'bl_status' => 'pending',
+    ]);
+
+    $this->actingAs($encoder)
+        ->postJson('/api/documents', [
+            'file' => UploadedFile::fake()->create('bl.pdf', 100, 'application/pdf'),
+            'type' => 'bl_generation',
+            'documentable_type' => ExportTransaction::class,
+            'documentable_id' => $transaction->id,
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['type'])
+        ->assertJsonPath('errors.type.0', 'This stage is not ready for upload yet.');
+});
+
 test('document upload stops when the configured disk write fails', function () {
     config()->set('filesystems.document_disk', 's3');
 
     $user = User::factory()->create(['role' => 'encoder']);
-    $import = ImportTransaction::factory()->create(['assigned_user_id' => $user->id]);
+    $import = ImportTransaction::factory()->pending()->create(['assigned_user_id' => $user->id]);
 
     $disk = Mockery::mock();
     $disk->shouldReceive('writeStream')->once()->andReturnFalse();
@@ -273,7 +430,7 @@ test('file upload validates file type', function () {
 test('file upload validates file size limit', function () {
     $user = User::factory()->create(['role' => 'encoder']);
     $import = ImportTransaction::factory()->create(['assigned_user_id' => $user->id]);
-    $file = UploadedFile::fake()->create('large.pdf', 11000, 'application/pdf'); // 11 MB
+    $file = UploadedFile::fake()->create('large.pdf', 21000, 'application/pdf');
 
     $this->actingAs($user);
 
@@ -286,6 +443,41 @@ test('file upload validates file size limit', function () {
 
     $response->assertStatus(422);
     $response->assertJsonValidationErrors(['file']);
+});
+
+test('file upload returns a clear message when php rejects the uploaded file before validation', function () {
+    $user = User::factory()->create(['role' => 'encoder']);
+    $import = ImportTransaction::factory()->create(['assigned_user_id' => $user->id]);
+    $temporaryFile = tempnam(sys_get_temp_dir(), 'upload-test-');
+
+    expect($temporaryFile)->not->toBeFalse();
+
+    file_put_contents($temporaryFile, 'test');
+
+    $file = new UploadedFile(
+        $temporaryFile,
+        'too-large.png',
+        'image/png',
+        UPLOAD_ERR_INI_SIZE,
+        true,
+    );
+
+    $this->actingAs($user);
+
+    $response = $this->postJson('/api/documents', [
+        'file' => $file,
+        'type' => 'boc',
+        'documentable_type' => ImportTransaction::class,
+        'documentable_id' => $import->id,
+    ]);
+
+    unlink($temporaryFile);
+
+    $response->assertStatus(422);
+    $response->assertJsonPath(
+        'errors.file.0',
+        'The file could not be uploaded by the server. If the file is within the 20 MB app limit, increase the PHP upload limit and try again.',
+    );
 });
 
 test('file upload validates document type', function () {
@@ -404,7 +596,30 @@ test('encoder cannot download another encoders document', function () {
         ->assertForbidden();
 });
 
-test('signed local stream can be opened after an authorized preview request', function () {
+test('document preview streams the file inline for the authorized user', function () {
+    config()->set('filesystems.document_disk', 'local');
+    Storage::fake('local');
+
+    $encoder = User::factory()->create(['role' => 'encoder']);
+    $transaction = ImportTransaction::factory()->create(['assigned_user_id' => $encoder->id]);
+    $document = Document::factory()->create([
+        'documentable_type' => ImportTransaction::class,
+        'documentable_id' => $transaction->id,
+        'uploaded_by' => $encoder->id,
+        'path' => 'transaction-documents/test/restricted.pdf',
+        'filename' => 'restricted.pdf',
+    ]);
+
+    Storage::disk('local')->put($document->path, 'restricted');
+
+    $this->actingAs($encoder)
+        ->get("/api/documents/{$document->id}/preview")
+        ->assertOk()
+        ->assertHeader('content-type', 'application/pdf')
+        ->assertHeader('content-disposition', 'inline; filename="restricted.pdf"');
+});
+
+test('document stream now requires an authenticated authorized session', function () {
     config()->set('filesystems.document_disk', 'local');
     Storage::fake('local');
 
@@ -419,17 +634,7 @@ test('signed local stream can be opened after an authorized preview request', fu
 
     Storage::disk('local')->put($document->path, 'restricted');
 
-    $previewResponse = $this->actingAs($encoder)
-        ->getJson("/api/documents/{$document->id}/preview")
-        ->assertOk();
-
-    $signedUrl = $previewResponse->json('url');
-
-    app('auth')->forgetGuards();
-
-    $this
-        ->get($signedUrl)
-        ->assertOk();
+    $this->get("/api/documents/{$document->id}/stream")->assertUnauthorized();
 });
 
 test('admin can delete any document', function () {
@@ -517,6 +722,44 @@ test('user can delete their own uploaded document', function () {
     Storage::disk($this->documentDisk)->assertMissing($document->path);
 });
 
+test('operational upload stamps and clears stage completion ownership', function () {
+    $processor = User::factory()->create(['role' => 'processor']);
+    $encoder = User::factory()->create(['role' => 'encoder']);
+    $transaction = ImportTransaction::factory()->pending()->create(['assigned_user_id' => $encoder->id]);
+
+    $transaction->stages()->update([
+        'boc_status' => 'completed',
+        'bonds_status' => 'completed',
+        'ppa_status' => 'pending',
+    ]);
+
+    $uploadResponse = $this->actingAs($processor)->postJson('/api/documents', [
+        'file' => UploadedFile::fake()->create('ppa.pdf', 100, 'application/pdf'),
+        'type' => 'ppa',
+        'documentable_type' => ImportTransaction::class,
+        'documentable_id' => $transaction->id,
+    ]);
+
+    $uploadResponse->assertCreated();
+
+    $transaction->refresh()->load('stages');
+
+    expect($transaction->stages->ppa_completed_by)->toBe($processor->id);
+    expect($transaction->stages->ppa_completed_at)->not->toBeNull();
+
+    $documentId = $uploadResponse->json('data.id');
+
+    $this->actingAs($processor)
+        ->deleteJson("/api/documents/{$documentId}")
+        ->assertNoContent();
+
+    $transaction->refresh()->load('stages');
+
+    expect($transaction->stages->ppa_status->value)->toBe('pending');
+    expect($transaction->stages->ppa_completed_by)->toBeNull();
+    expect($transaction->stages->ppa_completed_at)->toBeNull();
+});
+
 test('encoder can upload a document with type others', function () {
     $user = User::factory()->create(['role' => 'encoder']);
     $import = ImportTransaction::factory()->create(['assigned_user_id' => $user->id]);
@@ -589,4 +832,170 @@ test('document generates correct S3 path', function () {
 
     expect($pathWithBl)->toContain('transaction-documents/exports/2025/month-07-July/BL-78542136/bl_bill_of_lading_');
     expect($pathWithBl)->toContain('.pdf');
+});
+
+test('admin can replace any archive document', function () {
+    $encoder = User::factory()->create(['role' => 'encoder']);
+    $admin = User::factory()->create(['role' => 'admin']);
+    $import = ImportTransaction::factory()->create(['assigned_user_id' => $encoder->id]);
+
+    Storage::fake($this->documentDisk);
+
+    $this->actingAs($encoder);
+    $file = UploadedFile::fake()->create('old.pdf', 100, 'application/pdf');
+    $uploadResponse = $this->postJson('/api/documents', [
+        'file' => $file,
+        'type' => 'boc',
+        'documentable_type' => 'App\Models\ImportTransaction',
+        'documentable_id' => $import->id,
+    ]);
+
+    $documentId = $uploadResponse->json('data.id');
+    $document = Document::find($documentId);
+
+    $this->actingAs($admin);
+    $newFile = UploadedFile::fake()->create('new.pdf', 100, 'application/pdf');
+    $response = $this->postJson("/api/documents/{$documentId}/replace", [
+        'file' => $newFile,
+    ]);
+
+    $response->assertStatus(201);
+    $newDocumentId = $response->json('data.id');
+
+    $this->assertDatabaseMissing('documents', ['id' => $documentId]);
+    Storage::disk($this->documentDisk)->assertMissing($document->path);
+
+    $this->assertDatabaseHas('documents', ['id' => $newDocumentId]);
+    $newDocument = Document::find($newDocumentId);
+    Storage::disk($this->documentDisk)->assertExists($newDocument->path);
+});
+
+test('encoder can replace their own archive document', function () {
+    $encoder = User::factory()->create(['role' => 'encoder']);
+    $import = ImportTransaction::factory()->create(['assigned_user_id' => $encoder->id]);
+
+    Storage::fake($this->documentDisk);
+
+    $this->actingAs($encoder);
+    $file = UploadedFile::fake()->create('old.pdf', 100, 'application/pdf');
+    $uploadResponse = $this->postJson('/api/documents', [
+        'file' => $file,
+        'type' => 'boc',
+        'documentable_type' => 'App\Models\ImportTransaction',
+        'documentable_id' => $import->id,
+    ]);
+
+    $documentId = $uploadResponse->json('data.id');
+
+    $newFile = UploadedFile::fake()->create('new.pdf', 100, 'application/pdf');
+    $response = $this->postJson("/api/documents/{$documentId}/replace", [
+        'file' => $newFile,
+    ]);
+
+    $response->assertStatus(201);
+    $newDocumentId = $response->json('data.id');
+    expect($newDocumentId)->not->toBe($documentId);
+    $this->assertDatabaseMissing('documents', ['id' => $documentId]);
+    $this->assertDatabaseHas('documents', ['id' => $newDocumentId]);
+});
+
+test('encoder cannot replace another users archive document', function () {
+    $encoder1 = User::factory()->create(['role' => 'encoder']);
+    $encoder2 = User::factory()->create(['role' => 'encoder']);
+    $import = ImportTransaction::factory()->create(['assigned_user_id' => $encoder1->id]);
+
+    Storage::fake($this->documentDisk);
+
+    $this->actingAs($encoder1);
+    $file = UploadedFile::fake()->create('old.pdf', 100, 'application/pdf');
+    $uploadResponse = $this->postJson('/api/documents', [
+        'file' => $file,
+        'type' => 'boc',
+        'documentable_type' => 'App\Models\ImportTransaction',
+        'documentable_id' => $import->id,
+    ]);
+
+    $documentId = $uploadResponse->json('data.id');
+
+    $this->actingAs($encoder2);
+    $newFile = UploadedFile::fake()->create('new.pdf', 100, 'application/pdf');
+    $response = $this->postJson("/api/documents/{$documentId}/replace", [
+        'file' => $newFile,
+    ]);
+
+    $response->assertStatus(403);
+});
+
+test('replace validates file is required', function () {
+    $encoder = User::factory()->create(['role' => 'encoder']);
+    $import = ImportTransaction::factory()->create(['assigned_user_id' => $encoder->id]);
+
+    $this->actingAs($encoder);
+    $file = UploadedFile::fake()->create('old.pdf', 100, 'application/pdf');
+    $uploadResponse = $this->postJson('/api/documents', [
+        'file' => $file,
+        'type' => 'boc',
+        'documentable_type' => 'App\Models\ImportTransaction',
+        'documentable_id' => $import->id,
+    ]);
+    $documentId = $uploadResponse->json('data.id');
+
+    $response = $this->postJson("/api/documents/{$documentId}/replace", []);
+
+    $response->assertStatus(422);
+    $response->assertJsonValidationErrors(['file']);
+});
+
+test('replace validates file size', function () {
+    $encoder = User::factory()->create(['role' => 'encoder']);
+    $import = ImportTransaction::factory()->create(['assigned_user_id' => $encoder->id]);
+
+    $this->actingAs($encoder);
+    $file = UploadedFile::fake()->create('old.pdf', 100, 'application/pdf');
+    $uploadResponse = $this->postJson('/api/documents', [
+        'file' => $file,
+        'type' => 'boc',
+        'documentable_type' => 'App\Models\ImportTransaction',
+        'documentable_id' => $import->id,
+    ]);
+    $documentId = $uploadResponse->json('data.id');
+
+    $largeFile = UploadedFile::fake()->create('large.pdf', 21000, 'application/pdf');
+    $response = $this->postJson("/api/documents/{$documentId}/replace", [
+        'file' => $largeFile,
+    ]);
+
+    $response->assertStatus(422);
+    $response->assertJsonValidationErrors(['file']);
+});
+
+test('replace keeps the original archive document when storing the new file fails', function () {
+    $encoder = User::factory()->create(['role' => 'encoder']);
+    $import = ImportTransaction::factory()->create(['assigned_user_id' => $encoder->id]);
+    $document = Document::factory()->create([
+        'type' => 'boc',
+        'documentable_type' => ImportTransaction::class,
+        'documentable_id' => $import->id,
+        'uploaded_by' => $encoder->id,
+        'path' => 'transaction-documents/imports/2026/month-04-April/BL-REPLACE-001/boc_old.pdf',
+        'filename' => 'old.pdf',
+    ]);
+
+    Storage::disk($this->documentDisk)->put($document->path, 'original file contents');
+
+    $storeTransactionDocument = Mockery::mock(StoreTransactionDocument::class);
+    $storeTransactionDocument
+        ->shouldReceive('handle')
+        ->once()
+        ->andThrow(new RuntimeException('Unable to write document to the [s3] disk.'));
+
+    $this->app->instance(StoreTransactionDocument::class, $storeTransactionDocument);
+    $this->withoutExceptionHandling();
+
+    expect(fn () => $this->actingAs($encoder)->postJson("/api/documents/{$document->id}/replace", [
+        'file' => UploadedFile::fake()->create('new.pdf', 100, 'application/pdf'),
+    ]))->toThrow(RuntimeException::class, 'Unable to write document to the [s3] disk.');
+
+    $this->assertDatabaseHas('documents', ['id' => $document->id]);
+    Storage::disk($this->documentDisk)->assertExists($document->path);
 });

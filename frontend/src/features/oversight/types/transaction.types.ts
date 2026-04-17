@@ -1,5 +1,6 @@
 export interface ImportStages {
     boc: string;
+    bonds: string;
     ppa: string;
     do: string;
     port_charges: string;
@@ -8,10 +9,13 @@ export interface ImportStages {
 }
 
 export interface ExportStages {
-    docs_prep: string;
+    boc: string;
+    bl_generation: string;
+    phytosanitary: string;
     co: string;
     cil: string;
-    bl: string;
+    dccci: string;
+    billing: string;
 }
 
 export interface OversightTransaction {
@@ -31,6 +35,7 @@ export interface OversightTransaction {
     open_remarks_count: number;
     created_at: string;
     stages: ImportStages | ExportStages | null;
+    not_applicable_stages?: string[];
 }
 
 export interface OversightListResponse {

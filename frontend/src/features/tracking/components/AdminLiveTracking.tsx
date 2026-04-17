@@ -9,6 +9,10 @@ import { useAllExportsData, useAllImportsData } from '../hooks/useAllTransaction
 import type { ApiExportTransaction, ApiImportTransaction, ExportTransaction, ImportTransaction } from '../types';
 import { mapExportTransaction, mapImportTransaction } from '../utils/mappers';
 
+const PENDING_STATUSES = new Set(['Pending']);
+const ACTIVE_IMPORT_STATUSES = new Set(['Vessel Arrived', 'Processing', 'In Progress']);
+const ACTIVE_EXPORT_STATUSES = new Set(['In Transit', 'Departure', 'Processing', 'In Progress']);
+
 const ColH = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
     <div className={`text-[10px] font-bold uppercase tracking-[0.08em] truncate leading-tight min-w-0 ${className}`} style={{ color: 'rgba(255,255,255,0.35)' }}>{children}</div>
 );
@@ -58,8 +62,12 @@ export const AdminLiveTracking = () => {
 
             {/* Stat Cards */}
             {(() => {
-                const inTransit = imports.filter(r => r.status === 'In Transit').length + exports.filter(r => r.status === 'In Transit').length;
-                const pending = imports.filter(r => r.status === 'Pending').length + exports.filter(r => r.status === 'Processing').length;
+                const inTransit =
+                    imports.filter(r => ACTIVE_IMPORT_STATUSES.has(r.status)).length
+                    + exports.filter(r => ACTIVE_EXPORT_STATUSES.has(r.status)).length;
+                const pending =
+                    imports.filter(r => PENDING_STATUSES.has(r.status)).length
+                    + exports.filter(r => PENDING_STATUSES.has(r.status)).length;
                 const cards = [
                     { label: 'Total Imports', value: imports.length, iconColor: '#ef4444', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' },
                     { label: 'Total Exports', value: exports.length, iconColor: '#3b82f6', icon: 'M12 19l9 2-9-18-9 18 9-2zm0 0v-8' },
@@ -105,7 +113,7 @@ export const AdminLiveTracking = () => {
                         </span>
                     </div>
                     <div className="shrink-0 grid gap-x-3 px-4 pt-2 pb-3"
-                        style={{ gridTemplateColumns: '20px 1fr 0.9fr 120px 1.4fr 96px', borderBottom: '1px solid rgba(255,255,255,0.05)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
+                        style={{ gridTemplateColumns: '20px 1fr 0.9fr 128px 1.4fr 96px', borderBottom: '1px solid rgba(255,255,255,0.05)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
                         <ColH>SC</ColH>
                         <ColH>Customs Ref No.</ColH>
                         <ColH className="text-center">Bill of Lading</ColH>
@@ -122,7 +130,7 @@ export const AdminLiveTracking = () => {
                                         onClick={() => navigate(appRoutes.trackingDetail.replace(':referenceId', encodeURIComponent(row.ref)))}
                                         className="grid gap-x-3 px-4 py-1.5 items-center cursor-pointer transition-colors"
                                         style={{
-                                            gridTemplateColumns: '20px 1fr 0.9fr 120px 1.4fr 96px',
+                                            gridTemplateColumns: '20px 1fr 0.9fr 128px 1.4fr 96px',
                                             borderBottom: '1px solid rgba(255,255,255,0.04)',
                                             backgroundColor: i % 2 !== 0 ? 'rgba(255,255,255,0.02)' : 'transparent',
                                         }}
@@ -157,7 +165,7 @@ export const AdminLiveTracking = () => {
                         </span>
                     </div>
                     <div className="shrink-0 grid gap-x-3 px-4 pt-2 pb-3"
-                        style={{ gridTemplateColumns: '1.4fr 1.1fr 1.2fr 96px 100px 1.2fr', borderBottom: '1px solid rgba(255,255,255,0.05)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
+                        style={{ gridTemplateColumns: '1.4fr 1.1fr 1.2fr 96px 120px 1.2fr', borderBottom: '1px solid rgba(255,255,255,0.05)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
                         <ColH>Shipper</ColH>
                         <ColH className="text-center">Bill of Lading</ColH>
                         <ColH>Vessel</ColH>
@@ -174,7 +182,7 @@ export const AdminLiveTracking = () => {
                                         onClick={() => navigate(appRoutes.trackingDetail.replace(':referenceId', encodeURIComponent(row.ref)))}
                                         className="grid gap-x-3 px-4 py-1.5 items-center cursor-pointer transition-colors"
                                         style={{
-                                            gridTemplateColumns: '1.4fr 1.1fr 1.2fr 96px 100px 1.2fr',
+                                            gridTemplateColumns: '1.4fr 1.1fr 1.2fr 96px 120px 1.2fr',
                                             borderBottom: '1px solid rgba(255,255,255,0.04)',
                                             backgroundColor: i % 2 !== 0 ? 'rgba(255,255,255,0.02)' : 'transparent',
                                         }}

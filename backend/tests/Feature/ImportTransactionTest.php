@@ -3,8 +3,11 @@
 use App\Models\Client;
 use App\Models\Country;
 use App\Models\ImportTransaction;
+use App\Models\LocationOfGoods;
 use App\Models\User;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Schema;
 
 // --- Authentication Guard ---
@@ -52,6 +55,150 @@ test('encoders can only list their own import transactions', function () {
     $data = $response->json('data');
     expect($data)->toHaveCount(1);
     expect($data[0]['id'])->toBe($ownedTransaction->id);
+});
+
+test('processors list shared imports with ready processor tasks', function () {
+    $processor = User::factory()->create(['role' => 'processor']);
+    $encoder = User::factory()->create(['role' => 'encoder']);
+
+    $visibleTransaction = ImportTransaction::factory()->pending()->create(['assigned_user_id' => $encoder->id]);
+    $visibleTransaction->stages()->update([
+        'boc_status' => 'completed',
+        'bonds_status' => 'completed',
+        'ppa_status' => 'pending',
+        'do_status' => 'pending',
+        'port_charges_status' => 'pending',
+        'billing_status' => 'pending',
+    ]);
+
+    $completedProcessorTaskTransaction = ImportTransaction::factory()->pending()->create(['assigned_user_id' => $encoder->id]);
+    $completedProcessorTaskTransaction->stages()->update([
+        'boc_status' => 'completed',
+        'bonds_status' => 'completed',
+        'ppa_status' => 'completed',
+        'port_charges_status' => 'completed',
+        'billing_status' => 'pending',
+    ]);
+
+    $notReadyTransaction = ImportTransaction::factory()->pending()->create(['assigned_user_id' => $encoder->id]);
+    $notReadyTransaction->stages()->update([
+        'boc_status' => 'completed',
+        'bonds_status' => 'pending',
+        'ppa_status' => 'pending',
+        'port_charges_status' => 'pending',
+    ]);
+
+    $response = $this->actingAs($processor)
+        ->getJson('/api/import-transactions');
+
+    $response->assertOk()
+        ->assertJsonPath('meta.total', 1);
+
+    $data = $response->json('data');
+    expect($data)->toHaveCount(1);
+    expect($data[0]['id'])->toBe($visibleTransaction->id);
+});
+
+test('accounting users list shared imports only when billing is ready', function () {
+    $accountant = User::factory()->create(['role' => 'accounting']);
+    $encoder = User::factory()->create(['role' => 'encoder']);
+
+    $visibleTransaction = ImportTransaction::factory()->pending()->create(['assigned_user_id' => $encoder->id]);
+    $visibleTransaction->stages()->update([
+        'boc_status' => 'completed',
+        'bonds_status' => 'completed',
+        'ppa_status' => 'completed',
+        'do_status' => 'completed',
+        'port_charges_status' => 'completed',
+        'releasing_status' => 'completed',
+        'billing_status' => 'pending',
+    ]);
+
+    $hiddenTransaction = ImportTransaction::factory()->pending()->create(['assigned_user_id' => $encoder->id]);
+    $hiddenTransaction->stages()->update([
+        'boc_status' => 'completed',
+        'bonds_status' => 'completed',
+        'ppa_status' => 'completed',
+        'do_status' => 'completed',
+        'port_charges_status' => 'completed',
+        'releasing_status' => 'pending',
+        'billing_status' => 'pending',
+    ]);
+
+    $response = $this->actingAs($accountant)
+        ->getJson('/api/import-transactions');
+
+    $response->assertOk()
+        ->assertJsonPath('meta.total', 1);
+
+    $data = $response->json('data');
+    expect($data)->toHaveCount(1);
+    expect($data[0]['id'])->toBe($visibleTransaction->id);
+});
+
+test('processors can list waiting imports when requesting the operational workspace view', function () {
+    $processor = User::factory()->create(['role' => 'processor']);
+    $encoder = User::factory()->create(['role' => 'encoder']);
+
+    $waitingSince = Carbon::parse('2026-04-13 08:15:00', 'UTC');
+    $waitingTransaction = ImportTransaction::factory()->pending()->create([
+        'assigned_user_id' => $encoder->id,
+        'created_at' => '2026-04-10 00:00:00',
+        'updated_at' => '2026-04-10 00:00:00',
+    ]);
+    $waitingTransaction->stages()->update([
+        'boc_status' => 'completed',
+        'boc_completed_at' => $waitingSince,
+        'bonds_status' => 'pending',
+        'ppa_status' => 'pending',
+        'port_charges_status' => 'pending',
+    ]);
+
+    $response = $this->actingAs($processor)
+        ->getJson('/api/import-transactions?operational_scope=workspace');
+
+    $response->assertOk()
+        ->assertJsonPath('meta.total', 1);
+
+    $data = $response->json('data');
+    expect($data)->toHaveCount(1);
+    expect($data[0]['id'])->toBe($waitingTransaction->id);
+    expect($data[0]['waiting_since'])->toBe($waitingSince->toISOString());
+});
+
+test('accounting can list waiting imports when requesting the operational workspace view', function () {
+    $accountant = User::factory()->create(['role' => 'accounting']);
+    $encoder = User::factory()->create(['role' => 'encoder']);
+
+    $waitingSince = Carbon::parse('2026-04-12 10:30:00', 'UTC');
+    $waitingTransaction = ImportTransaction::factory()->pending()->create([
+        'assigned_user_id' => $encoder->id,
+        'created_at' => '2026-04-08 00:00:00',
+        'updated_at' => '2026-04-08 00:00:00',
+    ]);
+    $waitingTransaction->stages()->update([
+        'boc_status' => 'completed',
+        'boc_completed_at' => '2026-04-09 07:00:00',
+        'bonds_status' => 'completed',
+        'bonds_completed_at' => '2026-04-10 07:00:00',
+        'ppa_status' => 'completed',
+        'ppa_completed_at' => $waitingSince,
+        'do_status' => 'pending',
+        'port_charges_status' => 'pending',
+        'releasing_status' => 'pending',
+        'billing_status' => 'pending',
+    ]);
+
+    $response = $this->actingAs($accountant)
+        ->getJson('/api/import-transactions?operational_scope=workspace');
+
+    $response->assertOk()
+        ->assertJsonPath('meta.total', 1);
+
+    $data = $response->json('data');
+    expect($data)->toHaveCount(1);
+    expect($data[0]['id'])->toBe($waitingTransaction->id);
+    expect($data[0]['waiting_since'])->toBe($waitingSince->toISOString());
 });
 
 test('import stats are scoped to the authenticated encoder', function () {
@@ -159,13 +306,16 @@ test('authenticated users can create import transactions with valid data', funct
     $user = User::factory()->create();
     $client = Client::factory()->importer()->create();
     $country = Country::factory()->importOrigin()->create();
+    $locationOfGoods = LocationOfGoods::factory()->create(['name' => 'South Harbor Warehouse']);
 
     $payload = [
         'customs_ref_no' => 'REF-2026-001',
         'bl_no' => 'BL-12345678',
+        'vessel_name' => 'MV Pacific Horizon',
         'selective_color' => 'green',
         'importer_id' => $client->id,
         'origin_country_id' => $country->id,
+        'location_of_goods_id' => $locationOfGoods->id,
         'arrival_date' => '2025-06-15',
     ];
 
@@ -175,20 +325,40 @@ test('authenticated users can create import transactions with valid data', funct
     $response->assertCreated()
         ->assertJsonPath('data.customs_ref_no', 'REF-2026-001')
         ->assertJsonPath('data.bl_no', 'BL-12345678')
+        ->assertJsonPath('data.vessel_name', 'MV Pacific Horizon')
         ->assertJsonPath('data.selective_color', 'green')
         ->assertJsonPath('data.status', 'Pending')
         ->assertJsonPath('data.importer.id', $client->id)
         ->assertJsonPath('data.importer.name', $client->name)
         ->assertJsonPath('data.origin_country.id', $country->id)
-        ->assertJsonPath('data.origin_country.name', $country->name);
+        ->assertJsonPath('data.origin_country.name', $country->name)
+        ->assertJsonPath('data.location_of_goods.id', $locationOfGoods->id)
+        ->assertJsonPath('data.location_of_goods.name', 'South Harbor Warehouse');
 
     $this->assertDatabaseHas('import_transactions', [
         'customs_ref_no' => 'REF-2026-001',
         'bl_no' => 'BL-12345678',
+        'vessel_name' => 'MV Pacific Horizon',
         'assigned_user_id' => $user->id,
         'origin_country_id' => $country->id,
+        'location_of_goods_id' => $locationOfGoods->id,
     ]);
 });
+
+test('operational roles cannot create import transactions', function (string $role) {
+    $user = User::factory()->create(['role' => $role]);
+    $client = Client::factory()->importer()->create();
+
+    $this->actingAs($user)
+        ->postJson('/api/import-transactions', [
+            'customs_ref_no' => 'REF-OPERATIONS-001',
+            'bl_no' => 'BL-OPERATIONS-001',
+            'selective_color' => 'green',
+            'importer_id' => $client->id,
+            'arrival_date' => '2025-06-15',
+        ])
+        ->assertForbidden();
+})->with(['processor', 'accounting']);
 
 test('authenticated users can create import transactions without origin country', function () {
     $user = User::factory()->create();
@@ -261,6 +431,22 @@ test('creating import transaction fails with invalid selective color', function 
         ->assertJsonValidationErrors(['selective_color']);
 });
 
+test('creating import transaction accepts orange selective color', function () {
+    $user = User::factory()->create();
+    $client = Client::factory()->importer()->create();
+
+    $this->actingAs($user)
+        ->postJson('/api/import-transactions', [
+            'customs_ref_no' => 'REF-ORANGE-001',
+            'bl_no' => 'BL-ORANGE-001',
+            'selective_color' => 'orange',
+            'importer_id' => $client->id,
+            'arrival_date' => '2025-06-15',
+        ])
+        ->assertCreated()
+        ->assertJsonPath('data.selective_color', 'orange');
+});
+
 test('creating import transaction fails with non-existent importer', function () {
     $user = User::factory()->create();
 
@@ -293,6 +479,24 @@ test('creating import transaction fails with non-existent origin country', funct
 
     $response->assertUnprocessable()
         ->assertJsonValidationErrors(['origin_country_id']);
+});
+
+test('creating import transaction fails with non-existent location of goods', function () {
+    $user = User::factory()->create();
+    $client = Client::factory()->importer()->create();
+
+    $response = $this->actingAs($user)
+        ->postJson('/api/import-transactions', [
+            'customs_ref_no' => 'REF-001',
+            'bl_no' => 'BL-001',
+            'selective_color' => 'green',
+            'importer_id' => $client->id,
+            'location_of_goods_id' => 99999,
+            'arrival_date' => '2025-06-15',
+        ]);
+
+    $response->assertUnprocessable()
+        ->assertJsonValidationErrors(['location_of_goods_id']);
 });
 
 test('creating import transaction fails with duplicate customs reference number', function () {
@@ -363,6 +567,7 @@ test('assigned user can update their import transaction', function () {
     $user = User::factory()->create(['role' => 'encoder']);
     $client = Client::factory()->importer()->create();
     $country = Country::factory()->importOrigin()->create();
+    $locationOfGoods = LocationOfGoods::factory()->create(['name' => 'Manila International Container Port']);
     $transaction = ImportTransaction::factory()->create([
         'assigned_user_id' => $user->id,
         'selective_color' => 'yellow',
@@ -371,9 +576,11 @@ test('assigned user can update their import transaction', function () {
     $payload = [
         'customs_ref_no' => 'REF-UPDATED-001',
         'bl_no' => 'BL-UPDATED-001',
+        'vessel_name' => 'MV Red Horizon',
         'selective_color' => 'red',
         'importer_id' => $client->id,
         'origin_country_id' => $country->id,
+        'location_of_goods_id' => $locationOfGoods->id,
         'arrival_date' => '2025-06-20',
     ];
 
@@ -382,14 +589,35 @@ test('assigned user can update their import transaction', function () {
 
     $response->assertOk()
         ->assertJsonPath('data.customs_ref_no', 'REF-UPDATED-001')
-        ->assertJsonPath('data.selective_color', 'yellow');
+        ->assertJsonPath('data.vessel_name', 'MV Red Horizon')
+        ->assertJsonPath('data.selective_color', 'red')
+        ->assertJsonPath('data.location_of_goods.id', $locationOfGoods->id)
+        ->assertJsonPath('data.location_of_goods.name', 'Manila International Container Port');
 
     $this->assertDatabaseHas('import_transactions', [
         'id' => $transaction->id,
         'customs_ref_no' => 'REF-UPDATED-001',
-        'selective_color' => 'yellow',
+        'vessel_name' => 'MV Red Horizon',
+        'selective_color' => 'red',
+        'location_of_goods_id' => $locationOfGoods->id,
     ]);
 });
+
+test('operational roles cannot update assigned import transactions', function (string $role) {
+    $user = User::factory()->create(['role' => $role]);
+    $client = Client::factory()->importer()->create();
+    $transaction = ImportTransaction::factory()->create(['assigned_user_id' => $user->id]);
+
+    $this->actingAs($user)
+        ->putJson("/api/import-transactions/{$transaction->id}", [
+            'customs_ref_no' => 'REF-OPERATIONS-UPDATED',
+            'bl_no' => 'BL-OPERATIONS-UPDATED',
+            'selective_color' => 'red',
+            'importer_id' => $client->id,
+            'arrival_date' => '2025-06-20',
+        ])
+        ->assertForbidden();
+})->with(['processor', 'accounting']);
 
 test('other users cannot update an import transaction', function () {
     $owner = User::factory()->create(['role' => 'encoder']);
@@ -468,6 +696,124 @@ test('can update using same bl_no (unique validation ignores self)', function ()
     $response->assertOk();
 });
 
+test('marking an optional import stage as not applicable does not advance the live status', function (
+    string $stage,
+    string $flagColumn,
+    array $stageUpdates,
+) {
+    $user = User::factory()->create(['role' => 'encoder']);
+    $transaction = ImportTransaction::factory()->create([
+        'assigned_user_id' => $user->id,
+        'status' => 'Pending',
+    ]);
+    $transaction->stages()->update($stageUpdates);
+
+    $this->actingAs($user)
+        ->patchJson("/api/import-transactions/{$transaction->id}/stage-applicability", [
+            'stage' => $stage,
+            'not_applicable' => true,
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.status', 'Pending')
+        ->assertJsonFragment(['not_applicable_stages' => [$stage]]);
+
+    $transaction->refresh()->load('stages');
+
+    expect($transaction->status->value)->toBe('Pending');
+    expect($transaction->stages->{$flagColumn})->toBeTrue();
+})->with([
+    'bonds' => [
+        'bonds',
+        'bonds_not_applicable',
+        [
+            'boc_status' => 'completed',
+            'boc_completed_at' => now(),
+        ],
+    ],
+    'ppa' => [
+        'ppa',
+        'ppa_not_applicable',
+        [
+            'boc_status' => 'completed',
+            'boc_completed_at' => now()->subHour(),
+            'bonds_status' => 'completed',
+            'bonds_completed_at' => now(),
+        ],
+    ],
+    'port charges' => [
+        'port_charges',
+        'port_charges_not_applicable',
+        [
+            'boc_status' => 'completed',
+            'boc_completed_at' => now()->subHours(3),
+            'bonds_status' => 'completed',
+            'bonds_completed_at' => now()->subHours(2),
+            'ppa_status' => 'completed',
+            'ppa_completed_at' => now()->subHour(),
+            'do_status' => 'completed',
+            'do_completed_at' => now(),
+        ],
+    ],
+]);
+
+test('cannot mark an optional import stage as not applicable before earlier stages are completed', function (
+    string $stage,
+    string $flagColumn,
+) {
+    $user = User::factory()->create(['role' => 'encoder']);
+    $transaction = ImportTransaction::factory()->create([
+        'assigned_user_id' => $user->id,
+        'status' => 'Pending',
+    ]);
+
+    $this->actingAs($user)
+        ->patchJson("/api/import-transactions/{$transaction->id}/stage-applicability", [
+            'stage' => $stage,
+            'not_applicable' => true,
+        ])
+        ->assertUnprocessable()
+        ->assertJsonPath('message', 'Complete the earlier required stages before marking this stage as not applicable.');
+
+    $transaction->refresh()->load('stages');
+
+    expect($transaction->stages->{$flagColumn})->toBeFalse();
+})->with([
+    'bonds' => ['bonds', 'bonds_not_applicable'],
+    'ppa' => ['ppa', 'ppa_not_applicable'],
+    'port charges' => ['port_charges', 'port_charges_not_applicable'],
+]);
+
+test('document uploads are rejected for import stages marked as not applicable', function (
+    string $stage,
+    string $flagColumn,
+    string $statusColumn,
+    string $expectedMessage,
+) {
+    $user = User::factory()->create(['role' => 'encoder']);
+    $transaction = ImportTransaction::factory()->create([
+        'assigned_user_id' => $user->id,
+    ]);
+    $transaction->stages()->update([
+        $flagColumn => true,
+        $statusColumn => 'completed',
+    ]);
+
+    $this->actingAs($user)
+        ->postJson('/api/documents', [
+            'file' => UploadedFile::fake()->create("{$stage}.pdf", 100, 'application/pdf'),
+            'type' => $stage,
+            'documentable_type' => ImportTransaction::class,
+            'documentable_id' => $transaction->id,
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['type'])
+        ->assertJsonPath('errors.type.0', $expectedMessage);
+})->with([
+    'bonds' => ['bonds', 'bonds_not_applicable', 'bonds_status', 'The BONDS stage is marked as not applicable for this transaction.'],
+    'ppa' => ['ppa', 'ppa_not_applicable', 'ppa_status', 'The Payment for PPA Charges stage is marked as not applicable for this transaction.'],
+    'port charges' => ['port_charges', 'port_charges_not_applicable', 'port_charges_status', 'The Payment for Port Charges stage is marked as not applicable for this transaction.'],
+]);
+
 test('updating an import transaction fails when customs reference number belongs to another transaction', function () {
     $user = User::factory()->create(['role' => 'encoder']);
     $client = Client::factory()->importer()->create();
@@ -491,4 +837,40 @@ test('updating an import transaction fails when customs reference number belongs
 
     $response->assertUnprocessable()
         ->assertJsonValidationErrors(['customs_ref_no']);
+});
+
+// --- Delete ---
+
+test('admin can delete a cancelled import transaction', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $transaction = ImportTransaction::factory()->create(['status' => 'Cancelled']);
+
+    $this->actingAs($admin)
+        ->deleteJson("/api/import-transactions/{$transaction->id}")
+        ->assertNoContent();
+
+    $this->assertDatabaseMissing('import_transactions', ['id' => $transaction->id]);
+});
+
+test('admin cannot delete an active import transaction', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $transaction = ImportTransaction::factory()->pending()->create();
+
+    $this->actingAs($admin)
+        ->deleteJson("/api/import-transactions/{$transaction->id}")
+        ->assertUnprocessable()
+        ->assertJsonPath('message', 'Only cancelled transactions can be deleted.');
+
+    $this->assertDatabaseHas('import_transactions', ['id' => $transaction->id]);
+});
+
+test('non-admin cannot delete an import transaction', function () {
+    $encoder = User::factory()->create(['role' => 'encoder']);
+    $transaction = ImportTransaction::factory()->create(['status' => 'Cancelled', 'assigned_user_id' => $encoder->id]);
+
+    $this->actingAs($encoder)
+        ->deleteJson("/api/import-transactions/{$transaction->id}")
+        ->assertForbidden();
+
+    $this->assertDatabaseHas('import_transactions', ['id' => $transaction->id]);
 });

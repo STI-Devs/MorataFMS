@@ -184,4 +184,18 @@ describe('DocumentsDetail', () => {
 
         expect(screen.getByRole('button', { name: 'Upload' })).toBeInTheDocument();
     });
+
+    it('shows the document stage badge beside the file name', () => {
+        mockUseDocuments.mockReturnValue({
+            data: [makeApiDocument({ id: 901, filename: 'review.pdf', type: 'port_charges' })],
+            isLoading: false,
+        });
+
+        renderDocumentsDetail(
+            '/documents/REF82713871',
+            [],
+        );
+
+        expect(screen.getByText('Payment for Port Charges')).toBeInTheDocument();
+    });
 });

@@ -16,7 +16,7 @@ import {
 import type {
     AdminReviewQueueItem,
     AdminReviewReadinessFilter,
-    AdminReviewRequiredDocument,
+    AdminReviewDocumentFile,
     AdminReviewStatusFilter,
     AdminReviewTypeFilter,
 } from '../../types/document.types';
@@ -131,8 +131,8 @@ export const AdminDocumentReview = () => {
         });
     };
 
-    const handlePreview = async (document: AdminReviewRequiredDocument) => {
-        const previewDocument = toPreviewDocument(document);
+    const handlePreview = async (file: AdminReviewDocumentFile, typeKey: string) => {
+        const previewDocument = toPreviewDocument(file, typeKey);
 
         if (!previewDocument) {
             return;
@@ -141,12 +141,8 @@ export const AdminDocumentReview = () => {
         await handlePreviewDoc(previewDocument);
     };
 
-    const handleDownload = async (document: AdminReviewRequiredDocument) => {
-        if (!document.file) {
-            return;
-        }
-
-        await trackingApi.downloadDocument(document.file.id, document.file.filename);
+    const handleDownload = async (file: AdminReviewDocumentFile) => {
+        await trackingApi.downloadDocument(file.id, file.filename);
     };
 
     const handleArchive = () => {
@@ -273,11 +269,11 @@ export const AdminDocumentReview = () => {
                                 void detailQuery.refetch();
                             }}
                             onArchive={handleArchive}
-                            onPreview={(document) => {
-                                void handlePreview(document);
+                            onPreview={(file, typeKey) => {
+                                void handlePreview(file, typeKey);
                             }}
-                            onDownload={(document) => {
-                                void handleDownload(document);
+                            onDownload={(file) => {
+                                void handleDownload(file);
                             }}
                         />
                     </div>

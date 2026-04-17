@@ -6,7 +6,7 @@ The goal is to keep this React frontend scalable, consistent with the Laravel ba
 
 ## Skills Activation
 
-- `vercel-react-best-practices` — Use this local skill for React performance, rerender, bundle size, route-splitting, hydration, and production-readiness work inside `frontend/`. Trigger whenever a task involves React component refactors, hooks, lazy routes, bundle warnings, rendering churn, or frontend audits.
+- `vercel-react-best-practices` C:\Users\User\Desktop\MorataFMS\frontend\.agents\skills\vercel-react-best-practices — Use this local skill for React performance, rerender, bundle size, route-splitting, hydration, and production-readiness work inside `frontend/`. Trigger whenever a task involves React component refactors, hooks, lazy routes, bundle warnings, rendering churn, or frontend audits.
 
 ## Package Manager
 
@@ -83,6 +83,8 @@ Rules:
 The only frontend auth roles are:
 
 - `encoder`
+- `processor`
+- `accounting`
 - `paralegal`
 - `admin`
 
@@ -92,6 +94,10 @@ Rules:
 - `job_title` is display/business metadata, not authorization.
 - Frontend access decisions must use backend-provided `role`, `departments`, and `permissions`.
 - Prefer `src/features/auth/utils/access.ts` helpers over ad hoc role checks scattered in components.
+- `processor` and `accounting` are focused task roles, not full transaction encoders.
+- Processor screens should center on assigned upload tasks for `CIL`, `PPA`, and `Port Charges`.
+- Accounting screens should center on assigned upload tasks for `Billing` and `Liquidation`.
+- Do not reuse encoder import/export encoding screens for processor or accounting workflows unless the screen is explicitly reduced to their scoped tasks.
 - Production note: the deployed app uses first-party Sanctum cookie-based SPA auth on the shared `fmmcbs.com` root domain. Do not reintroduce frontend token storage for the first-party web app.
 
 If a new permission-sensitive feature is added:

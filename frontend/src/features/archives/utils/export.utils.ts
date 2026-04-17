@@ -1,5 +1,5 @@
 ﻿import type { ArchiveYear, TransactionType } from '../../documents/types/document.types';
-import { EXPORT_STAGES, IMPORT_STAGES, REQUIRED_EXPORT_STAGES, REQUIRED_IMPORT_STAGES } from '../../documents/types/document.types';
+import { EXPORT_STAGES, getRequiredArchiveStages, IMPORT_STAGES, REQUIRED_EXPORT_STAGES, REQUIRED_IMPORT_STAGES } from '../../documents/types/document.types';
 import { toTitleCase } from './archive.utils';
 
 const MONTH_NAMES_FULL = [
@@ -27,6 +27,7 @@ export const exportArchiveCSV = (archiveData: ArchiveYear[], filters: ExportFilt
         month: number;
         client: string;
         stages: Set<string>;
+        notApplicableStages: Set<string>;
         lastUpload: string | null;
         uploader: string | null;
     };
@@ -46,11 +47,12 @@ export const exportArchiveCSV = (archiveData: ArchiveYear[], filters: ExportFilt
                 blMap.set(key, {
                     blNo, type: doc.type, year: yearData.year,
                     month: doc.month, client: doc.client,
-                    stages: new Set(), lastUpload: null, uploader: null,
+                    stages: new Set(), notApplicableStages: new Set(), lastUpload: null, uploader: null,
                 });
             }
             const entry = blMap.get(key)!;
             entry.stages.add(doc.stage);
+            doc.not_applicable_stages?.forEach((stage) => entry.notApplicableStages.add(stage));
             if (doc.uploaded_at && (!entry.lastUpload || doc.uploaded_at > entry.lastUpload)) {
                 entry.lastUpload = doc.uploaded_at;
                 entry.uploader = doc.uploader?.name ?? null;
@@ -58,8 +60,8 @@ export const exportArchiveCSV = (archiveData: ArchiveYear[], filters: ExportFilt
         }
     }
 
-    const importStageKeys = REQUIRED_IMPORT_STAGES.map(s => s.key) as string[];
-    const exportStageKeys = REQUIRED_EXPORT_STAGES.map(s => s.key) as string[];
+    const importStageKeys = REQUIRED_IMPORT_STAGES.map((stage) => stage.key) as string[];
+    const exportStageKeys = REQUIRED_EXPORT_STAGES.map((stage) => stage.key) as string[];
     const allStageKeys = [...new Set([...importStageKeys, ...exportStageKeys])];
     const stageLabels = Object.fromEntries([
         ...IMPORT_STAGES.map(s => [s.key, s.label]),
@@ -75,15 +77,17 @@ export const exportArchiveCSV = (archiveData: ArchiveYear[], filters: ExportFilt
     const rows = [...blMap.values()]
         .filter(entry => {
             if (status === 'all') return true;
-            const required = entry.type === 'import' ? importStageKeys : exportStageKeys;
+            const required = getRequiredArchiveStages(entry.type, [...entry.notApplicableStages]).map((stage) => stage.key);
             const complete = required.every(k => entry.stages.has(k));
             return status === 'complete' ? complete : !complete;
         })
         .sort((a, b) => b.year - a.year || b.month - a.month || a.blNo.localeCompare(b.blNo))
         .map(entry => {
-            const required = entry.type === 'import' ? importStageKeys : exportStageKeys;
+            const required = getRequiredArchiveStages(entry.type, [...entry.notApplicableStages]).map((stage) => stage.key);
+            const applicableStageKeys = (entry.type === 'import' ? IMPORT_STAGES : EXPORT_STAGES).map((stage) => stage.key);
             const isComplete = required.every(k => entry.stages.has(k));
             const stageCols = allStageKeys.map(k => {
+                if (!applicableStageKeys.includes(k)) return '—';
                 if (!required.includes(k)) return 'N/A';
                 return entry.stages.has(k) ? '✓' : '–';
             });

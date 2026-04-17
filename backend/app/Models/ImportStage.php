@@ -14,10 +14,16 @@ class ImportStage extends Model
         'boc_status',
         'boc_completed_at',
         'boc_completed_by',
+        // Bonds
+        'bonds_status',
+        'bonds_completed_at',
+        'bonds_completed_by',
+        'bonds_not_applicable',
         // PPA
         'ppa_status',
         'ppa_completed_at',
         'ppa_completed_by',
+        'ppa_not_applicable',
         // DO
         'do_status',
         'do_completed_at',
@@ -26,6 +32,7 @@ class ImportStage extends Model
         'port_charges_status',
         'port_charges_completed_at',
         'port_charges_completed_by',
+        'port_charges_not_applicable',
         // Releasing
         'releasing_status',
         'releasing_completed_at',
@@ -37,18 +44,23 @@ class ImportStage extends Model
     ];
 
     protected $casts = [
-        'boc_completed_at'          => 'datetime',
-        'ppa_completed_at'          => 'datetime',
-        'do_completed_at'           => 'datetime',
+        'boc_completed_at' => 'datetime',
+        'bonds_completed_at' => 'datetime',
+        'ppa_completed_at' => 'datetime',
+        'do_completed_at' => 'datetime',
         'port_charges_completed_at' => 'datetime',
-        'releasing_completed_at'    => 'datetime',
-        'billing_completed_at'      => 'datetime',
-        'boc_status'                => StageStatus::class,
-        'ppa_status'                => StageStatus::class,
-        'do_status'                 => StageStatus::class,
-        'port_charges_status'       => StageStatus::class,
-        'releasing_status'          => StageStatus::class,
-        'billing_status'            => StageStatus::class,
+        'releasing_completed_at' => 'datetime',
+        'billing_completed_at' => 'datetime',
+        'boc_status' => StageStatus::class,
+        'bonds_status' => StageStatus::class,
+        'ppa_status' => StageStatus::class,
+        'do_status' => StageStatus::class,
+        'port_charges_status' => StageStatus::class,
+        'releasing_status' => StageStatus::class,
+        'billing_status' => StageStatus::class,
+        'bonds_not_applicable' => 'boolean',
+        'ppa_not_applicable' => 'boolean',
+        'port_charges_not_applicable' => 'boolean',
     ];
 
     // Relationships
@@ -60,6 +72,11 @@ class ImportStage extends Model
     public function bocCompletedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'boc_completed_by');
+    }
+
+    public function bondsCompletedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'bonds_completed_by');
     }
 
     public function ppaCompletedBy(): BelongsTo
@@ -103,11 +120,11 @@ class ImportStage extends Model
 
     public function getCompletedStagesCount(): int
     {
-        $stages = ['boc', 'ppa', 'do', 'port_charges', 'releasing', 'billing'];
+        $stages = ['boc', 'bonds', 'ppa', 'do', 'port_charges', 'releasing', 'billing'];
         $count = 0;
 
         foreach ($stages as $stage) {
-            if ($this->{"{$stage}_status"} === 'completed') {
+            if ($this->{"{$stage}_status"} === StageStatus::Completed) {
                 $count++;
             }
         }
@@ -117,6 +134,6 @@ class ImportStage extends Model
 
     public function isAllComplete(): bool
     {
-        return $this->getCompletedStagesCount() === 6;
+        return $this->getCompletedStagesCount() === 7;
     }
 }

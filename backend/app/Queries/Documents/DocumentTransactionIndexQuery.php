@@ -4,6 +4,7 @@ namespace App\Queries\Documents;
 
 use App\Enums\ExportStatus;
 use App\Enums\ImportStatus;
+use App\Enums\UserRole;
 use App\Models\ExportTransaction;
 use App\Models\ImportTransaction;
 use App\Support\Transactions\ExportStatusWorkflow;
@@ -60,22 +61,28 @@ class DocumentTransactionIndexQuery
         $exportIds = $items->where('type', 'export')->pluck('id');
 
         /** @var Collection<int, ImportTransaction> $imports */
-        $imports = ImportTransaction::query()
-            ->visibleTo($request->user())
+        $importsQuery = ImportTransaction::query()
             ->with(['importer:id,name'])
             ->withCount('documents')
-            ->whereIn('id', $importIds)
-            ->get()
-            ->keyBy('id');
+            ->whereIn('id', $importIds);
+
+        if (! in_array($request->user()->role, [UserRole::Processor, UserRole::Accounting], true)) {
+            $importsQuery->visibleTo($request->user());
+        }
+
+        $imports = $importsQuery->get()->keyBy('id');
 
         /** @var Collection<int, ExportTransaction> $exports */
-        $exports = ExportTransaction::query()
-            ->visibleTo($request->user())
+        $exportsQuery = ExportTransaction::query()
             ->with(['shipper:id,name', 'destinationCountry:id,name'])
             ->withCount('documents')
-            ->whereIn('id', $exportIds)
-            ->get()
-            ->keyBy('id');
+            ->whereIn('id', $exportIds);
+
+        if (! in_array($request->user()->role, [UserRole::Processor, UserRole::Accounting], true)) {
+            $exportsQuery->visibleTo($request->user());
+        }
+
+        $exports = $exportsQuery->get()->keyBy('id');
 
         return [
             'data' => $this->mapRows($items, $imports, $exports),
@@ -100,9 +107,24 @@ class DocumentTransactionIndexQuery
     private function buildImportBaseQuery(Request $request, string $search, array $finalizedStatuses): Builder
     {
         $query = ImportTransaction::query()
-            ->visibleTo($request->user())
             ->selectRaw("id, 'import' as type, created_at")
             ->whereIn('status', $finalizedStatuses);
+
+        if ($request->user()->role === UserRole::Processor) {
+            $query->whereHas('documents', function (Builder $documentQuery) use ($request) {
+                $documentQuery
+                    ->where('uploaded_by', $request->user()->id)
+                    ->whereIn('type', ImportTransaction::processorOperationalDocumentTypes());
+            });
+        } elseif ($request->user()->role === UserRole::Accounting) {
+            $query->whereHas('documents', function (Builder $documentQuery) use ($request) {
+                $documentQuery
+                    ->where('uploaded_by', $request->user()->id)
+                    ->whereIn('type', ImportTransaction::accountingOperationalDocumentTypes());
+            });
+        } else {
+            $query->visibleTo($request->user());
+        }
 
         if ($search !== '') {
             $query->where(function (Builder $query) use ($search) {
@@ -123,9 +145,24 @@ class DocumentTransactionIndexQuery
     private function buildExportBaseQuery(Request $request, string $search, array $finalizedStatuses): Builder
     {
         $query = ExportTransaction::query()
-            ->visibleTo($request->user())
             ->selectRaw("id, 'export' as type, created_at")
             ->whereIn('status', $finalizedStatuses);
+
+        if ($request->user()->role === UserRole::Processor) {
+            $query->whereHas('documents', function (Builder $documentQuery) use ($request) {
+                $documentQuery
+                    ->where('uploaded_by', $request->user()->id)
+                    ->whereIn('type', ExportTransaction::processorOperationalDocumentTypes());
+            });
+        } elseif ($request->user()->role === UserRole::Accounting) {
+            $query->whereHas('documents', function (Builder $documentQuery) use ($request) {
+                $documentQuery
+                    ->where('uploaded_by', $request->user()->id)
+                    ->whereIn('type', ExportTransaction::accountingOperationalDocumentTypes());
+            });
+        } else {
+            $query->visibleTo($request->user());
+        }
 
         if ($search !== '') {
             $query->where(function (Builder $query) use ($search) {

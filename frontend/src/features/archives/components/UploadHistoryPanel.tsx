@@ -17,8 +17,8 @@ const formatDateTime = (iso: string) =>
     });
 
 export const UploadHistoryPanel = ({ isOpen, onClose, folderName, docs, type }: UploadHistoryPanelProps) => {
-    const requiredStages = getRequiredArchiveStages(type);
     const displayStages = type === 'import' ? IMPORT_STAGES : EXPORT_STAGES;
+    const stageLabels = new Map(displayStages.map((stage) => [stage.key, stage.label]));
 
     // Group docs by BL number
     const blMap = new Map<string, ArchiveDocument[]>();
@@ -33,6 +33,8 @@ export const UploadHistoryPanel = ({ isOpen, onClose, folderName, docs, type }: 
     const totalBLs = blEntries.length;
     const completeBLs = blEntries.filter(([, blDocs]) => {
         const uploaded = new Set(blDocs.map(d => d.stage));
+        const notApplicableStages = [...new Set(blDocs.flatMap((doc) => doc.not_applicable_stages ?? []))];
+        const requiredStages = getRequiredArchiveStages(type, notApplicableStages);
         return requiredStages.every(s => uploaded.has(s.key));
     }).length;
 
@@ -82,7 +84,7 @@ export const UploadHistoryPanel = ({ isOpen, onClose, folderName, docs, type }: 
                                 {totalBLs - completeBLs} Incomplete
                             </span>
                         )}
-                        <span className="text-[11px] text-gray-400 ml-auto">{requiredStages.length} stages required</span>
+                        <span className="text-[11px] text-gray-400 ml-auto">Stage completeness by BL</span>
                     </div>
                 </div>
 
@@ -96,6 +98,11 @@ export const UploadHistoryPanel = ({ isOpen, onClose, folderName, docs, type }: 
                             if (!uploaded.has(doc.stage)) uploaded.set(doc.stage, []);
                             uploaded.get(doc.stage)!.push(doc);
                         }
+                        const notApplicableStages = [...new Set(blDocs.flatMap((doc) => doc.not_applicable_stages ?? []))];
+                        const notApplicableLabels = notApplicableStages
+                            .map((stageKey) => stageLabels.get(stageKey) ?? stageKey)
+                            .join(', ');
+                        const requiredStages = getRequiredArchiveStages(type, notApplicableStages);
                         const doneCount = requiredStages.filter(s => uploaded.has(s.key)).length;
                         const isComplete = doneCount === requiredStages.length;
                         const client = blDocs[0]?.client;
@@ -122,6 +129,9 @@ export const UploadHistoryPanel = ({ isOpen, onClose, folderName, docs, type }: 
                                                     className={`w-4 h-1.5 rounded-full ${uploaded.has(s.key) ? 'bg-emerald-400' : 'bg-gray-200'}`} />
                                             ))}
                                             <span className="text-[10px] text-gray-400 ml-1">{doneCount}/{requiredStages.length}</span>
+                                            {notApplicableStages.length > 0 && (
+                                                <span className="text-[10px] font-semibold text-amber-500 ml-1">N/A: {notApplicableLabels}</span>
+                                            )}
                                         </div>
                                     </div>
                                     <span className={`shrink-0 inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${isComplete ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
@@ -136,13 +146,19 @@ export const UploadHistoryPanel = ({ isOpen, onClose, folderName, docs, type }: 
                                         const stageDocs = uploaded.get(stage.key) ?? [];
                                         const hasFile = stageDocs.length > 0;
                                         const isRequiredStage = requiredStages.some((requiredStage) => requiredStage.key === stage.key);
+                                        const isNotApplicableStage = notApplicableStages.includes(stage.key);
                                         return (
                                             <div key={stage.key} className="border-b border-gray-100 last:border-b-0">
                                                 {/* Stage label */}
                                                 <div className="flex items-center gap-2 px-8 py-2">
-                                                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${hasFile ? 'bg-emerald-400' : 'bg-gray-300'}`} />
+                                                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                                                        hasFile ? 'bg-emerald-400' : isNotApplicableStage ? 'bg-amber-400' : 'bg-gray-300'
+                                                    }`} />
                                                     <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wide">{stage.label}</span>
-                                                    {!hasFile && isRequiredStage && (
+                                                    {isNotApplicableStage && (
+                                                        <span className="ml-auto text-[10px] text-amber-500 font-semibold italic">Marked N/A</span>
+                                                    )}
+                                                    {!hasFile && isRequiredStage && !isNotApplicableStage && (
                                                         <span className="ml-auto text-[10px] text-red-400 font-semibold italic">Not uploaded</span>
                                                     )}
                                                 </div>

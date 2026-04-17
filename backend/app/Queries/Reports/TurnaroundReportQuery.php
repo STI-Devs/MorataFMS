@@ -39,7 +39,7 @@ class TurnaroundReportQuery
             'exports' => $this->statsFor(
                 $exportQuery,
                 'export_transactions.created_at',
-                'COALESCE(export_stages.bl_completed_at, export_transactions.updated_at)'
+                'COALESCE(export_stages.billing_completed_at, export_transactions.updated_at)'
             ),
         ];
     }

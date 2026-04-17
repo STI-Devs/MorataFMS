@@ -13,6 +13,7 @@ class ImportTransactionResource extends JsonResource
             'id' => $this->id,
             'customs_ref_no' => $this->customs_ref_no,
             'bl_no' => $this->bl_no,
+            'vessel_name' => $this->vessel_name,
             'selective_color' => $this->selective_color,
             'importer' => [
                 'id' => $this->importer?->id,
@@ -22,6 +23,10 @@ class ImportTransactionResource extends JsonResource
                 'id' => $this->originCountry->id,
                 'name' => $this->originCountry->name,
                 'code' => $this->originCountry->code,
+            ]),
+            'location_of_goods' => $this->whenLoaded('locationOfGoods', fn () => [
+                'id' => $this->locationOfGoods->id,
+                'name' => $this->locationOfGoods->name,
             ]),
             'arrival_date' => $this->arrival_date?->format('Y-m-d'),
             'assigned_user' => $this->whenLoaded('assignedUser', fn () => [
@@ -34,14 +39,12 @@ class ImportTransactionResource extends JsonResource
             'archived_by_id' => $this->archived_by,
             'archive_origin' => $this->archive_origin?->value,
             'notes' => $this->notes,
-            'stages' => $this->whenLoaded('stages', fn () => [
-                'boc' => $this->stages->boc_status,
-                'ppa' => $this->stages->ppa_status,
-                'do' => $this->stages->do_status,
-                'port_charges' => $this->stages->port_charges_status,
-                'releasing' => $this->stages->releasing_status,
-                'billing' => $this->stages->billing_status,
-            ]),
+            'stages' => $this->whenLoaded('stages', fn () => $this->progress),
+            'not_applicable_stages' => $this->whenLoaded('stages', fn () => $this->notApplicableStageKeys()),
+            'waiting_since' => $this->whenLoaded(
+                'stages',
+                fn () => $request->user() ? $this->waitingSinceForOperationalRole($request->user())?->toISOString() : null,
+            ),
             'created_at' => $this->created_at?->toISOString(),
             'open_remarks_count' => $this->open_remarks_count ?? 0,
             'documents_count' => $this->documents_count ?? 0,

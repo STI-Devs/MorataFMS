@@ -12,7 +12,7 @@ export function StatusBadge({ status }: StatusBadgeProps) {
     const s = getStatusStyle(status);
     return (
         <span
-            className="inline-flex items-center justify-start gap-1.5 w-[100px] px-3 py-1 rounded-md text-[11px] font-semibold whitespace-nowrap"
+            className="inline-flex items-center justify-center gap-1.5 min-w-[100px] px-2.5 py-1 rounded-md text-[11px] font-semibold whitespace-nowrap"
             style={{
                 color: s.color,
                 backgroundColor: s.bg,

@@ -69,7 +69,7 @@ test('admin dashboard returns aggregated oversight data', function () {
         'updated_at' => now()->subMinutes(30),
     ]);
 
-    foreach (['boc', 'bl_generation', 'co', 'dccci', 'billing'] as $typeKey) {
+    foreach (['boc', 'bl_generation', 'co', 'phytosanitary', 'cil', 'dccci', 'billing'] as $typeKey) {
         Document::factory()->create([
             'documentable_type' => ExportTransaction::class,
             'documentable_id' => $flaggedExport->id,

@@ -19,12 +19,12 @@ export const useTransactionDocuments = (
         staleTime: 1000 * 60 * 2,
     });
 
-    const byStageIndex: Record<number, ApiDocument> = {};
+    const byStageIndex: Record<number, ApiDocument[]> = {};
     if (query.data) {
         query.data.forEach((doc) => {
             const stageIndex = stages.findIndex((stage) => stage.type === doc.type);
-            if (stageIndex !== -1 && (!byStageIndex[stageIndex] || doc.id > byStageIndex[stageIndex].id)) {
-                byStageIndex[stageIndex] = doc;
+            if (stageIndex !== -1) {
+                byStageIndex[stageIndex] = [...(byStageIndex[stageIndex] ?? []), doc];
             }
         });
     }
@@ -39,8 +39,7 @@ export const useAddDocumentToCache = () => {
         queryClient.setQueryData<ApiDocument[]>(
             trackingKeys.documents.list(documentableType, documentableId),
             (previousDocuments = []) => {
-                const filteredDocuments = previousDocuments.filter((existingDocument) => existingDocument.type !== doc.type);
-                return [doc, ...filteredDocuments];
+                return [doc, ...previousDocuments.filter((existingDocument) => existingDocument.id !== doc.id)];
             },
         );
     };

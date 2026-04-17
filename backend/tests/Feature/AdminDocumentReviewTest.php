@@ -25,11 +25,9 @@ function attachReviewDocuments(ImportTransaction|ExportTransaction $transaction,
 
 function requiredReviewTypes(string $type): array
 {
-    $typeKeys = $type === 'import'
-        ? Document::importTypeKeys()
-        : Document::exportTypeKeys();
-
-    return array_values(array_filter($typeKeys, fn (string $typeKey) => $typeKey !== 'others'));
+    return Document::requiredTypeKeysFor(
+        $type === 'import' ? ImportTransaction::class : ExportTransaction::class,
+    );
 }
 
 test('admin can list the paginated admin document review queue', function () {
@@ -181,14 +179,6 @@ test('admin can inspect the review detail for a finalized transaction', function
         ->assertJsonPath('uploaded_documents.0.label', 'Other Documents')
         ->assertJsonPath('uploaded_documents.1.type_key', 'boc')
         ->assertJsonPath('uploaded_documents.1.filename', 'boc_declaration_ab12cd.pdf')
-        ->assertJsonPath('required_documents.0.type_key', 'boc')
-        ->assertJsonPath('required_documents.0.label', 'BOC Document Processing')
-        ->assertJsonPath('required_documents.0.uploaded', true)
-        ->assertJsonPath('required_documents.0.file.id', $bocDocument->id)
-        ->assertJsonPath('required_documents.0.file.filename', 'boc_declaration_ab12cd.pdf')
-        ->assertJsonPath('required_documents.0.file.uploaded_by', 'Sarah Velasco')
-        ->assertJsonPath('required_documents.1.type_key', 'ppa')
-        ->assertJsonPath('required_documents.1.uploaded', false)
         ->assertJsonPath('summary.total_uploaded', 2)
         ->assertJsonPath('summary.required_completed', 1)
         ->assertJsonPath('summary.required_total', count(requiredReviewTypes('import')))
@@ -196,6 +186,23 @@ test('admin can inspect the review detail for a finalized transaction', function
         ->assertJsonPath('summary.flagged_count', 1)
         ->assertJsonPath('summary.archive_ready', false)
         ->assertJsonPath('summary.readiness', 'flagged');
+
+    $requiredDocuments = collect($response->json('required_documents'))->keyBy('type_key');
+
+    expect($requiredDocuments->get('boc'))->toMatchArray([
+        'type_key' => 'boc',
+        'label' => 'BOC Document Processing',
+        'uploaded' => true,
+        'not_applicable' => false,
+    ]);
+    expect($requiredDocuments->get('boc')['files'][0]['id'])->toBe($bocDocument->id);
+    expect($requiredDocuments->get('boc')['files'][0]['filename'])->toBe('boc_declaration_ab12cd.pdf');
+    expect($requiredDocuments->get('boc')['files'][0]['uploaded_by'])->toBe('Sarah Velasco');
+    expect($requiredDocuments->get('ppa'))->toMatchArray([
+        'type_key' => 'ppa',
+        'uploaded' => false,
+        'not_applicable' => false,
+    ]);
 
     expect(collect($response->json('required_documents'))->pluck('type_key')->all())
         ->not->toContain('others');
@@ -225,7 +232,7 @@ test('stats endpoint reports completed cancelled missing documents and archive r
         'updated_at' => Carbon::parse('2026-03-21 09:00:00', 'UTC'),
     ]);
     $flaggedExport->stages()->update([
-        'bl_completed_at' => Carbon::parse('2026-03-21 09:00:00', 'UTC'),
+        'billing_completed_at' => Carbon::parse('2026-03-21 09:00:00', 'UTC'),
     ]);
     attachReviewDocuments($flaggedExport, requiredReviewTypes('export'), $uploader);
     TransactionRemark::factory()->create([
@@ -259,6 +266,55 @@ test('stats endpoint reports completed cancelled missing documents and archive r
         ->assertJsonPath('cancelled_count', 1)
         ->assertJsonPath('missing_docs_count', 1)
         ->assertJsonPath('archive_ready_count', 1);
+});
+
+test('admin review detail treats optional stages marked not applicable as satisfied', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $uploader = User::factory()->create(['role' => 'encoder']);
+
+    $transaction = ImportTransaction::factory()->create([
+        'status' => ImportStatus::Completed,
+        'is_archive' => false,
+        'assigned_user_id' => $uploader->id,
+    ]);
+    $transaction->stages()->update([
+        'billing_completed_at' => Carbon::parse('2026-03-25 12:00:00', 'UTC'),
+        'bonds_not_applicable' => true,
+        'ppa_not_applicable' => true,
+        'port_charges_not_applicable' => true,
+    ]);
+    attachReviewDocuments(
+        $transaction,
+        Document::requiredTypeKeysFor(ImportTransaction::class, ['bonds', 'ppa', 'port_charges']),
+        $uploader,
+    );
+
+    $response = $this->actingAs($admin)
+        ->getJson("/api/admin/document-review/import/{$transaction->id}")
+        ->assertOk();
+
+    $requiredDocuments = collect($response->json('required_documents'))->keyBy('type_key');
+
+    expect($requiredDocuments->get('bonds'))->toMatchArray([
+        'type_key' => 'bonds',
+        'uploaded' => false,
+        'not_applicable' => true,
+    ]);
+    expect($requiredDocuments->get('bonds')['files'])->toBe([]);
+    expect($requiredDocuments->get('ppa'))->toMatchArray([
+        'type_key' => 'ppa',
+        'uploaded' => false,
+        'not_applicable' => true,
+    ]);
+    expect($requiredDocuments->get('port_charges'))->toMatchArray([
+        'type_key' => 'port_charges',
+        'uploaded' => false,
+        'not_applicable' => true,
+    ]);
+    expect($response->json('summary.required_total'))->toBe(4);
+    expect($response->json('summary.required_completed'))->toBe(4);
+    expect($response->json('summary.missing_count'))->toBe(0);
+    expect($response->json('summary.archive_ready'))->toBeTrue();
 });
 
 test('admin can archive a review-ready transaction', function () {

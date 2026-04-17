@@ -7,30 +7,40 @@ export const useDocumentPreview = () => {
 
     const handlePreviewDoc = async (doc: ApiDocument) => {
         const ext = doc.filename.split('.').pop()?.toLowerCase() || '';
-        const isOffice = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(ext);
+        const isOffice = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'odt', 'ods', 'odp', 'csv'].includes(ext);
 
         if (isOffice) {
             await trackingApi.downloadDocument(doc.id, doc.filename);
             return;
         }
 
-        const newTab = window.open('about:blank', '_blank');
+        const pendingTab = window.open('', '_blank');
 
-        if (newTab) {
-            newTab.opener = null;
+        if (pendingTab) {
+            pendingTab.opener = null;
+            pendingTab.document.title = doc.filename;
         }
 
         try {
-            const url = await trackingApi.getDocumentPreviewUrl(doc.id);
-            if (newTab) {
-                newTab.location.replace(url);
+            const previewBlob = await trackingApi.previewDocument(doc.id);
+            const previewUrl = window.URL.createObjectURL(previewBlob);
+
+            if (pendingTab) {
+                pendingTab.location.replace(previewUrl);
             } else {
-                await trackingApi.downloadDocument(doc.id, doc.filename);
+                const newTab = window.open(previewUrl, '_blank', 'noopener');
+
+                if (newTab) {
+                    newTab.opener = null;
+                }
             }
+
+            window.setTimeout(() => {
+                window.URL.revokeObjectURL(previewUrl);
+            }, 60_000);
         } catch (error) {
-            console.error('Failed to preview document:', error);
-            newTab?.close();
-            await trackingApi.downloadDocument(doc.id, doc.filename);
+            pendingTab?.close();
+            throw error;
         }
     };
 

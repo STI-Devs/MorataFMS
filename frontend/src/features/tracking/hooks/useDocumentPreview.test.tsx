@@ -2,15 +2,22 @@ import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useDocumentPreview } from './useDocumentPreview';
 
-const { mockDownloadDocument, mockGetDocumentPreviewUrl } = vi.hoisted(() => ({
+const {
+    mockDownloadDocument,
+    mockPreviewDocument,
+    mockCreateObjectURL,
+    mockRevokeObjectURL,
+} = vi.hoisted(() => ({
     mockDownloadDocument: vi.fn(),
-    mockGetDocumentPreviewUrl: vi.fn(),
+    mockPreviewDocument: vi.fn(async () => new Blob(['preview'], { type: 'application/pdf' })),
+    mockCreateObjectURL: vi.fn(() => 'blob:preview-url'),
+    mockRevokeObjectURL: vi.fn(),
 }));
 
 vi.mock('../api/trackingApi', () => ({
     trackingApi: {
         downloadDocument: mockDownloadDocument,
-        getDocumentPreviewUrl: mockGetDocumentPreviewUrl,
+        previewDocument: mockPreviewDocument,
     },
 }));
 
@@ -30,7 +37,13 @@ const baseDocument = {
 describe('useDocumentPreview', () => {
     beforeEach(() => {
         mockDownloadDocument.mockReset();
-        mockGetDocumentPreviewUrl.mockReset();
+        mockPreviewDocument.mockClear();
+        mockCreateObjectURL.mockClear();
+        mockRevokeObjectURL.mockClear();
+        vi.stubGlobal('URL', {
+            createObjectURL: mockCreateObjectURL,
+            revokeObjectURL: mockRevokeObjectURL,
+        });
     });
 
     it('downloads office documents instead of sending them to a third-party preview', async () => {
@@ -43,48 +56,38 @@ describe('useDocumentPreview', () => {
         });
 
         expect(mockDownloadDocument).toHaveBeenCalledWith(baseDocument.id, 'manifest.docx');
-        expect(mockGetDocumentPreviewUrl).not.toHaveBeenCalled();
+        expect(mockPreviewDocument).not.toHaveBeenCalled();
         expect(openSpy).not.toHaveBeenCalled();
     });
 
-    it('opens browser-safe previews in a detached tab', async () => {
-        const replace = vi.fn();
-        const newTab = {
+    it('opens browser-safe previews through an authenticated blob URL', async () => {
+        const pendingTab = {
             opener: 'initial-opener',
-            location: { replace },
+            document: { title: '' },
+            location: { replace: vi.fn() },
             close: vi.fn(),
         };
 
-        vi.spyOn(window, 'open').mockReturnValue(newTab as unknown as Window);
-        mockGetDocumentPreviewUrl.mockResolvedValue('https://example.com/preview.pdf');
+        vi.spyOn(window, 'open').mockReturnValue(pendingTab as unknown as Window);
+        vi.spyOn(window, 'setTimeout').mockImplementation(((callback: TimerHandler) => {
+            if (typeof callback === 'function') {
+                callback();
+            }
+
+            return 1;
+        }) as typeof window.setTimeout);
 
         const { result } = renderHook(() => useDocumentPreview());
 
         await result.current.handlePreviewDoc(baseDocument);
 
-        expect(mockGetDocumentPreviewUrl).toHaveBeenCalledWith(baseDocument.id);
+        expect(mockPreviewDocument).toHaveBeenCalledWith(baseDocument.id);
         expect(mockDownloadDocument).not.toHaveBeenCalled();
-        expect(newTab.opener).toBeNull();
-        expect(replace).toHaveBeenCalledWith('https://example.com/preview.pdf');
-    });
-
-    it('falls back to download when preview loading fails', async () => {
-        const close = vi.fn();
-        const newTab = {
-            opener: 'initial-opener',
-            location: { replace: vi.fn() },
-            close,
-        };
-
-        vi.spyOn(console, 'error').mockImplementation(() => {});
-        vi.spyOn(window, 'open').mockReturnValue(newTab as unknown as Window);
-        mockGetDocumentPreviewUrl.mockRejectedValue(new Error('preview failed'));
-
-        const { result } = renderHook(() => useDocumentPreview());
-
-        await result.current.handlePreviewDoc(baseDocument);
-
-        expect(close).toHaveBeenCalledTimes(1);
-        expect(mockDownloadDocument).toHaveBeenCalledWith(baseDocument.id, baseDocument.filename);
+        expect(pendingTab.opener).toBeNull();
+        expect(pendingTab.document.title).toBe(baseDocument.filename);
+        expect(mockCreateObjectURL).toHaveBeenCalled();
+        expect(pendingTab.location.replace).toHaveBeenCalledWith('blob:preview-url');
+        expect(mockRevokeObjectURL).toHaveBeenCalledWith('blob:preview-url');
+        expect(window.open).toHaveBeenCalledWith('', '_blank');
     });
 });

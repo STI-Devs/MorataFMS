@@ -1,19 +1,17 @@
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Icon } from '../../../components/Icon';
 import { getApiError } from '../../../lib/apiErrors';
 import { useClients } from '../hooks/useClients';
 import { useCountries } from '../hooks/useCountries';
+import { useLocationsOfGoods } from '../hooks/useLocationsOfGoods';
 import type { CreateExportPayload, CreateImportPayload } from '../types';
-
 
 interface EncodeModalProps {
     isOpen: boolean;
     onClose: () => void;
     type: 'import' | 'export';
-    /** Receives the validated payload. Caller is responsible for the mutation. */
     onSave: (data: CreateImportPayload | CreateExportPayload) => void;
 }
-
 
 const inputCls =
     'w-full px-4 py-3 bg-input-bg border border-border-strong rounded-lg text-sm font-bold text-text-primary focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 outline-none transition-all placeholder:text-text-muted';
@@ -22,7 +20,6 @@ const labelCls = 'text-[11px] font-black text-text-muted uppercase tracking-wide
 
 const selectCls = `${inputCls} appearance-none cursor-pointer`;
 
-
 export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type, onSave }) => {
     const isImport = type === 'import';
     const blscFieldId = `${type}-blsc`;
@@ -30,45 +27,64 @@ export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type,
     const clientFieldId = `${type}-client`;
     const blFieldId = `${type}-bill-of-lading`;
     const vesselFieldId = `${type}-vessel`;
+    const locationOfGoodsFieldId = `${type}-location-of-goods`;
     const destinationCountryFieldId = `${type}-destination-country`;
     const arrivalDateFieldId = `${type}-arrival-date`;
+    const departureDateFieldId = `${type}-departure-date`;
 
     const [ref, setRef] = useState('');
     const [bl, setBl] = useState('');
     const [blsc, setBlsc] = useState('');
     const [clientId, setClientId] = useState<number | ''>('');
     const [arrivalDate, setArrivalDate] = useState('');
+    const [departureDate, setDepartureDate] = useState('');
     const [vessel, setVessel] = useState('');
+    const [locationOfGoodsId, setLocationOfGoodsId] = useState<number | ''>('');
     const [destinationCountryId, setDestinationCountryId] = useState<number | ''>('');
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const { data: clients = [], isLoading: loadingClients } = useClients(isImport ? 'importer' : 'exporter');
     const { data: countries = [], isLoading: loadingCountries } = useCountries('export_destination', !isImport);
+    const { data: locationsOfGoods = [], isLoading: loadingLocationsOfGoods } = useLocationsOfGoods(isImport);
 
-    // Scroll-lock main content + form reset when modal opens
     useEffect(() => {
-        if (!isOpen) return;
+        if (!isOpen) {
+            return;
+        }
 
         const main = document.getElementById('main-content');
-        if (main) main.style.overflow = 'hidden';
+        if (main) {
+            main.style.overflow = 'hidden';
+        }
 
-        setRef(''); setBl(''); setBlsc(''); setClientId('');
-        setArrivalDate(''); setVessel(''); setDestinationCountryId('');
+        setRef('');
+        setBl('');
+        setBlsc('');
+        setClientId('');
+        setArrivalDate('');
+        setDepartureDate('');
+        setVessel('');
+        setLocationOfGoodsId('');
+        setDestinationCountryId('');
         setError(null);
 
         return () => {
-            if (main) main.style.overflow = '';
+            if (main) {
+                main.style.overflow = '';
+            }
         };
     }, [isOpen]);
 
-    if (!isOpen) return null;
+    if (!isOpen) {
+        return null;
+    }
 
-    const today = new Date().toISOString().split('T')[0];
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (clientId === '') return;
+    const handleSubmit = async (event: React.FormEvent) => {
+        event.preventDefault();
+        if (clientId === '') {
+            return;
+        }
 
         setSubmitting(true);
         setError(null);
@@ -78,8 +94,10 @@ export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type,
                 await onSave({
                     customs_ref_no: ref,
                     bl_no: bl,
-                    selective_color: blsc as 'green' | 'yellow' | 'red',
+                    ...(vessel.trim() && { vessel_name: vessel.trim() }),
+                    selective_color: blsc as 'green' | 'yellow' | 'orange' | 'red',
                     importer_id: clientId as number,
+                    ...(locationOfGoodsId !== '' && { location_of_goods_id: locationOfGoodsId }),
                     arrival_date: arrivalDate,
                 } satisfies CreateImportPayload);
             } else {
@@ -87,6 +105,7 @@ export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type,
                     shipper_id: clientId as number,
                     bl_no: bl,
                     vessel,
+                    export_date: departureDate,
                     ...(destinationCountryId !== '' && { destination_country_id: destinationCountryId }),
                 } satisfies CreateExportPayload);
             }
@@ -105,9 +124,8 @@ export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type,
         >
             <div
                 className="bg-surface rounded-xl shadow-2xl w-full max-w-lg overflow-hidden border border-border transition-all animate-modal-in"
-                onClick={e => e.stopPropagation()}
+                onClick={(event) => event.stopPropagation()}
             >
-                {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b border-border">
                     <div className="flex items-center gap-4">
                         <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-lg ring-4 ring-surface bg-gradient-to-br from-blue-500 to-indigo-600">
@@ -131,7 +149,6 @@ export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type,
                 </div>
 
                 <form onSubmit={handleSubmit} className="p-8 space-y-6">
-                    {/* Error banner */}
                     {error && (
                         <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-sm text-red-600 dark:text-red-400 font-medium">
                             {error}
@@ -139,8 +156,6 @@ export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type,
                     )}
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-                        {/* BLSC — import only */}
                         {isImport && (
                             <div className="space-y-2 md:col-span-2">
                                 <label htmlFor={blscFieldId} className={labelCls}>BLSC (Selective Color)</label>
@@ -150,11 +165,12 @@ export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type,
                                         required
                                         value={blsc}
                                         className={selectCls}
-                                        onChange={e => setBlsc(e.target.value)}
+                                        onChange={(event) => setBlsc(event.target.value)}
                                     >
                                         <option value="">Select Color</option>
                                         <option value="green">Green</option>
                                         <option value="yellow">Yellow</option>
+                                        <option value="orange">Orange</option>
                                         <option value="red">Red</option>
                                     </select>
                                     <Icon name="chevron-down" className="w-4 h-4 absolute right-4 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
@@ -162,7 +178,6 @@ export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type,
                             </div>
                         )}
 
-                        {/* Customs Ref No. — import only */}
                         {isImport && (
                             <div className="space-y-2">
                                 <label htmlFor={refFieldId} className={labelCls}>Customs Ref No.</label>
@@ -173,12 +188,11 @@ export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type,
                                     value={ref}
                                     placeholder="e.g. REF-2024-001"
                                     className={inputCls}
-                                    onChange={e => setRef(e.target.value)}
+                                    onChange={(event) => setRef(event.target.value)}
                                 />
                             </div>
                         )}
 
-                        {/* Importer / Shipper */}
                         <div className="space-y-2">
                             <label htmlFor={clientFieldId} className={labelCls}>{isImport ? 'Importer' : 'Shipper'}</label>
                             <div className="relative">
@@ -188,20 +202,19 @@ export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type,
                                     value={clientId}
                                     className={selectCls}
                                     disabled={loadingClients}
-                                    onChange={e => setClientId(e.target.value ? Number(e.target.value) : '')}
+                                    onChange={(event) => setClientId(event.target.value ? Number(event.target.value) : '')}
                                 >
                                     <option value="">
                                         {loadingClients ? 'Loading…' : `Select ${isImport ? 'Importer' : 'Shipper'}`}
                                     </option>
-                                    {clients.map(c => (
-                                        <option key={c.id} value={c.id}>{c.name}</option>
+                                    {clients.map((client) => (
+                                        <option key={client.id} value={client.id}>{client.name}</option>
                                     ))}
                                 </select>
                                 <Icon name="chevron-down" className="w-4 h-4 absolute right-4 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
                             </div>
                         </div>
 
-                        {/* Bill of Lading */}
                         <div className="space-y-2">
                             <label htmlFor={blFieldId} className={labelCls}>Bill of Lading</label>
                             <input
@@ -211,27 +224,60 @@ export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type,
                                 value={bl}
                                 placeholder="e.g. BL-78542136"
                                 className={inputCls}
-                                onChange={e => setBl(e.target.value)}
+                                onChange={(event) => setBl(event.target.value)}
                             />
                         </div>
 
-                        {/* Vessel — export only */}
+                        <div className="space-y-2">
+                            <label htmlFor={vesselFieldId} className={labelCls}>{isImport ? 'Vessel Name' : 'Vessel'}</label>
+                            <input
+                                id={vesselFieldId}
+                                type="text"
+                                value={vessel}
+                                placeholder="Enter Vessel Name"
+                                className={inputCls}
+                                onChange={(event) => setVessel(event.target.value)}
+                                required={!isImport}
+                            />
+                        </div>
+
+                        {isImport && (
+                            <div className="space-y-2">
+                                <label htmlFor={locationOfGoodsFieldId} className={labelCls}>Location of Goods</label>
+                                <div className="relative">
+                                    <select
+                                        id={locationOfGoodsFieldId}
+                                        value={locationOfGoodsId}
+                                        className={selectCls}
+                                        disabled={loadingLocationsOfGoods}
+                                        onChange={(event) => setLocationOfGoodsId(event.target.value ? Number(event.target.value) : '')}
+                                    >
+                                        <option value="">
+                                            {loadingLocationsOfGoods ? 'Loading…' : 'Select Location of Goods'}
+                                        </option>
+                                        {locationsOfGoods.map((location) => (
+                                            <option key={location.id} value={location.id}>{location.name}</option>
+                                        ))}
+                                    </select>
+                                    <Icon name="chevron-down" className="w-4 h-4 absolute right-4 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
+                                </div>
+                            </div>
+                        )}
+
                         {!isImport && (
                             <div className="space-y-2">
-                                <label htmlFor={vesselFieldId} className={labelCls}>Vessel</label>
+                                <label htmlFor={departureDateFieldId} className={labelCls}>Departure Date</label>
                                 <input
-                                    id={vesselFieldId}
+                                    id={departureDateFieldId}
                                     required
-                                    type="text"
-                                    value={vessel}
-                                    placeholder="Enter Vessel Name"
+                                    type="date"
+                                    value={departureDate}
                                     className={inputCls}
-                                    onChange={e => setVessel(e.target.value)}
+                                    onChange={(event) => setDepartureDate(event.target.value)}
                                 />
                             </div>
                         )}
 
-                        {/* Port of Destination — export only */}
                         {!isImport && (
                             <div className="space-y-2 md:col-span-2">
                                 <label htmlFor={destinationCountryFieldId} className={labelCls}>Port of Destination</label>
@@ -242,13 +288,13 @@ export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type,
                                         value={destinationCountryId}
                                         className={selectCls}
                                         disabled={loadingCountries}
-                                        onChange={e => setDestinationCountryId(e.target.value ? Number(e.target.value) : '')}
+                                        onChange={(event) => setDestinationCountryId(event.target.value ? Number(event.target.value) : '')}
                                     >
                                         <option value="">
                                             {loadingCountries ? 'Loading…' : 'Select Destination Country'}
                                         </option>
-                                        {countries.map(c => (
-                                            <option key={c.id} value={c.id}>{c.name}</option>
+                                        {countries.map((country) => (
+                                            <option key={country.id} value={country.id}>{country.name}</option>
                                         ))}
                                     </select>
                                     <Icon name="chevron-down" className="w-4 h-4 absolute right-4 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
@@ -256,7 +302,6 @@ export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type,
                             </div>
                         )}
 
-                        {/* Arrival Date — import only */}
                         {isImport && (
                             <div className="space-y-2 md:col-span-2">
                                 <label htmlFor={arrivalDateFieldId} className={labelCls}>Arrival Date</label>
@@ -265,15 +310,13 @@ export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type,
                                     required
                                     type="date"
                                     value={arrivalDate}
-                                    min={today}
                                     className={inputCls}
-                                    onChange={e => setArrivalDate(e.target.value)}
+                                    onChange={(event) => setArrivalDate(event.target.value)}
                                 />
                             </div>
                         )}
                     </div>
 
-                    {/* Actions */}
                     <div className="flex items-center gap-3 pt-4 border-t border-border">
                         <button
                             type="button"

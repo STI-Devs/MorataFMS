@@ -184,8 +184,8 @@ test('turnaround report uses stable stage completion timestamps for completed tr
         'is_archive' => false,
     ]);
     $export->stages()->update([
-        'bl_status' => 'completed',
-        'bl_completed_at' => '2026-03-13 09:00:00',
+        'billing_status' => 'completed',
+        'billing_completed_at' => '2026-03-13 09:00:00',
     ]);
 
     $response = $this->actingAs($admin)
@@ -234,8 +234,8 @@ test('turnaround report excludes completed transactions outside the requested mo
         'is_archive' => false,
     ]);
     $marchExport->stages()->update([
-        'bl_status' => 'completed',
-        'bl_completed_at' => '2026-03-04 09:00:00',
+        'billing_status' => 'completed',
+        'billing_completed_at' => '2026-03-04 09:00:00',
     ]);
 
     $februaryExport = ExportTransaction::factory()->completed()->create([
@@ -245,8 +245,8 @@ test('turnaround report excludes completed transactions outside the requested mo
         'is_archive' => false,
     ]);
     $februaryExport->stages()->update([
-        'bl_status' => 'completed',
-        'bl_completed_at' => '2026-03-03 09:00:00',
+        'billing_status' => 'completed',
+        'billing_completed_at' => '2026-03-03 09:00:00',
     ]);
 
     $response = $this->actingAs($admin)

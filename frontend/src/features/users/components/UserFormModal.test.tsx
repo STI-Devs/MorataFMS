@@ -24,6 +24,9 @@ describe('UserFormModal', () => {
         fireEvent.change(screen.getByLabelText('Job Title'), {
             target: { value: 'Developer' },
         });
+        fireEvent.change(screen.getByLabelText('Role'), {
+            target: { value: 'processor' },
+        });
         fireEvent.change(screen.getByLabelText('Password'), {
             target: { value: 'password123' },
         });
@@ -40,7 +43,7 @@ describe('UserFormModal', () => {
                 job_title: 'Developer',
                 password: 'password123',
                 password_confirmation: 'password123',
-                role: 'encoder',
+                role: 'processor',
             });
         });
     });
