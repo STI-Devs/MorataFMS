@@ -14,6 +14,7 @@ use App\Support\Transactions\ImportStatusWorkflow;
 use App\Support\Transactions\TransactionSyncBroadcaster;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 class ImportTransactionController extends Controller
 {
@@ -218,9 +219,15 @@ class ImportTransactionController extends Controller
      * DELETE /api/import-transactions/{import_transaction}
      * Delete an import transaction.
      */
-    public function destroy(ImportTransaction $import_transaction)
+    public function destroy(ImportTransaction $import_transaction): Response
     {
         $this->authorize('delete', $import_transaction);
+
+        if ($import_transaction->status !== ImportStatus::Cancelled) {
+            return response()->json([
+                'message' => 'Only cancelled transactions can be deleted.',
+            ], 422);
+        }
 
         $import_transaction->delete();
 

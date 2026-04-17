@@ -838,3 +838,39 @@ test('updating an import transaction fails when customs reference number belongs
     $response->assertUnprocessable()
         ->assertJsonValidationErrors(['customs_ref_no']);
 });
+
+// --- Delete ---
+
+test('admin can delete a cancelled import transaction', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $transaction = ImportTransaction::factory()->create(['status' => 'Cancelled']);
+
+    $this->actingAs($admin)
+        ->deleteJson("/api/import-transactions/{$transaction->id}")
+        ->assertNoContent();
+
+    $this->assertDatabaseMissing('import_transactions', ['id' => $transaction->id]);
+});
+
+test('admin cannot delete an active import transaction', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $transaction = ImportTransaction::factory()->pending()->create();
+
+    $this->actingAs($admin)
+        ->deleteJson("/api/import-transactions/{$transaction->id}")
+        ->assertUnprocessable()
+        ->assertJsonPath('message', 'Only cancelled transactions can be deleted.');
+
+    $this->assertDatabaseHas('import_transactions', ['id' => $transaction->id]);
+});
+
+test('non-admin cannot delete an import transaction', function () {
+    $encoder = User::factory()->create(['role' => 'encoder']);
+    $transaction = ImportTransaction::factory()->create(['status' => 'Cancelled', 'assigned_user_id' => $encoder->id]);
+
+    $this->actingAs($encoder)
+        ->deleteJson("/api/import-transactions/{$transaction->id}")
+        ->assertForbidden();
+
+    $this->assertDatabaseHas('import_transactions', ['id' => $transaction->id]);
+});

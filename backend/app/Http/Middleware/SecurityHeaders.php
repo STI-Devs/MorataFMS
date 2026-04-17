@@ -20,11 +20,12 @@ class SecurityHeaders
         $response->headers->set('X-Content-Type-Options', 'nosniff');
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
         $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-        $response->headers->set('X-XSS-Protection', '1; mode=block');
-
-        if (! $this->isHtmlResponse($response)) {
-            $response->headers->set('Content-Security-Policy', $this->apiContentSecurityPolicy());
-        }
+        $response->headers->set(
+            'Content-Security-Policy',
+            $this->isHtmlResponse($response)
+                ? $this->htmlContentSecurityPolicy()
+                : $this->apiContentSecurityPolicy(),
+        );
 
         // Remove server fingerprint headers
         $response->headers->remove('X-Powered-By');
@@ -40,6 +41,16 @@ class SecurityHeaders
         return str_contains($contentType, 'text/html');
     }
 
+    private function htmlContentSecurityPolicy(): string
+    {
+        return implode('; ', [
+            "base-uri 'self'",
+            "frame-ancestors 'self'",
+            "form-action 'self'",
+            "object-src 'none'",
+        ]);
+    }
+
     private function apiContentSecurityPolicy(): string
     {
         return implode('; ', [
@@ -47,6 +58,7 @@ class SecurityHeaders
             "base-uri 'none'",
             "frame-ancestors 'none'",
             "form-action 'none'",
+            "object-src 'none'",
         ]);
     }
 }

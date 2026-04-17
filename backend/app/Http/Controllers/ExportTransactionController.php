@@ -14,6 +14,7 @@ use App\Support\Transactions\ExportStatusWorkflow;
 use App\Support\Transactions\TransactionSyncBroadcaster;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 class ExportTransactionController extends Controller
 {
@@ -224,9 +225,15 @@ class ExportTransactionController extends Controller
      * DELETE /api/export-transactions/{export_transaction}
      * Delete an export transaction.
      */
-    public function destroy(ExportTransaction $export_transaction)
+    public function destroy(ExportTransaction $export_transaction): Response
     {
         $this->authorize('delete', $export_transaction);
+
+        if ($export_transaction->status !== ExportStatus::Cancelled) {
+            return response()->json([
+                'message' => 'Only cancelled transactions can be deleted.',
+            ], 422);
+        }
 
         $export_transaction->delete();
 

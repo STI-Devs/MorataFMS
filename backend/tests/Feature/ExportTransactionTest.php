@@ -647,3 +647,39 @@ test('cannot mark an optional export stage as not applicable before earlier stag
     'co application' => ['co', 'co_not_applicable'],
     'dccci printing' => ['dccci', 'dccci_not_applicable'],
 ]);
+
+// --- Delete ---
+
+test('admin can delete a cancelled export transaction', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $transaction = ExportTransaction::factory()->create(['status' => 'Cancelled']);
+
+    $this->actingAs($admin)
+        ->deleteJson("/api/export-transactions/{$transaction->id}")
+        ->assertNoContent();
+
+    $this->assertDatabaseMissing('export_transactions', ['id' => $transaction->id]);
+});
+
+test('admin cannot delete an active export transaction', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $transaction = ExportTransaction::factory()->pending()->create();
+
+    $this->actingAs($admin)
+        ->deleteJson("/api/export-transactions/{$transaction->id}")
+        ->assertUnprocessable()
+        ->assertJsonPath('message', 'Only cancelled transactions can be deleted.');
+
+    $this->assertDatabaseHas('export_transactions', ['id' => $transaction->id]);
+});
+
+test('non-admin cannot delete an export transaction', function () {
+    $encoder = User::factory()->create(['role' => 'encoder']);
+    $transaction = ExportTransaction::factory()->create(['status' => 'Cancelled', 'assigned_user_id' => $encoder->id]);
+
+    $this->actingAs($encoder)
+        ->deleteJson("/api/export-transactions/{$transaction->id}")
+        ->assertForbidden();
+
+    $this->assertDatabaseHas('export_transactions', ['id' => $transaction->id]);
+});
