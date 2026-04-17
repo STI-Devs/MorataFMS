@@ -26,7 +26,6 @@ import {
   Help,
   ImportList,
   LandingPage,
-  LegalDocumentsPage,
   LocationOfGoodsManagement,
   LawFirmPage,
   LegacyFolderUploadPage,
@@ -147,7 +146,6 @@ function App() {
                 <Route path={appRoutes.paralegalDashboard} element={<ParalegalDashboard />} />
                 <Route path={appRoutes.lawFirm} element={<LawFirmPage />} />
                 <Route path={appRoutes.forms} element={<FormsPage />} />
-                <Route path={appRoutes.paralegalDocuments} element={<LegalDocumentsPage />} />
               </Route>
 
               {/* Processor module */}

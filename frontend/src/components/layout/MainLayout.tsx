@@ -165,12 +165,26 @@ export const MainLayout = () => {
 
     useEffect(() => {
         const isLegalRoute = legalGuardPaths.some((path) => location.pathname === path || location.pathname.startsWith(path + '/'));
+        
+        const isBrokerageRoute = [
+            ...adminBrokerageGuardPaths,
+            ...processorGuardPaths,
+            ...accountantGuardPaths,
+            appRoutes.tracking,
+            appRoutes.imports,
+            appRoutes.exports,
+            appRoutes.documents,
+            appRoutes.records
+        ].some((path) => location.pathname === path || location.pathname.startsWith(path + '/'));
 
         if (isLegalRoute && hasLegal && activeModule !== 'legal') {
             setActiveModule('legal');
             localStorage.setItem('activeModule', 'legal');
+        } else if (isBrokerageRoute && hasBrokerage && activeModule !== 'brokerage') {
+            setActiveModule('brokerage');
+            localStorage.setItem('activeModule', 'brokerage');
         }
-    }, [activeModule, hasLegal, location.pathname]);
+    }, [activeModule, hasLegal, hasBrokerage, location.pathname]);
 
     useEffect(() => {
         if (!isAccountOpen) {
