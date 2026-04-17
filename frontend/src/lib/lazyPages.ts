@@ -12,6 +12,14 @@ export const ArchivesPage = lazy(() =>
     import('../features/archives/components/ArchivesPage').then((module) => ({ default: module.ArchivesPage })),
 );
 
+export const RecordsLayout = lazy(() =>
+    import('../features/archives').then((module) => ({ default: module.RecordsLayout })),
+);
+
+export const LegacyFolderUploadPage = lazy(() =>
+    import('../features/archives').then((module) => ({ default: module.LegacyFolderUploadPage })),
+);
+
 export const AccountantDashboard = lazy(() =>
     import('../features/accounting-dashboard/components/AccountingDashboard').then((module) => ({ default: module.AccountingDashboard })),
 );
@@ -125,3 +133,8 @@ export const UserManagement = lazy(() =>
 );
 
 export const LandingPage = lazy(() => import('../pages/LandingPage'));
+
+// Old Files
+export const OldFilesPage = lazy(() =>
+    import('../features/old-files/components/OldFilesPage').then((module) => ({ default: module.OldFilesPage })),
+);

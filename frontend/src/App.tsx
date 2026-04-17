@@ -29,11 +29,13 @@ import {
   LegalDocumentsPage,
   LocationOfGoodsManagement,
   LawFirmPage,
+  LegacyFolderUploadPage,
   ParalegalDashboard,
   Profile,
   ProcessorDashboard,
   ProcessorDocumentsPage,
   ProcessorTransactionPage,
+  RecordsLayout,
   ReportsAnalytics,
   TrackingDashboard,
   TrackingDetails,
@@ -60,6 +62,16 @@ function DocumentsIndexRoute() {
   }
 
   return <Documents />;
+}
+
+function OldFilesOrArchivesRoute() {
+  const { user } = useAuth();
+
+  if (user?.role === 'encoder') {
+    return <EncoderArchivePage />;
+  }
+
+  return <Navigate to={appRoutes.recordsLegacy} replace />;
 }
 
 function App() {
@@ -103,6 +115,19 @@ function App() {
                 <Route path={appRoutes.myArchive} element={<EncoderArchivePage />} />
               </Route>
 
+              {/* Records Section — shared: Admin primarily uses this layout. Encoder can be granted access here later if needed, but currently uses OldFilesOrArchivesRoute. Wait, prompt says: Admin layout. We will just wrap it for Admin for now, or both. */}
+              <Route element={<ProtectedRoute allowedRoles={['encoder', 'admin']} />}>
+                <Route path={appRoutes.records} element={<RecordsLayout />}>
+                  <Route path={appRoutes.recordsLegacy} element={<LegacyFolderUploadPage />} />
+                  <Route path={appRoutes.recordsArchives} element={<ArchivesPage />} />
+                </Route>
+              </Route>
+
+              {/* Backwards compatibility for OldFilesOrArchives Route */}
+              <Route element={<ProtectedRoute allowedRoles={['encoder', 'admin']} />}>
+                <Route path={appRoutes.oldFiles} element={<OldFilesOrArchivesRoute />} />
+              </Route>
+
               {/* Admin-only brokerage routes */}
               <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
                 <Route path={appRoutes.dashboard} element={<AdminDashboard />} />
@@ -114,7 +139,6 @@ function App() {
                 <Route path={appRoutes.transactions} element={<TransactionOversight />} />
                 <Route path={appRoutes.reports} element={<ReportsAnalytics />} />
                 <Route path={appRoutes.auditLogs} element={<AuditLogs />} />
-                <Route path={appRoutes.archives} element={<ArchivesPage />} />
               </Route>
 
               {/* Legal module - admin + paralegal */}
@@ -137,6 +161,7 @@ function App() {
                 <Route path={appRoutes.accountantDashboard} element={<AccountantDashboard />} />
                 <Route path={appRoutes.accountantImpExp} element={<AccountantImpExpPage />} />
                 <Route path={appRoutes.accountantDocuments} element={<AccountantDocumentsPage />} />
+                <Route path={appRoutes.accountantOldFiles} element={<LegacyFolderUploadPage />} />
               </Route>
 
             </Route>

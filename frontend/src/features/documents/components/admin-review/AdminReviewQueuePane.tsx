@@ -146,30 +146,30 @@ export const AdminReviewQueuePane = ({
                 <select
                     value={typeFilter}
                     onChange={(event) => onTypeFilterChange(event.target.value as AdminReviewTypeFilter)}
-                    className="rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-text-primary focus:outline-none"
+                    className="rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-text-primary focus:outline-none dark:bg-[#1A1A1A] dark:text-white dark:[color-scheme:dark]"
                 >
-                    <option value="all">All Types</option>
-                    <option value="import">Import</option>
-                    <option value="export">Export</option>
+                    <option className="bg-white text-gray-900 dark:bg-[#1A1A1A] dark:text-white" value="all">All Types</option>
+                    <option className="bg-white text-gray-900 dark:bg-[#1A1A1A] dark:text-white" value="import">Import</option>
+                    <option className="bg-white text-gray-900 dark:bg-[#1A1A1A] dark:text-white" value="export">Export</option>
                 </select>
                 <select
                     value={statusFilter}
                     onChange={(event) => onStatusFilterChange(event.target.value as AdminReviewStatusFilter)}
-                    className="rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-text-primary focus:outline-none"
+                    className="rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-text-primary focus:outline-none dark:bg-[#1A1A1A] dark:text-white dark:[color-scheme:dark]"
                 >
-                    <option value="all">All Statuses</option>
-                    <option value="completed">Completed</option>
-                    <option value="cancelled">Cancelled</option>
+                    <option className="bg-white text-gray-900 dark:bg-[#1A1A1A] dark:text-white" value="all">All Statuses</option>
+                    <option className="bg-white text-gray-900 dark:bg-[#1A1A1A] dark:text-white" value="completed">Completed</option>
+                    <option className="bg-white text-gray-900 dark:bg-[#1A1A1A] dark:text-white" value="cancelled">Cancelled</option>
                 </select>
                 <select
                     value={readinessFilter}
                     onChange={(event) => onReadinessFilterChange(event.target.value as AdminReviewReadinessFilter)}
-                    className="rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-text-primary focus:outline-none"
+                    className="rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-text-primary focus:outline-none dark:bg-[#1A1A1A] dark:text-white dark:[color-scheme:dark]"
                 >
-                    <option value="all">All Readiness</option>
-                    <option value="ready">Archive Ready</option>
-                    <option value="missing_docs">Missing Docs</option>
-                    <option value="flagged">Flagged</option>
+                    <option className="bg-white text-gray-900 dark:bg-[#1A1A1A] dark:text-white" value="all">All Readiness</option>
+                    <option className="bg-white text-gray-900 dark:bg-[#1A1A1A] dark:text-white" value="ready">Archive Ready</option>
+                    <option className="bg-white text-gray-900 dark:bg-[#1A1A1A] dark:text-white" value="missing_docs">Missing Docs</option>
+                    <option className="bg-white text-gray-900 dark:bg-[#1A1A1A] dark:text-white" value="flagged">Flagged</option>
                 </select>
                 <select
                     value={assignedUserIdFilter === 'all' ? 'all' : String(assignedUserIdFilter)}
@@ -178,11 +178,11 @@ export const AdminReviewQueuePane = ({
                             event.target.value === 'all' ? 'all' : Number.parseInt(event.target.value, 10),
                         )
                     }
-                    className="rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-text-primary focus:outline-none"
+                    className="rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-text-primary focus:outline-none dark:bg-[#1A1A1A] dark:text-white dark:[color-scheme:dark]"
                 >
-                    <option value="all">All Encoders</option>
+                    <option className="bg-white text-gray-900 dark:bg-[#1A1A1A] dark:text-white" value="all">All Encoders</option>
                     {assignedUsers.map((user) => (
-                        <option key={user.id} value={user.id}>
+                        <option className="bg-white text-gray-900 dark:bg-[#1A1A1A] dark:text-white" key={user.id} value={user.id}>
                             {user.name}
                         </option>
                     ))}

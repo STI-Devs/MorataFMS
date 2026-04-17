@@ -239,20 +239,7 @@ export const ArchivesPage = () => {
     })();
 
     return (
-        <div className="w-full p-8 pb-12 space-y-7">
-
-            {/* Page header */}
-            <div className="flex items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-4xl font-bold tracking-tight text-text-primary">Archive Dashboard</h1>
-                    <p className="text-base text-text-muted mt-1">Historical import &amp; export document storage</p>
-                </div>
-                <CurrentDateTime
-                    className="text-right shrink-0"
-                    timeClassName="text-2xl font-bold tabular-nums text-text-primary"
-                    dateClassName="text-sm text-text-muted"
-                />
-            </div>
+        <div className="w-full space-y-7 mt-2">
 
             {/* Stats cards row */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
