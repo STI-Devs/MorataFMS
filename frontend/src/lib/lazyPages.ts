@@ -12,6 +12,10 @@ export const ArchivesPage = lazy(() =>
     import('../features/archives/components/ArchivesPage').then((module) => ({ default: module.ArchivesPage })),
 );
 
+export const RecordsArchiveRouter = lazy(() =>
+    import('../features/archives/components/RecordsArchiveRouter').then((module) => ({ default: module.RecordsArchiveRouter })),
+);
+
 export const RecordsLayout = lazy(() =>
     import('../features/archives').then((module) => ({ default: module.RecordsLayout })),
 );

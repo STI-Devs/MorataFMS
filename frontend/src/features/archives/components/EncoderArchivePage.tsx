@@ -1,6 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
-import { CurrentDateTime } from '../../../components/CurrentDateTime';
 import { Icon } from '../../../components/Icon';
 import type { ArchiveDocument, ArchiveYear, TransactionType } from '../../documents/types/document.types';
 import { useMyArchives } from '../hooks/useMyArchives';
@@ -16,7 +15,6 @@ import {
 } from '../utils/archive.utils';
 import { AddArchiveDocumentModal } from './AddArchiveDocumentModal';
 import { ArchiveDocumentRow } from './ArchiveDocumentRow';
-import { ArchiveLegacyUploadPage } from './ArchiveLegacyUploadPage';
 import { ArchiveRecordOverview } from './ArchiveRecordOverview';
 import { ArchivesFolderView } from './ArchivesFolderView';
 import { ArchivesBLView, ArchivesDocumentView, GlobalSearchResults } from './ArchivesViews';
@@ -33,7 +31,6 @@ export const EncoderArchivePage = () => {
     const { data: archiveData = [], isLoading, isError } = useMyArchives();
 
     const [drill, setDrill] = useState<DrillState>({ level: 'years' });
-    const [showLegacyUpload, setShowLegacyUpload] = useState(false);
     const [search, setSearch] = useState('');
     const [globalSearch, setGlobalSearch] = useState('');
     const [sortKey, setSortKey] = useState<SortKey>('period');
@@ -172,21 +169,6 @@ export const EncoderArchivePage = () => {
         });
     }, [archiveData, globalSearch, filterYear, filterType]);
 
-    if (showLegacyUpload) {
-        const currentYear = currentDrill.level !== 'years' ? currentDrill.year.year : new Date().getFullYear() - 1;
-        return (
-            <div className="flex justify-center py-10 px-6">
-                <div className="w-full max-w-2xl">
-                    <ArchiveLegacyUploadPage
-                        defaultYear={currentYear}
-                        onBack={() => setShowLegacyUpload(false)}
-                        onSubmit={handleArchiveUploadSuccess}
-                    />
-                </div>
-            </div>
-        );
-    }
-
     if (isError) return (
         <EmptyState icon="alert-circle" title="Failed to load your archive" subtitle="Check your connection and try again." />
     );
@@ -235,22 +217,9 @@ export const EncoderArchivePage = () => {
     })();
 
     return (
-        <div className="w-full p-8 pb-12 space-y-7">
+        <div className="w-full space-y-7">
 
-            {/* Page header */}
-            <div className="flex items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-4xl font-bold tracking-tight text-text-primary">My Archive</h1>
-                    <p className="text-base text-text-muted mt-1">Your uploaded document history</p>
-                </div>
-                <CurrentDateTime
-                    className="text-right shrink-0"
-                    timeClassName="text-2xl font-bold tabular-nums text-text-primary"
-                    dateClassName="text-sm text-text-muted"
-                />
-            </div>
-
-            {/* Stats cards row — encoder-specific */}
+            {/* Stats cards row — encoder-pecific */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
                 {/* My Uploads */}
                 <div className="bg-surface rounded-xl border border-border shadow-sm p-6 flex flex-col justify-center">

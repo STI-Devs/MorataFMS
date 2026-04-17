@@ -36,6 +36,7 @@ import {
   ProcessorDocumentsPage,
   ProcessorTransactionPage,
   RecordsLayout,
+  RecordsArchiveRouter,
   ReportsAnalytics,
   TrackingDashboard,
   TrackingDetails,
@@ -112,20 +113,20 @@ function App() {
 
               {/* Encoder-only brokerage routes */}
               <Route element={<ProtectedRoute allowedRoles={['encoder']} />}>
-                <Route path={appRoutes.myArchive} element={<EncoderArchivePage />} />
               </Route>
 
               {/* Records Section — shared: Admin primarily uses this layout. Encoder can be granted access here later if needed, but currently uses OldFilesOrArchivesRoute. Wait, prompt says: Admin layout. We will just wrap it for Admin for now, or both. */}
               <Route element={<ProtectedRoute allowedRoles={['encoder', 'admin']} />}>
                 <Route path={appRoutes.records} element={<RecordsLayout />}>
+                  <Route index element={<Navigate to={appRoutes.recordsLegacy} replace />} />
                   <Route path={appRoutes.recordsLegacy} element={<LegacyFolderUploadPage />} />
-                  <Route path={appRoutes.recordsArchives} element={<ArchivesPage />} />
+                  <Route path={appRoutes.recordsArchives} element={<RecordsArchiveRouter />} />
                 </Route>
               </Route>
 
               {/* Backwards compatibility for OldFilesOrArchives Route */}
               <Route element={<ProtectedRoute allowedRoles={['encoder', 'admin']} />}>
-                <Route path={appRoutes.oldFiles} element={<OldFilesOrArchivesRoute />} />
+                <Route path={appRoutes.oldFiles} element={<Navigate to={appRoutes.recordsLegacy} replace />} />
               </Route>
 
               {/* Admin-only brokerage routes */}

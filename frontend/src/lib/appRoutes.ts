@@ -89,8 +89,7 @@ export const navigationItems: {
         { label: 'Import List', path: appRoutes.imports, icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01', badge: 1 },
         { label: 'Export List', path: appRoutes.exports, icon: 'M12 19l9 2-9-18-9 18 9-2zm0 0v-8', badge: 3 },
         { label: 'Documents', path: appRoutes.documents, icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
-        { label: 'Files', path: appRoutes.myArchive, icon: 'M3 7a2 2 0 012-2h3.172a2 2 0 011.414.586l1.414 1.414A2 2 0 0012.414 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z' },
-        { label: 'Archives', path: appRoutes.oldFiles, icon: 'M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4' },
+        { label: 'Records', path: appRoutes.records, icon: 'M3 7a2 2 0 012-2h3.172a2 2 0 011.414.586l1.414 1.414A2 2 0 0012.414 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z' },
     ],
     processor: [
         { label: 'Dashboard', path: appRoutes.processorDashboard, exact: true, icon: 'M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z' },
@@ -141,10 +140,6 @@ export const adminBrokerageGuardPaths = [
     appRoutes.locationsOfGoods,
     appRoutes.reports,
     appRoutes.auditLogs,
-    appRoutes.archives,
-    appRoutes.records,
-    appRoutes.recordsLegacy,
-    appRoutes.recordsArchives,
     appRoutes.liveTracking,
 ];
 
