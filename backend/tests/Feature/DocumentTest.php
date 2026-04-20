@@ -5,6 +5,7 @@ use App\Models\Document;
 use App\Models\ExportTransaction;
 use App\Models\ImportTransaction;
 use App\Models\User;
+use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
@@ -611,6 +612,48 @@ test('document preview streams the file inline for the authorized user', functio
     ]);
 
     Storage::disk('local')->put($document->path, 'restricted');
+
+    $this->actingAs($encoder)
+        ->get("/api/documents/{$document->id}/preview")
+        ->assertOk()
+        ->assertHeader('content-type', 'application/pdf')
+        ->assertHeader('content-disposition', 'inline; filename="restricted.pdf"');
+});
+
+test('document preview falls back to filename mime type when disk mime detection fails', function () {
+    config()->set('filesystems.document_disk', 'local');
+
+    $encoder = User::factory()->create(['role' => 'encoder']);
+    $transaction = ImportTransaction::factory()->create(['assigned_user_id' => $encoder->id]);
+    $document = Document::factory()->create([
+        'documentable_type' => ImportTransaction::class,
+        'documentable_id' => $transaction->id,
+        'uploaded_by' => $encoder->id,
+        'path' => 'transaction-documents/test/restricted.pdf',
+        'filename' => 'restricted.pdf',
+    ]);
+
+    $temporaryFile = tmpfile();
+
+    expect($temporaryFile)->not->toBeFalse();
+
+    fwrite($temporaryFile, 'restricted');
+    rewind($temporaryFile);
+
+    $disk = Mockery::mock(FilesystemAdapter::class);
+    $disk->shouldReceive('exists')
+        ->once()
+        ->with($document->path)
+        ->andReturnTrue();
+    $disk->shouldReceive('readStream')
+        ->once()
+        ->with($document->path)
+        ->andReturn($temporaryFile);
+
+    Storage::shouldReceive('disk')
+        ->once()
+        ->with('local')
+        ->andReturn($disk);
 
     $this->actingAs($encoder)
         ->get("/api/documents/{$document->id}/preview")

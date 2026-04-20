@@ -111,7 +111,14 @@ test('deleting a transaction generates a deleted audit log', function () {
     $transaction = ImportTransaction::where('customs_ref_no', 'REF-DELETE-001')->first();
 
     $this->actingAs($user)
-        ->deleteJson("/api/import-transactions/{$transaction->id}");
+        ->patchJson("/api/import-transactions/{$transaction->id}/cancel", [
+            'reason' => 'Ready for deletion',
+        ])
+        ->assertOk();
+
+    $this->actingAs($user)
+        ->deleteJson("/api/import-transactions/{$transaction->id}")
+        ->assertNoContent();
 
     $log = AuditLog::where('auditable_type', 'App\Models\ImportTransaction')
         ->where('event', 'deleted')

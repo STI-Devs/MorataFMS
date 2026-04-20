@@ -16,6 +16,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Throwable;
 
 class DocumentController extends Controller
 {
@@ -187,7 +188,7 @@ class DocumentController extends Controller
             abort(404, 'File not found on storage.');
         }
 
-        $mimeType = $disk->mimeType($document->path) ?: 'application/octet-stream';
+        $mimeType = $this->resolveInlineMimeType($document, $disk);
         $stream = $disk->readStream($document->path);
 
         if (! $stream) {
@@ -205,6 +206,38 @@ class DocumentController extends Controller
             'Cache-Control' => 'no-store',
             'X-Frame-Options' => 'SAMEORIGIN',
         ]);
+    }
+
+    private function resolveInlineMimeType(Document $document, FilesystemAdapter $disk): string
+    {
+        $mimeTypeFromFilename = $this->mimeTypeFromFilename($document);
+
+        if ($mimeTypeFromFilename !== null) {
+            return $mimeTypeFromFilename;
+        }
+
+        try {
+            return $disk->mimeType($document->path) ?: 'application/octet-stream';
+        } catch (Throwable) {
+            return 'application/octet-stream';
+        }
+    }
+
+    private function mimeTypeFromFilename(Document $document): ?string
+    {
+        $filename = $document->filename !== '' ? $document->filename : $document->path;
+        $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+
+        return match ($extension) {
+            'pdf' => 'application/pdf',
+            'doc' => 'application/msword',
+            'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'xls' => 'application/vnd.ms-excel',
+            'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'jpg', 'jpeg' => 'image/jpeg',
+            'png' => 'image/png',
+            default => null,
+        };
     }
 
     /**
