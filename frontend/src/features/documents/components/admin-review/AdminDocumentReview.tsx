@@ -19,10 +19,10 @@ import type {
     AdminReviewDocumentFile,
     AdminReviewStatusFilter,
     AdminReviewTypeFilter,
+    AdminReviewStats,
 } from '../../types/document.types';
 import { AdminReviewDetailPane } from './AdminReviewDetailPane';
 import { AdminReviewQueuePane } from './AdminReviewQueuePane';
-import { KpiMetric } from './AdminReviewShared';
 import {
     extractErrorMessage,
     matchesSelection,
@@ -63,6 +63,7 @@ export const AdminDocumentReview = () => {
     const transactions = queueQuery.data?.data ?? [];
     const selectedTransaction =
         transactions.find((transaction) => matchesSelection(selectedReview, transaction)) ?? null;
+    const reviewStats: AdminReviewStats | undefined = statsQuery.data;
     const detailQuery = useReviewDetail(
         selectedTransaction?.type ?? null,
         selectedTransaction?.id ?? null,
@@ -119,6 +120,17 @@ export const AdminDocumentReview = () => {
         });
     };
 
+    const handleResetFilters = () => {
+        resetArchiveState();
+        startTransition(() => {
+            setTypeFilter('all');
+            setStatusFilter('all');
+            setReadinessFilter('all');
+            setAssignedUserIdFilter('all');
+            setPage(1);
+        });
+    };
+
     const handleSelectTransaction = (
         transaction: Pick<AdminReviewQueueItem, 'id' | 'type'>,
     ) => {
@@ -170,55 +182,36 @@ export const AdminDocumentReview = () => {
 
     return (
         <div className="absolute inset-0 flex flex-col bg-background overflow-hidden">
-            <header className="flex-none px-6 pt-3 pb-2">
-                <div className="flex items-center justify-between gap-4">
+            <header className="flex-none px-6 pt-4 pb-3">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                     <div>
-                        <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-text-muted">
-                            Audit & Compliance
-                        </p>
-                        <h1 className="mt-1 text-2xl font-bold tracking-tight text-text-primary">
-                            Admin Document Review
+                        <h1 className="text-3xl font-bold tracking-tight text-text-primary">
+                            Completed Transactions Overview
                         </h1>
+                        <p className="mt-1 max-w-3xl text-sm text-text-secondary">
+                            Inspect completed brokerage transactions, resolve exceptions, and manage records readiness.
+                        </p>
                     </div>
                     <CurrentDateTime
                         className="text-right"
-                        timeClassName="text-base font-mono font-bold tracking-tight text-text-primary"
+                        timeClassName="text-xl font-mono font-bold tracking-tight text-text-primary"
                         dateClassName="mt-0.5 text-[10px] font-mono uppercase tracking-[0.2em] text-text-secondary"
                     />
                 </div>
             </header>
 
-            <div
-                className="grid flex-none grid-cols-2 gap-3 px-6 pb-3 md:grid-cols-4"
-                data-testid="admin-review-kpi-strip"
-            >
-                <KpiMetric
-                    title="Completed Files"
-                    value={statsQuery.data?.completed_count ?? '—'}
-                    isLoading={statsQuery.isLoading}
-                />
-                <KpiMetric
-                    title="Cancelled Files"
-                    value={statsQuery.data?.cancelled_count ?? '—'}
-                    isLoading={statsQuery.isLoading}
-                />
-                <KpiMetric
-                    title="Missing Final Docs"
-                    value={statsQuery.data?.missing_docs_count ?? '—'}
-                    tone="warning"
-                    isLoading={statsQuery.isLoading}
-                />
-                <KpiMetric
-                    title="Archive Ready"
-                    value={statsQuery.data?.archive_ready_count ?? '—'}
-                    tone="success"
-                    isLoading={statsQuery.isLoading}
-                />
-            </div>
-
             <main className="min-h-0 flex-1 px-6 pb-6 text-text-primary">
-                <div className="flex h-full min-h-0 flex-col gap-4 lg:flex-row">
+                <div
+                    className={`grid h-full min-h-0 gap-4 ${
+                        selectedTransaction
+                            ? '2xl:grid-cols-[minmax(28rem,0.82fr)_minmax(46rem,1.18fr)] xl:grid-cols-[minmax(26rem,0.9fr)_minmax(36rem,1.1fr)]'
+                            : 'grid-cols-1'
+                    }`}
+                >
                     <AdminReviewQueuePane
+                        summary={reviewStats}
+                        isSummaryLoading={statsQuery.isLoading}
+                        expanded={!selectedTransaction}
                         searchQuery={searchQuery}
                         typeFilter={typeFilter}
                         statusFilter={statusFilter}
@@ -241,6 +234,7 @@ export const AdminDocumentReview = () => {
                             void queueQuery.refetch();
                         }}
                         onSelect={handleSelectTransaction}
+                        onResetFilters={handleResetFilters}
                         onPageChange={(nextPage) => {
                             startTransition(() => {
                                 setPage(nextPage);
@@ -254,29 +248,35 @@ export const AdminDocumentReview = () => {
                         }}
                     />
 
-                    <div
-                        className="flex h-full min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-sm"
-                        data-testid="admin-review-workspace"
-                    >
-                        <AdminReviewDetailPane
-                            selectedTransaction={selectedTransaction}
-                            detailData={detailQuery.data}
-                            archiveError={archiveError}
-                            isDetailLoading={detailQuery.isLoading}
-                            isDetailError={detailQuery.isError}
-                            isArchiving={archiveMutation.isPending}
-                            onRetry={() => {
-                                void detailQuery.refetch();
-                            }}
-                            onArchive={handleArchive}
-                            onPreview={(file, typeKey) => {
-                                void handlePreview(file, typeKey);
-                            }}
-                            onDownload={(file) => {
-                                void handleDownload(file);
-                            }}
-                        />
-                    </div>
+                    {selectedTransaction ? (
+                        <div
+                            className="flex h-full min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-sm"
+                            data-testid="admin-review-workspace"
+                        >
+                            <AdminReviewDetailPane
+                                selectedTransaction={selectedTransaction}
+                                detailData={detailQuery.data}
+                                archiveError={archiveError}
+                                isDetailLoading={detailQuery.isLoading}
+                                isDetailError={detailQuery.isError}
+                                isArchiving={archiveMutation.isPending}
+                                onClearSelection={() => {
+                                    setSelectedReview(null);
+                                    setArchiveError(null);
+                                }}
+                                onRetry={() => {
+                                    void detailQuery.refetch();
+                                }}
+                                onArchive={handleArchive}
+                                onPreview={(file, typeKey) => {
+                                    void handlePreview(file, typeKey);
+                                }}
+                                onDownload={(file) => {
+                                    void handleDownload(file);
+                                }}
+                            />
+                        </div>
+                    ) : null}
                 </div>
             </main>
         </div>

@@ -268,6 +268,7 @@ class AdminDocumentReviewController extends Controller
                 $searchQuery
                     ->where('import_transactions.bl_no', 'like', "%{$search}%")
                     ->orWhere('import_transactions.customs_ref_no', 'like', "%{$search}%")
+                    ->orWhere('import_transactions.vessel_name', 'like', "%{$search}%")
                     ->orWhereHas('importer', function (Builder $clientQuery) use ($search) {
                         $clientQuery->where('name', 'like', "%{$search}%");
                     });
@@ -304,6 +305,7 @@ class AdminDocumentReviewController extends Controller
             $query->where(function (Builder $searchQuery) use ($search) {
                 $searchQuery
                     ->where('export_transactions.bl_no', 'like', "%{$search}%")
+                    ->orWhere('export_transactions.vessel', 'like', "%{$search}%")
                     ->orWhereRaw($this->exportReferenceExpression().' like ?', ["%{$search}%"])
                     ->orWhereHas('shipper', function (Builder $clientQuery) use ($search) {
                         $clientQuery->where('name', 'like', "%{$search}%");
@@ -327,9 +329,11 @@ class AdminDocumentReviewController extends Controller
                 'id',
                 'customs_ref_no',
                 'bl_no',
+                'vessel_name',
                 'importer_id',
                 'assigned_user_id',
                 'status',
+                'arrival_date',
                 'updated_at',
             ])
             ->with([
@@ -354,9 +358,11 @@ class AdminDocumentReviewController extends Controller
             ->select([
                 'id',
                 'bl_no',
+                'vessel',
                 'shipper_id',
                 'assigned_user_id',
                 'status',
+                'export_date',
                 'updated_at',
             ])
             ->with([
@@ -393,10 +399,12 @@ class AdminDocumentReviewController extends Controller
                     'type' => 'import',
                     'ref' => $this->importReferenceFor($transaction),
                     'bl_number' => $transaction->bl_no,
+                    'vessel' => $transaction->vessel_name,
                     'client' => $transaction->importer?->name,
                     'assigned_user' => $transaction->assignedUser?->name,
                     'assigned_user_id' => $transaction->assigned_user_id,
                     'status' => $transaction->status->value,
+                    'transaction_date' => $this->formatDate($transaction->arrival_date),
                     'finalized_date' => $this->formatDateTime($this->finalizedDateForImport($transaction)),
                     'docs_count' => $requiredCompleted,
                     'docs_total' => count($requiredTypes),
@@ -424,10 +432,12 @@ class AdminDocumentReviewController extends Controller
                 'type' => 'export',
                 'ref' => $this->exportReferenceFor($transaction),
                 'bl_number' => $transaction->bl_no,
+                'vessel' => $transaction->vessel,
                 'client' => $transaction->shipper?->name,
                 'assigned_user' => $transaction->assignedUser?->name,
                 'assigned_user_id' => $transaction->assigned_user_id,
                 'status' => $transaction->status->value,
+                'transaction_date' => $this->formatDate($transaction->export_date),
                 'finalized_date' => $this->formatDateTime($this->finalizedDateForExport($transaction)),
                 'docs_count' => $requiredCompleted,
                 'docs_total' => count($requiredTypes),
@@ -449,12 +459,20 @@ class AdminDocumentReviewController extends Controller
                 ? $this->importReferenceFor($transaction)
                 : $this->exportReferenceFor($transaction),
             'bl_number' => $transaction->bl_no,
+            'vessel' => $type === 'import'
+                ? $transaction->vessel_name
+                : $transaction->vessel,
             'client' => $type === 'import'
                 ? $transaction->importer?->name
                 : $transaction->shipper?->name,
             'assigned_user' => $transaction->assignedUser?->name,
             'assigned_user_id' => $transaction->assigned_user_id,
             'status' => $transaction->status->value,
+            'transaction_date' => $this->formatDate(
+                $type === 'import'
+                    ? $transaction->arrival_date
+                    : $transaction->export_date
+            ),
             'finalized_date' => $this->formatDateTime(
                 $type === 'import'
                     ? $this->finalizedDateForImport($transaction)
@@ -471,9 +489,11 @@ class AdminDocumentReviewController extends Controller
                     'id',
                     'customs_ref_no',
                     'bl_no',
+                    'vessel_name',
                     'importer_id',
                     'assigned_user_id',
                     'status',
+                    'arrival_date',
                     'updated_at',
                 ])
                 ->whereKey($id)
@@ -512,9 +532,11 @@ class AdminDocumentReviewController extends Controller
                 ->select([
                     'id',
                     'bl_no',
+                    'vessel',
                     'shipper_id',
                     'assigned_user_id',
                     'status',
+                    'export_date',
                     'updated_at',
                 ])
                 ->whereKey($id)
@@ -673,6 +695,15 @@ class AdminDocumentReviewController extends Controller
         }
 
         return $value->format(DateTimeInterface::ATOM);
+    }
+
+    private function formatDate(mixed $value): ?string
+    {
+        if (! $value instanceof DateTimeInterface) {
+            return null;
+        }
+
+        return $value->format('Y-m-d');
     }
 
     private function countWithAllRequiredDocuments(Builder $query, string $type): int

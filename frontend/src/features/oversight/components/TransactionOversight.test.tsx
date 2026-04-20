@@ -62,54 +62,64 @@ describe('TransactionOversight', () => {
 
         mockDeleteImport.mockResolvedValue(undefined);
         mockDeleteExport.mockResolvedValue(undefined);
-        mockUseAllTransactions.mockReturnValue({
-            data: {
-                data: [
-                    {
-                        id: 11,
-                        type: 'import',
-                        reference_no: 'IMP-2026-011',
-                        bl_no: 'BL-IMP-011',
-                        client: 'Acme Imports',
-                        client_id: 1,
-                        date: '2026-04-01',
-                        status: 'cancelled',
-                        selective_color: 'green',
-                        assigned_to: 'Encoder One',
-                        assigned_user_id: 5,
-                        open_remarks_count: 0,
-                        created_at: '2026-04-01T00:00:00Z',
-                        stages: null,
-                    },
-                    {
-                        id: 22,
-                        type: 'export',
-                        reference_no: null,
-                        bl_no: 'BL-EXP-022',
-                        client: 'Bravo Exports',
-                        client_id: 2,
-                        date: '2026-04-02',
-                        status: 'pending',
-                        assigned_to: 'Encoder Two',
-                        assigned_user_id: 6,
-                        open_remarks_count: 0,
-                        created_at: '2026-04-02T00:00:00Z',
-                        stages: null,
-                    },
-                ],
-                total: 2,
-                imports_count: 1,
-                exports_count: 1,
-                meta: {
-                    current_page: 1,
-                    last_page: 1,
-                    per_page: 15,
-                    total_records: 2,
-                },
+        const allTransactions = [
+            {
+                id: 11,
+                type: 'import',
+                reference_no: 'IMP-2026-011',
+                bl_no: 'BL-IMP-011',
+                client: 'Acme Imports',
+                client_id: 1,
+                vessel: 'SHARED VESSEL',
+                date: '2026-04-01',
+                status: 'cancelled',
+                selective_color: 'green',
+                assigned_to: 'Encoder One',
+                assigned_user_id: 5,
+                open_remarks_count: 0,
+                created_at: '2026-04-01T00:00:00Z',
+                stages: null,
             },
-            isLoading: false,
-            isError: false,
-            refetch: vi.fn(),
+            {
+                id: 22,
+                type: 'export',
+                reference_no: null,
+                bl_no: 'BL-EXP-022',
+                client: 'Bravo Exports',
+                client_id: 2,
+                vessel: 'SHARED VESSEL',
+                date: '2026-04-02',
+                status: 'pending',
+                assigned_to: 'Encoder Two',
+                assigned_user_id: 6,
+                open_remarks_count: 0,
+                created_at: '2026-04-02T00:00:00Z',
+                stages: null,
+            },
+        ];
+
+        mockUseAllTransactions.mockImplementation((params?: { type?: 'import' | 'export' }) => {
+            const visibleTransactions = params?.type
+                ? allTransactions.filter((transaction) => transaction.type === params.type)
+                : allTransactions;
+
+            return {
+                data: {
+                    data: visibleTransactions,
+                    total: visibleTransactions.length,
+                    imports_count: allTransactions.filter((transaction) => transaction.type === 'import').length,
+                    exports_count: allTransactions.filter((transaction) => transaction.type === 'export').length,
+                    meta: {
+                        current_page: 1,
+                        last_page: 1,
+                        per_page: 15,
+                        total_records: visibleTransactions.length,
+                    },
+                },
+                isLoading: false,
+                isError: false,
+                refetch: vi.fn(),
+            };
         });
 
         vi.spyOn(window, 'confirm').mockReturnValue(true);
@@ -131,5 +141,27 @@ describe('TransactionOversight', () => {
         await waitFor(() => {
             expect(mockDeleteImport).toHaveBeenCalledWith(11);
         });
+    });
+
+    it('keeps vessel headers aligned with the selected transaction type filter', async () => {
+        renderWithProviders(<TransactionOversight />);
+
+        fireEvent.click(screen.getByRole('button', { name: 'Exports' }));
+
+        await waitFor(() => {
+            expect(mockUseAllTransactions).toHaveBeenLastCalledWith({
+                page: 1,
+                per_page: 15,
+                search: '',
+                status: 'all',
+                type: 'export',
+            });
+        });
+
+        const sharedVesselHeader = screen.getByRole('button', { name: /shared vessel/i });
+
+        expect(sharedVesselHeader).not.toBeNull();
+        expect(sharedVesselHeader).toHaveTextContent('export');
+        expect(sharedVesselHeader).not.toHaveTextContent('import');
     });
 });

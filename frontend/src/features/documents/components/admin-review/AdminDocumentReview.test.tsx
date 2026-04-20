@@ -63,10 +63,12 @@ const queueResponse = {
             type: 'import' as const,
             ref: 'IMP-0921',
             bl_number: 'BL-98210344',
+            vessel: 'MV GLOBAL STAR',
             client: 'Global Tech Corp',
             assigned_user: 'Sarah Velasco',
             assigned_user_id: 7,
             status: 'Completed',
+            transaction_date: '2026-03-18',
             finalized_date: '2026-03-20T14:30:00Z',
             docs_count: 4,
             docs_total: 8,
@@ -89,10 +91,12 @@ const detailResponse = {
         type: 'import' as const,
         ref: 'IMP-0921',
         bl_number: 'BL-98210344',
+        vessel: 'MV GLOBAL STAR',
         client: 'Global Tech Corp',
         assigned_user: 'Sarah Velasco',
         assigned_user_id: 7,
         status: 'Completed',
+        transaction_date: '2026-03-18',
         finalized_date: '2026-03-20T14:30:00Z',
     },
     required_documents: [
@@ -219,50 +223,79 @@ describe('AdminDocumentReview', () => {
     it('renders queue data and loads detail when a transaction is selected', async () => {
         renderWithProviders(<AdminDocumentReview />);
 
-        expect(screen.getByText('Admin Document Review')).toBeInTheDocument();
+        expect(screen.getByText('Completed Transactions Overview')).toBeInTheDocument();
         expect(screen.getByText('24')).toBeInTheDocument();
         expect(screen.getByTestId('admin-review-kpi-strip')).toBeInTheDocument();
-        expect(screen.getByTestId('admin-review-workspace')).toBeInTheDocument();
+        expect(screen.getByText('Show')).toBeInTheDocument();
+        expect(screen.getByText('of 1 pages')).toBeInTheDocument();
+        expect(screen.getByText('Page 1 of 1')).toBeInTheDocument();
+        const vesselHeader = screen.getByRole('button', { name: /mv global star/i });
+        expect(vesselHeader).toHaveTextContent('MV GLOBAL STAR');
+        expect(vesselHeader).toHaveTextContent('Completed import transactions');
+        expect(vesselHeader).toHaveTextContent('import');
+        expect(screen.getByTestId('admin-review-group-panel')).toBeInTheDocument();
         expect(screen.getByText('BL-98210344')).toBeInTheDocument();
 
         fireEvent.click(screen.getByRole('button', { name: /BL-98210344/i }));
 
         await waitFor(() => {
+            expect(screen.getByTestId('admin-review-workspace')).toBeInTheDocument();
             expect(screen.getAllByText('BOC Document Processing').length).toBeGreaterThan(0);
         });
 
+        const detailHeader = screen.getByTestId('admin-review-detail-header');
+        expect(detailHeader).toHaveTextContent('MV GLOBAL STAR');
+        expect(detailHeader).toHaveTextContent('Arrival');
+        expect(detailHeader).toHaveTextContent('Mar 18, 2026');
+        expect(detailHeader).toHaveTextContent('IMP-0921');
+        expect(detailHeader).toHaveTextContent('BL-98210344');
+        expect(detailHeader).not.toHaveTextContent('Completed');
+        expect(detailHeader).not.toHaveTextContent('Finalized');
+        expect(detailHeader).not.toHaveTextContent('Ready for Records');
+
+        const summaryStrip = screen.getByTestId('admin-review-summary-strip');
+        expect(summaryStrip).toHaveTextContent(/1\s*Open Remarks/);
+        expect(summaryStrip).toHaveTextContent(/2\s*Uploads/);
+        expect(summaryStrip).toHaveTextContent(/0\s*Marked N\/A/);
+        expect(summaryStrip).not.toHaveTextContent('Required Docs');
+        expect(summaryStrip).not.toHaveTextContent('Missing Docs');
+
         expect(screen.getByText('Document Checklist')).toBeInTheDocument();
+        expect(screen.queryByText(/required stages filled/i)).not.toBeInTheDocument();
         expect(screen.getByText('Remarks & Exceptions')).toBeInTheDocument();
         expect(screen.getByText('Payment for PPA Charges')).toBeInTheDocument();
         expect(screen.getByText('Additional Uploads')).toBeInTheDocument();
         expect(screen.getByText('supporting_note.pdf')).toBeInTheDocument();
         expect(screen.getByText('Missing final BL from carrier')).toBeInTheDocument();
-        expect(screen.getAllByText('Flagged').length).toBeGreaterThan(0);
-        expect(screen.getByRole('button', { name: /move to archive/i })).toBeDisabled();
+        expect(screen.getByRole('button', { name: /send to records/i })).toBeDisabled();
     });
 
     it('keeps the queue pane roomier while tightening the detail header side panel', async () => {
         renderWithProviders(<AdminDocumentReview />);
 
-        expect(screen.getByTestId('admin-review-queue-pane')).toHaveClass(
-            'lg:w-[38%]',
-            'lg:min-w-[22rem]',
-            'lg:max-w-[30rem]',
-        );
+        // Queue pane is in expanded (full-width) mode before a transaction is selected
+        expect(screen.getByTestId('admin-review-queue-pane')).toHaveClass('max-w-none');
 
         fireEvent.click(screen.getByRole('button', { name: /BL-98210344/i }));
 
         await waitFor(() => {
             expect(screen.getByTestId('admin-review-detail-header')).toBeInTheDocument();
         });
+
+        // After selection the pane switches to constrained sidebar widths
+        expect(screen.getByTestId('admin-review-queue-pane')).toHaveClass(
+            'xl:min-w-[26rem]',
+            'xl:max-w-[38rem]',
+        );
     });
 
     it('wires search and filter controls into the queue query params', async () => {
         renderWithProviders(<AdminDocumentReview />);
 
-        expect(screen.queryByRole('option', { name: 'Admin User' })).not.toBeInTheDocument();
+        // Admin User is an 'admin' role — should not appear as an encoder filter option
+        expect(screen.queryByRole('button', { name: 'Admin User' })).not.toBeInTheDocument();
 
-        fireEvent.change(screen.getByPlaceholderText('Search BL, ref, or client...'), {
+        fireEvent.change(screen.getByPlaceholderText('Search vessel, BL, ref, or client...'), {
             target: { value: 'Acme' },
         });
 
@@ -278,19 +311,12 @@ describe('AdminDocumentReview', () => {
             });
         });
 
-        fireEvent.change(screen.getByDisplayValue('All Types'), {
-            target: { value: 'export' },
-        });
-        fireEvent.change(screen.getByDisplayValue('All Statuses'), {
-            target: { value: 'cancelled' },
-        });
-
-        fireEvent.change(screen.getByDisplayValue('All Readiness'), {
-            target: { value: 'flagged' },
-        });
-        fireEvent.change(screen.getByDisplayValue('All Encoders'), {
-            target: { value: '7' },
-        });
+        // Open the filter popover then apply filters via pill buttons
+        fireEvent.click(screen.getByRole('button', { name: /filters/i }));
+        fireEvent.click(screen.getByRole('button', { name: /^Export$/i }));
+        fireEvent.click(screen.getByRole('button', { name: /^Cancelled$/i }));
+        fireEvent.click(screen.getByRole('button', { name: /^Flagged$/i }));
+        fireEvent.click(screen.getByRole('button', { name: /^Sarah Velasco$/i }));
 
         await waitFor(() => {
             expect(mockUseReviewQueue).toHaveBeenLastCalledWith({
@@ -324,9 +350,9 @@ describe('AdminDocumentReview', () => {
 
         renderWithProviders(<AdminDocumentReview />);
 
-        expect(screen.getByText('No files in review')).toBeInTheDocument();
+        expect(screen.getByText('No transactions in review')).toBeInTheDocument();
         expect(
-            screen.getByText('Finalized transactions will appear here once they need archive review.'),
+            screen.getByText('Completed and cancelled transactions will appear here once they are ready for admin review.'),
         ).toBeInTheDocument();
     });
 
@@ -348,12 +374,11 @@ describe('AdminDocumentReview', () => {
 
         fireEvent.click(screen.getByRole('button', { name: /BL-98210344/i }));
 
-        await waitFor(() => {
-            expect(screen.getAllByText('Archive Ready').length).toBeGreaterThan(0);
-        });
+        const archiveButton = screen.getByRole('button', { name: /send to records/i });
 
-        const archiveButton = screen.getByRole('button', { name: /move to archive/i });
-        expect(archiveButton).toBeEnabled();
+        await waitFor(() => {
+            expect(archiveButton).toBeEnabled();
+        });
 
         fireEvent.click(archiveButton);
 

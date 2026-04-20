@@ -11,7 +11,10 @@ import type { OversightTransaction } from '../types/transaction.types';
 import { RemarkModal } from './RemarkModal';
 import { StatusOverrideModal } from './StatusOverrideModal';
 import { TransactionDetailDrawer } from './TransactionDetailDrawer';
-
+import { useMemo, useEffect } from 'react';
+import * as React from 'react';
+import type { VesselGroup } from '../../tracking/types';
+import { VesselGroupHeader } from '../../tracking/components/VesselGroupHeader';
 
 type TypeFilter = 'all' | 'import' | 'export';
 type StatusFilter = 'all' | 'pending' | 'in_progress' | 'completed' | 'cancelled';
@@ -23,6 +26,33 @@ function normalizeStatus(status: string): string {
     return status.trim().toLowerCase().replace(/\s+/g, '_');
 }
 
+function formatCompactDate(dateString: string | null | undefined): string {
+    if (!dateString) return '—';
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return '—';
+
+    return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+    });
+}
+
+function getTransactionPrimaryRef(transaction: OversightTransaction): string {
+    return transaction.reference_no || transaction.bl_no || `#${transaction.id}`;
+}
+
+function getTransactionSecondaryRef(transaction: OversightTransaction): string | null {
+    if (transaction.reference_no && transaction.bl_no && transaction.bl_no !== transaction.reference_no) {
+        return transaction.bl_no;
+    }
+
+    if (!transaction.reference_no && transaction.bl_no) {
+        return null;
+    }
+
+    return transaction.vessel || null;
+}
 
 const STATUS_CFG: Record<string, { color: string; bg: string }> = {
     completed: { color: '#30d158', bg: 'rgba(48,209,88,0.13)' },
@@ -35,6 +65,63 @@ const TYPE_CFG: Record<string, { color: string; bg: string }> = {
     import: { color: '#0a84ff', bg: 'rgba(10,132,255,0.13)' },
     export: { color: '#ff9f0a', bg: 'rgba(255,159,10,0.13)' },
 };
+
+function isDelayedDate(dateString: string | null | undefined): boolean {
+    if (!dateString) return false;
+    const date = new Date(dateString);
+    return !Number.isNaN(date.getTime()) && date < new Date();
+}
+
+function buildOversightGroups(transactions: OversightTransaction[]): VesselGroup<OversightTransaction>[] {
+    const grouped = new Map<string, OversightTransaction[]>();
+
+    for (const t of transactions) {
+        const vesselName = (t.vessel ?? 'Unknown Vessel').trim() || 'Unknown Vessel';
+        const key = `${t.type}:${vesselName}`;
+        const existing = grouped.get(key);
+        if (existing) {
+            existing.push(t);
+        } else {
+            grouped.set(key, [t]);
+        }
+    }
+
+    const groups: VesselGroup<OversightTransaction>[] = [];
+
+    for (const [groupKey, txns] of grouped.entries()) {
+        const vesselName = txns[0]?.vessel?.trim() || 'Unknown Vessel';
+        const groupType = txns[0]?.type ?? 'import';
+        const eta = txns[0]?.date ?? null;
+        const blocked = txns.filter(t => t.open_remarks_count > 0);
+        const completed = txns.filter(t => normalizeStatus(t.status) === COMPLETED_STATUS);
+        const in_progress = txns.filter(t => {
+            const s = normalizeStatus(t.status);
+            return s !== COMPLETED_STATUS && s !== CANCELLED_STATUS && s !== 'pending';
+        });
+
+        groups.push({
+            vesselKey: groupKey,
+            vesselName: vesselName || 'Unknown Vessel',
+            voyage: null,
+            eta,
+            type: groupType,
+            transactions: txns,
+            stats: {
+                total: txns.length,
+                in_progress: in_progress.length,
+                blocked: blocked.length,
+                completed: completed.length,
+            },
+            isDelayed: isDelayedDate(eta) && completed.length < txns.length,
+        });
+    }
+
+    return groups.sort((a, b) => {
+        if (!a.eta) return 1;
+        if (!b.eta) return -1;
+        return new Date(a.eta).getTime() - new Date(b.eta).getTime();
+    });
+}
 
 
 export const TransactionOversight = () => {
@@ -66,8 +153,37 @@ export const TransactionOversight = () => {
         exports: data?.exports_count ?? 0,
     };
 
-    const transactions: OversightTransaction[] = data?.data ?? [];
+    const transactions = useMemo<OversightTransaction[]>(() => data?.data ?? [], [data?.data]);
     const meta = data?.meta;
+    const visibleBlocked = transactions.filter((transaction) => transaction.open_remarks_count > 0).length;
+
+    const groups = useMemo(() => buildOversightGroups(transactions), [transactions]);
+    const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => new Set(groups.map((group) => group.vesselKey)));
+
+    const seenGroupsRef = React.useRef<Set<string>>(new Set(groups.map(g => g.vesselKey)));
+
+    useEffect(() => {
+        setExpandedGroups(prev => {
+            let hasNew = false;
+            const next = new Set(prev);
+            for (const g of groups) {
+                if (!seenGroupsRef.current.has(g.vesselKey)) {
+                    seenGroupsRef.current.add(g.vesselKey);
+                    next.add(g.vesselKey);
+                    hasNew = true;
+                }
+            }
+            return hasNew ? next : prev;
+        });
+    }, [groups]);
+
+    const toggleGroup = (key: string) => {
+        setExpandedGroups(prev => {
+            const next = new Set(prev);
+            if (next.has(key)) next.delete(key); else next.add(key);
+            return next;
+        });
+    };
 
     const invalidateTransactionCaches = (type?: 'import' | 'export') => {
         qc.invalidateQueries({ queryKey: ['admin', 'transactions'] });
@@ -116,12 +232,14 @@ export const TransactionOversight = () => {
 
     return (
         <div className="space-y-5 p-4">
-
-            {/* Header */}
-            <div className="flex justify-between items-end">
-                <div>
-                    <h1 className="text-3xl font-bold mb-1 text-text-primary">Transaction Oversight</h1>
-                    <p className="text-sm text-text-secondary">All imports &amp; exports — primary encoder ownership, status control, and remarks</p>
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                <div className="space-y-2">
+                    <div>
+                        <h1 className="text-3xl font-bold tracking-tight text-text-primary">Transaction Oversight</h1>
+                        <p className="mt-1 max-w-2xl text-sm text-text-secondary">
+                            Monitor imports and exports by vessel while keeping transaction-level control over status, remarks, and encoder ownership.
+                        </p>
+                    </div>
                 </div>
                 <CurrentDateTime
                     className="text-right hidden sm:block shrink-0"
@@ -130,85 +248,112 @@ export const TransactionOversight = () => {
                 />
             </div>
 
-            {/* Stats */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 {[
-                    { label: 'Total Transactions', value: stats.total, color: '#0a84ff', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2' },
-                    { label: 'Imports', value: stats.imports, color: '#30d158', icon: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12' },
-                    { label: 'Exports', value: stats.exports, color: '#ff9f0a', icon: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4' },
+                    {
+                        label: 'Total Transactions',
+                        value: stats.total,
+                        detail: 'Across current oversight scope',
+                        color: '#0a84ff',
+                        icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2',
+                    },
+                    {
+                        label: 'Imports',
+                        value: stats.imports,
+                        detail: 'Import-side records',
+                        color: '#30d158',
+                        icon: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12',
+                    },
+                    {
+                        label: 'Exports',
+                        value: stats.exports,
+                        detail: 'Export-side records',
+                        color: '#ff9f0a',
+                        icon: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4',
+                    },
+                    {
+                        label: 'Needs Attention',
+                        value: visibleBlocked,
+                        detail: 'Visible rows with open remarks',
+                        color: '#ff453a',
+                        icon: 'M12 9v4m0 4h.01M10.29 3.86l-7.47 13A1 1 0 003.68 18h16.64a1 1 0 00.86-1.5l-7.47-13a1 1 0 00-1.72 0z',
+                    },
                 ].map((card) => (
-                    <div key={card.label} className="bg-surface rounded-lg p-4 border border-border flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-text-secondary mb-1">{card.label}</p>
-                            <p className="text-3xl font-bold tabular-nums text-text-primary">{card.value}</p>
-                        </div>
-                        <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: `${card.color}20` }}>
-                            <svg className="w-5 h-5" fill="none" stroke={card.color} viewBox="0 0 24 24" strokeWidth={1.8}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d={card.icon} />
-                            </svg>
+                    <div key={card.label} className="rounded-2xl border border-border bg-gradient-to-br from-surface via-surface to-surface-secondary/55 p-4 shadow-sm">
+                        <div className="flex items-start justify-between gap-4">
+                            <div>
+                                <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">{card.label}</p>
+                                <p className="text-3xl font-semibold tabular-nums text-text-primary">{card.value}</p>
+                                <p className="mt-2 text-xs text-text-muted">{card.detail}</p>
+                            </div>
+                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-border/80 bg-surface shadow-sm" style={{ boxShadow: `inset 0 1px 0 ${card.color}22` }}>
+                                <svg className="h-5 w-5" fill="none" stroke={card.color} viewBox="0 0 24 24" strokeWidth={1.8}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d={card.icon} />
+                                </svg>
+                            </div>
                         </div>
                     </div>
                 ))}
             </div>
 
-            {/* Table card */}
-            <div className="bg-surface rounded-xl border border-border overflow-hidden">
-
-                {/* Toolbar */}
-                <div className="p-3 border-b border-border flex flex-col sm:flex-row gap-3 items-stretch sm:items-center bg-surface-subtle">
-
-                    {/* Search */}
-                    <div className="relative flex-1 max-w-sm">
-                        <svg className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
+                <div className="border-b border-border bg-gradient-to-b from-surface-secondary/55 to-surface px-4 py-4">
+                    <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
+                        <div className="relative max-w-xl flex-1">
+                            <svg className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
-                        <input
-                            type="text"
-                            placeholder="Search by ref, BL, client, encoder..."
-                            value={searchTerm}
-                            onChange={(e) => {
-                                setSearchTerm(e.target.value);
-                                setPage(1);
-                            }}
-                            className="w-full pl-9 pr-3 h-9 rounded-lg border border-border bg-surface text-text-primary text-sm placeholder:text-text-muted focus:outline-none focus:border-blue-500/50 transition-colors"
-                        />
-                    </div>
-
-                    {/* Type pill toggle */}
-                    <div className="flex h-9 rounded-lg border border-border overflow-hidden shrink-0">
-                        {(['all', 'import', 'export'] as TypeFilter[]).map((t) => (
-                            <button
-                                key={t}
-                                onClick={() => {
-                                    setTypeFilter(t);
+                            <input
+                                type="text"
+                                placeholder="Search vessel, voyage, BL, entry, client, assignee..."
+                                value={searchTerm}
+                                onChange={(e) => {
+                                    setSearchTerm(e.target.value);
                                     setPage(1);
                                 }}
-                                className={`px-3 py-1 text-xs font-bold capitalize transition-colors ${typeFilter === t
-                                    ? 'bg-text-primary text-surface'
-                                    : 'bg-surface-secondary text-text-secondary hover:text-text-primary'
-                                    }`}
+                                className="h-11 w-full rounded-xl border border-border bg-surface pl-11 pr-4 text-sm text-text-primary shadow-sm transition-colors placeholder:text-text-muted focus:border-blue-500/50 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                            />
+                        </div>
+
+                        <div className="flex flex-1 flex-wrap items-center gap-3 xl:justify-end">
+                            <div className="flex h-11 shrink-0 items-center rounded-xl border border-border bg-surface p-1 shadow-sm">
+                                {(['all', 'import', 'export'] as TypeFilter[]).map((t) => (
+                                    <button
+                                        key={t}
+                                        onClick={() => {
+                                            setTypeFilter(t);
+                                            setPage(1);
+                                        }}
+                                        className={`rounded-lg px-4 py-2 text-xs font-bold capitalize transition-colors ${
+                                            typeFilter === t
+                                                ? 'bg-text-primary text-surface shadow-sm'
+                                                : 'text-text-secondary hover:text-text-primary'
+                                        }`}
+                                    >
+                                        {t === 'all' ? 'All' : t === 'import' ? 'Imports' : 'Exports'}
+                                    </button>
+                                ))}
+                            </div>
+
+                            <select
+                                value={statusFilter}
+                                onChange={(e) => {
+                                    setStatusFilter(e.target.value as StatusFilter);
+                                    setPage(1);
+                                }}
+                                className="h-11 shrink-0 cursor-pointer rounded-xl border border-border bg-surface px-3 text-sm text-text-primary shadow-sm transition-colors focus:border-blue-500/50 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                             >
-                                {t === 'all' ? 'All' : t === 'import' ? 'Imports' : 'Exports'}
-                            </button>
-                        ))}
+                                <option value="all">All Statuses</option>
+                                <option value="pending">Pending</option>
+                                <option value="in_progress">In Progress</option>
+                                <option value="completed">Completed</option>
+                                <option value="cancelled">Cancelled</option>
+                            </select>
+                        </div>
                     </div>
-                    <select
-                        value={statusFilter}
-                        onChange={(e) => {
-                            setStatusFilter(e.target.value as StatusFilter);
-                            setPage(1);
-                        }}
-                        className="h-9 rounded-md border border-border bg-surface text-text-primary text-sm px-3 focus:outline-none focus:border-blue-500/50 transition-colors cursor-pointer shrink-0"
-                    >
-                        <option value="all">All Statuses</option>
-                        <option value="pending">Pending</option>
-                        <option value="in_progress">In Progress</option>
-                        <option value="completed">Completed</option>
-                        <option value="cancelled">Cancelled</option>
-                    </select>
+
                 </div>
 
-                {/* Body */}
                 {isLoading ? (
                     <div className="p-16 flex items-center justify-center">
                         <div className="w-8 h-8 rounded-full border-[3px] border-border animate-spin" style={{ borderTopColor: '#0a84ff' }} />
@@ -227,19 +372,29 @@ export const TransactionOversight = () => {
                         </p>
                     </div>
                 ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead>
-                                <tr className="border-b border-border">
-                                    {['Type', 'Ref No / BL', 'Client', 'Status', 'Encoder', 'Created', 'Remarks', 'Actions'].map((h) => (
-                                        <th key={h} className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-muted">
-                                            {h}
-                                        </th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {transactions.map((t, idx) => {
+                    <div className="w-full">
+                        <div>
+                            {groups.map((group) => (
+                                <div key={group.vesselKey} className="border-b border-border last:border-0 bg-surface">
+                                    <VesselGroupHeader
+                                        group={group}
+                                        isExpanded={expandedGroups.has(group.vesselKey)}
+                                        onToggle={() => toggleGroup(group.vesselKey)}
+                                    />
+
+                                    {expandedGroups.has(group.vesselKey) && (
+                                        <div>
+                                            <div className="hidden border-b border-border bg-surface-secondary/35 px-4 py-2 lg:grid lg:grid-cols-[88px_1.5fr_1.2fr_110px_96px_88px_96px_88px] lg:gap-x-3">
+                                                <span className="text-[9px] font-bold uppercase tracking-[0.1em] text-text-muted">Type</span>
+                                                <span className="text-[9px] font-bold uppercase tracking-[0.1em] text-text-muted">Primary Identifier</span>
+                                                <span className="text-[9px] font-bold uppercase tracking-[0.1em] text-text-muted">Client / Vessel</span>
+                                                <span className="text-center text-[9px] font-bold uppercase tracking-[0.1em] text-text-muted">Status</span>
+                                                <span className="text-center text-[9px] font-bold uppercase tracking-[0.1em] text-text-muted">Encoder</span>
+                                                <span className="text-center text-[9px] font-bold uppercase tracking-[0.1em] text-text-muted">Remarks</span>
+                                                <span className="text-right text-[9px] font-bold uppercase tracking-[0.1em] text-text-muted">Created</span>
+                                                <span className="text-[9px] font-bold uppercase tracking-[0.1em] text-text-muted" />
+                                            </div>
+                                            {group.transactions.map((t, idx) => {
                                     const normalizedStatus = normalizeStatus(t.status);
                                     const isCompleted = normalizedStatus === COMPLETED_STATUS;
                                     const isCancelled = normalizedStatus === CANCELLED_STATUS;
@@ -247,124 +402,159 @@ export const TransactionOversight = () => {
                                     const sc = STATUS_CFG[normalizedStatus] ?? STATUS_CFG.pending;
                                     const tc = TYPE_CFG[t.type] ?? TYPE_CFG.import;
                                     const rowKey = `${t.type}-${t.id}`;
+                                    const primaryRef = getTransactionPrimaryRef(t);
+                                    const secondaryRef = getTransactionSecondaryRef(t);
                                     return (
-                                        <tr
+                                        <div
                                             key={rowKey}
                                             onClick={() => setDetailTarget(t)}
-                                            className={`border-b border-border transition-colors hover:bg-hover cursor-pointer ${idx % 2 !== 0 ? 'bg-surface-secondary/40' : ''}`}
+                                            className={`relative grid cursor-pointer gap-x-3 gap-y-3 border-b border-border/40 p-4 text-xs transition-colors last:border-0 hover:bg-hover/60 lg:grid-cols-[88px_1.5fr_1.2fr_110px_96px_88px_96px_88px] lg:items-center lg:gap-y-0 lg:px-4 lg:py-3 ${
+                                                idx % 2 !== 0 ? 'bg-surface-secondary/15' : ''
+                                            } ${t.open_remarks_count > 0 ? 'border-l-4 border-red-500 bg-red-50/20 dark:bg-red-950/10' : 'border-l-4 border-transparent'}`}
+                                            role="row"
                                         >
-                                            {/* Type */}
-                                            <td className="px-5 py-3.5">
-                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold capitalize"
-                                                    style={{ color: tc.color, backgroundColor: tc.bg }}>
-                                                    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: tc.color }} />
+                                            <div className="flex items-center justify-between lg:block">
+                                                <span
+                                                    className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em]"
+                                                    style={{ color: tc.color, backgroundColor: tc.bg }}
+                                                >
                                                     {t.type}
                                                 </span>
-                                            </td>
-                                            {/* Ref / BL */}
-                                            <td className="px-5 py-3.5">
-                                                {t.reference_no && <p className="text-sm font-semibold text-text-primary">{t.reference_no}</p>}
-                                                {t.bl_no && <p className={`text-xs mt-0.5 ${t.reference_no ? 'text-text-muted' : 'text-sm font-semibold text-text-primary'}`}>{t.bl_no}</p>}
-                                                {!t.reference_no && !t.bl_no && <p className="text-sm font-semibold text-text-primary">—</p>}
-                                            </td>
-                                            {/* Client */}
-                                            <td className="px-5 py-3.5 text-sm text-text-secondary">{t.client || '—'}</td>
-                                            {/* Status */}
-                                            <td className="px-5 py-3.5">
-                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold capitalize whitespace-nowrap"
-                                                    style={{ color: sc.color, backgroundColor: sc.bg }}>
-                                                    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: sc.color }} />
+                                                <div className="lg:hidden">
+                                                    <span
+                                                        className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold capitalize whitespace-nowrap"
+                                                        style={{ color: sc.color, backgroundColor: sc.bg }}
+                                                    >
+                                                        {t.status.replace('_', ' ')}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <div className="min-w-0">
+                                                <span className="mb-1 block text-[10px] font-bold uppercase text-text-muted lg:hidden">Reference</span>
+                                                <p className="truncate text-sm font-semibold text-text-primary lg:text-xs">{primaryRef}</p>
+                                                {secondaryRef && (
+                                                    <p className="mt-0.5 truncate text-[11px] text-text-muted">{secondaryRef}</p>
+                                                )}
+                                            </div>
+
+                                            <div className="min-w-0">
+                                                <span className="mb-1 block text-[10px] font-bold uppercase text-text-muted lg:hidden">Client</span>
+                                                <p className="truncate text-sm font-medium text-text-secondary lg:text-xs">{t.client || '—'}</p>
+                                                {t.vessel && (
+                                                    <p className="mt-0.5 truncate text-[11px] text-text-muted">{t.vessel}</p>
+                                                )}
+                                            </div>
+
+                                            <div className="hidden lg:flex justify-center">
+                                                <span
+                                                    className="inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-bold capitalize whitespace-nowrap"
+                                                    style={{ color: sc.color, backgroundColor: sc.bg }}
+                                                >
                                                     {t.status.replace('_', ' ')}
                                                 </span>
-                                            </td>
-                                            {/* Encoder */}
-                                            <td className="px-5 py-3.5 text-sm text-text-secondary">
-                                                {t.assigned_to || <span className="text-text-muted italic">Unassigned</span>}
-                                            </td>
-                                            {/* Created */}
-                                            <td className="px-5 py-3.5 text-sm text-text-secondary">
-                                                {t.date ? new Date(t.date).toLocaleDateString() : '—'}
-                                            </td>
-                                            {/* Remarks badge */}
-                                            <td className="px-5 py-3.5">
+                                            </div>
+
+                                            <div className="flex items-center gap-4 border-t border-border/50 pt-2 lg:justify-center lg:border-t-0 lg:pt-0">
+                                                <div className="min-w-0">
+                                                    <span className="mb-1 block text-[10px] font-bold uppercase text-text-muted lg:hidden">Encoder</span>
+                                                    <p className="truncate text-xs text-text-secondary lg:text-[11px]">
+                                                        {t.assigned_to || <span className="italic text-text-muted">Unassigned</span>}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div className="hidden lg:flex justify-center">
                                                 {t.open_remarks_count > 0 ? (
                                                     <button
                                                         onClick={(e) => { e.stopPropagation(); setRemarkTarget(t); }}
-                                                        className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-bold transition-colors"
+                                                        className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold transition-colors"
                                                         style={{ color: '#ff453a', backgroundColor: 'rgba(255,69,58,0.12)' }}
                                                     >
-                                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                                        </svg>
+                                                        <Icon name="flag" className="w-3 h-3" />
                                                         {t.open_remarks_count}
                                                     </button>
                                                 ) : (
-                                                    <span className="text-text-muted text-xs">—</span>
+                                                    <span className="text-text-muted text-[10px]">—</span>
                                                 )}
-                                            </td>
-                                            {/* Actions */}
-                                            <td className="px-5 py-3.5">
-                                                <div className="flex gap-1.5">
-                                                    {canManageActiveTransaction && (
-                                                        <>
-                                                            <button
-                                                                onClick={(e) => { e.stopPropagation(); setStatusTarget(t); }}
-                                                                className="p-1.5 text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/30 rounded-md transition-colors"
-                                                                title="Override Status"
-                                                            >
-                                                                <Icon name="alert-circle" className="w-4 h-4" />
-                                                            </button>
-                                                        </>
+                                            </div>
+
+                                            <div className="hidden truncate text-right text-[10px] text-text-muted lg:block">
+                                                {formatCompactDate(t.date ?? t.created_at)}
+                                            </div>
+
+                                            <div className="col-span-full flex items-center justify-between gap-2 border-t border-border/50 pt-2 lg:col-span-1 lg:justify-end lg:border-t-0 lg:pt-0" onClick={e => e.stopPropagation()}>
+                                                <div className="lg:hidden">
+                                                    {t.open_remarks_count > 0 && (
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); setRemarkTarget(t); }}
+                                                            className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-1 text-[10px] font-semibold text-red-600 dark:bg-red-900/30 dark:text-red-300"
+                                                            title={`${t.open_remarks_count} open remark(s)`}
+                                                        >
+                                                            <Icon name="flag" className="w-3 h-3" />
+                                                            {t.open_remarks_count} remark{t.open_remarks_count > 1 ? 's' : ''}
+                                                        </button>
                                                     )}
-                                                    {isCancelled && (
-                                                        <>
-                                                            <button
-                                                                onClick={(e) => { e.stopPropagation(); setStatusTarget(t); }}
-                                                                className="p-1.5 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-md transition-colors"
-                                                                title="Restore Transaction"
-                                                            >
-                                                                <Icon name="check-circle" className="w-4 h-4" />
-                                                            </button>
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    handleDelete(t);
-                                                                }}
-                                                                disabled={deletingTargetKey === rowKey}
-                                                                className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                                                title="Delete Cancelled Transaction"
-                                                            >
-                                                                <Icon name="trash" className="w-4 h-4" />
-                                                            </button>
-                                                        </>
-                                                    )}
-                                                    <button
-                                                        onClick={(e) => { e.stopPropagation(); setRemarkTarget(t); }}
-                                                        className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md transition-colors"
-                                                        title="Flag / Remarks"
-                                                    >
-                                                        <Icon name="flag" className="w-4 h-4" />
-                                                    </button>
                                                 </div>
-                                            </td>
-                                        </tr>
+                                                {canManageActiveTransaction && (
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); setStatusTarget(t); }}
+                                                        className="rounded-lg border border-border bg-surface p-2 text-orange-500 shadow-sm hover:bg-orange-50 dark:hover:bg-orange-900/30 lg:border-transparent lg:bg-transparent lg:p-1.5 lg:shadow-none"
+                                                        title="Override Status"
+                                                    >
+                                                        <Icon name="alert-circle" className="w-4 h-4" />
+                                                    </button>
+                                                )}
+                                                {isCancelled && (
+                                                    <>
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); setStatusTarget(t); }}
+                                                            className="rounded-lg border border-border bg-surface p-2 text-emerald-500 shadow-sm hover:bg-emerald-50 dark:hover:bg-emerald-900/30 lg:border-transparent lg:bg-transparent lg:p-1.5 lg:shadow-none"
+                                                            title="Restore Transaction"
+                                                        >
+                                                            <Icon name="check-circle" className="w-4 h-4" />
+                                                        </button>
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); handleDelete(t); }}
+                                                            disabled={deletingTargetKey === rowKey}
+                                                            className="rounded-lg border border-border bg-surface p-2 text-red-500 shadow-sm hover:bg-red-50 dark:hover:bg-red-900/30 disabled:opacity-50 lg:border-transparent lg:bg-transparent lg:p-1.5 lg:shadow-none"
+                                                            title="Delete Cancelled Transaction"
+                                                        >
+                                                            <Icon name="trash" className="w-4 h-4" />
+                                                        </button>
+                                                    </>
+                                                )}
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); setRemarkTarget(t); }}
+                                                    className="hidden lg:block rounded-lg p-1.5 text-red-500 hover:bg-red-50"
+                                                    title="Flag / Remarks"
+                                                >
+                                                    <Icon name="flag" className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </div>
                                     );
                                 })}
-                            </tbody>
-                        </table>
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
                         {meta && meta.last_page > 1 ? (
-                            <Pagination
-                                currentPage={meta.current_page}
-                                totalPages={meta.last_page}
-                                perPage={meta.per_page}
-                                onPageChange={setPage}
-                                onPerPageChange={(value) => {
-                                    setPerPage(value);
-                                    setPage(1);
-                                }}
-                            />
+                            <div className="mt-auto border-t border-border p-2">
+                                <Pagination
+                                    currentPage={meta.current_page}
+                                    totalPages={meta.last_page}
+                                    perPage={meta.per_page}
+                                    onPageChange={setPage}
+                                    onPerPageChange={(value) => {
+                                        setPerPage(value);
+                                        setPage(1);
+                                    }}
+                                />
+                            </div>
                         ) : (
-                            <div className="px-5 py-3 border-t border-border text-xs text-text-muted">
+                            <div className="mt-auto border-t border-border px-5 py-3 text-xs text-text-muted">
                                 Showing {transactions.length} of {stats.total} transactions
                             </div>
                         )}

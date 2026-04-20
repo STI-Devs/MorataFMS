@@ -27,16 +27,18 @@ export const KpiMetric = ({
     };
 
     return (
-        <div className="rounded-xl border border-border bg-surface px-3 py-2.5 shadow-sm">
-            <div className="flex items-start justify-between gap-2">
-                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-text-muted">{title}</p>
-                <span className={`mt-0.5 h-2 w-2 shrink-0 rounded-full ${accentTones[tone]}`} />
+        <div className="rounded-2xl border border-border bg-gradient-to-br from-surface via-surface to-surface-secondary/45 px-4 py-3.5 shadow-sm">
+            <div className="flex items-start justify-between gap-3">
+                <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-text-muted">{title}</p>
+                    {isLoading ? (
+                        <div className="mt-3 h-8 w-14 animate-pulse rounded bg-hover" />
+                    ) : (
+                        <p className={`mt-3 text-3xl font-semibold tracking-tight ${tones[tone]}`}>{value}</p>
+                    )}
+                </div>
+                <span className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${accentTones[tone]}`} />
             </div>
-            {isLoading ? (
-                <div className="mt-2 h-6 w-12 animate-pulse rounded bg-hover" />
-            ) : (
-                <p className={`mt-2 text-xl font-bold tracking-tight ${tones[tone]}`}>{value}</p>
-            )}
         </div>
     );
 };

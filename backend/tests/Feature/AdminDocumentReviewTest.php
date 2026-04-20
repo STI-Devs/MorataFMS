@@ -42,10 +42,12 @@ test('admin can list the paginated admin document review queue', function () {
     $importTransaction = ImportTransaction::factory()->create([
         'customs_ref_no' => 'IMP-0921',
         'bl_no' => 'BL-98210344',
+        'vessel_name' => 'MV GLOBAL STAR',
         'importer_id' => $importer->id,
         'assigned_user_id' => $encoder->id,
         'status' => ImportStatus::Completed,
         'is_archive' => false,
+        'arrival_date' => '2026-03-18',
         'updated_at' => $finalizedAt,
     ]);
     $importTransaction->stages()->update([
@@ -75,7 +77,7 @@ test('admin can list the paginated admin document review queue', function () {
     ]);
 
     $response = $this->actingAs($admin)
-        ->getJson('/api/admin/document-review?type=import&status=completed&readiness=flagged&assigned_user_id='.$encoder->id.'&search=Global&per_page=1')
+        ->getJson('/api/admin/document-review?type=import&status=completed&readiness=flagged&assigned_user_id='.$encoder->id.'&search=GLOBAL%20STAR&per_page=1')
         ->assertOk();
 
     $response
@@ -87,10 +89,12 @@ test('admin can list the paginated admin document review queue', function () {
         ->assertJsonPath('data.0.type', 'import')
         ->assertJsonPath('data.0.ref', 'IMP-0921')
         ->assertJsonPath('data.0.bl_number', 'BL-98210344')
+        ->assertJsonPath('data.0.vessel', 'MV GLOBAL STAR')
         ->assertJsonPath('data.0.client', 'Global Tech Corp')
         ->assertJsonPath('data.0.assigned_user', 'Sarah Velasco')
         ->assertJsonPath('data.0.assigned_user_id', $encoder->id)
         ->assertJsonPath('data.0.status', 'Completed')
+        ->assertJsonPath('data.0.transaction_date', '2026-03-18')
         ->assertJsonPath('data.0.finalized_date', $finalizedAt->format(DATE_ATOM))
         ->assertJsonPath('data.0.docs_count', 4)
         ->assertJsonPath('data.0.docs_total', count(requiredReviewTypes('import')))
@@ -114,10 +118,12 @@ test('admin can inspect the review detail for a finalized transaction', function
     $importTransaction = ImportTransaction::factory()->create([
         'customs_ref_no' => 'IMP-0921',
         'bl_no' => 'BL-98210344',
+        'vessel_name' => 'MV GLOBAL STAR',
         'importer_id' => $importer->id,
         'assigned_user_id' => $encoder->id,
         'status' => ImportStatus::Completed,
         'is_archive' => false,
+        'arrival_date' => '2026-03-18',
         'updated_at' => $finalizedAt,
     ]);
     $importTransaction->stages()->update([
@@ -168,10 +174,12 @@ test('admin can inspect the review detail for a finalized transaction', function
         ->assertJsonPath('transaction.type', 'import')
         ->assertJsonPath('transaction.ref', 'IMP-0921')
         ->assertJsonPath('transaction.bl_number', 'BL-98210344')
+        ->assertJsonPath('transaction.vessel', 'MV GLOBAL STAR')
         ->assertJsonPath('transaction.client', 'Global Tech Corp')
         ->assertJsonPath('transaction.assigned_user', 'Sarah Velasco')
         ->assertJsonPath('transaction.assigned_user_id', $encoder->id)
         ->assertJsonPath('transaction.status', 'Completed')
+        ->assertJsonPath('transaction.transaction_date', '2026-03-18')
         ->assertJsonPath('transaction.finalized_date', $finalizedAt->format(DATE_ATOM))
         ->assertJsonCount(count(requiredReviewTypes('import')), 'required_documents')
         ->assertJsonCount(2, 'uploaded_documents')

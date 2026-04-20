@@ -2,7 +2,6 @@ import { Icon } from '../../../components/Icon';
 import type { ExportTransaction, ImportTransaction, LayoutContext } from '../types';
 import { useOutletContext } from 'react-router-dom';
 
-
 interface TrackingHeaderProps {
     transaction:       ImportTransaction | ExportTransaction;
     onRemarksClick:    () => void;
@@ -10,6 +9,20 @@ interface TrackingHeaderProps {
     onBack:            () => void;
     statusColor:       string;
     statusBg:          string;
+}
+
+function getVesselName(transaction: ImportTransaction | ExportTransaction): string {
+    if ('vesselName' in transaction) return transaction.vesselName ?? '—';
+    if ('vessel' in transaction) return (transaction as ExportTransaction).vessel ?? '—';
+    return '—';
+}
+
+function getEntryRef(transaction: ImportTransaction | ExportTransaction): string {
+    return transaction.ref ?? '—';
+}
+
+function getBl(transaction: ImportTransaction | ExportTransaction): string {
+    return transaction.bl ?? '—';
 }
 
 export const TrackingHeader = ({
@@ -21,6 +34,9 @@ export const TrackingHeader = ({
     statusBg,
 }: TrackingHeaderProps) => {
     const { user } = useOutletContext<LayoutContext>();
+    const vesselName = getVesselName(transaction);
+    const entryRef = getEntryRef(transaction);
+    const bl = getBl(transaction);
 
     return (
         <div>
@@ -34,8 +50,21 @@ export const TrackingHeader = ({
             <div className="flex items-start justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-text-primary mb-0.5">{transaction.ref}</h1>
-                    <p className="text-xs text-text-muted">
-                        Dashboard / Tracking / {transaction.ref}
+                    {/* Vessel-first breadcrumb */}
+                    <p className="text-xs text-text-muted flex items-center gap-1 flex-wrap">
+                        <span className="font-semibold text-text-secondary">{vesselName}</span>
+                        {entryRef !== '—' && bl !== entryRef && (
+                            <>
+                                <span className="opacity-40">›</span>
+                                <span>{entryRef}</span>
+                            </>
+                        )}
+                        {bl !== '—' && bl !== entryRef && (
+                            <>
+                                <span className="opacity-40">›</span>
+                                <span className="font-mono">{bl}</span>
+                            </>
+                        )}
                         {user && <span className="ml-2 opacity-50">· {user.name}</span>}
                     </p>
                 </div>

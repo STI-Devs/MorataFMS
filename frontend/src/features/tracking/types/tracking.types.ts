@@ -231,3 +231,20 @@ export interface UploadDocumentsPayload {
     documentable_id: number;
 }
 
+export interface VesselGroupStats {
+    total: number;
+    in_progress: number;
+    blocked: number;
+    completed: number;
+}
+
+export interface VesselGroup<T> {
+    vesselKey: string;
+    vesselName: string;
+    voyage: string | null;
+    eta: string | null;
+    type: 'import' | 'export';
+    transactions: T[];
+    stats: VesselGroupStats;
+    isDelayed: boolean;
+}

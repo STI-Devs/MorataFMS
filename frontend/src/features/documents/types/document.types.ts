@@ -112,10 +112,12 @@ export interface AdminReviewQueueItem {
     type: TransactionType;
     ref: string;
     bl_number: string | null;
+    vessel: string | null;
     client: string | null;
     assigned_user: string | null;
     assigned_user_id: number | null;
     status: string;
+    transaction_date: string | null;
     finalized_date: string | null;
     docs_count: number;
     docs_total: number;
@@ -139,10 +141,12 @@ export interface AdminReviewDetailTransaction {
     type: TransactionType;
     ref: string;
     bl_number: string | null;
+    vessel: string | null;
     client: string | null;
     assigned_user: string | null;
     assigned_user_id: number | null;
     status: string;
+    transaction_date: string | null;
     finalized_date: string | null;
 }
 

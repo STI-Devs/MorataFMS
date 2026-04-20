@@ -8,7 +8,7 @@ import type {
     AdminReviewRequiredDocument,
 } from '../../types/document.types';
 import { DetailSkeleton } from './AdminReviewShared';
-import { STATUS_TONES, timeAgo } from './adminReview.utils';
+import { timeAgo } from './adminReview.utils';
 
 // ---------------------------------------------------------------------------
 // Small primitives
@@ -62,6 +62,43 @@ const DocumentActions = ({
         </div>
 );
 
+const ReviewSummaryChip = ({ label, value }: { label: string; value: string | number }) => (
+    <div className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1.5 text-xs text-text-secondary">
+        <span className="font-semibold text-text-primary">{value}</span>
+        <span>{label}</span>
+    </div>
+);
+
+const formatTransactionDate = (date: string | null) => {
+    if (!date) {
+        return null;
+    }
+
+    const parsedDate = new Date(`${date}T00:00:00`);
+
+    if (Number.isNaN(parsedDate.getTime())) {
+        return null;
+    }
+
+    return parsedDate.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+    });
+};
+
+const buildTransactionContext = (transaction: AdminReviewDetailResponse['transaction']) => {
+    const formattedDate = formatTransactionDate(transaction.transaction_date);
+    const movementLabel = transaction.type === 'import' ? 'Arrival' : 'Departure';
+    const primaryRef = transaction.type === 'import' ? transaction.ref : transaction.bl_number;
+
+    return {
+        movementLabel,
+        formattedDate,
+        primaryRef,
+    };
+};
+
 // ---------------------------------------------------------------------------
 // Sections — all live in the scrollable body
 // ---------------------------------------------------------------------------
@@ -70,12 +107,10 @@ const DocumentActions = ({
 
 const DocumentChecklistSection = ({
     requiredDocuments,
-    summary,
     onPreview,
     onDownload,
 }: {
     requiredDocuments: AdminReviewRequiredDocument[];
-    summary: AdminReviewDetailResponse['summary'];
     onPreview: (file: AdminReviewDocumentFile, typeKey: string) => void;
     onDownload: (file: AdminReviewDocumentFile) => void;
 }) => (
@@ -83,7 +118,6 @@ const DocumentChecklistSection = ({
         <SectionHeading
             accentClassName="bg-blue-500"
             title="Document Checklist"
-            meta={`${summary.required_completed}/${summary.required_total} required stages filled`}
         />
         <div className="overflow-hidden rounded-xl border border-border bg-surface divide-y divide-border">
             {requiredDocuments.map((document) => {
@@ -283,6 +317,7 @@ export const AdminReviewDetailPane = ({
     isDetailLoading,
     isDetailError,
     isArchiving,
+    onClearSelection,
     onRetry,
     onArchive,
     onPreview,
@@ -294,6 +329,7 @@ export const AdminReviewDetailPane = ({
     isDetailLoading: boolean;
     isDetailError: boolean;
     isArchiving: boolean;
+    onClearSelection: () => void;
     onRetry: () => void;
     onArchive: () => void;
     onPreview: (file: AdminReviewDocumentFile, typeKey: string) => void;
@@ -305,9 +341,9 @@ export const AdminReviewDetailPane = ({
                 <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-border bg-surface text-text-muted">
                     <Icon name="file-text" className="h-7 w-7" />
                 </div>
-                <h3 className="text-base font-bold text-text-primary">Document Audit Panel</h3>
+                <h3 className="text-base font-bold text-text-primary">Completed Transaction Workspace</h3>
                 <p className="mt-2 max-w-xs text-sm leading-relaxed text-text-secondary">
-                    Select a transaction from the queue to inspect its documents, requirements, and compliance remarks.
+                    Select a completed or cancelled transaction from the queue to inspect its documents, exceptions, and records readiness.
                 </p>
             </div>
         );
@@ -328,6 +364,9 @@ export const AdminReviewDetailPane = ({
 
     const summary = detailData.summary;
     const isArchiveReady = summary.archive_ready;
+    const transactionContext = buildTransactionContext(detailData.transaction);
+    const openRemarksCount = detailData.remarks.filter((remark) => !remark.resolved).length;
+    const notApplicableCount = detailData.required_documents.filter((document) => document.not_applicable).length;
 
     const requiredFileIds = new Set(
         detailData.required_documents
@@ -338,59 +377,61 @@ export const AdminReviewDetailPane = ({
 
     return (
         <div className="flex min-h-0 flex-1 flex-col">
-            {/*
-             * ┌─────────────────────────────────────────────────────────┐
-             * │  COMPACT FIXED HEADER — identity + action bar only      │
-             * │  Target: ≈ 100–115px tall. Nothing more lives here.     │
-             * └─────────────────────────────────────────────────────────┘
-             */}
             <div
-                className="flex-none border-b border-border bg-surface px-5 py-4 xl:px-6"
+                className="flex-none border-b border-border bg-gradient-to-b from-surface-secondary/45 to-surface px-5 py-4 xl:px-6"
                 data-testid="admin-review-detail-header"
             >
-                {/* Row 1 — identity + actions pinned right */}
                 <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
-                        <h2 className="truncate font-mono text-xl font-bold tracking-tight text-text-primary">
-                            {detailData.transaction.bl_number ?? detailData.transaction.ref}
+                        <h2 className="truncate text-xl font-bold tracking-tight text-text-primary">
+                            {detailData.transaction.vessel ?? 'Unknown Vessel'}
                         </h2>
+                        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5">
+                            {transactionContext.formattedDate ? (
+                                <span className="text-sm text-text-secondary">
+                                    {transactionContext.movementLabel} {transactionContext.formattedDate}
+                                </span>
+                            ) : null}
+                            <span className="font-mono text-xs text-text-muted">{transactionContext.primaryRef}</span>
+                            {detailData.transaction.type === 'import' && detailData.transaction.bl_number ? (
+                                <span className="font-mono text-xs text-text-muted">{detailData.transaction.bl_number}</span>
+                            ) : null}
+                        </div>
                         <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5">
                             <p className="text-sm font-medium text-text-secondary">
                                 {detailData.transaction.client ?? 'Unknown client'}
                             </p>
-                            <span className="font-mono text-xs text-text-muted">{detailData.transaction.ref}</span>
                             <span className="text-xs text-text-muted">
                                 {detailData.transaction.assigned_user ?? 'Unassigned'}
                             </span>
                         </div>
                     </div>
 
-                    {/* Archive action — only action unique to this review pane */}
-                    <div className="flex shrink-0 items-center">
-                        <button
-                            type="button"
-                            onClick={onArchive}
-                            disabled={!isArchiveReady || isArchiving}
-                            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-colors ${
-                                isArchiveReady
-                                    ? 'bg-emerald-600 text-white hover:bg-emerald-700 disabled:bg-emerald-500/70'
-                                    : 'cursor-not-allowed border border-border bg-surface text-text-muted'
-                            }`}
-                        >
-                            <Icon name="archive" className="h-3.5 w-3.5" />
-                            {isArchiving ? 'Archiving…' : 'Move to Archive'}
-                        </button>
+                    <div className="flex shrink-0 flex-col items-end gap-2">
+                        <div className="flex items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={onClearSelection}
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-text-secondary transition-colors hover:bg-hover hover:text-text-primary"
+                            >
+                                <Icon name="chevron-left" className="h-3.5 w-3.5" />
+                                Back to Queue
+                            </button>
+                            <button
+                                type="button"
+                                onClick={onArchive}
+                                disabled={!isArchiveReady || isArchiving}
+                                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                                    isArchiveReady
+                                        ? 'border border-border bg-surface text-text-primary hover:bg-hover'
+                                        : 'cursor-not-allowed border border-border bg-surface text-text-muted'
+                                }`}
+                            >
+                                <Icon name="archive" className="h-3.5 w-3.5" />
+                                {isArchiving ? 'Sending…' : 'Send to Records'}
+                            </button>
+                        </div>
                     </div>
-                </div>
-
-                {/* Row 2 — status + finalized only (type & readiness already shown in queue selection) */}
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                    <span className={`rounded border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.18em] ${(STATUS_TONES[detailData.transaction.status.toLowerCase()] ?? STATUS_TONES.completed).text} ${(STATUS_TONES[detailData.transaction.status.toLowerCase()] ?? STATUS_TONES.completed).bg}`}>
-                        {detailData.transaction.status}
-                    </span>
-                    <span className="rounded border border-border bg-background px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.18em] text-text-muted">
-                        Finalized {timeAgo(detailData.transaction.finalized_date)}
-                    </span>
                 </div>
 
                 {archiveError ? (
@@ -398,26 +439,24 @@ export const AdminReviewDetailPane = ({
                 ) : null}
             </div>
 
-            {/*
-             * ┌─────────────────────────────────────────────────────────┐
-             * │  SCROLLABLE BODY — everything else lives here           │
-             * └─────────────────────────────────────────────────────────┘
-             */}
-            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 xl:px-6 xl:py-6">
-                <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
-                    {/* Left column — document checklist (full width when no remarks/extras) */}
+            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 xl:px-6 xl:py-5">
+                <div className="mb-4 flex flex-wrap items-center gap-2.5" data-testid="admin-review-summary-strip">
+                    <ReviewSummaryChip label="Open Remarks" value={openRemarksCount} />
+                    <ReviewSummaryChip label="Uploads" value={summary.total_uploaded} />
+                    <ReviewSummaryChip label="Marked N/A" value={notApplicableCount} />
+                </div>
+
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
                     <div className="min-w-0 flex-1">
                         <DocumentChecklistSection
                             requiredDocuments={detailData.required_documents}
-                            summary={detailData.summary}
                             onPreview={onPreview}
                             onDownload={onDownload}
                         />
                     </div>
 
-                    {/* Right column — only renders when there is content to show */}
                     {(detailData.remarks.length > 0 || additionalUploads.length > 0) && (
-                        <div className="lg:w-72 lg:shrink-0 space-y-5">
+                        <div className="space-y-4 lg:w-80 lg:shrink-0">
                             <RemarksSection remarks={detailData.remarks} />
                             <AdditionalUploadsSection
                                 documents={additionalUploads}

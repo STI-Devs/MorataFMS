@@ -1,205 +1,346 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-
 import { CurrentDateTime } from '../../../components/CurrentDateTime';
-import { Icon } from '../../../components/Icon';
+import { EmptyState } from '../../../components/EmptyState';
 import { StatusBadge } from '../../../components/StatusBadge';
 import { appRoutes } from '../../../lib/appRoutes';
 import { useAllExportsData, useAllImportsData } from '../hooks/useAllTransactionRecords';
-import type { ApiExportTransaction, ApiImportTransaction, ExportTransaction, ImportTransaction } from '../types';
-import { mapExportTransaction, mapImportTransaction } from '../utils/mappers';
+import { useExportVesselGroups, useImportVesselGroups } from '../hooks/useVesselGrouping';
+import type { ApiExportTransaction, ApiImportTransaction, VesselGroup } from '../types';
+import { VesselGroupHeader } from './VesselGroupHeader';
 
-const PENDING_STATUSES = new Set(['Pending']);
-const ACTIVE_IMPORT_STATUSES = new Set(['Vessel Arrived', 'Processing', 'In Progress']);
-const ACTIVE_EXPORT_STATUSES = new Set(['In Transit', 'Departure', 'Processing', 'In Progress']);
+const LIVE_PARAMS = { exclude_statuses: 'completed,cancelled' };
 
-const ColH = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
-    <div className={`text-[10px] font-bold uppercase tracking-[0.08em] truncate leading-tight min-w-0 ${className}`} style={{ color: 'rgba(255,255,255,0.35)' }}>{children}</div>
-);
+function PanelMetric({
+    label,
+    value,
+    detail,
+}: {
+    label: string;
+    value: number;
+    detail: string;
+}) {
+    return (
+        <div className="rounded-2xl border border-border bg-gradient-to-br from-surface via-surface to-surface-secondary/50 p-4 shadow-sm">
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">{label}</p>
+            <p className="text-3xl font-semibold tabular-nums text-text-primary">{value}</p>
+            <p className="mt-2 text-xs text-text-muted">{detail}</p>
+        </div>
+    );
+}
 
-const Spinner = ({ color }: { color: string }) => (
-    <div className="flex-1 flex items-center justify-center py-10">
-        <div className="w-7 h-7 border-[3px] border-transparent rounded-full animate-spin" style={{ borderTopColor: color }} />
-    </div>
-);
-
-const EmptyState = ({ label }: { label: string }) => (
-    <div className="flex-1 flex flex-col items-center justify-center py-10 gap-2" style={{ color: 'rgba(255,255,255,0.3)' }}>
-        <Icon name="search" className="w-6 h-6 opacity-30" />
-        <p className="text-xs">No active {label}.</p>
-    </div>
-);
-
-export const AdminLiveTracking = () => {
-    const navigate = useNavigate();
-
-    const LIVE_PARAMS = { exclude_statuses: 'completed,cancelled' };
-
-    const { data: importsData, isLoading: importsLoading } = useAllImportsData(LIVE_PARAMS);
-    const { data: exportsData, isLoading: exportsLoading } = useAllExportsData(LIVE_PARAMS);
-
-    const imports = useMemo<ImportTransaction[]>(() =>
-        ((importsData as ApiImportTransaction[]) || []).map(mapImportTransaction), [importsData]);
-
-    const exports = useMemo<ExportTransaction[]>(() =>
-        ((exportsData as ApiExportTransaction[]) || []).map(mapExportTransaction), [exportsData]);
+function SectionColumnHeader({ children, align = 'left' }: { children: React.ReactNode; align?: 'left' | 'center' | 'right' }) {
+    const alignClass = align === 'center' ? 'text-center' : align === 'right' ? 'text-right' : 'text-left';
 
     return (
-        <div className="min-h-screen w-full flex flex-col p-6 gap-5"
-            style={{ backgroundColor: '#0d0d0f' }}>
+        <span className={`text-[9px] font-bold uppercase tracking-[0.1em] text-text-muted ${alignClass}`}>
+            {children}
+        </span>
+    );
+}
 
-            {/* Centered Header */}
-            <div className="shrink-0 flex flex-col items-center text-center relative">
-                <h1 className="text-3xl font-bold mb-1" style={{ color: '#ffffff' }}>Live Tracking Overview</h1>
-                <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>Real-time view of all import and export transactions across all encoders.</p>
-                {/* Clock pinned top-right */}
-                <CurrentDateTime
-                    className="absolute right-0 top-0 text-right"
-                    timeClassName="text-2xl font-bold tabular-nums text-white"
-                    dateClassName="text-sm text-white/50"
-                />
+function formatDateLabel(dateString: string | null | undefined): string {
+    if (!dateString) return '—';
+
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return '—';
+
+    return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+    });
+}
+
+function TrackingPanelHeader({
+    title,
+    badgeTone,
+    vesselCount,
+}: {
+    title: string;
+    badgeTone: 'green' | 'blue';
+    vesselCount: number;
+}) {
+    return (
+        <div className="flex items-center justify-between border-b border-border px-5 py-4">
+            <div className="flex items-center gap-2.5">
+                <span className={`h-2.5 w-2.5 rounded-full ${badgeTone === 'green' ? 'bg-emerald-500' : 'bg-blue-500'}`} />
+                <div>
+                    <h2 className="text-sm font-bold text-text-primary">{title}</h2>
+                    <p className="text-xs text-text-muted">Expanded voyage view · active transactions only</p>
+                </div>
             </div>
+            <span className="rounded-full border border-border bg-surface-secondary px-2.5 py-1 text-[10px] font-semibold text-text-muted">
+                {vesselCount} vessels
+            </span>
+        </div>
+    );
+}
 
-            {/* Stat Cards */}
-            {(() => {
-                const inTransit =
-                    imports.filter(r => ACTIVE_IMPORT_STATUSES.has(r.status)).length
-                    + exports.filter(r => ACTIVE_EXPORT_STATUSES.has(r.status)).length;
-                const pending =
-                    imports.filter(r => PENDING_STATUSES.has(r.status)).length
-                    + exports.filter(r => PENDING_STATUSES.has(r.status)).length;
-                const cards = [
-                    { label: 'Total Imports', value: imports.length, iconColor: '#30d158', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' },
-                    { label: 'Total Exports', value: exports.length, iconColor: '#0a84ff', icon: 'M12 19l9 2-9-18-9 18 9-2zm0 0v-8' },
-                    { label: 'In Progress', value: inTransit, iconColor: '#ff9f0a', icon: 'M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0' },
-                    { label: 'Pending Action', value: pending, iconColor: '#64d2ff', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
-                ];
-                return (
-                    <div className="shrink-0 grid grid-cols-4 gap-3">
-                        {cards.map(card => (
-                            <div key={card.label} className="flex items-center justify-between px-4 py-3 rounded-lg"
-                                style={{ backgroundColor: '#161618', border: '1px solid rgba(255,255,255,0.08)' }}>
-                                <div>
-                                    <p className="text-3xl font-bold leading-none mb-1" style={{ color: '#ffffff' }}>{card.value}</p>
-                                    <p className="text-xs font-semibold" style={{ color: card.iconColor }}>{card.label}</p>
-                                </div>
-                                <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-                                    style={{ backgroundColor: `${card.iconColor}22` }}>
-                                    <svg className="w-5 h-5" fill="none" stroke={card.iconColor} viewBox="0 0 24 24" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                                        <path d={card.icon} />
-                                    </svg>
-                                </div>
+function ImportGroupsPanel({
+    groups,
+    isLoading,
+    expandedGroups,
+    onToggle,
+}: {
+    groups: VesselGroup<ApiImportTransaction>[];
+    isLoading: boolean;
+    expandedGroups: Set<string>;
+    onToggle: (key: string) => void;
+}) {
+    const navigate = useNavigate();
+
+    return (
+        <div className="flex min-h-[520px] flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
+            <TrackingPanelHeader title="Import Workload" badgeTone="green" vesselCount={groups.length} />
+
+            <div className="flex-1">
+                {isLoading ? (
+                    <div className="divide-y divide-border/40">
+                        {Array.from({ length: 5 }).map((_, index) => (
+                            <div key={index} className="flex items-center gap-3 px-4 py-4">
+                                <div className="h-4 w-32 rounded skeleton-shimmer" />
+                                <div className="h-4 w-24 rounded skeleton-shimmer" />
+                                <div className="ml-auto h-4 w-20 rounded skeleton-shimmer" />
                             </div>
                         ))}
                     </div>
-                );
-            })()}
-
-            {/* Two panels side by side */}
-            <div className="flex flex-col lg:flex-row gap-4 items-start pb-6">
-
-                {/* Import Transactions Panel */}
-                <div className="w-full lg:flex-1 lg:min-w-0 flex flex-col rounded-lg shadow-sm"
-                    style={{ backgroundColor: '#161618', border: '1px solid rgba(255,255,255,0.08)' }}>
-                    <div className="shrink-0 px-4 py-2.5 flex items-center justify-between"
-                        style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-                        <div className="flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: '#30d158', boxShadow: '0 0 6px #30d15880' }} />
-                            <h2 className="text-sm font-bold" style={{ color: '#ffffff' }}>Import Transactions</h2>
-                        </div>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                            style={{ color: 'rgba(255,255,255,0.4)', backgroundColor: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                            {imports.length} active
-                        </span>
+                ) : groups.length === 0 ? (
+                    <div className="flex h-full items-center justify-center">
+                        <EmptyState label="imports" />
                     </div>
-                    <div className="shrink-0 grid gap-x-3 px-4 pt-2 pb-3"
-                        style={{ gridTemplateColumns: '20px 1fr 0.9fr 128px 1.4fr 96px', borderBottom: '1px solid rgba(255,255,255,0.05)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
-                        <ColH>SC</ColH>
-                        <ColH>Customs Ref No.</ColH>
-                        <ColH className="text-center">Bill of Lading</ColH>
-                        <ColH className="text-center">Status</ColH>
-                        <ColH>Importer</ColH>
-                        <ColH className="text-center">Arrival</ColH>
-                    </div>
-                    <div className="flex flex-col">
-                        {importsLoading ? (<Spinner color="#30d158" />) :
-                            imports.length === 0 ? <EmptyState label="imports" /> :
-                                imports.map((row, i) => (
-                                    <div
-                                        key={row.id}
-                                        onClick={() => navigate(appRoutes.trackingDetail.replace(':referenceId', encodeURIComponent(row.ref)))}
-                                        className="grid gap-x-3 px-4 py-1.5 items-center cursor-pointer transition-colors"
-                                        style={{
-                                            gridTemplateColumns: '20px 1fr 0.9fr 128px 1.4fr 96px',
-                                            borderBottom: '1px solid rgba(255,255,255,0.04)',
-                                            backgroundColor: i % 2 !== 0 ? 'rgba(255,255,255,0.02)' : 'transparent',
-                                        }}
-                                        onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)')}
-                                        onMouseLeave={e => (e.currentTarget.style.backgroundColor = i % 2 !== 0 ? 'rgba(255,255,255,0.02)' : 'transparent')}
-                                    >
-                                        <span className="w-2 h-2 rounded-full shrink-0 self-center" style={{ backgroundColor: row.color }} />
-                                        <p className="text-xs font-bold break-words leading-tight min-w-0" style={{ color: '#ffffff' }}>{row.ref}</p>
-                                        <p className="text-xs text-center whitespace-nowrap truncate min-w-0" style={{ color: 'rgba(255,255,255,0.55)' }}>{row.bl || '—'}</p>
-                                        <div className="flex justify-center min-w-0">
-                                            <StatusBadge status={row.status} />
-                                        </div>
-                                        <p className="text-xs break-words leading-tight min-w-0" style={{ color: 'rgba(255,255,255,0.55)' }}>{row.importer}</p>
-                                        <p className="text-xs text-center truncate min-w-0" style={{ color: 'rgba(255,255,255,0.35)' }}>{row.date || '—'}</p>
+                ) : (
+                    groups.map((group) => (
+                        <div key={group.vesselKey} className="border-b border-border last:border-0">
+                            <VesselGroupHeader
+                                group={group}
+                                isExpanded={expandedGroups.has(group.vesselKey)}
+                                onToggle={() => onToggle(group.vesselKey)}
+                            />
+
+                            {expandedGroups.has(group.vesselKey) && (
+                                <div>
+                                    <div className="hidden border-b border-border bg-surface-secondary/35 px-4 py-2 lg:grid lg:grid-cols-[1.35fr_1.1fr_108px_1.2fr_110px] lg:gap-x-3">
+                                        <SectionColumnHeader>Customs Ref</SectionColumnHeader>
+                                        <SectionColumnHeader>Bill of Lading</SectionColumnHeader>
+                                        <SectionColumnHeader align="center">Status</SectionColumnHeader>
+                                        <SectionColumnHeader>Importer</SectionColumnHeader>
+                                        <SectionColumnHeader align="right">Arrival</SectionColumnHeader>
                                     </div>
-                                ))}
+                                    {group.transactions.map((transaction, index) => (
+                                        <button
+                                            key={transaction.id}
+                                            type="button"
+                                            onClick={() => navigate(appRoutes.trackingDetail.replace(':referenceId', encodeURIComponent(transaction.customs_ref_no)))}
+                                            className={`grid w-full gap-3 border-b border-border/40 px-4 py-4 text-left transition-colors hover:bg-hover/60 last:border-0 lg:grid-cols-[1.35fr_1.1fr_108px_1.2fr_110px] lg:items-center lg:py-3 ${
+                                                index % 2 !== 0 ? 'bg-surface-secondary/15' : ''
+                                            } ${transaction.open_remarks_count > 0 ? 'border-l-4 border-red-500 bg-red-50/20 dark:bg-red-950/10' : 'border-l-4 border-transparent'}`}
+                                        >
+                                            <div className="min-w-0">
+                                                <span className="mb-1 block text-[10px] font-bold uppercase text-text-muted lg:hidden">Customs Ref</span>
+                                                <p className="truncate text-sm font-semibold text-text-primary lg:text-xs">{transaction.customs_ref_no}</p>
+                                            </div>
+                                            <div className="min-w-0">
+                                                <span className="mb-1 block text-[10px] font-bold uppercase text-text-muted lg:hidden">BL No.</span>
+                                                <p className="truncate font-mono text-sm text-text-secondary lg:text-[11px]">{transaction.bl_no || '—'}</p>
+                                            </div>
+                                            <div className="flex lg:justify-center">
+                                                <StatusBadge status={transaction.status ?? ''} />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <span className="mb-1 block text-[10px] font-bold uppercase text-text-muted lg:hidden">Importer</span>
+                                                <p className="truncate text-sm text-text-secondary lg:text-xs">{transaction.importer?.name ?? '—'}</p>
+                                            </div>
+                                            <div className="min-w-0 lg:text-right">
+                                                <span className="mb-1 block text-[10px] font-bold uppercase text-text-muted lg:hidden">Arrival</span>
+                                                <p className="truncate text-sm text-text-muted lg:text-[11px]">{formatDateLabel(transaction.arrival_date)}</p>
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    ))
+                )}
+            </div>
+        </div>
+    );
+}
+
+function ExportGroupsPanel({
+    groups,
+    isLoading,
+    expandedGroups,
+    onToggle,
+}: {
+    groups: VesselGroup<ApiExportTransaction>[];
+    isLoading: boolean;
+    expandedGroups: Set<string>;
+    onToggle: (key: string) => void;
+}) {
+    const navigate = useNavigate();
+
+    return (
+        <div className="flex min-h-[520px] flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
+            <TrackingPanelHeader title="Export Workload" badgeTone="blue" vesselCount={groups.length} />
+
+            <div className="flex-1">
+                {isLoading ? (
+                    <div className="divide-y divide-border/40">
+                        {Array.from({ length: 5 }).map((_, index) => (
+                            <div key={index} className="flex items-center gap-3 px-4 py-4">
+                                <div className="h-4 w-28 rounded skeleton-shimmer" />
+                                <div className="h-4 w-32 rounded skeleton-shimmer" />
+                                <div className="ml-auto h-4 w-20 rounded skeleton-shimmer" />
+                            </div>
+                        ))}
                     </div>
+                ) : groups.length === 0 ? (
+                    <div className="flex h-full items-center justify-center">
+                        <EmptyState label="exports" />
+                    </div>
+                ) : (
+                    groups.map((group) => (
+                        <div key={group.vesselKey} className="border-b border-border last:border-0">
+                            <VesselGroupHeader
+                                group={group}
+                                isExpanded={expandedGroups.has(group.vesselKey)}
+                                onToggle={() => onToggle(group.vesselKey)}
+                            />
+
+                            {expandedGroups.has(group.vesselKey) && (
+                                <div>
+                                    <div className="hidden border-b border-border bg-surface-secondary/35 px-4 py-2 lg:grid lg:grid-cols-[1.15fr_1.25fr_108px_1fr_120px] lg:gap-x-3">
+                                        <SectionColumnHeader>BL No.</SectionColumnHeader>
+                                        <SectionColumnHeader>Shipper</SectionColumnHeader>
+                                        <SectionColumnHeader align="center">Status</SectionColumnHeader>
+                                        <SectionColumnHeader>Destination</SectionColumnHeader>
+                                        <SectionColumnHeader align="right">Departure</SectionColumnHeader>
+                                    </div>
+                                    {group.transactions.map((transaction, index) => {
+                                        const reference = transaction.bl_no || `EXP-${String(transaction.id).padStart(4, '0')}`;
+
+                                        return (
+                                            <button
+                                                key={transaction.id}
+                                                type="button"
+                                                onClick={() => navigate(appRoutes.trackingDetail.replace(':referenceId', encodeURIComponent(reference)))}
+                                                className={`grid w-full gap-3 border-b border-border/40 px-4 py-4 text-left transition-colors hover:bg-hover/60 last:border-0 lg:grid-cols-[1.15fr_1.25fr_108px_1fr_120px] lg:items-center lg:py-3 ${
+                                                    index % 2 !== 0 ? 'bg-surface-secondary/15' : ''
+                                                } ${transaction.open_remarks_count > 0 ? 'border-l-4 border-red-500 bg-red-50/20 dark:bg-red-950/10' : 'border-l-4 border-transparent'}`}
+                                            >
+                                                <div className="min-w-0">
+                                                    <span className="mb-1 block text-[10px] font-bold uppercase text-text-muted lg:hidden">BL No.</span>
+                                                    <p className="truncate font-mono text-sm font-semibold text-text-primary lg:text-[11px]">{reference}</p>
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <span className="mb-1 block text-[10px] font-bold uppercase text-text-muted lg:hidden">Shipper</span>
+                                                    <p className="truncate text-sm text-text-secondary lg:text-xs">{transaction.shipper?.name ?? '—'}</p>
+                                                </div>
+                                                <div className="flex lg:justify-center">
+                                                    <StatusBadge status={transaction.status ?? ''} />
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <span className="mb-1 block text-[10px] font-bold uppercase text-text-muted lg:hidden">Destination</span>
+                                                    <p className="truncate text-sm text-text-secondary lg:text-xs">{transaction.destination_country?.name ?? '—'}</p>
+                                                </div>
+                                                <div className="min-w-0 lg:text-right">
+                                                    <span className="mb-1 block text-[10px] font-bold uppercase text-text-muted lg:hidden">Departure</span>
+                                                    <p className="truncate text-sm text-text-muted lg:text-[11px]">{formatDateLabel(transaction.export_date)}</p>
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    ))
+                )}
+            </div>
+        </div>
+    );
+}
+
+export const AdminLiveTracking = () => {
+    const { data: importsData, isLoading: importsLoading } = useAllImportsData(LIVE_PARAMS);
+    const { data: exportsData, isLoading: exportsLoading } = useAllExportsData(LIVE_PARAMS);
+
+    const rawImports = useMemo(() => (importsData as ApiImportTransaction[] | undefined) ?? [], [importsData]);
+    const rawExports = useMemo(() => (exportsData as ApiExportTransaction[] | undefined) ?? [], [exportsData]);
+
+    const importGroups = useImportVesselGroups(rawImports);
+    const exportGroups = useExportVesselGroups(rawExports);
+
+    const [expandedImports, setExpandedImports] = useState<Set<string>>(() => new Set(importGroups.map((group) => group.vesselKey)));
+    const [expandedExports, setExpandedExports] = useState<Set<string>>(() => new Set(exportGroups.map((group) => group.vesselKey)));
+
+    const toggleImport = (key: string) => {
+        setExpandedImports((prev) => {
+            const next = new Set(prev);
+            if (next.has(key)) {
+                next.delete(key);
+            } else {
+                next.add(key);
+            }
+            return next;
+        });
+    };
+
+    const toggleExport = (key: string) => {
+        setExpandedExports((prev) => {
+            const next = new Set(prev);
+            if (next.has(key)) {
+                next.delete(key);
+            } else {
+                next.add(key);
+            }
+            return next;
+        });
+    };
+
+    const importsWithAttention = rawImports.filter((transaction) => transaction.open_remarks_count > 0).length;
+    const exportsWithAttention = rawExports.filter((transaction) => transaction.open_remarks_count > 0).length;
+    const activeTransactions = rawImports.length + rawExports.length;
+
+    return (
+        <div className="min-h-screen bg-surface-secondary px-6 py-6" data-testid="admin-live-tracking-page">
+            <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-5">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                    <div className="space-y-2">
+                        <div>
+                            <h1 className="text-4xl font-bold tracking-tight text-text-primary">Live Tracking Overview</h1>
+                            <p className="mt-1 max-w-2xl text-sm text-text-secondary">
+                                Vessel-first monitoring for active import and export workloads, without losing the underlying transaction record detail.
+                            </p>
+                        </div>
+                    </div>
+                    <CurrentDateTime
+                        className="text-right hidden shrink-0 sm:block"
+                        timeClassName="text-3xl font-bold tabular-nums text-text-primary leading-none"
+                        dateClassName="mt-1 text-xs font-semibold uppercase tracking-[0.16em] text-text-muted"
+                    />
                 </div>
 
-                {/* Export Transactions Panel */}
-                <div className="w-full lg:flex-1 lg:min-w-0 flex flex-col rounded-lg shadow-sm"
-                    style={{ backgroundColor: '#161618', border: '1px solid rgba(255,255,255,0.08)' }}>
-                    <div className="shrink-0 px-4 py-2.5 flex items-center justify-between"
-                        style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-                        <div className="flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: '#0a84ff', boxShadow: '0 0 6px #0a84ff80' }} />
-                            <h2 className="text-sm font-bold" style={{ color: '#ffffff' }}>Export Transactions</h2>
-                        </div>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                            style={{ color: 'rgba(255,255,255,0.4)', backgroundColor: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                            {exports.length} active
-                        </span>
-                    </div>
-                    <div className="shrink-0 grid gap-x-3 px-4 pt-2 pb-3"
-                        style={{ gridTemplateColumns: '1.4fr 1.1fr 1.2fr 96px 120px 1.2fr', borderBottom: '1px solid rgba(255,255,255,0.05)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
-                        <ColH>Shipper</ColH>
-                        <ColH className="text-center">Bill of Lading</ColH>
-                        <ColH>Vessel</ColH>
-                        <ColH className="text-center">Departure</ColH>
-                        <ColH className="text-center">Status</ColH>
-                        <ColH className="text-center">Destination</ColH>
-                    </div>
-                    <div className="flex flex-col">
-                        {exportsLoading ? (<Spinner color="#0a84ff" />) :
-                            exports.length === 0 ? <EmptyState label="exports" /> :
-                                exports.map((row, i) => (
-                                    <div
-                                        key={row.id}
-                                        onClick={() => navigate(appRoutes.trackingDetail.replace(':referenceId', encodeURIComponent(row.ref)))}
-                                        className="grid gap-x-3 px-4 py-1.5 items-center cursor-pointer transition-colors"
-                                        style={{
-                                            gridTemplateColumns: '1.4fr 1.1fr 1.2fr 96px 120px 1.2fr',
-                                            borderBottom: '1px solid rgba(255,255,255,0.04)',
-                                            backgroundColor: i % 2 !== 0 ? 'rgba(255,255,255,0.02)' : 'transparent',
-                                        }}
-                                        onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)')}
-                                        onMouseLeave={e => (e.currentTarget.style.backgroundColor = i % 2 !== 0 ? 'rgba(255,255,255,0.02)' : 'transparent')}
-                                    >
-                                        <p className="text-xs font-bold break-words leading-tight min-w-0" style={{ color: '#ffffff' }}>{row.shipper}</p>
-                                        <p className="text-xs text-center whitespace-nowrap truncate min-w-0" style={{ color: 'rgba(255,255,255,0.55)' }}>{row.bl || '—'}</p>
-                                        <p className="text-xs break-words leading-tight min-w-0" style={{ color: 'rgba(255,255,255,0.55)' }}>{row.vessel}</p>
-                                        <p className="text-xs text-center truncate min-w-0" style={{ color: 'rgba(255,255,255,0.35)' }}>{row.departureDate || '—'}</p>
-                                        <div className="flex justify-center min-w-0">
-                                            <StatusBadge status={row.status} />
-                                        </div>
-                                        <p className="text-xs text-center truncate min-w-0" style={{ color: 'rgba(255,255,255,0.55)' }}>{row.portOfDestination}</p>
-                                    </div>
-                                ))}
-                    </div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                    <PanelMetric label="Active Imports" value={rawImports.length} detail="Import transactions still in motion" />
+                    <PanelMetric label="Active Exports" value={rawExports.length} detail="Export transactions currently open" />
+                    <PanelMetric label="Open Workload" value={activeTransactions} detail="Combined active import and export load" />
+                    <PanelMetric label="Needs Attention" value={importsWithAttention + exportsWithAttention} detail="Transactions with active remarks or blockers" />
+                </div>
+
+                <div className="grid gap-4 xl:grid-cols-2">
+                    <ImportGroupsPanel
+                        groups={importGroups}
+                        isLoading={importsLoading}
+                        expandedGroups={expandedImports}
+                        onToggle={toggleImport}
+                    />
+                    <ExportGroupsPanel
+                        groups={exportGroups}
+                        isLoading={exportsLoading}
+                        expandedGroups={expandedExports}
+                        onToggle={toggleExport}
+                    />
                 </div>
             </div>
         </div>

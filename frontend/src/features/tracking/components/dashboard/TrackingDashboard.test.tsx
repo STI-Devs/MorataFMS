@@ -72,12 +72,12 @@ describe('TrackingDashboard', () => {
             ],
         });
 
-        expect(screen.getAllByText('1 active')).toHaveLength(2);
+        expect(screen.getByText('MV Pacific Star')).toBeInTheDocument(); // import vessel group
+        expect(screen.getByText('MV Pacific')).toBeInTheDocument();       // export vessel group
         expect(screen.getByText('IMP/2026 001')).toBeInTheDocument();
         expect(screen.getByText('Acme Imports')).toBeInTheDocument();
         expect(screen.getByText('Bravo Exports')).toBeInTheDocument();
-        expect(screen.getByText('MV Pacific')).toBeInTheDocument();
-        expect(screen.getAllByText('Completed')).toHaveLength(2);
+        expect(screen.getAllByText('completed')).toHaveLength(2);
 
         fireEvent.click(screen.getByText('IMP/2026 001'));
 

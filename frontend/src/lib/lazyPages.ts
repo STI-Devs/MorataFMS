@@ -12,6 +12,11 @@ export const ArchivesPage = lazy(() =>
     import('../features/archives/components/ArchivesPage').then((module) => ({ default: module.ArchivesPage })),
 );
 
+export const RecordsPage = lazy(() =>
+    import('../features/archives/components/RecordsPage').then((module) => ({ default: module.RecordsPage })),
+);
+
+
 export const AccountantDashboard = lazy(() =>
     import('../features/accounting-dashboard/components/AccountingDashboard').then((module) => ({ default: module.AccountingDashboard })),
 );

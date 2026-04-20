@@ -23,7 +23,7 @@ export const READINESS_TONES: Record<
     ready: {
         text: 'text-emerald-600',
         bg: 'bg-emerald-500/10 border-emerald-500/20',
-        label: 'Archive Ready',
+        label: 'Ready for Records',
     },
     missing_docs: {
         text: 'text-amber-600',

@@ -13,7 +13,6 @@ import {
   AccountantDashboard,
   AccountantDocumentsPage,
   AccountantImpExpPage,
-  ArchivesPage,
   AuditLogs,
   AuthPage,
   ClientManagement,
@@ -34,6 +33,7 @@ import {
   ProcessorDashboard,
   ProcessorDocumentsPage,
   ProcessorTransactionPage,
+  RecordsPage,
   ReportsAnalytics,
   TrackingDashboard,
   TrackingDetails,
@@ -114,7 +114,7 @@ function App() {
                 <Route path={appRoutes.transactions} element={<TransactionOversight />} />
                 <Route path={appRoutes.reports} element={<ReportsAnalytics />} />
                 <Route path={appRoutes.auditLogs} element={<AuditLogs />} />
-                <Route path={appRoutes.archives} element={<ArchivesPage />} />
+                <Route path={appRoutes.archives} element={<RecordsPage />} />
               </Route>
 
               {/* Legal module - admin + paralegal */}
@@ -162,6 +162,3 @@ function App() {
 }
 
 export default App;
-
-
-

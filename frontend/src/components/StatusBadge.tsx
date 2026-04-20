@@ -12,16 +12,16 @@ export function StatusBadge({ status }: StatusBadgeProps) {
     const s = getStatusStyle(status);
     return (
         <span
-            className="inline-flex items-center justify-center gap-1.5 min-w-[100px] px-2.5 py-1 rounded-md text-[11px] font-semibold whitespace-nowrap"
+            className="inline-flex items-center justify-center gap-1.5 min-w-[84px] px-2.5 py-1 rounded-full text-[10px] font-semibold whitespace-nowrap shadow-sm"
             style={{
                 color: s.color,
                 backgroundColor: s.bg,
-                border: `1px solid ${s.color}30`,
+                border: `1px solid ${s.color}26`,
             }}
         >
             <span
                 className="w-1.5 h-1.5 rounded-full shrink-0"
-                style={{ backgroundColor: s.color, boxShadow: `0 0 4px ${s.color}` }}
+                style={{ backgroundColor: s.color, boxShadow: `0 0 0 3px ${s.color}18` }}
             />
             {status}
         </span>
