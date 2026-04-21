@@ -30,10 +30,12 @@ describe('EncodeModal', () => {
             data: [{ id: 1, name: 'AKTIV MULTI TRADING CORP', type: 'importer' }],
             isLoading: false,
         });
-        mockUseCountries.mockReturnValue({
-            data: [],
+        mockUseCountries.mockImplementation((countryType?: 'import_origin' | 'export_destination') => ({
+            data: countryType === 'import_origin'
+                ? [{ id: 21, name: 'Japan', code: 'JP' }]
+                : [],
             isLoading: false,
-        });
+        }));
         mockUseLocationsOfGoods.mockReturnValue({
             data: [{ id: 4, name: 'South Harbor Warehouse' }],
             isLoading: false,
@@ -56,6 +58,7 @@ describe('EncodeModal', () => {
         fireEvent.change(screen.getByLabelText(/customs ref no/i), { target: { value: 'REF123456' } });
         fireEvent.change(screen.getByLabelText(/importer/i), { target: { value: '1' } });
         fireEvent.change(screen.getByLabelText(/bill of lading/i), { target: { value: 'BL123456' } });
+        fireEvent.change(screen.getByLabelText(/vessel name/i), { target: { value: 'MV Missing Duplicate' } });
         fireEvent.change(screen.getByLabelText(/arrival date/i), { target: { value: '2026-04-09' } });
 
         fireEvent.click(screen.getByRole('button', { name: /encode/i }));
@@ -76,14 +79,17 @@ describe('EncodeModal', () => {
             data: [{ id: 1, name: 'ANFLO BANANA CORPORATION', type: 'exporter' }],
             isLoading: false,
         });
-        mockUseCountries.mockReturnValue({
-            data: [{ id: 9, name: 'Singapore', code: 'SG' }],
+        mockUseCountries.mockImplementation((countryType?: 'import_origin' | 'export_destination') => ({
+            data: countryType === 'export_destination'
+                ? [{ id: 9, name: 'Singapore', code: 'SG' }]
+                : [],
             isLoading: false,
-        });
+        }));
 
         render(<EncodeModal isOpen onClose={vi.fn()} type="export" onSave={onSave} />);
 
         expect(screen.getByLabelText(/departure date/i)).toHaveValue('');
+        expect(screen.getByLabelText(/^vessel$/i)).toBeRequired();
 
         fireEvent.change(screen.getByLabelText(/shipper/i), { target: { value: '1' } });
         fireEvent.change(screen.getByLabelText(/bill of lading/i), { target: { value: 'BL-EXPORT-001' } });
@@ -104,16 +110,18 @@ describe('EncodeModal', () => {
         });
     });
 
-    it('includes vessel name and location of goods when encoding an import transaction', async () => {
+    it('includes origin, vessel name, and location of goods when encoding an import transaction', async () => {
         const onSave = vi.fn().mockResolvedValue(undefined);
 
         render(<EncodeModal isOpen onClose={vi.fn()} type="import" onSave={onSave} />);
 
+        expect(screen.getByLabelText(/vessel name/i)).toBeRequired();
         fireEvent.change(screen.getByLabelText(/blsc/i), { target: { value: 'orange' } });
         fireEvent.change(screen.getByLabelText(/customs ref no/i), { target: { value: 'REF-IMP-909' } });
         fireEvent.change(screen.getByLabelText(/importer/i), { target: { value: '1' } });
         fireEvent.change(screen.getByLabelText(/bill of lading/i), { target: { value: 'BL-IMP-909' } });
         fireEvent.change(screen.getByLabelText(/vessel name/i), { target: { value: 'MV Golden Tide' } });
+        fireEvent.change(screen.getByLabelText(/origin/i), { target: { value: '21' } });
         fireEvent.change(screen.getByLabelText(/location of goods/i), { target: { value: '4' } });
         fireEvent.change(screen.getByLabelText(/arrival date/i), { target: { value: '2026-04-15' } });
 
@@ -126,6 +134,7 @@ describe('EncodeModal', () => {
                 vessel_name: 'MV Golden Tide',
                 selective_color: 'orange',
                 importer_id: 1,
+                origin_country_id: 21,
                 location_of_goods_id: 4,
                 arrival_date: '2026-04-15',
             });

@@ -178,7 +178,7 @@ export interface PaginatedResponse<T> {
 export interface CreateImportPayload {
     customs_ref_no: string;
     bl_no: string;
-    vessel_name?: string;
+    vessel_name: string;
     selective_color: 'green' | 'yellow' | 'orange' | 'red';
     importer_id: number;
     origin_country_id?: number;

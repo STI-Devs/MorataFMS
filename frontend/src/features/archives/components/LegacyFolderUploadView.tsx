@@ -1,22 +1,18 @@
-import React, { useCallback, useRef, useState } from 'react';
-import { LegacyFolderBrowserPanel, MOCK_BATCHES } from './LegacyFolderBrowserPanel';
-import type { LegacyBatch } from './LegacyFolderBrowserPanel';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useLegacyBatch } from '../hooks/useLegacyBatch';
+import { useLegacyBatchMutations } from '../hooks/useLegacyBatchMutations';
+import type { FileNode, LegacyBatch, LegacyBatchMetadata, LegacyBatchSummary } from '../types/legacyBatch.types';
+import { LegacyFolderBrowserPanel } from './LegacyFolderBrowserPanel';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-type UploadPhase =
-    | 'empty'
-    | 'selected'
-    | 'uploading'
-    | 'complete'
-    | 'partial'
-    | 'failed';
+type UploadPhase = 'empty' | 'selected' | 'uploading' | 'complete' | 'interrupted' | 'failed';
 
 interface FolderSummary {
     rootName: string;
+    topLevelFolderCount: number;
     subfolderCount: number;
     fileCount: number;
     totalBytes: number;
+    maxDepth: number;
     selectedAt: Date;
     previewTree: string[];
 }
@@ -26,965 +22,1409 @@ interface BatchMeta {
     year: string;
     department: string;
     notes: string;
-    preserveNames: boolean;
-    markLegacy: boolean;
 }
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-const formatBytes = (bytes: number): string => {
-    if (bytes === 0) return '0 B';
-    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(1024));
-    return `${(bytes / Math.pow(1024, i)).toFixed(i === 0 ? 0 : 2)} ${units[i]}`;
-};
-
-// ─── Small shared UI pieces ───────────────────────────────────────────────────
-
-const SectionTitle = ({ children }: { children: React.ReactNode }) => (
-    <h3 className="text-xs font-black text-text-muted uppercase tracking-widest mb-4">{children}</h3>
-);
-
-const StatusChip = ({ status }: { status: LegacyBatch['status'] }) => {
-    const cls =
-        status === 'Complete'
-            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-            : status === 'Partial'
-                ? 'bg-amber-50 text-amber-700 border-amber-200'
-                : 'bg-red-50 text-red-700 border-red-200';
-    return (
-        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${cls}`}>
-            {status}
-        </span>
-    );
-};
-
-// ─── 1. Info Banner ───────────────────────────────────────────────────────────
-
-const InfoBanner = () => (
-    <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-5">
-        <div className="flex items-start gap-3">
-            <div className="mt-0.5 shrink-0 w-8 h-8 rounded-lg bg-amber-100 border border-amber-200 flex items-center justify-center">
-                <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-                </svg>
-            </div>
-            <div className="min-w-0">
-                <p className="text-[11px] font-black text-amber-800 uppercase tracking-widest mb-1">Legacy Reference Upload</p>
-                <p className="text-sm font-semibold text-amber-950 mb-2">
-                    This area is for uploading old historical folder structures exactly as they exist.
-                </p>
-                <ul className="space-y-1 text-xs text-amber-800">
-                    <li className="flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
-                        Files uploaded here <strong>do not enter the live transaction workflow</strong>
-                    </li>
-                    <li className="flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
-                        Original folder structure and names are preserved exactly as-is
-                    </li>
-                    <li className="flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
-                        Best used for vessel folders, transaction folders, and BL-level folders from previous manual filing
-                    </li>
-                    <li className="flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
-                        Intended for historical reference and retrieval only — no classification required
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </div>
-);
-
-// ─── Folder tree visual ───────────────────────────────────────────────────────
-
-const FolderTreeGraphic = () => (
-    <div className="flex flex-col items-center gap-1 py-5 select-none">
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 border border-blue-200">
-            <svg className="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
-            </svg>
-            <span className="text-xs font-bold text-blue-700">Root Folder</span>
-        </div>
-        <div className="w-px h-3 bg-border-strong" />
-        <div className="flex items-start gap-3">
-            {['Subfolder A', 'Subfolder B', 'Subfolder C'].map((name, i) => (
-                <div key={name} className={`flex flex-col items-center gap-1 ${i === 1 ? 'mt-4' : ''}`}>
-                    <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-surface-secondary border border-border">
-                        <svg className="w-3.5 h-3.5 text-text-muted" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
-                        </svg>
-                        <span className="text-[10px] text-text-secondary font-medium">{name}</span>
-                    </div>
-                    {i !== 1 && (
-                        <>
-                            <div className="w-px h-2 bg-border-strong" />
-                            <div className="flex items-center gap-1 px-2 py-0.5 rounded border border-border bg-surface">
-                                <svg className="w-3 h-3 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                </svg>
-                                <span className="text-[9px] text-text-muted">{i === 0 ? 'file.pdf' : 'doc.xlsx'}</span>
-                            </div>
-                        </>
-                    )}
-                </div>
-            ))}
-        </div>
-    </div>
-);
-
-// ─── 2. Folder Dropzone ───────────────────────────────────────────────────────
-
-interface DropzoneProps {
-    isDragging: boolean;
-    onDragOver: (e: React.DragEvent) => void;
-    onDragLeave: () => void;
-    onDrop: (e: React.DragEvent) => void;
-    onSelectFolder: () => void;
-    folderInputRef: React.RefObject<HTMLInputElement | null>;
-    onFolderInput: (e: React.ChangeEvent<HTMLInputElement>) => void;
-}
-
-const FolderDropzone = ({
-    isDragging, onDragOver, onDragLeave, onDrop,
-    onSelectFolder, folderInputRef, onFolderInput,
-}: DropzoneProps) => (
-    <div
-        onDragOver={onDragOver}
-        onDragLeave={onDragLeave}
-        onDrop={onDrop}
-        className={`relative rounded-xl border-2 border-dashed transition-all text-center ${isDragging
-            ? 'border-blue-400 bg-blue-50/60'
-            : 'border-border-strong bg-surface-secondary hover:border-blue-300 hover:bg-blue-50/30'
-            }`}
-    >
-        <input
-            ref={folderInputRef}
-            type="file"
-            // @ts-expect-error — webkitdirectory is not in standard HTMLInputElement typings but is supported by all modern browsers
-            webkitdirectory=""
-            multiple
-            className="sr-only"
-            onChange={onFolderInput}
-        />
-
-        <FolderTreeGraphic />
-
-        <div className="px-8 pb-6">
-            <p className="text-sm font-semibold text-text-secondary mb-1">
-                Drag a root folder here
-            </p>
-            <p className="text-xs text-text-muted mb-5">
-                e.g. a vessel folder, a client folder, or a year folder — nested subfolders are fully supported
-            </p>
-
-            <button
-                type="button"
-                id="legacy-select-folder-btn"
-                onClick={onSelectFolder}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg shadow-sm transition-all active:scale-95"
-            >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
-                </svg>
-                Select Folder
-            </button>
-
-            <div className="flex items-center justify-center gap-5 mt-5 text-[11px] text-text-muted">
-                {['Folder hierarchy preserved', 'No classification required', 'For historical reference'].map(label => (
-                    <span key={label} className="flex items-center gap-1.5">
-                        <svg className="w-3.5 h-3.5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                        </svg>
-                        {label}
-                    </span>
-                ))}
-            </div>
-        </div>
-    </div>
-);
-
-// ─── 3. Batch Metadata Panel ──────────────────────────────────────────────────
-
-interface MetaPanelProps {
-    meta: BatchMeta;
-    onChange: (meta: BatchMeta) => void;
-}
-
-const MetadataPanel = ({ meta, onChange }: MetaPanelProps) => {
-    const set = <K extends keyof BatchMeta>(key: K, value: BatchMeta[K]) =>
-        onChange({ ...meta, [key]: value });
-
-    const inputCls = 'w-full px-3 py-2.5 bg-input-bg border border-border-strong rounded-lg text-sm text-text-primary focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 outline-none transition-all placeholder:text-text-muted';
-    const labelCls = 'text-[10px] font-black text-text-muted uppercase tracking-widest';
-
-    return (
-        <div className="rounded-xl border border-border bg-surface p-5 space-y-4">
-            <SectionTitle>Batch Details</SectionTitle>
-
-            <div className="space-y-1.5">
-                <label className={labelCls}>Batch Name</label>
-                <input
-                    type="text"
-                    value={meta.batchName}
-                    onChange={e => set('batchName', e.target.value)}
-                    placeholder="e.g. MV Golden Tide — 2022 Archive"
-                    className={inputCls}
-                />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                    <label className={labelCls}>Year</label>
-                    <select
-                        value={meta.year}
-                        onChange={e => set('year', e.target.value)}
-                        className={`${inputCls} appearance-none cursor-pointer`}
-                    >
-                        {Array.from({ length: 15 }, (_, i) => 2026 - i).map(y => (
-                            <option key={y} value={String(y)}>{y}</option>
-                        ))}
-                    </select>
-                </div>
-                <div className="space-y-1.5">
-                    <label className={labelCls}>Department</label>
-                    <select
-                        value={meta.department}
-                        onChange={e => set('department', e.target.value)}
-                        className={`${inputCls} appearance-none cursor-pointer`}
-                    >
-                        <option value="Brokerage">Brokerage</option>
-                        <option value="Legal">Legal</option>
-                    </select>
-                </div>
-            </div>
-
-            <div className="space-y-1.5">
-                <label className={labelCls}>Notes / Description</label>
-                <textarea
-                    value={meta.notes}
-                    onChange={e => set('notes', e.target.value)}
-                    placeholder="Add any relevant context about this folder batch…"
-                    rows={3}
-                    className={`${inputCls} resize-none`}
-                />
-            </div>
-
-            <div className="space-y-2 pt-1">
-                {([
-                    { key: 'preserveNames' as const, label: 'Preserve original folder names exactly' },
-                    { key: 'markLegacy' as const, label: 'Mark this upload as legacy reference only' },
-                ]).map(({ key, label }) => (
-                    <label key={key} className="flex items-center gap-3 cursor-pointer group">
-                        <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all shrink-0 ${meta[key]
-                            ? 'bg-blue-600 border-blue-600'
-                            : 'border-border-strong bg-input-bg group-hover:border-blue-400'
-                            }`}
-                            onClick={() => set(key, !meta[key])}
-                        >
-                            {meta[key] && (
-                                <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                </svg>
-                            )}
-                        </div>
-                        <span className="text-xs font-medium text-text-secondary">{label}</span>
-                    </label>
-                ))}
-            </div>
-        </div>
-    );
-};
-
-// ─── 4. Folder Summary Card ────────────────────────────────────────────────────
-
-interface SummaryCardProps {
-    summary: FolderSummary;
-    onRemove: () => void;
-    onReplace: () => void;
-    onViewFull: () => void;
-}
-
-const FolderSummaryCard = ({ summary, onRemove, onReplace, onViewFull }: SummaryCardProps) => (
-    <div className="rounded-xl border border-blue-200 bg-blue-50/40 p-5">
-        <div className="flex items-start justify-between gap-4 mb-4">
-            <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-blue-100 border border-blue-200 flex items-center justify-center shrink-0">
-                    <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
-                    </svg>
-                </div>
-                <div>
-                    <p className="text-sm font-bold text-text-primary">{summary.rootName}</p>
-                    <p className="text-xs text-text-muted">Selected {summary.selectedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-                </div>
-            </div>
-            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-blue-100 text-blue-700 border border-blue-200 shrink-0">
-                Ready to Upload
-            </span>
-        </div>
-
-        <div className="grid grid-cols-3 gap-3 mb-4">
-            {[
-                { label: 'Subfolders', value: summary.subfolderCount.toLocaleString() },
-                { label: 'Files', value: summary.fileCount.toLocaleString() },
-                { label: 'Total Size', value: formatBytes(summary.totalBytes) },
-            ].map(({ label, value }) => (
-                <div key={label} className="bg-white rounded-lg border border-blue-200 px-3 py-2.5 text-center">
-                    <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">{label}</p>
-                    <p className="text-base font-black text-text-primary tabular-nums">{value}</p>
-                </div>
-            ))}
-        </div>
-
-        {/* Mini tree preview */}
-        <div className="bg-white rounded-lg border border-blue-200 px-3 py-2.5 mb-4">
-            <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-2">Folder Preview</p>
-            <div className="space-y-1">
-                <div className="flex items-center gap-2 text-xs text-text-primary font-semibold">
-                    <svg className="w-3.5 h-3.5 text-blue-500 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
-                    </svg>
-                    {summary.rootName}/
-                </div>
-                {summary.previewTree.map((item, i) => (
-                    <div key={i} className="flex items-center gap-2 text-xs text-text-secondary pl-4">
-                        <span className="text-border-strong select-none">└─</span>
-                        {item.endsWith('/') ? (
-                            <svg className="w-3 h-3 text-text-muted shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
-                            </svg>
-                        ) : (
-                            <svg className="w-3 h-3 text-text-muted shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                        )}
-                        <span>{item}</span>
-                    </div>
-                ))}
-                {summary.subfolderCount > 4 && (
-                    <p className="text-[10px] text-text-muted pl-4 mt-0.5">
-                        … and {summary.subfolderCount - 4} more subfolders
-                    </p>
-                )}
-            </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-            <button
-                type="button"
-                onClick={onViewFull}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border-strong bg-white text-xs font-bold text-text-secondary hover:bg-hover transition-all"
-            >
-                View Full Structure
-            </button>
-            <button
-                type="button"
-                onClick={onReplace}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border-strong bg-white text-xs font-bold text-text-secondary hover:bg-hover transition-all"
-            >
-                Replace Folder
-            </button>
-            <button
-                type="button"
-                onClick={onRemove}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-red-200 bg-red-50 text-xs font-bold text-red-600 hover:bg-red-100 transition-all ml-auto"
-            >
-                Remove
-            </button>
-        </div>
-    </div>
-);
-
-// ─── 5. Upload Progress ────────────────────────────────────────────────────────
-
-type BatchStatus = 'Preparing' | 'Uploading' | 'Completed' | 'Partial Success' | 'Failed';
 
 interface ProgressState {
     total: number;
     done: number;
     failed: number;
     currentItem: string;
-    status: BatchStatus;
+    status: string;
 }
 
-const batchStatusColor: Record<BatchStatus, string> = {
-    Preparing: 'bg-blue-100 text-blue-700 border-blue-200',
-    Uploading: 'bg-blue-100 text-blue-700 border-blue-200',
-    Completed: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-    'Partial Success': 'bg-amber-100 text-amber-700 border-amber-200',
-    Failed: 'bg-red-100 text-red-700 border-red-200',
+interface PreflightCheck {
+    label: string;
+    value: string;
+    tone: 'good' | 'warn' | 'neutral';
+}
+
+interface PreflightReport {
+    patternLabel: string;
+    reviewStatus: string;
+    checks: PreflightCheck[];
+    warnings: string[];
+}
+
+interface RejectedLegacyFile {
+    relativePath: string;
+    reason: string;
+}
+
+const DEFAULT_META: BatchMeta = {
+    batchName: '',
+    year: '',
+    department: '',
+    notes: '',
 };
 
-interface UploadProgressProps {
+const LEGACY_MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
+const LEGACY_ALLOWED_EXTENSIONS = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'csv', 'txt', 'jpg', 'jpeg', 'png'] as const;
+const LEGACY_ALLOWED_FILE_ACCEPT = LEGACY_ALLOWED_EXTENSIONS.map((extension) => `.${extension}`).join(',');
+const LEGACY_ALLOWED_FILE_LABEL = 'PDF, Word, Excel, CSV, TXT, JPG, JPEG, and PNG';
+const LEGACY_SIGNED_UPLOAD_CHUNK_SIZE = 10;
+
+const formatBytes = (bytes: number): string => {
+    if (bytes === 0) {
+        return '0 B';
+    }
+
+    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const unitIndex = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+    const value = bytes / 1024 ** unitIndex;
+
+    return `${value.toFixed(unitIndex === 0 ? 0 : 2)} ${units[unitIndex]}`;
+};
+
+const normalizeRelativePath = (path: string): string => path.replace(/\\/g, '/').replace(/\/+/g, '/').replace(/^\/|\/$/g, '');
+
+const getFileExtension = (path: string): string => {
+    const normalizedPath = normalizeRelativePath(path);
+    const segments = normalizedPath.split('/');
+    const filename = segments[segments.length - 1] ?? '';
+    const parts = filename.split('.');
+
+    return parts.length > 1 ? parts[parts.length - 1].toLowerCase() : '';
+};
+
+const validateLegacyFiles = (files: File[]): { validFiles: File[]; rejectedFiles: RejectedLegacyFile[] } => {
+    const validFiles: File[] = [];
+    const rejectedFiles: RejectedLegacyFile[] = [];
+
+    files.forEach((file) => {
+        const relativePath = normalizeRelativePath(file.webkitRelativePath || file.name);
+        const extension = getFileExtension(relativePath);
+
+        if (!LEGACY_ALLOWED_EXTENSIONS.includes(extension as (typeof LEGACY_ALLOWED_EXTENSIONS)[number])) {
+            rejectedFiles.push({
+                relativePath,
+                reason: `Blocked file type. Only ${LEGACY_ALLOWED_FILE_LABEL} are allowed.`,
+            });
+            return;
+        }
+
+        if (file.size > LEGACY_MAX_FILE_SIZE_BYTES) {
+            rejectedFiles.push({
+                relativePath,
+                reason: `File exceeds the 50 MB limit (${formatBytes(file.size)}).`,
+            });
+            return;
+        }
+
+        validFiles.push(file);
+    });
+
+    return { validFiles, rejectedFiles };
+};
+
+const formatDateLabel = (isoDate?: string | null): string => {
+    if (!isoDate) {
+        return '—';
+    }
+
+    return new Intl.DateTimeFormat('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    }).format(new Date(isoDate));
+};
+
+const getMissingMetadataFields = (meta: BatchMeta): string[] => {
+    const missing: string[] = [];
+
+    if (!meta.batchName.trim()) {
+        missing.push('Batch name');
+    }
+
+    if (!meta.year.trim()) {
+        missing.push('Year');
+    }
+
+    if (!meta.department.trim()) {
+        missing.push('Department');
+    }
+
+    return missing;
+};
+
+const inspectTree = (node: FileNode, depth = 1): { folders: number; files: number; maxDepth: number } => {
+    if (node.type === 'file') {
+        return { folders: 0, files: 1, maxDepth: depth };
+    }
+
+    let folders = 0;
+    let files = 0;
+    let maxDepth = depth;
+
+    (node.children ?? []).forEach((child) => {
+        if (child.type === 'folder') {
+            folders += 1;
+        }
+
+        const totals = inspectTree(child, depth + 1);
+        folders += totals.folders;
+        files += totals.files;
+        maxDepth = Math.max(maxDepth, totals.maxDepth);
+    });
+
+    return { folders, files, maxDepth };
+};
+
+const buildSummaryFromFiles = (files: File[]): FolderSummary => {
+    const folderPaths = new Set<string>();
+    const topLevelFolders = new Set<string>();
+    const previewItems: string[] = [];
+    let totalBytes = 0;
+    let maxDepth = 1;
+
+    files.forEach((file) => {
+        totalBytes += file.size;
+        const relativePath = normalizeRelativePath(file.webkitRelativePath || file.name);
+        const parts = relativePath.split('/').filter(Boolean);
+
+        maxDepth = Math.max(maxDepth, parts.length);
+
+        if (parts.length > 1) {
+            folderPaths.add(parts.slice(0, -1).join('/'));
+        }
+
+        if (parts.length > 2) {
+            topLevelFolders.add(parts[1]);
+            if (previewItems.length < 8 && !previewItems.includes(`${parts[1]}/`)) {
+                previewItems.push(`${parts[1]}/`);
+            }
+        }
+    });
+
+    const rootName = normalizeRelativePath(files[0]?.webkitRelativePath || files[0]?.name || 'Selected Folder').split('/')[0];
+
+    return {
+        rootName,
+        topLevelFolderCount: topLevelFolders.size,
+        subfolderCount: folderPaths.size,
+        fileCount: files.length,
+        totalBytes,
+        maxDepth,
+        selectedAt: new Date(),
+        previewTree: previewItems,
+    };
+};
+
+const buildTreeFromFiles = (files: File[], rootName: string): FileNode => {
+    const root: FileNode = {
+        name: rootName,
+        type: 'folder',
+        children: [],
+    };
+
+    const findFolder = (children: FileNode[], name: string): FileNode => {
+        let folder = children.find((child) => child.type === 'folder' && child.name === name);
+
+        if (!folder) {
+            folder = { name, type: 'folder', children: [] };
+            children.push(folder);
+        }
+
+        return folder;
+    };
+
+    files.forEach((file) => {
+        const parts = normalizeRelativePath(file.webkitRelativePath || `${rootName}/${file.name}`).split('/');
+        const relativeParts = parts[0] === rootName ? parts.slice(1) : parts;
+
+        if (relativeParts.length === 0) {
+            return;
+        }
+
+        let current = root;
+
+        relativeParts.forEach((part, index) => {
+            const isLast = index === relativeParts.length - 1;
+
+            if (isLast) {
+                current.children ??= [];
+                current.children.push({
+                    name: part,
+                    type: 'file',
+                    size: formatBytes(file.size),
+                    modified: new Intl.DateTimeFormat('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                    }).format(new Date(file.lastModified)),
+                    status: 'pending',
+                });
+                return;
+            }
+
+            current.children ??= [];
+            current = findFolder(current.children, part);
+        });
+    });
+
+    return root;
+};
+
+const buildPreflightReport = (
+    summary: FolderSummary,
+    isResumeMode: boolean,
+): PreflightReport => ({
+    patternLabel: summary.rootName.toUpperCase().includes('VESSEL')
+        ? 'Vessel-based legacy archive detected'
+        : 'Legacy root folder detected',
+    reviewStatus: isResumeMode ? 'Resume-ready structure loaded' : 'Ready for upload',
+    checks: [
+        {
+            label: 'Root folder',
+            value: summary.rootName,
+            tone: 'neutral',
+        },
+        {
+            label: 'Visible folder groups',
+            value: `${summary.topLevelFolderCount} top-level groups`,
+            tone: summary.topLevelFolderCount > 0 ? 'good' : 'warn',
+        },
+        {
+            label: 'Detected depth',
+            value: `${summary.maxDepth} levels from root to deepest file`,
+            tone: summary.maxDepth >= 5 ? 'warn' : 'neutral',
+        },
+        {
+            label: 'Cloud handling',
+            value: isResumeMode
+                ? 'Resume only the remaining files in this interrupted batch'
+                : 'Store as one legacy batch with preserved relative paths',
+            tone: 'good',
+        },
+    ],
+    warnings: [
+        'Original relative paths should stay exactly as the user selected them.',
+        summary.maxDepth >= 5
+            ? 'Deep nesting is acceptable for retrieval, but normalization should remain optional later.'
+            : 'Hierarchy depth is manageable for browser-based retrieval.',
+        isResumeMode
+            ? 'Select the same root folder again so remaining files can be matched against the preserved manifest.'
+            : 'Final validation should still happen server-side before the batch is committed.',
+    ],
+});
+
+const chunk = <T,>(items: T[], size: number): T[][] => {
+    const result: T[][] = [];
+
+    for (let index = 0; index < items.length; index += size) {
+        result.push(items.slice(index, index + size));
+    }
+
+    return result;
+};
+
+const WorkflowSteps = ({ phase }: { phase: UploadPhase }) => {
+    const activeIndex =
+        phase === 'empty' ? 1
+            : phase === 'selected' ? 2
+                : phase === 'uploading' ? 3
+                    : 3;
+
+    const steps = [
+        {
+            title: 'Select root folder',
+            description: 'Start from the same top-level folder the staff already recognizes from the client archive.',
+        },
+        {
+            title: 'Review preflight',
+            description: 'Confirm the detected hierarchy and required metadata before the batch is created.',
+        },
+        {
+            title: 'Upload batch',
+            description: 'Upload the preserved hierarchy and keep progress resumable at the file level.',
+        },
+    ];
+
+    return (
+        <div className="grid gap-3 md:grid-cols-3">
+            {steps.map((step, index) => {
+                const stepIndex = index + 1;
+                const isActive = activeIndex === stepIndex;
+                const isComplete = activeIndex > stepIndex;
+
+                return (
+                    <div
+                        key={step.title}
+                        className={`rounded-xl border px-4 py-4 ${
+                            isActive
+                                ? 'border-blue-200 bg-blue-50/70'
+                                : isComplete
+                                    ? 'border-emerald-200 bg-emerald-50/50'
+                                    : 'border-border bg-surface'
+                        }`}
+                    >
+                        <div className="mb-2 flex items-center gap-2">
+                            <span
+                                className={`inline-flex h-6 w-6 items-center justify-center rounded-full border text-[11px] font-black ${
+                                    isActive
+                                        ? 'border-blue-300 bg-blue-100 text-blue-700'
+                                        : isComplete
+                                            ? 'border-emerald-300 bg-emerald-100 text-emerald-700'
+                                            : 'border-border-strong bg-surface-secondary text-text-muted'
+                                }`}
+                            >
+                                {stepIndex}
+                            </span>
+                            <p className="text-sm font-bold text-text-primary">{step.title}</p>
+                        </div>
+                        <p className="text-xs leading-relaxed text-text-muted">{step.description}</p>
+                    </div>
+                );
+            })}
+        </div>
+    );
+};
+
+const SectionTitle = ({ children }: { children: React.ReactNode }) => (
+    <h3 className="text-xs font-black uppercase tracking-widest text-text-muted">{children}</h3>
+);
+
+const RequiredLabel = ({ children }: { children: React.ReactNode }) => (
+    <span className="inline-flex items-center gap-1">
+        <span>{children}</span>
+        <span className="text-red-500">*</span>
+    </span>
+);
+
+const MetadataPanel = ({
+    meta,
+    onChange,
+}: {
+    meta: BatchMeta;
+    onChange: React.Dispatch<React.SetStateAction<BatchMeta>>;
+}) => (
+    <div className="rounded-2xl border border-border bg-surface">
+        <div className="border-b border-border px-5 py-4">
+            <SectionTitle>Batch Details</SectionTitle>
+        </div>
+
+        <div className="space-y-4 px-5 py-5">
+            <label className="block">
+                <span className="mb-1.5 block text-[11px] font-black uppercase tracking-widest text-text-muted">
+                    <RequiredLabel>Batch Name</RequiredLabel>
+                </span>
+                <input
+                    aria-label="Batch Name"
+                    value={meta.batchName}
+                    onChange={(event) => onChange((current) => ({ ...current, batchName: event.target.value }))}
+                    className="w-full rounded-xl border border-border-strong bg-input-bg px-4 py-3 text-sm text-text-primary outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
+                />
+            </label>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block">
+                    <span className="mb-1.5 block text-[11px] font-black uppercase tracking-widest text-text-muted">
+                        <RequiredLabel>Year</RequiredLabel>
+                    </span>
+                    <input
+                        aria-label="Year"
+                        value={meta.year}
+                        onChange={(event) => onChange((current) => ({ ...current, year: event.target.value }))}
+                        placeholder="Enter year"
+                        className="w-full rounded-xl border border-border-strong bg-input-bg px-4 py-3 text-sm text-text-primary outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
+                    />
+                </label>
+
+                <label className="block">
+                    <span className="mb-1.5 block text-[11px] font-black uppercase tracking-widest text-text-muted">
+                        <RequiredLabel>Department</RequiredLabel>
+                    </span>
+                    <select
+                        aria-label="Department"
+                        value={meta.department}
+                        onChange={(event) => onChange((current) => ({ ...current, department: event.target.value }))}
+                        className="w-full rounded-xl border border-border-strong bg-input-bg px-4 py-3 text-sm text-text-primary outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
+                    >
+                        <option value="">Select department</option>
+                        <option value="Brokerage">Brokerage</option>
+                        <option value="Legal">Legal</option>
+                    </select>
+                </label>
+            </div>
+
+            <label className="block">
+                <span className="mb-1.5 block text-[11px] font-black uppercase tracking-widest text-text-muted">
+                    Notes
+                </span>
+                <textarea
+                    aria-label="Notes"
+                    rows={4}
+                    value={meta.notes}
+                    onChange={(event) => onChange((current) => ({ ...current, notes: event.target.value }))}
+                    className="w-full rounded-xl border border-border-strong bg-input-bg px-4 py-3 text-sm text-text-primary outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
+                />
+            </label>
+        </div>
+    </div>
+);
+
+const FolderDropzone = ({
+    isDragging,
+    onDragOver,
+    onDragLeave,
+    onDrop,
+    onSelectFolder,
+    isResumeMode,
+}: {
+    isDragging: boolean;
+    onDragOver: (event: React.DragEvent) => void;
+    onDragLeave: () => void;
+    onDrop: (event: React.DragEvent) => void;
+    onSelectFolder: () => void;
+    isResumeMode: boolean;
+}) => (
+    <div
+        onDragOver={onDragOver}
+        onDragLeave={onDragLeave}
+        onDrop={onDrop}
+        className={`rounded-2xl border-2 border-dashed transition-all ${
+            isDragging
+                ? 'border-blue-400 bg-blue-50/70'
+                : 'border-border-strong bg-surface hover:border-blue-300 hover:bg-blue-50/30'
+        }`}
+    >
+        <div className="border-b border-border px-6 py-5">
+            <SectionTitle>{isResumeMode ? 'Resume Legacy Batch' : 'Select Root Legacy Folder'}</SectionTitle>
+            <h3 className="mt-2 text-xl font-black tracking-tight text-text-primary">
+                {isResumeMode
+                    ? 'Select the same root folder again so the interrupted batch can continue'
+                    : 'Start with the same top-level folder the client already recognizes'}
+            </h3>
+            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-text-muted">
+                Drag the root folder from Windows Explorer or select it manually. The UI should inspect the hierarchy first,
+                then upload the full batch with preserved relative paths.
+            </p>
+        </div>
+
+        <div className="px-6 py-6">
+            <div className="rounded-2xl border border-border bg-surface-secondary/60 p-8 text-center">
+                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-blue-200 bg-blue-100">
+                    <svg className="h-7 w-7 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+                    </svg>
+                </div>
+                <p className="text-base font-bold text-text-primary">Drag a root folder here</p>
+                <p className="mt-2 text-xs font-medium text-text-muted">
+                    Allowed files: {LEGACY_ALLOWED_FILE_LABEL}. Maximum 50 MB per file.
+                </p>
+
+                <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+                    <button
+                        type="button"
+                        onClick={onSelectFolder}
+                        className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-blue-700"
+                    >
+                        Select Folder
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+);
+
+const SelectedFolderPanel = ({
+    summary,
+    onRemove,
+    onReplace,
+    onViewFull,
+}: {
+    summary: FolderSummary;
+    onRemove: () => void;
+    onReplace: () => void;
+    onViewFull: () => void;
+}) => (
+    <div className="rounded-2xl border border-border bg-surface">
+        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-border px-5 py-4">
+            <div>
+                <SectionTitle>Selected Root Folder</SectionTitle>
+                <h3 className="mt-2 text-lg font-black tracking-tight text-text-primary">{summary.rootName}</h3>
+                <p className="mt-1 text-sm text-text-muted">
+                    Selected {summary.selectedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.
+                    {' '}The cloud batch should preserve this folder as the top-level legacy container.
+                </p>
+            </div>
+            <span className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-blue-700">
+                Ready for preflight
+            </span>
+        </div>
+
+        <div className="grid gap-3 px-5 py-5 sm:grid-cols-2 xl:grid-cols-4">
+            {[
+                { label: 'Top-level folders', value: summary.topLevelFolderCount.toLocaleString() },
+                { label: 'Nested folders', value: summary.subfolderCount.toLocaleString() },
+                { label: 'Files', value: summary.fileCount.toLocaleString() },
+                { label: 'Deepest path', value: `${summary.maxDepth} levels` },
+            ].map((item) => (
+                <div key={item.label} className="rounded-xl border border-border bg-surface-secondary/50 px-4 py-3">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-text-muted">{item.label}</p>
+                    <p className="mt-1 text-lg font-black text-text-primary">{item.value}</p>
+                </div>
+            ))}
+        </div>
+
+        <div className="border-t border-border px-5 py-4">
+            <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-text-muted">Top-Level Preview</p>
+            <div className="grid gap-2 sm:grid-cols-2">
+                {summary.previewTree.map((item) => (
+                    <div key={item} className="flex items-center gap-2 rounded-xl border border-border bg-white px-3 py-2 text-xs font-semibold text-text-secondary">
+                        <svg className="h-3.5 w-3.5 shrink-0 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+                        </svg>
+                        <span className="truncate">{item}</span>
+                    </div>
+                ))}
+            </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 border-t border-border px-5 py-4">
+            <button
+                type="button"
+                onClick={onViewFull}
+                className="rounded-xl border border-border-strong bg-white px-4 py-2 text-xs font-bold text-text-secondary transition-all hover:bg-hover"
+            >
+                View Full Structure
+            </button>
+            <button
+                type="button"
+                onClick={onReplace}
+                className="rounded-xl border border-border-strong bg-white px-4 py-2 text-xs font-bold text-text-secondary transition-all hover:bg-hover"
+            >
+                Replace Folder
+            </button>
+            <button
+                type="button"
+                onClick={onRemove}
+                className="ml-auto rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-xs font-bold text-red-600 transition-all hover:bg-red-100"
+            >
+                Clear Selection
+            </button>
+        </div>
+    </div>
+);
+
+const toneClasses: Record<'good' | 'warn' | 'neutral', string> = {
+    good: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+    warn: 'border-amber-200 bg-amber-50 text-amber-700',
+    neutral: 'border-border bg-surface-secondary text-text-secondary',
+};
+
+const PreflightPanel = ({
+    report,
+    summary,
+    rejectedFiles,
+}: {
+    report: PreflightReport;
+    summary: FolderSummary;
+    rejectedFiles: RejectedLegacyFile[];
+}) => (
+    <div className="rounded-2xl border border-border bg-surface">
+        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border px-5 py-4">
+            <div>
+                <SectionTitle>Preflight</SectionTitle>
+                <h3 className="mt-2 text-lg font-black tracking-tight text-text-primary">{report.patternLabel}</h3>
+            </div>
+            <span className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-blue-700">
+                {report.reviewStatus}
+            </span>
+        </div>
+
+        <div className="grid gap-3 px-5 py-5 md:grid-cols-3">
+            {report.checks.map((check) => (
+                <div key={check.label} className={`rounded-xl border px-4 py-3 ${toneClasses[check.tone]}`}>
+                    <p className="text-[10px] font-black uppercase tracking-widest">{check.label}</p>
+                    <p className="mt-1 text-sm font-bold">{check.value}</p>
+                </div>
+            ))}
+        </div>
+
+        <div className="border-t border-border px-5 py-4">
+            <p className="text-[10px] font-black uppercase tracking-widest text-text-muted">What the system detected</p>
+            <p className="mt-2 text-sm text-text-secondary">
+                {summary.fileCount.toLocaleString()} files · {summary.subfolderCount.toLocaleString()} folders · {formatBytes(summary.totalBytes)}
+            </p>
+            <ul className="mt-3 space-y-2 text-sm text-text-secondary">
+                {report.warnings.map((warning) => (
+                    <li key={warning} className="rounded-xl border border-border bg-surface-secondary/50 px-3 py-2">
+                        {warning}
+                    </li>
+                ))}
+            </ul>
+
+            {rejectedFiles.length > 0 && (
+                <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-red-600">Upload Policy</p>
+                            <p className="mt-2 text-sm font-bold text-red-700">
+                                {rejectedFiles.length} file{rejectedFiles.length === 1 ? '' : 's'} blocked before upload
+                            </p>
+                            <p className="mt-1 text-sm text-red-700">
+                                Remove these files from the selected folder, then choose the root folder again.
+                            </p>
+                        </div>
+                        <span className="inline-flex rounded-full border border-red-200 bg-white px-3 py-1 text-[10px] font-black uppercase tracking-wider text-red-700">
+                            Upload blocked
+                        </span>
+                    </div>
+
+                    <ul className="mt-4 space-y-2">
+                        {rejectedFiles.slice(0, 8).map((file) => (
+                            <li key={file.relativePath} className="rounded-xl border border-red-200 bg-white px-3 py-3">
+                                <p className="truncate text-sm font-bold text-text-primary">{file.relativePath}</p>
+                                <p className="mt-1 text-xs text-red-700">{file.reason}</p>
+                            </li>
+                        ))}
+                    </ul>
+
+                    {rejectedFiles.length > 8 && (
+                        <p className="mt-3 text-xs font-semibold text-red-700">
+                            Showing 8 of {rejectedFiles.length} blocked files.
+                        </p>
+                    )}
+                </div>
+            )}
+        </div>
+    </div>
+);
+
+const UploadProgressSection = ({
+    progress,
+    onCancel,
+    onRetry,
+    canRetry,
+    isCancelling,
+}: {
     progress: ProgressState;
     onCancel: () => void;
     onRetry: () => void;
-}
-
-const UploadProgressSection = ({ progress, onCancel, onRetry }: UploadProgressProps) => {
-    const pct = progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0;
+    canRetry: boolean;
+    isCancelling: boolean;
+}) => {
+    const percentage = progress.total > 0 ? Math.min(100, Math.round((progress.done / progress.total) * 100)) : 0;
 
     return (
-        <div className="rounded-xl border border-border bg-surface p-5">
-            <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                    {(progress.status === 'Preparing' || progress.status === 'Uploading') && (
-                        <div className="w-4 h-4 border-2 border-blue-400/40 border-t-blue-500 rounded-full animate-spin" />
-                    )}
-                    <span className="text-sm font-bold text-text-primary">
-                        {progress.status === 'Preparing' ? 'Preparing upload…' : 'Uploading folder…'}
-                    </span>
-                </div>
-                <span className={`text-[10px] font-bold px-2 py-1 rounded-full border ${batchStatusColor[progress.status]}`}>
-                    {progress.status}
-                </span>
-            </div>
-
-            <div className="mb-3">
-                <div className="flex justify-between text-[11px] text-text-muted font-semibold mb-1.5">
-                    <span>{progress.done.toLocaleString()} / {progress.total.toLocaleString()} files</span>
-                    <span>{pct}%</span>
-                </div>
-                <div className="h-2.5 rounded-full bg-surface-secondary overflow-hidden">
-                    <div
-                        className="h-full rounded-full bg-blue-500 transition-all duration-300"
-                        style={{ width: `${pct}%` }}
-                    />
+        <div className="rounded-2xl border border-border bg-surface">
+            <div className="border-b border-border px-5 py-4">
+                <SectionTitle>Upload Progress</SectionTitle>
+                <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                    <h3 className="text-lg font-black tracking-tight text-text-primary">{progress.status}</h3>
+                    <span className="text-sm font-bold text-text-secondary">{percentage}%</span>
                 </div>
             </div>
 
-            <div className="flex items-center gap-5 mb-3 text-xs">
-                <span className="text-text-muted">
-                    <span className="font-bold text-text-primary">{progress.done.toLocaleString()}</span> uploaded
-                </span>
-                {progress.failed > 0 && (
-                    <span className="text-text-muted">
-                        <span className="font-bold text-red-500">{progress.failed.toLocaleString()}</span> failed
-                    </span>
+            <div className="space-y-4 px-5 py-5">
+                <div className="h-3 overflow-hidden rounded-full bg-surface-secondary">
+                    <div className="h-full rounded-full bg-blue-600 transition-all" style={{ width: `${percentage}%` }} />
+                </div>
+
+                <div className="flex flex-wrap items-center gap-4 text-sm text-text-secondary">
+                    <span><span className="font-bold text-emerald-600">{progress.done.toLocaleString()}</span> uploaded</span>
+                    <span><span className="font-bold text-red-500">{progress.failed.toLocaleString()}</span> failed</span>
+                    <span>{progress.total.toLocaleString()} total</span>
+                </div>
+
+                {progress.currentItem && (
+                    <div className="rounded-xl bg-surface-secondary px-3 py-2 text-xs font-medium text-text-secondary">
+                        {progress.currentItem}
+                    </div>
                 )}
-            </div>
 
-            {progress.currentItem && (
-                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-secondary text-xs text-text-secondary mb-4">
-                    <svg className="w-3.5 h-3.5 shrink-0 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    <span className="truncate font-medium">{progress.currentItem}</span>
-                </div>
-            )}
-
-            <div className="flex items-center gap-2">
-                <button
-                    type="button"
-                    onClick={onCancel}
-                    className="px-4 py-2 rounded-lg border border-border-strong bg-surface text-xs font-bold text-text-secondary hover:bg-hover transition-all"
-                >
-                    Cancel Upload
-                </button>
-                {progress.failed > 0 && (
+                <div className="flex flex-wrap items-center gap-2">
                     <button
                         type="button"
-                        onClick={onRetry}
-                        className="px-4 py-2 rounded-lg border border-amber-200 bg-amber-50 text-xs font-bold text-amber-700 hover:bg-amber-100 transition-all"
+                        onClick={onCancel}
+                        disabled={isCancelling}
+                        className="rounded-xl border border-border-strong bg-surface px-4 py-2 text-xs font-bold text-text-secondary transition-all hover:bg-hover"
                     >
-                        Retry Failed Files
+                        {isCancelling ? 'Stopping Upload...' : 'Cancel Upload'}
                     </button>
-                )}
+                    {canRetry && (
+                        <button
+                            type="button"
+                            onClick={onRetry}
+                            className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-xs font-bold text-amber-700 transition-all hover:bg-amber-100"
+                        >
+                            Resume Upload
+                        </button>
+                    )}
+                </div>
             </div>
         </div>
     );
 };
 
-// ─── 6. Success State ─────────────────────────────────────────────────────────
+const ResumeNotice = ({ batch }: { batch: LegacyBatch }) => (
+    <div className="rounded-2xl border border-amber-200 bg-amber-50/60 px-5 py-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+                <SectionTitle>Interrupted Batch</SectionTitle>
+                <h3 className="mt-2 text-lg font-black tracking-tight text-text-primary">{batch.batchName}</h3>
+                <p className="mt-1 text-sm text-text-secondary">
+                    {batch.uploadSummary.uploaded} of {batch.uploadSummary.expected} files are already stored.
+                    Select the same root folder again to continue the remaining upload.
+                </p>
+            </div>
+            <span className="inline-flex rounded-full border border-amber-200 bg-white px-3 py-1 text-[10px] font-black uppercase tracking-wider text-amber-700">
+                Interrupted
+            </span>
+        </div>
 
-interface SuccessStateProps {
-    summary: FolderSummary;
-    meta: BatchMeta;
-    completedAt: Date;
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
+            <div className="rounded-xl border border-amber-200 bg-white px-4 py-3">
+                <p className="text-[10px] font-black uppercase tracking-widest text-text-muted">Root Folder</p>
+                <p className="mt-1 text-sm font-bold text-text-primary">{batch.rootFolder}</p>
+            </div>
+            <div className="rounded-xl border border-amber-200 bg-white px-4 py-3">
+                <p className="text-[10px] font-black uppercase tracking-widest text-text-muted">Remaining Files</p>
+                <p className="mt-1 text-sm font-bold text-text-primary">{batch.uploadSummary.remaining}</p>
+            </div>
+            <div className="rounded-xl border border-amber-200 bg-white px-4 py-3">
+                <p className="text-[10px] font-black uppercase tracking-widest text-text-muted">Last Activity</p>
+                <p className="mt-1 text-sm font-bold text-text-primary">{formatDateLabel(batch.lastActivityAt)}</p>
+            </div>
+        </div>
+    </div>
+);
+
+const SuccessState = ({
+    batch,
+    onViewFolder,
+    onOpenBatches,
+    onUploadAnother,
+}: {
+    batch: LegacyBatch;
     onViewFolder: () => void;
+    onOpenBatches: () => void;
     onUploadAnother: () => void;
-}
-
-const SuccessState = ({ summary, meta, completedAt, onViewFolder, onUploadAnother }: SuccessStateProps) => (
-    <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-6">
-        <div className="flex items-center gap-3 mb-5">
-            <div className="w-10 h-10 rounded-full bg-emerald-100 border border-emerald-200 flex items-center justify-center shrink-0">
-                <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+}) => (
+    <div className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-6">
+        <div className="mb-5 flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-full border border-emerald-200 bg-emerald-100">
+                <svg className="h-5 w-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                 </svg>
             </div>
             <div>
-                <p className="text-sm font-bold text-emerald-900">Upload Complete</p>
-                <p className="text-xs text-emerald-700">All files have been stored for reference.</p>
+                <p className="text-base font-bold text-emerald-950">Ingestion complete</p>
+                <p className="text-sm text-emerald-800">The legacy batch is ready for retrieval and reference browsing.</p>
             </div>
         </div>
 
-        <div className="bg-white rounded-lg border border-emerald-200 divide-y divide-emerald-100 mb-5">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {[
-                { label: 'Batch Name', value: meta.batchName || '—' },
-                { label: 'Root Folder', value: summary.rootName },
-                { label: 'Folders Uploaded', value: summary.subfolderCount.toLocaleString() },
-                { label: 'Files Uploaded', value: summary.fileCount.toLocaleString() },
-                { label: 'Total Size', value: formatBytes(summary.totalBytes) },
-                {
-                    label: 'Completed At', value: completedAt.toLocaleString('en-US', {
-                        month: 'short', day: 'numeric', year: 'numeric',
-                        hour: '2-digit', minute: '2-digit',
-                    }),
-                },
-            ].map(({ label, value }) => (
-                <div key={label} className="flex items-center justify-between px-4 py-2.5">
-                    <span className="text-xs font-semibold text-text-muted">{label}</span>
-                    <span className="text-xs font-bold text-text-primary">{value}</span>
+                { label: 'Batch Name', value: batch.batchName },
+                { label: 'Root Folder', value: batch.rootFolder },
+                { label: 'Files Uploaded', value: batch.uploadSummary.uploaded.toLocaleString() },
+                { label: 'Folders Uploaded', value: batch.tree ? inspectTree(batch.tree).folders.toLocaleString() : '0' },
+                { label: 'Total Size', value: batch.totalSize },
+                { label: 'Completed At', value: formatDateLabel(batch.completedAt) },
+            ].map((item) => (
+                <div key={item.label} className="rounded-xl border border-emerald-200 bg-white px-4 py-3">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-text-muted">{item.label}</p>
+                    <p className="mt-1 text-sm font-bold text-text-primary">{item.value}</p>
                 </div>
             ))}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="mt-5 flex flex-wrap items-center gap-2">
             <button
                 type="button"
                 onClick={onViewFolder}
-                className="flex-1 px-4 py-2.5 rounded-lg border border-border-strong bg-white text-sm font-bold text-text-secondary hover:bg-hover transition-all"
+                className="rounded-xl border border-border-strong bg-white px-4 py-2.5 text-sm font-bold text-text-secondary transition-all hover:bg-hover"
             >
-                View Legacy Folder
+                Browse Legacy Batch
+            </button>
+            <button
+                type="button"
+                onClick={onOpenBatches}
+                className="rounded-xl border border-border-strong bg-white px-4 py-2.5 text-sm font-bold text-text-secondary transition-all hover:bg-hover"
+            >
+                Open Batch List
             </button>
             <button
                 type="button"
                 onClick={onUploadAnother}
-                className="flex-1 px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-sm transition-all"
+                className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white transition-all hover:bg-blue-700"
             >
-                Upload Another Folder
+                Start New Batch
             </button>
         </div>
     </div>
 );
 
-// ─── 7. Error / Partial Success State ────────────────────────────────────────
-
-interface ErrorStateProps {
-    uploaded: number;
-    failed: number;
-    isPartial: boolean;
+const ErrorState = ({
+    batch,
+    message,
+    onRetry,
+    onStartNew,
+}: {
+    batch: LegacyBatch | null;
+    message: string;
     onRetry: () => void;
     onStartNew: () => void;
-}
+}) => {
+    const isInterrupted = batch?.status === 'interrupted';
 
-const ErrorState = ({ uploaded, failed, isPartial, onRetry, onStartNew }: ErrorStateProps) => (
-    <div className={`rounded-xl border p-6 ${isPartial ? 'border-amber-200 bg-amber-50/40' : 'border-red-200 bg-red-50/30'}`}>
-        <div className="flex items-center gap-3 mb-4">
-            <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${isPartial ? 'bg-amber-100 border border-amber-200' : 'bg-red-100 border border-red-200'}`}>
-                <svg className={`w-4.5 h-4.5 ${isPartial ? 'text-amber-600' : 'text-red-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
+    return (
+        <div className={`rounded-2xl border p-6 ${isInterrupted ? 'border-amber-200 bg-amber-50/50' : 'border-red-200 bg-red-50/40'}`}>
+            <div className="mb-4 flex items-center gap-3">
+                <div className={`flex h-10 w-10 items-center justify-center rounded-full border ${isInterrupted ? 'border-amber-200 bg-amber-100' : 'border-red-200 bg-red-100'}`}>
+                    <svg className={`h-4.5 w-4.5 ${isInterrupted ? 'text-amber-600' : 'text-red-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                </div>
+                <div>
+                    <p className={`text-base font-bold ${isInterrupted ? 'text-amber-950' : 'text-red-950'}`}>
+                        {isInterrupted ? 'Upload interrupted' : 'Upload failed'}
+                    </p>
+                    <p className={`text-sm ${isInterrupted ? 'text-amber-800' : 'text-red-800'}`}>{message}</p>
+                </div>
             </div>
-            <div>
-                <p className={`text-sm font-bold ${isPartial ? 'text-amber-900' : 'text-red-900'}`}>
-                    {isPartial ? 'Partial Upload' : 'Upload Failed'}
-                </p>
-                <p className={`text-xs ${isPartial ? 'text-amber-700' : 'text-red-700'}`}>
-                    {isPartial
-                        ? 'Some files could not be uploaded. The rest have been saved.'
-                        : 'The upload could not be completed. No files were saved.'}
-                </p>
-            </div>
-        </div>
 
-        <div className="flex items-center gap-4 mb-4 text-xs">
-            <span><span className="font-bold text-emerald-600">{uploaded}</span> files uploaded successfully</span>
-            <span><span className="font-bold text-red-600">{failed}</span> files failed</span>
-        </div>
+            {batch && (
+                <div className="mb-4 flex flex-wrap items-center gap-4 text-sm">
+                    <span><span className="font-bold text-emerald-600">{batch.uploadSummary.uploaded}</span> uploaded</span>
+                    <span><span className="font-bold text-red-600">{batch.uploadSummary.remaining}</span> remaining</span>
+                </div>
+            )}
 
-        {isPartial && (
-            <p className="text-xs text-text-muted mb-4">
-                Failed files are usually caused by unsupported file types or network interruptions during upload.
-                You can retry them or download an error list for review.
-            </p>
-        )}
-
-        <div className="flex items-center gap-2 flex-wrap">
-            <button
-                type="button"
-                onClick={onRetry}
-                className="px-4 py-2 rounded-lg border border-amber-200 bg-amber-50 hover:bg-amber-100 text-xs font-bold text-amber-700 transition-all"
-            >
-                Retry Failed Files
-            </button>
-            <button
-                type="button"
-                className="px-4 py-2 rounded-lg border border-border-strong bg-surface hover:bg-hover text-xs font-bold text-text-secondary transition-all"
-            >
-                Download Error List
-            </button>
-            <button
-                type="button"
-                onClick={onStartNew}
-                className="px-4 py-2 rounded-lg border border-border-strong bg-surface hover:bg-hover text-xs font-bold text-text-secondary transition-all"
-            >
-                Start New Upload
-            </button>
-        </div>
-    </div>
-);
-
-// ─── 8. Upload History Table ──────────────────────────────────────────────────
-
-const UploadHistoryTable = ({
-    rows,
-    onView,
-}: {
-    rows: LegacyBatch[];
-    onView: (batch: LegacyBatch) => void;
-}) => (
-    <div>
-        <div className="flex items-center justify-between mb-4">
-            <SectionTitle>Previous Legacy Uploads</SectionTitle>
-        </div>
-
-        {rows.length === 0 ? (
-            <div className="rounded-xl border border-border bg-surface-secondary py-12 text-center">
-                <svg className="w-10 h-10 text-text-muted mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-                </svg>
-                <p className="text-sm font-bold text-text-secondary">No legacy uploads yet</p>
-                <p className="text-xs text-text-muted mt-1">Uploaded folder batches will appear here.</p>
-            </div>
-        ) : (
-            <div className="rounded-xl border border-border overflow-hidden bg-surface">
-                {/* Header */}
-                <div
-                    className="grid items-center px-4 py-3 border-b border-border bg-surface-secondary"
-                    style={{ gridTemplateColumns: '2fr 1.5fr 1fr 1fr 80px 90px 90px 100px' }}
+            <div className="flex flex-wrap items-center gap-2">
+                {batch?.canResume && (
+                    <button
+                        type="button"
+                        onClick={onRetry}
+                        className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-xs font-bold text-amber-700 transition-all hover:bg-amber-100"
+                    >
+                        Resume Upload
+                    </button>
+                )}
+                <button
+                    type="button"
+                    onClick={onStartNew}
+                    className="rounded-xl border border-border-strong bg-surface px-4 py-2 text-xs font-bold text-text-secondary transition-all hover:bg-hover"
                 >
-                    {['Batch Name', 'Root Folder', 'Uploaded By', 'Date', 'Files', 'Size', 'Status', 'Actions'].map(h => (
-                        <span key={h} className="text-[10px] font-black text-text-muted uppercase tracking-widest">{h}</span>
-                    ))}
-                </div>
-
-                {/* Rows */}
-                <div className="divide-y divide-border">
-                    {rows.map(row => (
-                        <div
-                            key={row.id}
-                            className="grid items-center px-4 py-3 hover:bg-hover transition-colors"
-                            style={{ gridTemplateColumns: '2fr 1.5fr 1fr 1fr 80px 90px 90px 100px' }}
-                        >
-                            <div className="min-w-0 pr-2">
-                                <p className="text-sm font-semibold text-text-primary truncate">{row.batchName}</p>
-                            </div>
-                            <div className="min-w-0 pr-2">
-                                <div className="flex items-center gap-1.5">
-                                    <svg className="w-3.5 h-3.5 text-amber-500 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                        <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
-                                    </svg>
-                                    <span className="text-xs text-text-secondary truncate font-medium">{row.rootFolder}</span>
-                                </div>
-                            </div>
-                            <span className="text-xs text-text-secondary">{row.uploadedBy}</span>
-                            <span className="text-xs text-text-muted">{row.uploadDate}</span>
-                            <span className="text-xs tabular-nums text-text-secondary">{row.fileCount.toLocaleString()}</span>
-                            <span className="text-xs tabular-nums text-text-secondary">{row.totalSize}</span>
-                            <StatusChip status={row.status} />
-                            <div className="flex items-center gap-1">
-                                <button
-                                    type="button"
-                                    onClick={() => onView(row)}
-                                    className="px-2 py-1 rounded text-[10px] font-bold text-blue-600 hover:bg-blue-50 transition-colors"
-                                >
-                                    View
-                                </button>
-                                <button
-                                    type="button"
-                                    className="px-2 py-1 rounded text-[10px] font-bold text-blue-600 hover:bg-blue-50 transition-colors"
-                                >
-                                    Download
-                                </button>
-                            </div>
-                        </div>
-                    ))}
-                </div>
+                    Start New Batch
+                </button>
             </div>
-        )}
-    </div>
-);
-
-// ─── Main Component ────────────────────────────────────────────────────────────
-
-const DEFAULT_META: BatchMeta = {
-    batchName: '',
-    year: String(new Date().getFullYear()),
-    department: 'Brokerage',
-    notes: '',
-    preserveNames: true,
-    markLegacy: true,
+        </div>
+    );
 };
 
-// ─── Demo seed data (mirrors client's real VESSEL 1 folder photos) ────────────
-const DEMO_FOLDER: FolderSummary = {
-    rootName: 'VESSEL 1',
-    subfolderCount: 47,
-    fileCount: 892,
-    totalBytes: 4_512_000_000,
-    selectedAt: new Date(),
-    previewTree: [
-        'CIL ATTACHMENT/',
-        'CMA VESSEL/',
-        'CONTSHIP WAY/',
-        'DANU BHUM/',
-        'DOCS FILE/',
-        'ED CANCELLATION/',
-        'KOTA HAKIM/',
-        'KOTA MAKIM/',
-    ],
-};
-
-const DEMO_META: BatchMeta = {
-    batchName: 'VESSEL 1 — Historical Archive',
-    year: '2025',
-    department: 'Brokerage',
-    notes: 'Legacy import files organized by vessel. Covers voyages from 2023–2025. Original folder structure preserved.',
-    preserveNames: true,
-    markLegacy: true,
-};
-
-export const LegacyFolderUploadView = () => {
-    const [phase, setPhase] = useState<UploadPhase>('selected');
+export const LegacyFolderUploadView = ({
+    onOpenBatches,
+    resumeBatchId,
+    onResumeCleared,
+}: {
+    onOpenBatches?: () => void;
+    resumeBatchId?: string | null;
+    onResumeCleared?: () => void;
+}) => {
+    const [phase, setPhase] = useState<UploadPhase>('empty');
     const [isDragging, setIsDragging] = useState(false);
-    const [folderSummary, setFolderSummary] = useState<FolderSummary | null>(DEMO_FOLDER);
-    const [meta, setMeta] = useState<BatchMeta>(DEMO_META);
-    const [completedAt, setCompletedAt] = useState<Date | null>(null);
+    const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+    const [rejectedFiles, setRejectedFiles] = useState<RejectedLegacyFile[]>([]);
+    const [folderSummary, setFolderSummary] = useState<FolderSummary | null>(null);
+    const [meta, setMeta] = useState<BatchMeta>(DEFAULT_META);
     const [progress, setProgress] = useState<ProgressState>({
-        total: 0, done: 0, failed: 0, currentItem: '', status: 'Preparing',
+        total: 0,
+        done: 0,
+        failed: 0,
+        currentItem: '',
+        status: 'Waiting for upload',
     });
+    const [activeBatch, setActiveBatch] = useState<LegacyBatch | null>(null);
     const [viewingBatch, setViewingBatch] = useState<LegacyBatch | null>(null);
+    const [errorMessage, setErrorMessage] = useState('');
+    const [isCancellingUpload, setIsCancellingUpload] = useState(false);
 
     const folderInputRef = useRef<HTMLInputElement | null>(null);
-    const simulationRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const cancelRequestedRef = useRef(false);
+    const currentUploadControllerRef = useRef<AbortController | null>(null);
+    const { createBatch, signUploads, completeUploads, finalizeBatch } = useLegacyBatchMutations();
+    const { data: resumeBatch } = useLegacyBatch(resumeBatchId, Boolean(resumeBatchId));
 
-    const buildSummaryFromFiles = (files: FileList): FolderSummary => {
-        const folderPaths = new Set<string>();
-        let totalBytes = 0;
-        const previewItems: string[] = [];
+    useEffect(() => {
+        return () => {
+            cancelRequestedRef.current = true;
+            currentUploadControllerRef.current?.abort();
+        };
+    }, []);
 
-        Array.from(files).forEach(file => {
-            totalBytes += file.size;
-            const parts = file.webkitRelativePath.split('/');
-            if (parts.length > 1) folderPaths.add(parts.slice(0, -1).join('/'));
-            if (previewItems.length < 5) {
-                const name = parts.length > 2 ? parts[1] + '/' : file.name;
-                if (!previewItems.includes(name)) previewItems.push(name);
-            }
+    useEffect(() => {
+        if (!resumeBatchId || !resumeBatch || activeBatch?.id === resumeBatch.id) {
+            return;
+        }
+
+        setActiveBatch(resumeBatch);
+        setMeta({
+            batchName: resumeBatch.batchName,
+            year: resumeBatch.metadata.year,
+            department: resumeBatch.metadata.department,
+            notes: resumeBatch.metadata.notes,
         });
+        setPhase('empty');
+        setErrorMessage('');
+    }, [activeBatch?.id, resumeBatch, resumeBatchId]);
 
-        const rootName = files[0]?.webkitRelativePath.split('/')[0] ?? 'Selected Folder';
+    const localTree = useMemo(() => {
+        if (!folderSummary || selectedFiles.length === 0) {
+            return null;
+        }
+
+        return buildTreeFromFiles(selectedFiles, folderSummary.rootName);
+    }, [folderSummary, selectedFiles]);
+
+    const previewBatch = useMemo<LegacyBatch | null>(() => {
+        if (!folderSummary || !localTree) {
+            return activeBatch;
+        }
+
+        const metadata: LegacyBatchMetadata = {
+            year: meta.year,
+            department: meta.department,
+            notes: meta.notes,
+            preserveNames: true,
+            legacyReferenceOnly: true,
+        };
+
+        const summary: LegacyBatchSummary = activeBatch ?? {
+            id: 'local-preview',
+            batchName: meta.batchName || folderSummary.rootName,
+            rootFolder: folderSummary.rootName,
+            uploadedBy: 'Current User',
+            uploadDate: new Intl.DateTimeFormat('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+            }).format(folderSummary.selectedAt),
+            status: 'draft',
+            statusLabel: 'Draft',
+            fileCount: folderSummary.fileCount,
+            uploadedFileCount: 0,
+            failedFileCount: 0,
+            pendingFileCount: folderSummary.fileCount,
+            totalSize: formatBytes(folderSummary.totalBytes),
+            totalSizeBytes: folderSummary.totalBytes,
+            metadata,
+            uploadSummary: {
+                expected: folderSummary.fileCount,
+                uploaded: 0,
+                failed: 0,
+                remaining: folderSummary.fileCount,
+            },
+            canResume: true,
+        };
 
         return {
-            rootName,
-            subfolderCount: folderPaths.size,
-            fileCount: files.length,
-            totalBytes,
-            selectedAt: new Date(),
-            previewTree: previewItems,
+            ...summary,
+            batchName: meta.batchName || summary.batchName,
+            metadata,
+            tree: localTree,
+            remainingRelativePaths: Array.from(
+                new Set(selectedFiles.map((file) => normalizeRelativePath(file.webkitRelativePath || `${folderSummary.rootName}/${file.name}`))),
+            ),
+            startedAt: activeBatch?.startedAt ?? null,
+            completedAt: activeBatch?.completedAt ?? null,
+            lastActivityAt: activeBatch?.lastActivityAt ?? null,
         };
-    };
+    }, [activeBatch, folderSummary, localTree, meta, selectedFiles]);
 
-    const handleFolderInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const files = e.target.files;
-        if (!files || files.length === 0) return;
-        setFolderSummary(buildSummaryFromFiles(files));
-        setMeta(prev => ({
-            ...prev,
-            batchName: prev.batchName || (files[0]?.webkitRelativePath.split('/')[0] ?? ''),
-        }));
+    const preflight = useMemo(() => {
+        if (!folderSummary) {
+            return null;
+        }
+
+        return buildPreflightReport(folderSummary, Boolean(activeBatch?.canResume));
+    }, [activeBatch?.canResume, folderSummary]);
+
+    const missingMetadataFields = getMissingMetadataFields(meta);
+    const resumeRootMismatch = Boolean(activeBatch && folderSummary && activeBatch.rootFolder !== folderSummary.rootName);
+    const hasRejectedFiles = rejectedFiles.length > 0;
+    const hasUploadableFiles = selectedFiles.length > 0;
+    const isMetadataComplete = missingMetadataFields.length === 0 && !resumeRootMismatch;
+    const isUploadReady = isMetadataComplete && hasUploadableFiles && !hasRejectedFiles;
+
+    const selectFiles = (files: File[]) => {
+        if (files.length === 0) {
+            return;
+        }
+
+        const summary = buildSummaryFromFiles(files);
+        const validationResult = validateLegacyFiles(files);
+
+        setSelectedFiles(validationResult.validFiles);
+        setRejectedFiles(validationResult.rejectedFiles);
+        setFolderSummary(summary);
         setPhase('selected');
+        setErrorMessage('');
     };
 
-    const handleDragOver = useCallback((e: React.DragEvent) => {
-        e.preventDefault();
-        setIsDragging(true);
-    }, []);
+    const handleFolderInput = (event: React.ChangeEvent<HTMLInputElement>) => {
+        selectFiles(Array.from(event.target.files ?? []));
+    };
 
-    const handleDrop = useCallback((e: React.DragEvent) => {
-        e.preventDefault();
+    const handleDrop = (event: React.DragEvent) => {
+        event.preventDefault();
         setIsDragging(false);
-        folderInputRef.current?.click();
-    }, []);
-
-    const startSimulatedUpload = () => {
-        if (!folderSummary) return;
-        const total = folderSummary.fileCount;
-        setProgress({ total, done: 0, failed: 0, currentItem: 'Preparing…', status: 'Preparing' });
-        setPhase('uploading');
-
-        let done = 0;
-        const step = Math.max(1, Math.floor(total / 40));
-
-        simulationRef.current = setInterval(() => {
-            done = Math.min(done + step + Math.floor(Math.random() * step), total);
-            setProgress(prev => ({
-                ...prev,
-                done,
-                status: done === 0 ? 'Preparing' : 'Uploading',
-                currentItem: `Uploading file ${done} of ${total}…`,
-            }));
-
-            if (done >= total) {
-                clearInterval(simulationRef.current!);
-                const now = new Date();
-                setCompletedAt(now);
-                setProgress(prev => ({ ...prev, done: total, status: 'Completed', currentItem: '' }));
-                setTimeout(() => setPhase('complete'), 600);
-            }
-        }, 120);
-    };
-
-    const handleCancel = () => {
-        if (simulationRef.current) clearInterval(simulationRef.current);
-        setPhase('selected');
+        selectFiles(Array.from(event.dataTransfer.files ?? []));
     };
 
     const handleReset = () => {
-        if (simulationRef.current) clearInterval(simulationRef.current);
+        setSelectedFiles([]);
+        setRejectedFiles([]);
         setFolderSummary(null);
         setMeta(DEFAULT_META);
-        setCompletedAt(null);
+        setProgress({
+            total: 0,
+            done: 0,
+            failed: 0,
+            currentItem: '',
+            status: 'Waiting for upload',
+        });
+        cancelRequestedRef.current = false;
+        currentUploadControllerRef.current?.abort();
+        currentUploadControllerRef.current = null;
+        setIsCancellingUpload(false);
+        setActiveBatch(null);
+        setViewingBatch(null);
+        setErrorMessage('');
         setPhase('empty');
-        if (folderInputRef.current) folderInputRef.current.value = '';
+        onResumeCleared?.();
+
+        if (folderInputRef.current) {
+            folderInputRef.current.value = '';
+        }
     };
 
-    const isUploading = phase === 'uploading';
-    const isComplete = phase === 'complete';
-    const isError = phase === 'failed' || phase === 'partial';
+    const performUpload = async () => {
+        if (!folderSummary || selectedFiles.length === 0) {
+            return;
+        }
+
+        cancelRequestedRef.current = false;
+        setIsCancellingUpload(false);
+        const filesByPath = new Map(
+            selectedFiles.map((file) => [
+                normalizeRelativePath(file.webkitRelativePath || `${folderSummary.rootName}/${file.name}`),
+                file,
+            ]),
+        );
+
+        setPhase('uploading');
+        setErrorMessage('');
+
+        try {
+            let batch = activeBatch;
+
+            if (!batch) {
+                batch = await createBatch.mutateAsync({
+                    batchName: meta.batchName,
+                    rootFolder: folderSummary.rootName,
+                    year: meta.year,
+                    department: meta.department,
+                    notes: meta.notes,
+                    files: Array.from(filesByPath.entries()).map(([relativePath, file]) => ({
+                        relativePath,
+                        sizeBytes: file.size,
+                        mimeType: file.type || undefined,
+                        modifiedAt: new Date(file.lastModified).toISOString(),
+                    })),
+                });
+                setActiveBatch(batch);
+            }
+
+            const uploadTargets = batch.remainingRelativePaths.length > 0
+                ? batch.remainingRelativePaths
+                : Array.from(filesByPath.keys());
+
+            const matchedTargets = uploadTargets.filter((relativePath) => filesByPath.has(relativePath));
+
+            if (matchedTargets.length === 0) {
+                throw new Error('The selected folder does not contain the remaining files for this batch. Please choose the same root folder used when the batch was created.');
+            }
+
+            let done = batch.uploadSummary.uploaded;
+            let failed = 0;
+
+            setProgress({
+                total: batch.uploadSummary.expected,
+                done,
+                failed,
+                currentItem: 'Preparing signed upload links...',
+                status: batch.canResume ? 'Resuming batch upload' : 'Uploading batch',
+            });
+
+            for (const group of chunk(matchedTargets, LEGACY_SIGNED_UPLOAD_CHUNK_SIZE)) {
+                if (cancelRequestedRef.current) {
+                    break;
+                }
+
+                const signed = await signUploads.mutateAsync({
+                    batchId: batch.id,
+                    relativePaths: group,
+                });
+
+                const successfulPaths: string[] = [];
+
+                for (const upload of signed.uploads) {
+                    if (cancelRequestedRef.current) {
+                        break;
+                    }
+
+                    const file = filesByPath.get(upload.relativePath);
+
+                    if (!file) {
+                        failed += 1;
+                        setProgress((current) => ({
+                            ...current,
+                            failed,
+                            currentItem: `Skipping ${upload.relativePath} because it is missing from the selected folder.`,
+                        }));
+                        continue;
+                    }
+
+                    setProgress((current) => ({
+                        ...current,
+                        currentItem: `Uploading ${upload.relativePath}...`,
+                    }));
+
+                    try {
+                        const uploadController = new AbortController();
+                        currentUploadControllerRef.current = uploadController;
+                        const response = await fetch(upload.uploadUrl, {
+                            method: upload.method,
+                            headers: upload.headers,
+                            body: file,
+                            signal: uploadController.signal,
+                        });
+                        currentUploadControllerRef.current = null;
+
+                        if (!response.ok) {
+                            throw new Error(`Upload failed with status ${response.status}.`);
+                        }
+
+                        successfulPaths.push(upload.relativePath);
+                        done += 1;
+                        setProgress((current) => ({
+                            ...current,
+                            done,
+                            currentItem: `Uploaded ${upload.relativePath}`,
+                        }));
+                    } catch (error) {
+                        currentUploadControllerRef.current = null;
+
+                        if (cancelRequestedRef.current || (error instanceof DOMException && error.name === 'AbortError')) {
+                            setProgress((current) => ({
+                                ...current,
+                                status: 'Stopping upload',
+                                currentItem: 'Preserving uploaded files before exit...',
+                            }));
+                            break;
+                        }
+
+                        failed += 1;
+                        setProgress((current) => ({
+                            ...current,
+                            failed,
+                            currentItem: `Failed to upload ${upload.relativePath}`,
+                        }));
+                    }
+                }
+
+                if (successfulPaths.length > 0) {
+                    await completeUploads.mutateAsync({
+                        batchId: batch.id,
+                        relativePaths: successfulPaths,
+                    });
+                }
+            }
+
+            const finalizedBatch = await finalizeBatch.mutateAsync(batch.id);
+            const wasCancelled = cancelRequestedRef.current;
+            setActiveBatch(finalizedBatch);
+            setIsCancellingUpload(false);
+            cancelRequestedRef.current = false;
+
+            if (finalizedBatch.status === 'completed') {
+                setPhase('complete');
+                setProgress((current) => ({ ...current, status: 'Completed', currentItem: '' }));
+                onResumeCleared?.();
+                return;
+            }
+
+            setPhase(finalizedBatch.status === 'interrupted' ? 'interrupted' : 'failed');
+            setErrorMessage(
+                finalizedBatch.status === 'interrupted'
+                    ? wasCancelled
+                        ? 'Upload stopped. The batch state has been preserved and you can resume from the remaining files.'
+                        : 'Some files still need to be uploaded. The batch state has been preserved and you can resume from the remaining files.'
+                    : 'The batch could not be finalized. Review the selected folder and try again.',
+            );
+        } catch (error) {
+            setIsCancellingUpload(false);
+            currentUploadControllerRef.current = null;
+            cancelRequestedRef.current = false;
+            setPhase('failed');
+            setErrorMessage(error instanceof Error ? error.message : 'Legacy upload failed. Please try again.');
+        }
+    };
+
+    const handleCancelUpload = () => {
+        cancelRequestedRef.current = true;
+        setIsCancellingUpload(true);
+        setProgress((current) => ({
+            ...current,
+            status: 'Stopping upload',
+            currentItem: 'Waiting for the current request to stop safely...',
+        }));
+        currentUploadControllerRef.current?.abort();
+    };
+
+    const showBrowser = () => {
+        if (activeBatch?.tree) {
+            setViewingBatch(activeBatch);
+            return;
+        }
+
+        if (previewBatch) {
+            setViewingBatch(previewBatch);
+        }
+    };
 
     return (
         <>
             <div className="space-y-6">
-                {/* ── 1. Info Banner ── */}
-                <InfoBanner />
+                <WorkflowSteps phase={phase} />
 
-                {/* ── Main upload area ───────────────────────────────────── */}
-                {!isComplete && !isError && (
-                    <div className="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-6">
-                        {/* Left: dropzone or summary or progress */}
+                {resumeBatch && phase === 'empty' && <ResumeNotice batch={resumeBatch} />}
+
+                {(phase === 'empty' || phase === 'selected' || phase === 'uploading') && (
+                    <div className="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_360px]">
                         <div className="space-y-4">
-                            {!isUploading && (
-                                <>
-                                    {phase === 'empty' ? (
-                                        /* ── 2. Dropzone ── */
-                                        <FolderDropzone
-                                            isDragging={isDragging}
-                                            onDragOver={handleDragOver}
-                                            onDragLeave={() => setIsDragging(false)}
-                                            onDrop={handleDrop}
-                                            onSelectFolder={() => folderInputRef.current?.click()}
-                                            folderInputRef={folderInputRef}
-                                            onFolderInput={handleFolderInput}
-                                        />
-                                    ) : folderSummary ? (
-                                        /* ── 4. Summary Card ── */
-                                        <FolderSummaryCard
-                                            summary={folderSummary}
-                                            onRemove={handleReset}
-                                            onReplace={() => folderInputRef.current?.click()}
-                                            onViewFull={() => { /* future: open tree modal */ }}
-                                        />
-                                    ) : null}
-
-                                    {/* Hidden input re-used for Replace */}
-                                    <input
-                                        ref={folderInputRef}
-                                        type="file"
-                                        // @ts-expect-error — webkitdirectory not in standard typings
-                                        webkitdirectory=""
-                                        multiple
-                                        className="sr-only"
-                                        onChange={handleFolderInput}
-                                    />
-                                </>
-                            )}
-
-                            {/* ── 5. Progress Section ── */}
-                            {isUploading && (
-                                <UploadProgressSection
-                                    progress={progress}
-                                    onCancel={handleCancel}
-                                    onRetry={() => startSimulatedUpload()}
+                            {phase === 'empty' && (
+                                <FolderDropzone
+                                    isDragging={isDragging}
+                                    onDragOver={(event) => {
+                                        event.preventDefault();
+                                        setIsDragging(true);
+                                    }}
+                                    onDragLeave={() => setIsDragging(false)}
+                                    onDrop={handleDrop}
+                                    onSelectFolder={() => folderInputRef.current?.click()}
+                                    isResumeMode={Boolean(resumeBatch)}
                                 />
                             )}
 
-                            {/* Upload button — only in selected phase */}
-                            {phase === 'selected' && folderSummary && (
-                                <button
-                                    type="button"
-                                    id="legacy-start-upload-btn"
-                                    onClick={startSimulatedUpload}
-                                    className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl shadow-sm transition-all active:scale-[.99]"
-                                >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                                    </svg>
-                                    Upload {folderSummary.fileCount.toLocaleString()} Files to Legacy Storage
-                                </button>
+                            {phase === 'selected' && folderSummary && preflight && (
+                                <>
+                                    <SelectedFolderPanel
+                                        summary={folderSummary}
+                                        onRemove={handleReset}
+                                        onReplace={() => folderInputRef.current?.click()}
+                                        onViewFull={showBrowser}
+                                    />
+                                    <PreflightPanel report={preflight} summary={folderSummary} rejectedFiles={rejectedFiles} />
+                                </>
                             )}
+
+                            {phase === 'uploading' && (
+                                <UploadProgressSection
+                                    progress={progress}
+                                    onCancel={handleCancelUpload}
+                                    onRetry={performUpload}
+                                    canRetry={activeBatch?.canResume ?? false}
+                                    isCancelling={isCancellingUpload}
+                                />
+                            )}
+
+                            {phase === 'selected' && folderSummary && (
+                                <div className="space-y-3">
+                                    {resumeRootMismatch && (
+                                        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                                            This folder root does not match the interrupted batch. Expected <span className="font-bold">{activeBatch?.rootFolder}</span>.
+                                        </div>
+                                    )}
+
+                                    {hasRejectedFiles && (
+                                        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                                            Remove the blocked files first. Legacy batches accept only {LEGACY_ALLOWED_FILE_LABEL} up to 50 MB per file.
+                                        </div>
+                                    )}
+
+                                    {!hasRejectedFiles && !hasUploadableFiles && (
+                                        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                                            No uploadable files were detected in this folder selection.
+                                        </div>
+                                    )}
+
+                                    <button
+                                        type="button"
+                                        onClick={performUpload}
+                                        disabled={!isUploadReady}
+                                        className={`w-full rounded-2xl px-6 py-4 text-sm font-bold shadow-sm transition-all ${
+                                            isUploadReady
+                                                ? 'bg-blue-600 text-white hover:bg-blue-700'
+                                                : 'cursor-not-allowed bg-surface-secondary text-text-muted'
+                                        }`}
+                                    >
+                                        {activeBatch?.canResume ? 'Resume Legacy Ingestion' : 'Start Legacy Ingestion'}
+                                    </button>
+                                </div>
+                            )}
+
+                            <input
+                                ref={folderInputRef}
+                                type="file"
+                                // @ts-expect-error webkitdirectory is supported by the browser even if it is not part of the standard typings yet
+                                webkitdirectory=""
+                                multiple
+                                accept={LEGACY_ALLOWED_FILE_ACCEPT}
+                                className="sr-only"
+                                onChange={handleFolderInput}
+                            />
                         </div>
 
-                        {/* Right: Metadata panel */}
-                        {!isUploading && (
-                            /* ── 3. Metadata Panel ── */
-                            <MetadataPanel meta={meta} onChange={setMeta} />
-                        )}
+                        {phase !== 'uploading' && <MetadataPanel meta={meta} onChange={setMeta} />}
                     </div>
                 )}
 
-                {/* ── 6. Success State ── */}
-                {isComplete && folderSummary && completedAt && (
+                {phase === 'complete' && activeBatch && (
                     <SuccessState
-                        summary={folderSummary}
-                        meta={meta}
-                        completedAt={completedAt}
-                        onViewFolder={() => { /* future: navigate to legacy folder view */ }}
+                        batch={activeBatch}
+                        onViewFolder={showBrowser}
+                        onOpenBatches={() => {
+                            onResumeCleared?.();
+                            onOpenBatches?.();
+                        }}
                         onUploadAnother={handleReset}
                     />
                 )}
 
-                {/* ── 7. Error / Partial Success ── */}
-                {isError && (
+                {(phase === 'interrupted' || phase === 'failed') && (
                     <ErrorState
-                        uploaded={phase === 'partial' ? (folderSummary?.fileCount ?? 0) - 12 : 0}
-                        failed={12}
-                        isPartial={phase === 'partial'}
-                        onRetry={() => startSimulatedUpload()}
+                        batch={activeBatch}
+                        message={errorMessage}
+                        onRetry={performUpload}
                         onStartNew={handleReset}
                     />
                 )}
-
-                {/* ── 8. Upload History ── */}
-                <div className="pt-4 border-t border-border">
-                    <UploadHistoryTable
-                        rows={MOCK_BATCHES}
-                        onView={batch => setViewingBatch(batch)}
-                    />
-                </div>
             </div>
 
-            {/* ── Folder Browser Slide-Over ── */}
             {viewingBatch && (
                 <>
-                    {/* Backdrop */}
-                    <div
-                        className="fixed inset-0 bg-black/40 z-40"
-                        onClick={() => setViewingBatch(null)}
-                    />
-                    {/* Panel */}
-                    <div className="fixed inset-y-0 right-0 z-50 flex flex-col w-full max-w-5xl bg-surface shadow-2xl border-l border-border">
-                        <LegacyFolderBrowserPanel
-                            batch={viewingBatch}
-                            onClose={() => setViewingBatch(null)}
-                        />
+                    <div className="fixed inset-0 z-40 bg-black/40" onClick={() => setViewingBatch(null)} />
+                    <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-5xl flex-col border-l border-border bg-surface shadow-2xl">
+                        <LegacyFolderBrowserPanel batch={viewingBatch} onClose={() => setViewingBatch(null)} />
                     </div>
                 </>
             )}
+
         </>
     );
 };

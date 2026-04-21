@@ -46,6 +46,7 @@ test('creating an import transaction generates a created audit log', function ()
         ->postJson('/api/import-transactions', [
             'customs_ref_no' => 'REF-AUDIT-001',
             'bl_no' => 'BL-AUDIT-001',
+            'vessel_name' => 'MV AUDIT TEST',
             'selective_color' => 'green',
             'importer_id' => $client->id,
             'arrival_date' => '2026-03-01',
@@ -72,6 +73,7 @@ test('cancelling a transaction generates an updated audit log with old and new s
         ->postJson('/api/import-transactions', [
             'customs_ref_no' => 'REF-CANCEL-001',
             'bl_no' => 'BL-CANCEL-001',
+            'vessel_name' => 'MV CANCEL TEST',
             'selective_color' => 'green',
             'importer_id' => $client->id,
             'arrival_date' => '2026-03-01',
@@ -103,6 +105,7 @@ test('deleting a transaction generates a deleted audit log', function () {
         ->postJson('/api/import-transactions', [
             'customs_ref_no' => 'REF-DELETE-001',
             'bl_no' => 'BL-DELETE-001',
+            'vessel_name' => 'MV DELETE TEST',
             'selective_color' => 'green',
             'importer_id' => $client->id,
             'arrival_date' => '2026-03-01',
@@ -172,6 +175,7 @@ test('audit logs can be filtered by auditable type', function () {
         ->postJson('/api/import-transactions', [
             'customs_ref_no' => 'REF-FILTER-001',
             'bl_no' => 'BL-FILTER-001',
+            'vessel_name' => 'MV FILTER TEST',
             'selective_color' => 'green',
             'importer_id' => $client->id,
             'arrival_date' => '2026-03-01',
@@ -197,6 +201,7 @@ test('audit logs can be filtered by event type', function () {
         ->postJson('/api/import-transactions', [
             'customs_ref_no' => 'REF-EVENT-001',
             'bl_no' => 'BL-EVENT-001',
+            'vessel_name' => 'MV EVENT TEST',
             'selective_color' => 'green',
             'importer_id' => $client->id,
             'arrival_date' => '2026-03-01',
@@ -221,6 +226,7 @@ test('audit logs include user information', function () {
         ->postJson('/api/import-transactions', [
             'customs_ref_no' => 'REF-USER-001',
             'bl_no' => 'BL-USER-001',
+            'vessel_name' => 'MV USER TEST',
             'selective_color' => 'green',
             'importer_id' => $client->id,
             'arrival_date' => '2026-03-01',

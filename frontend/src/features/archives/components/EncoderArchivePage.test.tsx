@@ -34,6 +34,14 @@ vi.mock('../../tracking/api/trackingApi', () => ({
     },
 }));
 
+vi.mock('./LegacyFolderUploadView', () => ({
+    LegacyFolderUploadView: () => <div>Legacy Folder Upload Workspace</div>,
+}));
+
+vi.mock('./LegacyBatchesPage', () => ({
+    LegacyBatchesPage: () => <div>Legacy Batches Workspace</div>,
+}));
+
 const createArchiveData = (clientName: string): ArchiveYear[] => ([
     {
         year: 2025,
@@ -101,5 +109,15 @@ describe('EncoderArchivePage', () => {
         await waitFor(() => {
             expect(screen.getByText('Updated Archive Client')).toBeInTheDocument();
         });
+    });
+
+    it('switches to the encoder legacy upload and legacy batches workspaces', () => {
+        render(<EncoderArchivePage />, { wrapper: createWrapper() });
+
+        fireEvent.click(screen.getByRole('button', { name: 'Legacy Folder Upload' }));
+        expect(screen.getByText('Legacy Folder Upload Workspace')).toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole('button', { name: 'Legacy Batches' }));
+        expect(screen.getByText('Legacy Batches Workspace')).toBeInTheDocument();
     });
 });

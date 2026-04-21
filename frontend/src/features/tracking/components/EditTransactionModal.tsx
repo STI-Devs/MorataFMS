@@ -52,7 +52,7 @@ export default function EditTransactionModal({ isOpen, onClose, type, transactio
                 const payload: CreateImportPayload = {
                     customs_ref_no: refNo.trim(),
                     bl_no: blNo.trim(),
-                    ...(vessel.trim() && { vessel_name: vessel.trim() }),
+                    vessel_name: vessel.trim(),
                     selective_color: blsc as 'green' | 'yellow' | 'orange' | 'red',
                     importer_id: Number(importerId),
                     ...(originCountryId && { origin_country_id: Number(originCountryId) }),
@@ -200,6 +200,7 @@ export default function EditTransactionModal({ isOpen, onClose, type, transactio
                                         <input
                                             id="edit-import-vessel-name"
                                             type="text"
+                                            required
                                             value={vessel}
                                             onChange={(event) => setVessel(event.target.value)}
                                             className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500/50"

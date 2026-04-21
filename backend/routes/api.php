@@ -9,6 +9,7 @@ use App\Http\Controllers\CountryController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\ExportTransactionController;
 use App\Http\Controllers\ImportTransactionController;
+use App\Http\Controllers\LegacyBatchController;
 use App\Http\Controllers\LocationOfGoodsController;
 use App\Http\Controllers\NotarialBookController;
 use App\Http\Controllers\NotarialEntryController;
@@ -74,6 +75,25 @@ Route::middleware(['auth:sanctum', 'active-session', 'throttle:api-general'])->g
         Route::patch('export/{exportTransaction}/stage-applicability', [ArchiveController::class, 'updateExportStageApplicability']);
         Route::delete('import/{importTransaction}', [ArchiveController::class, 'rollbackImport'])->middleware('throttle:archive-uploads');
         Route::delete('export/{exportTransaction}', [ArchiveController::class, 'rollbackExport'])->middleware('throttle:archive-uploads');
+    });
+
+    Route::prefix('legacy-batches')->group(function () {
+        Route::get('/', [LegacyBatchController::class, 'index'])
+            ->middleware('throttle:api-search');
+        Route::post('/', [LegacyBatchController::class, 'store'])
+            ->middleware('throttle:archive-uploads');
+        Route::get('{legacyBatch}', [LegacyBatchController::class, 'show'])
+            ->middleware('throttle:api-search');
+        Route::post('{legacyBatch}/files/sign', [LegacyBatchController::class, 'signUploads'])
+            ->middleware('throttle:archive-uploads');
+        Route::post('{legacyBatch}/files/complete', [LegacyBatchController::class, 'completeUploads'])
+            ->middleware('throttle:archive-uploads');
+        Route::post('{legacyBatch}/finalize', [LegacyBatchController::class, 'finalize'])
+            ->middleware('throttle:archive-uploads');
+        Route::delete('{legacyBatch}', [LegacyBatchController::class, 'destroy'])
+            ->middleware('throttle:archive-uploads');
+        Route::get('{legacyBatch}/files/{legacyBatchFile}/download', [LegacyBatchController::class, 'downloadFile'])
+            ->middleware('throttle:api-documents');
     });
 
     // Notarial (Law Firm) module

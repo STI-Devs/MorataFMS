@@ -27,6 +27,7 @@ export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type,
     const clientFieldId = `${type}-client`;
     const blFieldId = `${type}-bill-of-lading`;
     const vesselFieldId = `${type}-vessel`;
+    const originCountryFieldId = `${type}-origin-country`;
     const locationOfGoodsFieldId = `${type}-location-of-goods`;
     const destinationCountryFieldId = `${type}-destination-country`;
     const arrivalDateFieldId = `${type}-arrival-date`;
@@ -39,13 +40,15 @@ export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type,
     const [arrivalDate, setArrivalDate] = useState('');
     const [departureDate, setDepartureDate] = useState('');
     const [vessel, setVessel] = useState('');
+    const [originCountryId, setOriginCountryId] = useState<number | ''>('');
     const [locationOfGoodsId, setLocationOfGoodsId] = useState<number | ''>('');
     const [destinationCountryId, setDestinationCountryId] = useState<number | ''>('');
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const { data: clients = [], isLoading: loadingClients } = useClients(isImport ? 'importer' : 'exporter');
-    const { data: countries = [], isLoading: loadingCountries } = useCountries('export_destination', !isImport);
+    const { data: importCountries = [], isLoading: loadingImportCountries } = useCountries('import_origin', isImport);
+    const { data: exportCountries = [], isLoading: loadingExportCountries } = useCountries('export_destination', !isImport);
     const { data: locationsOfGoods = [], isLoading: loadingLocationsOfGoods } = useLocationsOfGoods(isImport);
 
     useEffect(() => {
@@ -65,6 +68,7 @@ export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type,
         setArrivalDate('');
         setDepartureDate('');
         setVessel('');
+        setOriginCountryId('');
         setLocationOfGoodsId('');
         setDestinationCountryId('');
         setError(null);
@@ -94,9 +98,10 @@ export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type,
                 await onSave({
                     customs_ref_no: ref,
                     bl_no: bl,
-                    ...(vessel.trim() && { vessel_name: vessel.trim() }),
+                    vessel_name: vessel.trim(),
                     selective_color: blsc as 'green' | 'yellow' | 'orange' | 'red',
                     importer_id: clientId as number,
+                    ...(originCountryId !== '' && { origin_country_id: originCountryId }),
                     ...(locationOfGoodsId !== '' && { location_of_goods_id: locationOfGoodsId }),
                     arrival_date: arrivalDate,
                 } satisfies CreateImportPayload);
@@ -237,9 +242,32 @@ export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type,
                                 placeholder="Enter Vessel Name"
                                 className={inputCls}
                                 onChange={(event) => setVessel(event.target.value)}
-                                required={!isImport}
+                                required
                             />
                         </div>
+
+                        {isImport && (
+                            <div className="space-y-2">
+                                <label htmlFor={originCountryFieldId} className={labelCls}>Origin</label>
+                                <div className="relative">
+                                    <select
+                                        id={originCountryFieldId}
+                                        value={originCountryId}
+                                        className={selectCls}
+                                        disabled={loadingImportCountries}
+                                        onChange={(event) => setOriginCountryId(event.target.value ? Number(event.target.value) : '')}
+                                    >
+                                        <option value="">
+                                            {loadingImportCountries ? 'Loading…' : 'Select Origin Country'}
+                                        </option>
+                                        {importCountries.map((country) => (
+                                            <option key={country.id} value={country.id}>{country.name}</option>
+                                        ))}
+                                    </select>
+                                    <Icon name="chevron-down" className="w-4 h-4 absolute right-4 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
+                                </div>
+                            </div>
+                        )}
 
                         {isImport && (
                             <div className="space-y-2">
@@ -287,13 +315,13 @@ export const EncodeModal: React.FC<EncodeModalProps> = ({ isOpen, onClose, type,
                                         required
                                         value={destinationCountryId}
                                         className={selectCls}
-                                        disabled={loadingCountries}
+                                        disabled={loadingExportCountries}
                                         onChange={(event) => setDestinationCountryId(event.target.value ? Number(event.target.value) : '')}
                                     >
                                         <option value="">
-                                            {loadingCountries ? 'Loading…' : 'Select Destination Country'}
+                                            {loadingExportCountries ? 'Loading…' : 'Select Destination Country'}
                                         </option>
-                                        {countries.map((country) => (
+                                        {exportCountries.map((country) => (
                                             <option key={country.id} value={country.id}>{country.name}</option>
                                         ))}
                                     </select>

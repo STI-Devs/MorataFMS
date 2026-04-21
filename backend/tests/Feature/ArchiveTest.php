@@ -485,6 +485,7 @@ test('regular import encoding still accepts future arrival_date (vessel ETA)', f
     $this->actingAs($user)->postJson('/api/import-transactions', [
         'customs_ref_no' => 'REF-ETA-001',
         'bl_no' => 'BL-ETA-001',
+        'vessel_name' => 'MV ETA TEST',
         'selective_color' => 'green',
         'importer_id' => $client->id,
         'arrival_date' => now()->addDays(10)->toDateString(),
@@ -538,6 +539,7 @@ test('regular import encoding does NOT set is_archive', function () {
     $this->actingAs($user)->postJson('/api/import-transactions', [
         'customs_ref_no' => 'REF-LIVE-001',
         'bl_no' => 'BL-LIVE-IMP-001',
+        'vessel_name' => 'MV LIVE TEST',
         'selective_color' => 'green',
         'importer_id' => $client->id,
         'arrival_date' => now()->addDays(5)->toDateString(),

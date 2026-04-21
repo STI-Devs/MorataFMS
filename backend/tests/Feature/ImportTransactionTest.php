@@ -353,6 +353,7 @@ test('operational roles cannot create import transactions', function (string $ro
         ->postJson('/api/import-transactions', [
             'customs_ref_no' => 'REF-OPERATIONS-001',
             'bl_no' => 'BL-OPERATIONS-001',
+            'vessel_name' => 'MV Operations',
             'selective_color' => 'green',
             'importer_id' => $client->id,
             'arrival_date' => '2025-06-15',
@@ -368,6 +369,7 @@ test('authenticated users can create import transactions without origin country'
         ->postJson('/api/import-transactions', [
             'customs_ref_no' => 'REF-2026-002',
             'bl_no' => 'BL-87654321',
+            'vessel_name' => 'MV Harbor Crest',
             'selective_color' => 'yellow',
             'importer_id' => $client->id,
             'arrival_date' => '2025-06-15',
@@ -385,6 +387,7 @@ test('creating an import transaction auto-creates stages', function () {
     $this->actingAs($user)->postJson('/api/import-transactions', [
         'customs_ref_no' => 'REF-STAGE-001',
         'bl_no' => 'BL-STAGE-001',
+        'vessel_name' => 'MV Stage Runner',
         'selective_color' => 'yellow',
         'importer_id' => $client->id,
         'arrival_date' => '2025-06-15',
@@ -408,6 +411,7 @@ test('creating import transaction fails without required fields', function () {
         ->assertJsonValidationErrors([
             'customs_ref_no',
             'bl_no',
+            'vessel_name',
             'selective_color',
             'importer_id',
             'arrival_date',
@@ -422,6 +426,7 @@ test('creating import transaction fails with invalid selective color', function 
         ->postJson('/api/import-transactions', [
             'customs_ref_no' => 'REF-001',
             'bl_no' => 'BL-001',
+            'vessel_name' => 'MV Validation',
             'selective_color' => 'purple',
             'importer_id' => $client->id,
             'arrival_date' => '2025-06-15',
@@ -439,6 +444,7 @@ test('creating import transaction accepts orange selective color', function () {
         ->postJson('/api/import-transactions', [
             'customs_ref_no' => 'REF-ORANGE-001',
             'bl_no' => 'BL-ORANGE-001',
+            'vessel_name' => 'MV Orange Dawn',
             'selective_color' => 'orange',
             'importer_id' => $client->id,
             'arrival_date' => '2025-06-15',
@@ -454,6 +460,7 @@ test('creating import transaction fails with non-existent importer', function ()
         ->postJson('/api/import-transactions', [
             'customs_ref_no' => 'REF-001',
             'bl_no' => 'BL-001',
+            'vessel_name' => 'MV Missing Importer',
             'selective_color' => 'green',
             'importer_id' => 99999,
             'arrival_date' => '2025-06-15',
@@ -471,6 +478,7 @@ test('creating import transaction fails with non-existent origin country', funct
         ->postJson('/api/import-transactions', [
             'customs_ref_no' => 'REF-001',
             'bl_no' => 'BL-001',
+            'vessel_name' => 'MV Missing Origin',
             'selective_color' => 'green',
             'importer_id' => $client->id,
             'origin_country_id' => 99999,
@@ -489,6 +497,7 @@ test('creating import transaction fails with non-existent location of goods', fu
         ->postJson('/api/import-transactions', [
             'customs_ref_no' => 'REF-001',
             'bl_no' => 'BL-001',
+            'vessel_name' => 'MV Missing Location',
             'selective_color' => 'green',
             'importer_id' => $client->id,
             'location_of_goods_id' => 99999,
@@ -511,6 +520,7 @@ test('creating import transaction fails with duplicate customs reference number'
         ->postJson('/api/import-transactions', [
             'customs_ref_no' => 'REF-DUP-001',
             'bl_no' => 'BL-UNIQUE-001',
+            'vessel_name' => 'MV Duplicate Finder',
             'selective_color' => 'green',
             'importer_id' => $client->id,
             'arrival_date' => '2025-06-15',
@@ -530,6 +540,7 @@ test('mass assignment of status is ignored on create', function () {
         ->postJson('/api/import-transactions', [
             'customs_ref_no' => 'REF-HACK-001',
             'bl_no' => 'BL-HACK-001',
+            'vessel_name' => 'MV Status Spoof',
             'selective_color' => 'green',
             'importer_id' => $client->id,
             'arrival_date' => '2025-06-15',
@@ -549,6 +560,7 @@ test('mass assignment of assigned_user_id is ignored on create', function () {
         ->postJson('/api/import-transactions', [
             'customs_ref_no' => 'REF-HACK-002',
             'bl_no' => 'BL-HACK-002',
+            'vessel_name' => 'MV Assignment Spoof',
             'selective_color' => 'green',
             'importer_id' => $client->id,
             'arrival_date' => '2025-06-15',
@@ -559,6 +571,23 @@ test('mass assignment of assigned_user_id is ignored on create', function () {
 
     $transaction = ImportTransaction::where('customs_ref_no', 'REF-HACK-002')->first();
     expect($transaction->assigned_user_id)->toBe($user->id); // Server uses authenticated user
+});
+
+test('creating import transaction fails without vessel name', function () {
+    $user = User::factory()->create();
+    $client = Client::factory()->importer()->create();
+
+    $response = $this->actingAs($user)
+        ->postJson('/api/import-transactions', [
+            'customs_ref_no' => 'REF-NO-VESSEL-001',
+            'bl_no' => 'BL-NO-VESSEL-001',
+            'selective_color' => 'green',
+            'importer_id' => $client->id,
+            'arrival_date' => '2025-06-15',
+        ]);
+
+    $response->assertUnprocessable()
+        ->assertJsonValidationErrors(['vessel_name']);
 });
 
 // --- Update ---
@@ -612,6 +641,7 @@ test('operational roles cannot update assigned import transactions', function (s
         ->putJson("/api/import-transactions/{$transaction->id}", [
             'customs_ref_no' => 'REF-OPERATIONS-UPDATED',
             'bl_no' => 'BL-OPERATIONS-UPDATED',
+            'vessel_name' => 'MV Restricted',
             'selective_color' => 'red',
             'importer_id' => $client->id,
             'arrival_date' => '2025-06-20',
@@ -629,6 +659,7 @@ test('other users cannot update an import transaction', function () {
         ->putJson("/api/import-transactions/{$transaction->id}", [
             'customs_ref_no' => 'REF-UPDATED',
             'bl_no' => 'BL-UPDATED',
+            'vessel_name' => 'MV Updated',
             'selective_color' => 'red',
             'importer_id' => $client->id,
             'arrival_date' => '2025-06-20',
@@ -647,6 +678,7 @@ test('admins can update any import transaction', function () {
         ->putJson("/api/import-transactions/{$transaction->id}", [
             'customs_ref_no' => 'REF-ADMIN-UPDATE',
             'bl_no' => 'BL-UPDATED',
+            'vessel_name' => 'MV Admin',
             'selective_color' => 'red',
             'importer_id' => $client->id,
             'arrival_date' => '2025-06-20',
@@ -664,6 +696,7 @@ test('updating an import transaction ignores mass assignment of status', functio
         ->putJson("/api/import-transactions/{$transaction->id}", [
             'customs_ref_no' => 'REF-UPDATED',
             'bl_no' => 'BL-UPDATED',
+            'vessel_name' => 'MV Updated',
             'selective_color' => 'red',
             'importer_id' => $client->id,
             'arrival_date' => '2025-06-20',
@@ -688,12 +721,31 @@ test('can update using same bl_no (unique validation ignores self)', function ()
         ->putJson("/api/import-transactions/{$transaction->id}", [
             'customs_ref_no' => 'REF-UPDATED',
             'bl_no' => 'BL-ORIGINAL', // keeping it the same
+            'vessel_name' => 'MV Original',
             'selective_color' => 'red',
             'importer_id' => $client->id,
             'arrival_date' => '2025-06-20',
         ]);
 
     $response->assertOk();
+});
+
+test('updating an import transaction fails without vessel name', function () {
+    $user = User::factory()->create(['role' => 'encoder']);
+    $client = Client::factory()->importer()->create();
+    $transaction = ImportTransaction::factory()->create(['assigned_user_id' => $user->id]);
+
+    $response = $this->actingAs($user)
+        ->putJson("/api/import-transactions/{$transaction->id}", [
+            'customs_ref_no' => 'REF-NO-VESSEL-UPDATE',
+            'bl_no' => 'BL-NO-VESSEL-UPDATE',
+            'selective_color' => 'red',
+            'importer_id' => $client->id,
+            'arrival_date' => '2025-06-20',
+        ]);
+
+    $response->assertUnprocessable()
+        ->assertJsonValidationErrors(['vessel_name']);
 });
 
 test('marking an optional import stage as not applicable does not advance the live status', function (

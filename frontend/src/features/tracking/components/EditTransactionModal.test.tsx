@@ -85,6 +85,7 @@ describe('EditTransactionModal', () => {
         );
 
         expect(screen.getByLabelText(/selective color/i)).not.toBeDisabled();
+        expect(screen.getByLabelText(/vessel name/i)).toBeRequired();
 
         fireEvent.change(screen.getByLabelText(/selective color/i), { target: { value: 'red' } });
         fireEvent.change(screen.getByLabelText(/vessel name/i), { target: { value: 'MV New Vessel' } });
