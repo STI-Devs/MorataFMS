@@ -4,6 +4,11 @@ import type { FileNode, LegacyBatch } from '../types/legacyBatch.types';
 
 export type { FileNode, LegacyBatch } from '../types/legacyBatch.types';
 
+const legacyFolderCollator = new Intl.Collator('en', {
+    numeric: true,
+    sensitivity: 'base',
+});
+
 const countItems = (node: FileNode): { folders: number; files: number } => {
     if (node.type === 'file') {
         return { folders: 0, files: 1 };
@@ -24,6 +29,15 @@ const countItems = (node: FileNode): { folders: number; files: number } => {
 
     return { folders, files };
 };
+
+const sortLegacyNodesByName = (nodes: FileNode[]): FileNode[] =>
+    [...nodes].sort((left, right) => {
+        if (left.type !== right.type) {
+            return left.type === 'folder' ? -1 : 1;
+        }
+
+        return legacyFolderCollator.compare(left.name, right.name);
+    });
 
 const FolderIcon = ({ className }: { className?: string }) => (
     <svg className={className} fill="currentColor" viewBox="0 0 20 20">
@@ -110,7 +124,7 @@ const TreeNode = ({ node, depth, selectedPath, onSelectFolder, parentPath = '' }
 
             {open && hasChildren && (
                 <div>
-                    {(node.children ?? [])
+                    {sortLegacyNodesByName(node.children ?? [])
                         .filter((child) => child.type === 'folder')
                         .map((child) => (
                             <TreeNode
@@ -253,7 +267,7 @@ export const LegacyFolderBrowserPanel = ({ batch, onClose }: LegacyFolderBrowser
             return [];
         }
 
-        const children = currentNode.children ?? [];
+        const children = sortLegacyNodesByName(currentNode.children ?? []);
 
         if (!search.trim()) {
             return children;
@@ -323,7 +337,7 @@ export const LegacyFolderBrowserPanel = ({ batch, onClose }: LegacyFolderBrowser
             </div>
 
             <div className="flex min-h-0 flex-1">
-                <div className="w-64 shrink-0 overflow-y-auto border-r border-border bg-surface-secondary">
+                <div aria-label="Folder tree" className="w-64 shrink-0 overflow-y-auto border-r border-border bg-surface-secondary">
                     <div className="border-b border-border px-3 py-3">
                         <p className="text-[10px] font-black uppercase tracking-widest text-text-muted">Folder Tree</p>
                     </div>
@@ -373,7 +387,7 @@ export const LegacyFolderBrowserPanel = ({ batch, onClose }: LegacyFolderBrowser
                         <span className="w-16 shrink-0" />
                     </div>
 
-                    <div className="flex-1 overflow-y-auto bg-surface">
+                    <div aria-label="Folder contents" className="flex-1 overflow-y-auto bg-surface">
                         {!currentNode ? (
                             <div className="py-12 text-center">
                                 <p className="text-sm font-semibold text-text-secondary">No folder is selected.</p>

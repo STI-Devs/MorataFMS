@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { LegacyFolderBrowserPanel } from './LegacyFolderBrowserPanel';
 
@@ -82,5 +82,64 @@ describe('LegacyFolderBrowserPanel', () => {
         expect(screen.getByText(/preserve names/i)).toBeInTheDocument();
         expect(screen.queryByText(/legacy reference/i)).not.toBeInTheDocument();
         expect(screen.getByText(/folder tree/i)).toBeInTheDocument();
+    });
+
+    it('sorts folders and files using natural naming order', () => {
+        const sortingBatch = {
+            ...batch,
+            tree: {
+                name: 'OJT Files',
+                type: 'folder' as const,
+                children: [
+                    {
+                        name: 'Week 10',
+                        type: 'folder' as const,
+                        children: [],
+                    },
+                    {
+                        name: 'Week 2',
+                        type: 'folder' as const,
+                        children: [],
+                    },
+                    {
+                        id: 'legacy-file-2',
+                        name: 'Week 10 Summary.pdf',
+                        type: 'file' as const,
+                        size: '120 KB',
+                        modified: 'Apr 10, 2025',
+                        status: 'uploaded' as const,
+                    },
+                    {
+                        id: 'legacy-file-3',
+                        name: 'Week 2 Summary.pdf',
+                        type: 'file' as const,
+                        size: '120 KB',
+                        modified: 'Apr 10, 2025',
+                        status: 'uploaded' as const,
+                    },
+                ],
+            },
+            rootFolder: 'OJT Files',
+        };
+
+        render(<LegacyFolderBrowserPanel batch={sortingBatch} onClose={() => {}} />);
+
+        const folderContents = screen.getByLabelText('Folder contents');
+        const contentText = within(folderContents).getAllByText(/Week (2|10)( Summary\.pdf)?$/).map((node) => node.textContent);
+
+        expect(contentText).toEqual([
+            'Week 2',
+            'Week 10',
+            'Week 2 Summary.pdf',
+            'Week 10 Summary.pdf',
+        ]);
+
+        const folderTree = screen.getByLabelText('Folder tree');
+        const treeFolderText = within(folderTree).getAllByText(/^Week (2|10)$/).map((node) => node.textContent);
+
+        expect(treeFolderText).toEqual([
+            'Week 2',
+            'Week 10',
+        ]);
     });
 });
