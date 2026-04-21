@@ -28,6 +28,8 @@ const batch = {
     canResume: false,
     metadata: {
         year: '2025',
+        yearFrom: '2025',
+        yearTo: '2025',
         department: 'Brokerage',
         notes: 'Historical vessel archive preserved for broker lookup and old records retrieval.',
         preserveNames: true,

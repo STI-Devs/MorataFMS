@@ -10,6 +10,8 @@ export interface FileNode {
 
 export interface LegacyBatchMetadata {
     year: string;
+    yearFrom: string;
+    yearTo: string;
     department: string;
     notes: string;
     preserveNames: boolean;
@@ -75,7 +77,8 @@ export interface LegacyBatchManifestFile {
 export interface CreateLegacyBatchPayload {
     batchName: string;
     rootFolder: string;
-    year: string;
+    yearFrom: string;
+    yearTo: string;
     department: string;
     notes?: string;
     expectedFileCount?: number;

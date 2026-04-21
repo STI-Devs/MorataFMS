@@ -25,7 +25,9 @@ type LegacyBatchApiResource = {
         name: string;
     };
     metadata: {
-        year: number;
+        year: string;
+        year_from: number;
+        year_to: number;
         department: string;
         notes: string | null;
         preserve_names: boolean;
@@ -100,7 +102,9 @@ const mapSummary = (resource: LegacyBatchApiResource): LegacyBatchSummary => ({
     totalSize: formatBytes(resource.total_size_bytes),
     totalSizeBytes: resource.total_size_bytes,
     metadata: {
-        year: String(resource.metadata.year),
+        year: resource.metadata.year,
+        yearFrom: String(resource.metadata.year_from),
+        yearTo: String(resource.metadata.year_to),
         department: resource.metadata.department,
         notes: resource.metadata.notes ?? '',
         preserveNames: resource.metadata.preserve_names,
@@ -156,7 +160,8 @@ export const legacyBatchApi = {
         const response = await api.post<{ data: LegacyBatchDetailApiResource }>('/api/legacy-batches', {
             batch_name: payload.batchName,
             root_folder: payload.rootFolder,
-            year: Number(payload.year),
+            year_from: Number(payload.yearFrom),
+            year_to: Number(payload.yearTo),
             department: payload.department,
             notes: payload.notes || null,
             expected_file_count: payload.expectedFileCount,

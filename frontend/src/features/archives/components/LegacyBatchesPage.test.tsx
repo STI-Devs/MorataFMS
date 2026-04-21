@@ -47,6 +47,8 @@ const batchSummary = {
     totalSizeBytes: 420 * 1024 * 1024,
     metadata: {
         year: '2025',
+        yearFrom: '2025',
+        yearTo: '2025',
         department: 'Brokerage',
         notes: 'Preserved vessel archive batch.',
         preserveNames: true,

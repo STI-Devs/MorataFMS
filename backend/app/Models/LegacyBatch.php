@@ -21,6 +21,8 @@ class LegacyBatch extends Model
         'batch_name',
         'root_folder',
         'year',
+        'year_from',
+        'year_to',
         'department',
         'notes',
         'status',
@@ -39,6 +41,8 @@ class LegacyBatch extends Model
     {
         return [
             'year' => 'integer',
+            'year_from' => 'integer',
+            'year_to' => 'integer',
             'expected_file_count' => 'integer',
             'uploaded_file_count' => 'integer',
             'failed_file_count' => 'integer',
@@ -100,5 +104,27 @@ class LegacyBatch extends Model
     public function pendingFileCount(): int
     {
         return max($this->expected_file_count - $this->uploaded_file_count, 0);
+    }
+
+    public function effectiveYearFrom(): int
+    {
+        return (int) ($this->year_from ?? $this->year);
+    }
+
+    public function effectiveYearTo(): int
+    {
+        return (int) ($this->year_to ?? $this->year);
+    }
+
+    public function coverageYearLabel(): string
+    {
+        $yearFrom = $this->effectiveYearFrom();
+        $yearTo = $this->effectiveYearTo();
+
+        if ($yearFrom === $yearTo) {
+            return (string) $yearFrom;
+        }
+
+        return "{$yearFrom} - {$yearTo}";
     }
 }

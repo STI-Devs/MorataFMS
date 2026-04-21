@@ -52,6 +52,8 @@ const buildBatch = (overrides: Record<string, unknown> = {}) => ({
     totalSizeBytes: 6,
     metadata: {
         year: '2026',
+        yearFrom: '2026',
+        yearTo: '2026',
         department: 'Brokerage',
         notes: '',
         preserveNames: true,
@@ -140,6 +142,8 @@ describe('LegacyFolderUploadView', () => {
         expect(screen.getByText('Vessel-based legacy archive detected')).toBeInTheDocument();
         expect(screen.getByLabelText('Batch Name')).toHaveValue('');
         expect(screen.getByLabelText('Year')).toHaveValue('');
+        expect(screen.queryByLabelText('To Year')).not.toBeInTheDocument();
+        expect(screen.getByLabelText('This batch spans multiple years')).not.toBeChecked();
         expect(screen.getByLabelText('Department')).toHaveValue('');
         expect(screen.getByRole('button', { name: /start legacy ingestion/i })).toBeDisabled();
     });
@@ -240,6 +244,30 @@ describe('LegacyFolderUploadView', () => {
         });
 
         expect(screen.getByRole('button', { name: /start legacy ingestion/i })).toBeEnabled();
+    });
+
+    it('reveals range years only when multi-year coverage is enabled', () => {
+        const { container } = render(<LegacyFolderUploadView />);
+        const folderInput = container.querySelector('input[type="file"]');
+
+        fireEvent.change(folderInput!, {
+            target: {
+                files: [buildFolderFile('VESSEL 1/KOTA HAKIM/IMPORT ENTRY.pdf')],
+            },
+        });
+
+        expect(screen.getByLabelText('Year')).toBeInTheDocument();
+        expect(screen.queryByLabelText('To Year')).not.toBeInTheDocument();
+
+        fireEvent.click(screen.getByLabelText('This batch spans multiple years'));
+
+        expect(screen.getByLabelText('From Year')).toBeInTheDocument();
+        expect(screen.getByLabelText('To Year')).toBeInTheDocument();
+
+        fireEvent.click(screen.getByLabelText('This batch spans multiple years'));
+
+        expect(screen.getByLabelText('Year')).toBeInTheDocument();
+        expect(screen.queryByLabelText('To Year')).not.toBeInTheDocument();
     });
 
     it('shows a large-batch warning when the selected root folder contains many files', () => {
@@ -521,7 +549,8 @@ describe('LegacyFolderUploadView', () => {
         expect(screen.getByText(/select the same root folder again so the interrupted batch can continue/i)).toBeInTheDocument();
         expect(screen.getByText('VESSEL 1')).toBeInTheDocument();
         expect(screen.getByDisplayValue('VESSEL 1 Interrupted')).toBeInTheDocument();
-        expect(screen.getByDisplayValue('2026')).toBeInTheDocument();
+        expect(screen.getByLabelText('Year')).toHaveValue('2026');
+        expect(screen.getByLabelText('This batch spans multiple years')).not.toBeChecked();
         expect(screen.getByDisplayValue('Brokerage')).toBeInTheDocument();
         expect(screen.getByText('Remaining Files')).toBeInTheDocument();
     });

@@ -19,7 +19,9 @@ interface FolderSummary {
 
 interface BatchMeta {
     batchName: string;
-    year: string;
+    yearFrom: string;
+    yearTo: string;
+    useYearRange: boolean;
     department: string;
     notes: string;
 }
@@ -52,7 +54,9 @@ interface RejectedLegacyFile {
 
 const DEFAULT_META: BatchMeta = {
     batchName: '',
-    year: '',
+    yearFrom: '',
+    yearTo: '',
+    useYearRange: false,
     department: '',
     notes: '',
 };
@@ -64,6 +68,19 @@ const LEGACY_ALLOWED_FILE_LABEL = 'PDF, Word, Excel (including XLSM), CSV, TXT, 
 const LEGACY_MANIFEST_CHUNK_SIZE = 250;
 const LEGACY_SIGNED_UPLOAD_CHUNK_SIZE = 10;
 const LEGACY_LARGE_BATCH_WARNING_FILE_COUNT = 1000;
+const LEGACY_MIN_YEAR = 2000;
+const LEGACY_YEAR_OPTIONS = Array.from(
+    { length: new Date().getFullYear() - LEGACY_MIN_YEAR + 1 },
+    (_, index) => String(new Date().getFullYear() - index),
+);
+
+const buildCoverageYearLabel = (yearFrom: string, yearTo: string): string => {
+    if (!yearFrom || !yearTo) {
+        return '';
+    }
+
+    return yearFrom === yearTo ? yearFrom : `${yearFrom} - ${yearTo}`;
+};
 
 const semanticToneClasses = {
     info: 'border-blue-200 bg-blue-50/80 text-blue-700 dark:border-blue-900/80 dark:bg-blue-950/30 dark:text-blue-200',
@@ -170,8 +187,12 @@ const getMissingMetadataFields = (meta: BatchMeta): string[] => {
         missing.push('Batch name');
     }
 
-    if (!meta.year.trim()) {
-        missing.push('Year');
+    if (!meta.yearFrom.trim()) {
+        missing.push(meta.useYearRange ? 'From year' : 'Year');
+    }
+
+    if (meta.useYearRange && !meta.yearTo.trim()) {
+        missing.push('To year');
     }
 
     if (!meta.department.trim()) {
@@ -450,20 +471,81 @@ const MetadataPanel = ({
                 />
             </label>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-                <label className="block">
-                    <span className="mb-1.5 block text-[11px] font-black uppercase tracking-widest text-text-muted">
-                        <RequiredLabel>Year</RequiredLabel>
-                    </span>
+            <div className="space-y-3">
+                <label className="inline-flex items-center gap-3 text-sm text-text-primary">
                     <input
-                        aria-label="Year"
-                        value={meta.year}
-                        onChange={(event) => onChange((current) => ({ ...current, year: event.target.value }))}
-                        placeholder="Enter year"
-                        className="w-full rounded-xl border border-border-strong bg-input-bg px-4 py-3 text-sm text-text-primary outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
+                        type="checkbox"
+                        aria-label="This batch spans multiple years"
+                        checked={meta.useYearRange}
+                        onChange={(event) => onChange((current) => ({
+                            ...current,
+                            useYearRange: event.target.checked,
+                            yearTo: event.target.checked ? (current.yearTo || current.yearFrom) : current.yearFrom,
+                        }))}
+                        className="h-4 w-4 rounded border-border-strong text-blue-600 focus:ring-blue-500"
                     />
+                    <span>
+                        <span className="font-bold text-text-primary">Spans multiple years</span>
+                        <span className="ml-2 text-text-muted">Use only when this root folder covers more than one filing year.</span>
+                    </span>
                 </label>
 
+                <div className={`grid gap-4 ${meta.useYearRange ? 'sm:grid-cols-2' : 'sm:grid-cols-1'}`}>
+                    <label className="block">
+                        <span className="mb-1.5 block text-[11px] font-black uppercase tracking-widest text-text-muted">
+                            <RequiredLabel>{meta.useYearRange ? 'From Year' : 'Year'}</RequiredLabel>
+                        </span>
+                        <select
+                            aria-label={meta.useYearRange ? 'From Year' : 'Year'}
+                            value={meta.yearFrom}
+                            onChange={(event) => {
+                                const nextYearFrom = event.target.value;
+
+                                onChange((current) => ({
+                                    ...current,
+                                    yearFrom: nextYearFrom,
+                                    yearTo: current.useYearRange && current.yearTo && nextYearFrom && Number(current.yearTo) < Number(nextYearFrom)
+                                        ? nextYearFrom
+                                        : current.useYearRange
+                                            ? current.yearTo
+                                            : nextYearFrom,
+                                }));
+                            }}
+                            className="w-full rounded-xl border border-border-strong bg-input-bg px-4 py-3 text-sm text-text-primary outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
+                        >
+                            <option value="">{meta.useYearRange ? 'Select start year' : 'Select year'}</option>
+                            {LEGACY_YEAR_OPTIONS.map((yearOption) => (
+                                <option key={yearOption} value={yearOption}>
+                                    {yearOption}
+                                </option>
+                            ))}
+                        </select>
+                    </label>
+
+                    {meta.useYearRange && (
+                        <label className="block">
+                            <span className="mb-1.5 block text-[11px] font-black uppercase tracking-widest text-text-muted">
+                                <RequiredLabel>To Year</RequiredLabel>
+                            </span>
+                            <select
+                                aria-label="To Year"
+                                value={meta.yearTo}
+                                onChange={(event) => onChange((current) => ({ ...current, yearTo: event.target.value }))}
+                                className="w-full rounded-xl border border-border-strong bg-input-bg px-4 py-3 text-sm text-text-primary outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
+                            >
+                                <option value="">Select end year</option>
+                                {LEGACY_YEAR_OPTIONS.filter((yearOption) => !meta.yearFrom || Number(yearOption) >= Number(meta.yearFrom)).map((yearOption) => (
+                                    <option key={yearOption} value={yearOption}>
+                                        {yearOption}
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
+                    )}
+                </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
                 <label className="block">
                     <span className="mb-1.5 block text-[11px] font-black uppercase tracking-widest text-text-muted">
                         <RequiredLabel>Department</RequiredLabel>
@@ -988,7 +1070,9 @@ export const LegacyFolderUploadView = ({
         setActiveBatch(resumeBatch);
         setMeta({
             batchName: resumeBatch.batchName,
-            year: resumeBatch.metadata.year,
+            yearFrom: resumeBatch.metadata.yearFrom,
+            yearTo: resumeBatch.metadata.yearTo,
+            useYearRange: resumeBatch.metadata.yearFrom !== resumeBatch.metadata.yearTo,
             department: resumeBatch.metadata.department,
             notes: resumeBatch.metadata.notes,
         });
@@ -1010,7 +1094,9 @@ export const LegacyFolderUploadView = ({
         }
 
         const metadata: LegacyBatchMetadata = {
-            year: meta.year,
+            year: buildCoverageYearLabel(meta.yearFrom, meta.yearTo),
+            yearFrom: meta.yearFrom,
+            yearTo: meta.yearTo,
             department: meta.department,
             notes: meta.notes,
             preserveNames: true,
@@ -1161,7 +1247,8 @@ export const LegacyFolderUploadView = ({
                 batch = await createBatch.mutateAsync({
                     batchName: meta.batchName,
                     rootFolder: folderSummary.rootName,
-                    year: meta.year,
+                    yearFrom: meta.yearFrom,
+                    yearTo: meta.yearTo,
                     department: meta.department,
                     notes: meta.notes,
                     expectedFileCount: folderSummary.fileCount,

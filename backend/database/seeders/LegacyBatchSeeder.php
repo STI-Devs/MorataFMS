@@ -60,6 +60,8 @@ class LegacyBatchSeeder extends Seeder
             [
                 'uuid' => (string) Str::uuid(),
                 'year' => 2025,
+                'year_from' => 2025,
+                'year_to' => 2025,
                 'department' => 'Brokerage',
                 'notes' => 'Historical vessel archive preserved for retrieval and reference.',
                 'status' => 'completed',

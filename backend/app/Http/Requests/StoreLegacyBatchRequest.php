@@ -24,7 +24,8 @@ class StoreLegacyBatchRequest extends FormRequest
         return [
             'batch_name' => ['required', 'string', 'max:160'],
             'root_folder' => ['required', 'string', 'max:255'],
-            'year' => ['required', 'integer', 'min:2000', 'max:'.now()->year],
+            'year_from' => ['required', 'integer', 'min:2000', 'max:'.now()->year],
+            'year_to' => ['required', 'integer', 'min:2000', 'max:'.now()->year, 'gte:year_from'],
             'department' => ['required', 'string', 'max:60'],
             'notes' => ['nullable', 'string', 'max:2000'],
             'expected_file_count' => ['nullable', 'integer', 'min:1'],
@@ -42,7 +43,9 @@ class StoreLegacyBatchRequest extends FormRequest
         return [
             'batch_name.required' => 'Batch name is required.',
             'root_folder.required' => 'Root folder is required.',
-            'year.required' => 'Year is required.',
+            'year_from.required' => 'From year is required.',
+            'year_to.required' => 'To year is required.',
+            'year_to.gte' => 'To year must be greater than or equal to the from year.',
             'department.required' => 'Department is required.',
             'files.required' => 'Select at least one file before creating the legacy batch.',
             'files.min' => 'Select at least one file before creating the legacy batch.',

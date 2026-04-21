@@ -15,6 +15,8 @@ class LegacyBatchResource extends JsonResource
     public function toArray(Request $request): array
     {
         $pendingCount = max((int) $this->expected_file_count - (int) $this->uploaded_file_count, 0);
+        $yearFrom = $this->effectiveYearFrom();
+        $yearTo = $this->effectiveYearTo();
 
         return [
             'id' => $this->uuid,
@@ -33,7 +35,9 @@ class LegacyBatchResource extends JsonResource
                 'name' => $this->uploadedBy->name,
             ]),
             'metadata' => [
-                'year' => (int) $this->year,
+                'year' => $this->coverageYearLabel(),
+                'year_from' => $yearFrom,
+                'year_to' => $yearTo,
                 'department' => $this->department,
                 'notes' => $this->notes,
                 'preserve_names' => true,

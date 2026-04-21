@@ -20,11 +20,16 @@ class LegacyBatchFactory extends Factory
      */
     public function definition(): array
     {
+        $yearFrom = fake()->numberBetween(2021, now()->year);
+        $yearTo = fake()->numberBetween($yearFrom, now()->year);
+
         return [
             'uuid' => (string) Str::uuid(),
             'batch_name' => fake()->words(3, true),
             'root_folder' => strtoupper(fake()->bothify('VESSEL ###')),
-            'year' => fake()->numberBetween(2021, now()->year),
+            'year' => $yearTo,
+            'year_from' => $yearFrom,
+            'year_to' => $yearTo,
             'department' => 'Brokerage',
             'notes' => fake()->sentence(),
             'status' => LegacyBatchStatus::Draft,

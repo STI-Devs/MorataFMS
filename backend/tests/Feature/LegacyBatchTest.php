@@ -25,7 +25,8 @@ test('admin can create a legacy batch manifest and preserved storage paths', fun
     $response = $this->actingAs($admin)->postJson('/api/legacy-batches', [
         'batch_name' => 'VESSEL 1 — Historical Archive',
         'root_folder' => 'VESSEL 1',
-        'year' => 2025,
+        'year_from' => 2023,
+        'year_to' => 2026,
         'department' => 'Brokerage',
         'notes' => 'Historical vessel archive preserved for retrieval.',
         'files' => [
@@ -48,6 +49,9 @@ test('admin can create a legacy batch manifest and preserved storage paths', fun
         ->assertJsonPath('data.batch_name', 'VESSEL 1 — Historical Archive')
         ->assertJsonPath('data.root_folder', 'VESSEL 1')
         ->assertJsonPath('data.status', LegacyBatchStatus::Draft->value)
+        ->assertJsonPath('data.metadata.year', '2023 - 2026')
+        ->assertJsonPath('data.metadata.year_from', 2023)
+        ->assertJsonPath('data.metadata.year_to', 2026)
         ->assertJsonPath('data.file_count', 2)
         ->assertJsonPath('data.upload_summary.remaining', 2);
 
@@ -64,7 +68,8 @@ test('legacy batch manifest accepts browser-style modified timestamps with milli
     $response = $this->actingAs($admin)->postJson('/api/legacy-batches', [
         'batch_name' => 'OJT Files',
         'root_folder' => 'OJT Files',
-        'year' => 2026,
+        'year_from' => 2026,
+        'year_to' => 2026,
         'department' => 'Brokerage',
         'notes' => 'Browser-based legacy upload manifest.',
         'files' => [
@@ -94,7 +99,8 @@ test('admin can append additional manifest chunks before uploads begin', functio
     $createResponse = $this->actingAs($admin)->postJson('/api/legacy-batches', [
         'batch_name' => 'VESSEL 1 — Historical Archive',
         'root_folder' => 'VESSEL 1',
-        'year' => 2025,
+        'year_from' => 2025,
+        'year_to' => 2025,
         'department' => 'Brokerage',
         'notes' => 'Historical vessel archive preserved for retrieval.',
         'expected_file_count' => 3,
@@ -184,7 +190,8 @@ test('legacy batch manifest rejects blocked file extensions', function () {
     $response = $this->actingAs($admin)->postJson('/api/legacy-batches', [
         'batch_name' => 'VESSEL 1 — Historical Archive',
         'root_folder' => 'VESSEL 1',
-        'year' => 2025,
+        'year_from' => 2025,
+        'year_to' => 2025,
         'department' => 'Brokerage',
         'notes' => 'Historical vessel archive preserved for retrieval.',
         'files' => [
@@ -210,7 +217,8 @@ test('legacy batch manifest accepts macro-enabled excel files used in transactio
     $response = $this->actingAs($admin)->postJson('/api/legacy-batches', [
         'batch_name' => 'VESSEL 1 — Historical Archive',
         'root_folder' => 'VESSEL 1',
-        'year' => 2025,
+        'year_from' => 2025,
+        'year_to' => 2025,
         'department' => 'Brokerage',
         'notes' => 'Historical vessel archive preserved for retrieval.',
         'files' => [
@@ -234,7 +242,8 @@ test('legacy batch manifest rejects files larger than 50 mb', function () {
     $response = $this->actingAs($admin)->postJson('/api/legacy-batches', [
         'batch_name' => 'VESSEL 1 — Historical Archive',
         'root_folder' => 'VESSEL 1',
-        'year' => 2025,
+        'year_from' => 2025,
+        'year_to' => 2025,
         'department' => 'Brokerage',
         'notes' => 'Historical vessel archive preserved for retrieval.',
         'files' => [
@@ -291,7 +300,8 @@ test('signing uploads is blocked until the full manifest is registered', functio
     $response = $this->actingAs($admin)->postJson('/api/legacy-batches', [
         'batch_name' => 'VESSEL 1 — Historical Archive',
         'root_folder' => 'VESSEL 1',
-        'year' => 2025,
+        'year_from' => 2025,
+        'year_to' => 2025,
         'department' => 'Brokerage',
         'notes' => 'Historical vessel archive preserved for retrieval.',
         'expected_file_count' => 2,
