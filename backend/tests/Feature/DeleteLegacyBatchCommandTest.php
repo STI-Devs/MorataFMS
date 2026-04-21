@@ -125,13 +125,13 @@ test('ops delete legacy batch also removes an empty prefix marker object', funct
     ]);
 
     Storage::disk('s3')->put($file->storage_path, 'legacy');
-    Storage::disk('s3')->put('legacy-batches/'.$batch->uuid.'/', '');
+    Storage::disk('s3')->makeDirectory('legacy-batches/'.$batch->uuid);
 
     $this->artisan('ops:delete-legacy-batch', [
         'uuid' => $batch->uuid,
         '--force' => true,
     ])->assertSuccessful();
 
-    expect(Storage::disk('s3')->exists('legacy-batches/'.$batch->uuid.'/'))->toBeFalse();
-    expect(Storage::disk('s3')->exists('legacy-batches/'.$batch->uuid))->toBeFalse();
+    expect(Storage::disk('s3')->directories('legacy-batches'))->not->toContain('legacy-batches/'.$batch->uuid);
+    expect(Storage::disk('s3')->allFiles('legacy-batches/'.$batch->uuid))->toBe([]);
 });
