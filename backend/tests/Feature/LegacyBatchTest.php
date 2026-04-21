@@ -319,6 +319,45 @@ test('legacy batch manifest accepts binary excel and archived email files used i
         ->assertJsonPath('data.upload_summary.remaining', 2);
 });
 
+test('legacy batch manifest accepts zero-byte files preserved from archive folders', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+
+    $response = $this->actingAs($admin)->postJson('/api/legacy-batches', [
+        'batch_name' => 'VESSEL 1 — Historical Archive',
+        'root_folder' => 'VESSEL 1',
+        'year_from' => 2025,
+        'year_to' => 2025,
+        'department' => 'Brokerage',
+        'notes' => 'Historical vessel archive preserved for retrieval.',
+        'expected_file_count' => 2,
+        'total_size_bytes' => 524288,
+        'files' => [
+            [
+                'relative_path' => 'VESSEL 1/KOTA HAKIM/WORKING PAPERS/EMPTY INDEX.txt',
+                'size_bytes' => 0,
+                'mime_type' => 'text/plain',
+                'modified_at' => now()->subYear()->toIso8601String(),
+            ],
+            [
+                'relative_path' => 'VESSEL 1/KOTA HAKIM/WORKING PAPERS/ENTRY MONITOR.xlsb',
+                'size_bytes' => 524288,
+                'mime_type' => 'application/vnd.ms-excel.sheet.binary.macroEnabled.12',
+                'modified_at' => now()->subYear()->toIso8601String(),
+            ],
+        ],
+    ]);
+
+    $response->assertCreated()
+        ->assertJsonPath('data.file_count', 2)
+        ->assertJsonPath('data.upload_summary.remaining', 2);
+
+    $batch = LegacyBatch::query()->latest('id')->first();
+
+    expect($batch)->not->toBeNull();
+    expect($batch?->files()->where('relative_path', 'VESSEL 1/KOTA HAKIM/WORKING PAPERS/EMPTY INDEX.txt')->first()?->size_bytes)
+        ->toBe(0);
+});
+
 test('legacy batch manifest rejects files larger than 50 mb', function () {
     $admin = User::factory()->create(['role' => 'admin']);
 
@@ -344,6 +383,46 @@ test('legacy batch manifest rejects files larger than 50 mb', function () {
 
     expect($response->json('errors')['files.0.size_bytes'][0])
         ->toBe('Each legacy file must not be larger than 50 MB.');
+});
+
+test('admin can append zero-byte files in later manifest chunks', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+
+    $createResponse = $this->actingAs($admin)->postJson('/api/legacy-batches', [
+        'batch_name' => 'VESSEL 1 — Historical Archive',
+        'root_folder' => 'VESSEL 1',
+        'year_from' => 2025,
+        'year_to' => 2025,
+        'department' => 'Brokerage',
+        'notes' => 'Historical vessel archive preserved for retrieval.',
+        'expected_file_count' => 2,
+        'total_size_bytes' => 524288,
+        'files' => [
+            [
+                'relative_path' => 'VESSEL 1/KOTA HAKIM/WORKING PAPERS/ENTRY MONITOR.xlsb',
+                'size_bytes' => 524288,
+                'mime_type' => 'application/vnd.ms-excel.sheet.binary.macroEnabled.12',
+                'modified_at' => now()->subYear()->toIso8601String(),
+            ],
+        ],
+    ]);
+
+    $batchId = $createResponse->json('data.id');
+
+    $this->actingAs($admin)
+        ->postJson("/api/legacy-batches/{$batchId}/manifest", [
+            'files' => [
+                [
+                    'relative_path' => 'VESSEL 1/KOTA HAKIM/WORKING PAPERS/EMPTY INDEX.txt',
+                    'size_bytes' => 0,
+                    'mime_type' => 'text/plain',
+                    'modified_at' => now()->subYear()->toIso8601String(),
+                ],
+            ],
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.registered_file_count', 2)
+        ->assertJsonPath('data.remaining_manifest_files', 0);
 });
 
 test('signing uploads returns temporary upload URLs and moves batch to uploading', function () {

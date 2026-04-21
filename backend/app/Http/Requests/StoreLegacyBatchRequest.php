@@ -52,10 +52,10 @@ class StoreLegacyBatchRequest extends FormRequest
             'department' => ['required', 'string', 'max:60'],
             'notes' => ['nullable', 'string', 'max:2000'],
             'expected_file_count' => ['nullable', 'integer', 'min:1'],
-            'total_size_bytes' => ['nullable', 'integer', 'min:1'],
+            'total_size_bytes' => ['nullable', 'integer', 'min:0'],
             'files' => ['required', 'array', 'list', 'min:1'],
             'files.*.relative_path' => ['required', 'string', 'max:1024'],
-            'files.*.size_bytes' => ['required', 'integer', 'min:1'],
+            'files.*.size_bytes' => ['required', 'integer', 'min:0'],
             'files.*.mime_type' => ['nullable', 'string', 'max:255'],
             'files.*.modified_at' => ['nullable', 'date'],
         ];
