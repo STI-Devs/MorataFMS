@@ -102,7 +102,12 @@ class LegacyBatchDeletionExecutor
             $failedFileDeletions = $fileDeletion['failed_file_deletions'];
         }
 
-        $remainingStoragePaths = collect(Storage::disk($legacyBatch->storage_disk)->allFiles($inspection['storage_prefix']))
+        $storageDisk = Storage::disk($legacyBatch->storage_disk);
+        $storageDisk->delete($inspection['storage_prefix']);
+        $storageDisk->delete($inspection['storage_prefix'].'/');
+        $storageDisk->deleteDirectory($inspection['storage_prefix']);
+
+        $remainingStoragePaths = collect($storageDisk->allFiles($inspection['storage_prefix']))
             ->filter(fn (?string $path): bool => filled($path))
             ->unique()
             ->values()

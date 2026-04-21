@@ -105,3 +105,33 @@ test('ops delete legacy batch removes database rows audit logs and stray storage
     expect(Storage::disk('s3')->exists($file->storage_path))->toBeFalse();
     expect(Storage::disk('s3')->exists('legacy-batches/'.$batch->uuid.'/stray/orphan.txt'))->toBeFalse();
 });
+
+test('ops delete legacy batch also removes an empty prefix marker object', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $batch = LegacyBatch::factory()->create([
+        'uploaded_by' => $admin->id,
+        'status' => LegacyBatchStatus::Completed,
+        'storage_disk' => 's3',
+    ]);
+
+    $file = $batch->files()->create([
+        'relative_path' => $batch->root_folder.'/KOTA HAKIM/IMPORT ENTRY.pdf',
+        'storage_path' => 'legacy-batches/'.$batch->uuid.'/'.$batch->root_folder.'/KOTA HAKIM/IMPORT ENTRY.pdf',
+        'filename' => 'IMPORT ENTRY.pdf',
+        'mime_type' => 'application/pdf',
+        'size_bytes' => 100000,
+        'status' => LegacyBatchFileStatus::Uploaded,
+        'uploaded_at' => now(),
+    ]);
+
+    Storage::disk('s3')->put($file->storage_path, 'legacy');
+    Storage::disk('s3')->put('legacy-batches/'.$batch->uuid.'/', '');
+
+    $this->artisan('ops:delete-legacy-batch', [
+        'uuid' => $batch->uuid,
+        '--force' => true,
+    ])->assertSuccessful();
+
+    expect(Storage::disk('s3')->exists('legacy-batches/'.$batch->uuid.'/'))->toBeFalse();
+    expect(Storage::disk('s3')->exists('legacy-batches/'.$batch->uuid))->toBeFalse();
+});
