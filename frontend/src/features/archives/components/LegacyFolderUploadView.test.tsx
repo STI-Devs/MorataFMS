@@ -246,6 +246,39 @@ describe('LegacyFolderUploadView', () => {
         expect(screen.getByRole('button', { name: /start legacy ingestion/i })).toBeEnabled();
     });
 
+    it('accepts xlsb and msg legacy archive files during preflight', () => {
+        const { container } = render(<LegacyFolderUploadView />);
+        const folderInput = container.querySelector('input[type="file"]');
+
+        fireEvent.change(folderInput!, {
+            target: {
+                files: [
+                    buildCustomFolderFile('VESSEL 1/KOTA HAKIM/WORKING PAPERS/ENTRY MONITOR.xlsb', {
+                        type: 'application/vnd.ms-excel.sheet.binary.macroEnabled.12',
+                    }),
+                    buildCustomFolderFile('VESSEL 1/KOTA HAKIM/EMAILS/CUSTOMER APPROVAL.msg', {
+                        type: 'application/vnd.ms-outlook',
+                    }),
+                ],
+            },
+        });
+
+        expect(screen.queryByText(/file blocked before upload/i)).not.toBeInTheDocument();
+        expect(screen.getByText('Preflight')).toBeInTheDocument();
+
+        fireEvent.change(screen.getByLabelText('Batch Name'), {
+            target: { value: 'VESSEL 1 Archive Batch' },
+        });
+        fireEvent.change(screen.getByLabelText('Year'), {
+            target: { value: '2026' },
+        });
+        fireEvent.change(screen.getByLabelText('Department'), {
+            target: { value: 'Brokerage' },
+        });
+
+        expect(screen.getByRole('button', { name: /start legacy ingestion/i })).toBeEnabled();
+    });
+
     it('reveals range years only when multi-year coverage is enabled', () => {
         const { container } = render(<LegacyFolderUploadView />);
         const folderInput = container.querySelector('input[type="file"]');

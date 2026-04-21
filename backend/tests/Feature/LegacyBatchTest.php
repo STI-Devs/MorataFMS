@@ -208,7 +208,7 @@ test('legacy batch manifest rejects blocked file extensions', function () {
         ->assertJsonValidationErrors(['files.0.relative_path']);
 
     expect($response->json('errors')['files.0.relative_path'][0])
-        ->toBe('Only PDF, Office documents, spreadsheets, text files, and images are allowed in legacy uploads.');
+        ->toBe('Only PDF, Office documents, spreadsheets, email message files, text files, and images are allowed in legacy uploads.');
 });
 
 test('legacy batch manifest accepts macro-enabled excel files used in transaction folders', function () {
@@ -234,6 +234,37 @@ test('legacy batch manifest accepts macro-enabled excel files used in transactio
     $response->assertCreated()
         ->assertJsonPath('data.file_count', 1)
         ->assertJsonPath('data.upload_summary.remaining', 1);
+});
+
+test('legacy batch manifest accepts binary excel and archived email files used in transaction folders', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+
+    $response = $this->actingAs($admin)->postJson('/api/legacy-batches', [
+        'batch_name' => 'VESSEL 1 — Historical Archive',
+        'root_folder' => 'VESSEL 1',
+        'year_from' => 2025,
+        'year_to' => 2025,
+        'department' => 'Brokerage',
+        'notes' => 'Historical vessel archive preserved for retrieval.',
+        'files' => [
+            [
+                'relative_path' => 'VESSEL 1/KOTA HAKIM/WORKING PAPERS/ENTRY MONITOR.xlsb',
+                'size_bytes' => 524288,
+                'mime_type' => 'application/vnd.ms-excel.sheet.binary.macroEnabled.12',
+                'modified_at' => now()->subYear()->toIso8601String(),
+            ],
+            [
+                'relative_path' => 'VESSEL 1/KOTA HAKIM/EMAILS/CUSTOMER APPROVAL.msg',
+                'size_bytes' => 128000,
+                'mime_type' => 'application/vnd.ms-outlook',
+                'modified_at' => now()->subYear()->toIso8601String(),
+            ],
+        ],
+    ]);
+
+    $response->assertCreated()
+        ->assertJsonPath('data.file_count', 2)
+        ->assertJsonPath('data.upload_summary.remaining', 2);
 });
 
 test('legacy batch manifest rejects files larger than 50 mb', function () {

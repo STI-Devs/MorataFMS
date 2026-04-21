@@ -62,9 +62,32 @@ const DEFAULT_META: BatchMeta = {
 };
 
 const LEGACY_MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
-const LEGACY_ALLOWED_EXTENSIONS = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'xlsm', 'csv', 'txt', 'jpg', 'jpeg', 'png'] as const;
+const LEGACY_ALLOWED_EXTENSIONS = [
+    'pdf',
+    'doc',
+    'docx',
+    'docm',
+    'dotm',
+    'xls',
+    'xlsx',
+    'xlsm',
+    'xlsb',
+    'xltm',
+    'xlam',
+    'pptm',
+    'potm',
+    'ppsm',
+    'ppam',
+    'csv',
+    'txt',
+    'msg',
+    'eml',
+    'jpg',
+    'jpeg',
+    'png',
+] as const;
 const LEGACY_ALLOWED_FILE_ACCEPT = LEGACY_ALLOWED_EXTENSIONS.map((extension) => `.${extension}`).join(',');
-const LEGACY_ALLOWED_FILE_LABEL = 'PDF, Word, Excel (including XLSM), CSV, TXT, JPG, JPEG, and PNG';
+const LEGACY_ALLOWED_FILE_LABEL = 'PDF, Word, Excel, PowerPoint, email archive files, CSV, TXT, JPG, JPEG, and PNG';
 const LEGACY_MANIFEST_CHUNK_SIZE = 250;
 const LEGACY_SIGNED_UPLOAD_CHUNK_SIZE = 10;
 const LEGACY_LARGE_BATCH_WARNING_FILE_COUNT = 1000;
