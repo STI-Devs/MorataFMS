@@ -17,6 +17,7 @@ use App\Models\User;
 use App\Support\LegacyBatches\LegacyBatchDeletionExecutor;
 use App\Support\LegacyBatches\LegacyBatchTreeBuilder;
 use App\Support\LegacyBatches\LegacyBatchUploadUrlFactory;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -345,7 +346,7 @@ class LegacyBatchController extends Controller
                     'filename' => str($relativePath)->afterLast('/')->value(),
                     'mime_type' => $file['mime_type'] ?? null,
                     'size_bytes' => (int) $file['size_bytes'],
-                    'modified_at' => $file['modified_at'] ?? null,
+                    'modified_at' => $this->normalizeModifiedAt($file['modified_at'] ?? null),
                     'status' => LegacyBatchFileStatus::Pending->value,
                     'uploaded_at' => null,
                     'failed_at' => null,
@@ -357,5 +358,14 @@ class LegacyBatchController extends Controller
             ['legacy_batch_id', 'relative_path_hash'],
             ['relative_path', 'storage_path', 'filename', 'mime_type', 'size_bytes', 'modified_at', 'updated_at'],
         );
+    }
+
+    private function normalizeModifiedAt(?string $modifiedAt): ?string
+    {
+        if ($modifiedAt === null || trim($modifiedAt) === '') {
+            return null;
+        }
+
+        return CarbonImmutable::parse($modifiedAt)->format('Y-m-d H:i:s');
     }
 }

@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
     fireEvent, render, screen, waitFor,
 } from '@testing-library/react';
+import { useEffect } from 'react';
 import {
     beforeEach, describe, expect, it, vi,
 } from 'vitest';
@@ -9,6 +10,10 @@ import type { ArchiveYear } from '../../documents/types/document.types';
 import { EncoderArchivePage } from './EncoderArchivePage';
 
 let archiveData: ArchiveYear[] = [];
+
+const { legacyUploadCleanupSpy } = vi.hoisted(() => ({
+    legacyUploadCleanupSpy: vi.fn(),
+}));
 
 vi.mock('../hooks/useMyArchives', () => ({
     useMyArchives: () => ({
@@ -35,7 +40,13 @@ vi.mock('../../tracking/api/trackingApi', () => ({
 }));
 
 vi.mock('./LegacyFolderUploadView', () => ({
-    LegacyFolderUploadView: () => <div>Legacy Folder Upload Workspace</div>,
+    LegacyFolderUploadView: () => {
+        useEffect(() => () => {
+            legacyUploadCleanupSpy();
+        }, []);
+
+        return <div>Legacy Folder Upload Workspace</div>;
+    },
 }));
 
 vi.mock('./LegacyBatchesPage', () => ({
@@ -92,6 +103,7 @@ const createWrapper = () => {
 describe('EncoderArchivePage', () => {
     beforeEach(() => {
         archiveData = createArchiveData('Original Archive Client');
+        legacyUploadCleanupSpy.mockClear();
     });
 
     it('refreshes the open file view when archive data changes after an edit', async () => {
@@ -119,5 +131,16 @@ describe('EncoderArchivePage', () => {
 
         fireEvent.click(screen.getByRole('button', { name: 'Legacy Batches' }));
         expect(screen.getByText('Legacy Batches Workspace')).toBeInTheDocument();
+    });
+
+    it('keeps the encoder legacy upload workspace mounted while switching to legacy batches', () => {
+        render(<EncoderArchivePage />, { wrapper: createWrapper() });
+
+        fireEvent.click(screen.getByRole('button', { name: 'Legacy Folder Upload' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Legacy Batches' }));
+
+        expect(screen.getByText('Legacy Folder Upload Workspace')).toBeInTheDocument();
+        expect(screen.getByText('Legacy Batches Workspace')).toBeInTheDocument();
+        expect(legacyUploadCleanupSpy).not.toHaveBeenCalled();
     });
 });

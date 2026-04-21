@@ -1,13 +1,16 @@
 import { fireEvent, render, screen } from '@testing-library/react';
+import { useEffect } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { RecordsPage } from './RecordsPage';
 
 const {
     legacyUploadViewSpy,
     legacyBatchesPageSpy,
+    legacyUploadCleanupSpy,
 } = vi.hoisted(() => ({
     legacyUploadViewSpy: vi.fn(),
     legacyBatchesPageSpy: vi.fn(),
+    legacyUploadCleanupSpy: vi.fn(),
 }));
 
 vi.mock('./ArchivesPage', () => ({
@@ -21,6 +24,9 @@ vi.mock('./LegacyFolderUploadView', () => ({
         onResumeCleared?: () => void;
     }) => {
         legacyUploadViewSpy(props);
+        useEffect(() => () => {
+            legacyUploadCleanupSpy();
+        }, []);
 
         return (
             <div data-testid="legacy-upload-view">
@@ -56,6 +62,7 @@ describe('RecordsPage', () => {
     beforeEach(() => {
         legacyUploadViewSpy.mockClear();
         legacyBatchesPageSpy.mockClear();
+        legacyUploadCleanupSpy.mockClear();
     });
 
     it('renders the page header with the title Records', () => {
@@ -73,7 +80,8 @@ describe('RecordsPage', () => {
     it('shows the Legacy Folder Upload view by default', () => {
         render(<RecordsPage />);
         expect(screen.getByTestId('legacy-upload-view')).toBeInTheDocument();
-        expect(screen.queryByTestId('archives-page')).not.toBeInTheDocument();
+        expect(screen.getByTestId('legacy-upload-view')).toBeVisible();
+        expect(screen.getByTestId('archives-page')).not.toBeVisible();
         expect(screen.queryByTestId('legacy-batches-page')).not.toBeInTheDocument();
     });
 
@@ -81,7 +89,8 @@ describe('RecordsPage', () => {
         render(<RecordsPage />);
         fireEvent.click(screen.getByRole('button', { name: /archive transactions/i }));
         expect(screen.getByTestId('archives-page')).toBeInTheDocument();
-        expect(screen.queryByTestId('legacy-upload-view')).not.toBeInTheDocument();
+        expect(screen.getByTestId('archives-page')).toBeVisible();
+        expect(screen.getByTestId('legacy-upload-view')).not.toBeVisible();
         expect(screen.queryByTestId('legacy-batches-page')).not.toBeInTheDocument();
     });
 
@@ -89,8 +98,9 @@ describe('RecordsPage', () => {
         render(<RecordsPage />);
         fireEvent.click(screen.getByRole('button', { name: /legacy batches/i }));
         expect(screen.getByTestId('legacy-batches-page')).toBeInTheDocument();
-        expect(screen.queryByTestId('legacy-upload-view')).not.toBeInTheDocument();
-        expect(screen.queryByTestId('archives-page')).not.toBeInTheDocument();
+        expect(screen.getByTestId('legacy-batches-page')).toBeVisible();
+        expect(screen.getByTestId('legacy-upload-view')).not.toBeVisible();
+        expect(screen.getByTestId('archives-page')).not.toBeVisible();
     });
 
     it('routes a resume action from the batch list back into the upload view', () => {
@@ -118,5 +128,16 @@ describe('RecordsPage', () => {
     it('renders the descriptive subtitle text', () => {
         render(<RecordsPage />);
         expect(screen.getByText(/archive operations and legacy folders/i)).toBeInTheDocument();
+    });
+
+    it('keeps the legacy upload workspace mounted while switching to legacy batches', () => {
+        render(<RecordsPage />);
+
+        fireEvent.click(screen.getByRole('button', { name: /legacy batches/i }));
+
+        expect(screen.getByTestId('legacy-upload-view')).toBeInTheDocument();
+        expect(screen.getByTestId('legacy-upload-view')).not.toBeVisible();
+        expect(screen.getByTestId('legacy-batches-page')).toBeVisible();
+        expect(legacyUploadCleanupSpy).not.toHaveBeenCalled();
     });
 });

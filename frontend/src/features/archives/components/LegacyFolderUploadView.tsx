@@ -65,6 +65,17 @@ const LEGACY_MANIFEST_CHUNK_SIZE = 250;
 const LEGACY_SIGNED_UPLOAD_CHUNK_SIZE = 10;
 const LEGACY_LARGE_BATCH_WARNING_FILE_COUNT = 1000;
 
+const semanticToneClasses = {
+    info: 'border-blue-200 bg-blue-50/80 text-blue-700 dark:border-blue-900/80 dark:bg-blue-950/30 dark:text-blue-200',
+    good: 'border-emerald-200 bg-emerald-50/80 text-emerald-700 dark:border-emerald-900/80 dark:bg-emerald-950/25 dark:text-emerald-200',
+    warn: 'border-amber-200 bg-amber-50/80 text-amber-700 dark:border-amber-900/80 dark:bg-amber-950/25 dark:text-amber-200',
+    danger: 'border-red-200 bg-red-50/80 text-red-700 dark:border-red-900/80 dark:bg-red-950/25 dark:text-red-200',
+} as const;
+
+const statusBadgeBaseClass = 'inline-flex items-center rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-wider';
+const raisedSurfaceClass = 'border border-border-strong bg-surface font-bold text-text-secondary transition-all hover:bg-hover dark:bg-surface-secondary/75';
+const tintedInsetSurfaceClass = 'bg-surface border border-border shadow-sm dark:bg-surface-secondary/75 dark:shadow-none';
+
 const formatBytes = (bytes: number): string => {
     if (bytes === 0) {
         return '0 B';
@@ -116,6 +127,26 @@ const validateLegacyFiles = (files: File[]): { validFiles: File[]; rejectedFiles
     });
 
     return { validFiles, rejectedFiles };
+};
+
+const getLegacyUploadErrorMessage = (error: unknown): string => {
+    const responseData = (error as {
+        response?: {
+            data?: {
+                message?: string;
+                errors?: Record<string, string[]>;
+            };
+        };
+    })?.response?.data;
+
+    const validationMessage = responseData?.errors
+        ? Object.values(responseData.errors).flat().find((message) => typeof message === 'string' && message.trim().length > 0)
+        : null;
+
+    return validationMessage
+        ?? responseData?.message
+        ?? (error instanceof Error ? error.message : null)
+        ?? 'Legacy upload failed. Please try again.';
 };
 
 const formatDateLabel = (isoDate?: string | null): string => {
@@ -355,9 +386,9 @@ const WorkflowSteps = ({ phase }: { phase: UploadPhase }) => {
                         key={step.title}
                         className={`rounded-xl border px-4 py-4 ${
                             isActive
-                                ? 'border-blue-200 bg-blue-50/70'
+                                ? semanticToneClasses.info
                                 : isComplete
-                                    ? 'border-emerald-200 bg-emerald-50/50'
+                                    ? semanticToneClasses.good
                                     : 'border-border bg-surface'
                         }`}
                     >
@@ -365,9 +396,9 @@ const WorkflowSteps = ({ phase }: { phase: UploadPhase }) => {
                             <span
                                 className={`inline-flex h-6 w-6 items-center justify-center rounded-full border text-[11px] font-black ${
                                     isActive
-                                        ? 'border-blue-300 bg-blue-100 text-blue-700'
+                                        ? 'border-blue-300 bg-blue-100 text-blue-700 dark:border-blue-800 dark:bg-blue-950/60 dark:text-blue-200'
                                         : isComplete
-                                            ? 'border-emerald-300 bg-emerald-100 text-emerald-700'
+                                            ? 'border-emerald-300 bg-emerald-100 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/55 dark:text-emerald-200'
                                             : 'border-border-strong bg-surface-secondary text-text-muted'
                                 }`}
                             >
@@ -487,8 +518,8 @@ const FolderDropzone = ({
         onDrop={onDrop}
         className={`rounded-2xl border-2 border-dashed transition-all ${
             isDragging
-                ? 'border-blue-400 bg-blue-50/70'
-                : 'border-border-strong bg-surface hover:border-blue-300 hover:bg-blue-50/30'
+                ? 'border-blue-400 bg-blue-50/70 dark:border-blue-700 dark:bg-blue-950/25'
+                : 'border-border-strong bg-surface hover:border-blue-300 hover:bg-blue-50/30 dark:hover:border-blue-700 dark:hover:bg-blue-950/20'
         }`}
     >
         <div className="border-b border-border px-6 py-5">
@@ -506,8 +537,8 @@ const FolderDropzone = ({
 
         <div className="px-6 py-6">
             <div className="rounded-2xl border border-border bg-surface-secondary/60 p-8 text-center">
-                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-blue-200 bg-blue-100">
-                    <svg className="h-7 w-7 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-blue-200 bg-blue-100 dark:border-blue-900/80 dark:bg-blue-950/40">
+                    <svg className="h-7 w-7 text-blue-600 dark:text-blue-300" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
                     </svg>
                 </div>
@@ -551,7 +582,7 @@ const SelectedFolderPanel = ({
                     {' '}The cloud batch should preserve this folder as the top-level legacy container.
                 </p>
             </div>
-            <span className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-blue-700">
+            <span className={`${statusBadgeBaseClass} ${semanticToneClasses.info}`}>
                 Ready for preflight
             </span>
         </div>
@@ -574,7 +605,7 @@ const SelectedFolderPanel = ({
             <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-text-muted">Top-Level Preview</p>
             <div className="grid gap-2 sm:grid-cols-2">
                 {summary.previewTree.map((item) => (
-                    <div key={item} className="flex items-center gap-2 rounded-xl border border-border bg-white px-3 py-2 text-xs font-semibold text-text-secondary">
+                    <div key={item} className={`flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-text-secondary ${tintedInsetSurfaceClass}`}>
                         <svg className="h-3.5 w-3.5 shrink-0 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
                         </svg>
@@ -588,21 +619,21 @@ const SelectedFolderPanel = ({
             <button
                 type="button"
                 onClick={onViewFull}
-                className="rounded-xl border border-border-strong bg-white px-4 py-2 text-xs font-bold text-text-secondary transition-all hover:bg-hover"
+                className={`rounded-xl ${raisedSurfaceClass}`}
             >
                 View Full Structure
             </button>
             <button
                 type="button"
                 onClick={onReplace}
-                className="rounded-xl border border-border-strong bg-white px-4 py-2 text-xs font-bold text-text-secondary transition-all hover:bg-hover"
+                className={`rounded-xl ${raisedSurfaceClass}`}
             >
                 Replace Folder
             </button>
             <button
                 type="button"
                 onClick={onRemove}
-                className="ml-auto rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-xs font-bold text-red-600 transition-all hover:bg-red-100"
+                className={`ml-auto rounded-xl px-4 py-2 text-xs font-bold transition-all hover:bg-red-100 dark:hover:bg-red-950/40 ${semanticToneClasses.danger}`}
             >
                 Clear Selection
             </button>
@@ -611,8 +642,8 @@ const SelectedFolderPanel = ({
 );
 
 const toneClasses: Record<'good' | 'warn' | 'neutral', string> = {
-    good: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-    warn: 'border-amber-200 bg-amber-50 text-amber-700',
+    good: semanticToneClasses.good,
+    warn: semanticToneClasses.warn,
     neutral: 'border-border bg-surface-secondary text-text-secondary',
 };
 
@@ -631,7 +662,7 @@ const PreflightPanel = ({
                 <SectionTitle>Preflight</SectionTitle>
                 <h3 className="mt-2 text-lg font-black tracking-tight text-text-primary">{report.patternLabel}</h3>
             </div>
-            <span className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-blue-700">
+            <span className={`${statusBadgeBaseClass} ${semanticToneClasses.info}`}>
                 {report.reviewStatus}
             </span>
         </div>
@@ -659,33 +690,33 @@ const PreflightPanel = ({
             </ul>
 
             {rejectedFiles.length > 0 && (
-                <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-4">
+                <div className={`mt-4 rounded-2xl px-4 py-4 ${semanticToneClasses.danger}`}>
                     <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-red-600">Upload Policy</p>
-                            <p className="mt-2 text-sm font-bold text-red-700">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-current">Upload Policy</p>
+                            <p className="mt-2 text-sm font-bold text-current">
                                 {rejectedFiles.length} file{rejectedFiles.length === 1 ? '' : 's'} blocked before upload
                             </p>
-                            <p className="mt-1 text-sm text-red-700">
+                            <p className="mt-1 text-sm text-current">
                                 Remove these files from the selected folder, then choose the root folder again.
                             </p>
                         </div>
-                        <span className="inline-flex rounded-full border border-red-200 bg-white px-3 py-1 text-[10px] font-black uppercase tracking-wider text-red-700">
+                        <span className={`${statusBadgeBaseClass} bg-surface text-current dark:bg-surface-secondary/85`}>
                             Upload blocked
                         </span>
                     </div>
 
                     <ul className="mt-4 space-y-2">
                         {rejectedFiles.slice(0, 8).map((file) => (
-                            <li key={file.relativePath} className="rounded-xl border border-red-200 bg-white px-3 py-3">
+                            <li key={file.relativePath} className={`rounded-xl px-3 py-3 ${tintedInsetSurfaceClass}`}>
                                 <p className="truncate text-sm font-bold text-text-primary">{file.relativePath}</p>
-                                <p className="mt-1 text-xs text-red-700">{file.reason}</p>
+                                <p className="mt-1 text-xs text-current">{file.reason}</p>
                             </li>
                         ))}
                     </ul>
 
                     {rejectedFiles.length > 8 && (
-                        <p className="mt-3 text-xs font-semibold text-red-700">
+                        <p className="mt-3 text-xs font-semibold text-current">
                             Showing 8 of {rejectedFiles.length} blocked files.
                         </p>
                     )}
@@ -698,14 +729,10 @@ const PreflightPanel = ({
 const UploadProgressSection = ({
     progress,
     onCancel,
-    onRetry,
-    canRetry,
     isCancelling,
 }: {
     progress: ProgressState;
     onCancel: () => void;
-    onRetry: () => void;
-    canRetry: boolean;
     isCancelling: boolean;
 }) => {
     const percentage = progress.total > 0 ? Math.min(100, Math.round((progress.done / progress.total) * 100)) : 0;
@@ -746,15 +773,6 @@ const UploadProgressSection = ({
                     >
                         {isCancelling ? 'Stopping Upload...' : 'Cancel Upload'}
                     </button>
-                    {canRetry && (
-                        <button
-                            type="button"
-                            onClick={onRetry}
-                            className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-xs font-bold text-amber-700 transition-all hover:bg-amber-100"
-                        >
-                            Resume Upload
-                        </button>
-                    )}
                 </div>
             </div>
         </div>
@@ -762,7 +780,7 @@ const UploadProgressSection = ({
 };
 
 const ResumeNotice = ({ batch }: { batch: LegacyBatch }) => (
-    <div className="rounded-2xl border border-amber-200 bg-amber-50/60 px-5 py-4">
+    <div className={`rounded-2xl px-5 py-4 ${semanticToneClasses.warn}`}>
         <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
                 <SectionTitle>Interrupted Batch</SectionTitle>
@@ -772,21 +790,21 @@ const ResumeNotice = ({ batch }: { batch: LegacyBatch }) => (
                     Select the same root folder again to continue the remaining upload.
                 </p>
             </div>
-            <span className="inline-flex rounded-full border border-amber-200 bg-white px-3 py-1 text-[10px] font-black uppercase tracking-wider text-amber-700">
+            <span className={`${statusBadgeBaseClass} bg-surface text-current dark:bg-surface-secondary/85`}>
                 Interrupted
             </span>
         </div>
 
         <div className="mt-4 grid gap-3 md:grid-cols-3">
-            <div className="rounded-xl border border-amber-200 bg-white px-4 py-3">
+            <div className={`rounded-xl px-4 py-3 ${tintedInsetSurfaceClass}`}>
                 <p className="text-[10px] font-black uppercase tracking-widest text-text-muted">Root Folder</p>
                 <p className="mt-1 text-sm font-bold text-text-primary">{batch.rootFolder}</p>
             </div>
-            <div className="rounded-xl border border-amber-200 bg-white px-4 py-3">
+            <div className={`rounded-xl px-4 py-3 ${tintedInsetSurfaceClass}`}>
                 <p className="text-[10px] font-black uppercase tracking-widest text-text-muted">Remaining Files</p>
                 <p className="mt-1 text-sm font-bold text-text-primary">{batch.uploadSummary.remaining}</p>
             </div>
-            <div className="rounded-xl border border-amber-200 bg-white px-4 py-3">
+            <div className={`rounded-xl px-4 py-3 ${tintedInsetSurfaceClass}`}>
                 <p className="text-[10px] font-black uppercase tracking-widest text-text-muted">Last Activity</p>
                 <p className="mt-1 text-sm font-bold text-text-primary">{formatDateLabel(batch.lastActivityAt)}</p>
             </div>
@@ -805,16 +823,16 @@ const SuccessState = ({
     onOpenBatches: () => void;
     onUploadAnother: () => void;
 }) => (
-    <div className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-6">
+    <div className={`rounded-2xl p-6 ${semanticToneClasses.good}`}>
         <div className="mb-5 flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-full border border-emerald-200 bg-emerald-100">
-                <svg className="h-5 w-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="flex h-11 w-11 items-center justify-center rounded-full border border-emerald-200 bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950/55">
+                <svg className="h-5 w-5 text-emerald-600 dark:text-emerald-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                 </svg>
             </div>
             <div>
-                <p className="text-base font-bold text-emerald-950">Ingestion complete</p>
-                <p className="text-sm text-emerald-800">The legacy batch is ready for retrieval and reference browsing.</p>
+                <p className="text-base font-bold text-current">Ingestion complete</p>
+                <p className="text-sm text-current/85">The legacy batch is ready for retrieval and reference browsing.</p>
             </div>
         </div>
 
@@ -827,7 +845,7 @@ const SuccessState = ({
                 { label: 'Total Size', value: batch.totalSize },
                 { label: 'Completed At', value: formatDateLabel(batch.completedAt) },
             ].map((item) => (
-                <div key={item.label} className="rounded-xl border border-emerald-200 bg-white px-4 py-3">
+                <div key={item.label} className={`rounded-xl px-4 py-3 ${tintedInsetSurfaceClass}`}>
                     <p className="text-[10px] font-black uppercase tracking-widest text-text-muted">{item.label}</p>
                     <p className="mt-1 text-sm font-bold text-text-primary">{item.value}</p>
                 </div>
@@ -838,14 +856,14 @@ const SuccessState = ({
             <button
                 type="button"
                 onClick={onViewFolder}
-                className="rounded-xl border border-border-strong bg-white px-4 py-2.5 text-sm font-bold text-text-secondary transition-all hover:bg-hover"
+                className={`rounded-xl px-4 py-2.5 text-sm ${raisedSurfaceClass}`}
             >
                 Browse Legacy Batch
             </button>
             <button
                 type="button"
                 onClick={onOpenBatches}
-                className="rounded-xl border border-border-strong bg-white px-4 py-2.5 text-sm font-bold text-text-secondary transition-all hover:bg-hover"
+                className={`rounded-xl px-4 py-2.5 text-sm ${raisedSurfaceClass}`}
             >
                 Open Batch List
             </button>
@@ -874,18 +892,22 @@ const ErrorState = ({
     const isInterrupted = batch?.status === 'interrupted';
 
     return (
-        <div className={`rounded-2xl border p-6 ${isInterrupted ? 'border-amber-200 bg-amber-50/50' : 'border-red-200 bg-red-50/40'}`}>
+        <div className={`rounded-2xl border p-6 ${isInterrupted ? semanticToneClasses.warn : semanticToneClasses.danger}`}>
             <div className="mb-4 flex items-center gap-3">
-                <div className={`flex h-10 w-10 items-center justify-center rounded-full border ${isInterrupted ? 'border-amber-200 bg-amber-100' : 'border-red-200 bg-red-100'}`}>
-                    <svg className={`h-4.5 w-4.5 ${isInterrupted ? 'text-amber-600' : 'text-red-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className={`flex h-10 w-10 items-center justify-center rounded-full border ${
+                    isInterrupted
+                        ? 'border-amber-200 bg-amber-100 dark:border-amber-800 dark:bg-amber-950/55'
+                        : 'border-red-200 bg-red-100 dark:border-red-800 dark:bg-red-950/55'
+                }`}>
+                    <svg className={`h-4.5 w-4.5 ${isInterrupted ? 'text-amber-600 dark:text-amber-200' : 'text-red-600 dark:text-red-200'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
                 </div>
                 <div>
-                    <p className={`text-base font-bold ${isInterrupted ? 'text-amber-950' : 'text-red-950'}`}>
+                    <p className="text-base font-bold text-current">
                         {isInterrupted ? 'Upload interrupted' : 'Upload failed'}
                     </p>
-                    <p className={`text-sm ${isInterrupted ? 'text-amber-800' : 'text-red-800'}`}>{message}</p>
+                    <p className="text-sm text-current/85">{message}</p>
                 </div>
             </div>
 
@@ -901,7 +923,7 @@ const ErrorState = ({
                     <button
                         type="button"
                         onClick={onRetry}
-                        className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-xs font-bold text-amber-700 transition-all hover:bg-amber-100"
+                        className={`rounded-xl px-4 py-2 text-xs font-bold transition-all hover:bg-amber-100 dark:hover:bg-amber-950/40 ${semanticToneClasses.warn}`}
                     >
                         Resume Upload
                     </button>
@@ -1183,7 +1205,7 @@ export const LegacyFolderUploadView = ({
                 done,
                 failed,
                 currentItem: 'Preparing signed upload links...',
-                status: batch.canResume ? 'Resuming batch upload' : 'Uploading batch',
+                status: isResumeUpload ? 'Resuming batch upload' : 'Uploading batch',
             });
 
             for (const group of chunk(matchedTargets, LEGACY_SIGNED_UPLOAD_CHUNK_SIZE)) {
@@ -1297,7 +1319,7 @@ export const LegacyFolderUploadView = ({
             currentUploadControllerRef.current = null;
             cancelRequestedRef.current = false;
             setPhase('failed');
-            setErrorMessage(error instanceof Error ? error.message : 'Legacy upload failed. Please try again.');
+            setErrorMessage(getLegacyUploadErrorMessage(error));
         }
     };
 
@@ -1363,8 +1385,6 @@ export const LegacyFolderUploadView = ({
                                 <UploadProgressSection
                                     progress={progress}
                                     onCancel={handleCancelUpload}
-                                    onRetry={performUpload}
-                                    canRetry={activeBatch?.canResume ?? false}
                                     isCancelling={isCancellingUpload}
                                 />
                             )}
@@ -1372,26 +1392,26 @@ export const LegacyFolderUploadView = ({
                             {phase === 'selected' && folderSummary && (
                                 <div className="space-y-3">
                                     {resumeRootMismatch && (
-                                        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                                        <div className={`rounded-xl px-4 py-3 text-sm ${semanticToneClasses.danger}`}>
                                             This folder root does not match the interrupted batch. Expected <span className="font-bold">{activeBatch?.rootFolder}</span>.
                                         </div>
                                     )}
 
                                     {hasRejectedFiles && (
-                                        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                                        <div className={`rounded-xl px-4 py-3 text-sm ${semanticToneClasses.danger}`}>
                                             Remove the blocked files first. Legacy batches accept only {LEGACY_ALLOWED_FILE_LABEL} up to 50 MB per file.
                                         </div>
                                     )}
 
                                     {isLargeBatch && (
-                                        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                                        <div className={`rounded-xl px-4 py-3 text-sm ${semanticToneClasses.warn}`}>
                                             Large legacy batch detected. This folder contains {folderSummary?.fileCount} files, so the system will register the
                                             manifest in smaller chunks before upload starts to reduce browser and network risk.
                                         </div>
                                     )}
 
                                     {!hasRejectedFiles && !hasUploadableFiles && (
-                                        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                                        <div className={`rounded-xl px-4 py-3 text-sm ${semanticToneClasses.danger}`}>
                                             No uploadable files were detected in this folder selection.
                                         </div>
                                     )}

@@ -94,6 +94,10 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('archive-uploads', function (Request $request) {
             return Limit::perMinute(60)->by('archive-uploads:'.$this->rateLimitKey($request));
         });
+
+        RateLimiter::for('legacy-batch-uploads', function (Request $request) {
+            return Limit::perMinute(600)->by('legacy-batch-uploads:'.$this->rateLimitKey($request));
+        });
     }
 
     private function rateLimitKey(Request $request): string

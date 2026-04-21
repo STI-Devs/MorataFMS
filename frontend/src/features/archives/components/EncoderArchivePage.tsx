@@ -29,6 +29,10 @@ import { EmptyState } from './ui/EmptyState';
 import { ViewToggle } from './ui/ViewToggle';
 
 type EncoderArchiveSection = 'archive' | 'legacyUpload' | 'legacyBatches';
+type MountedEncoderSections = {
+    legacyUpload: boolean;
+    legacyBatches: boolean;
+};
 
 export const EncoderArchivePage = () => {
     const queryClient = useQueryClient();
@@ -37,6 +41,10 @@ export const EncoderArchivePage = () => {
 
     const [drill, setDrill] = useState<DrillState>({ level: 'years' });
     const [activeSection, setActiveSection] = useState<EncoderArchiveSection>('archive');
+    const [mountedLegacySections, setMountedLegacySections] = useState<MountedEncoderSections>({
+        legacyUpload: false,
+        legacyBatches: false,
+    });
     const [showLegacyUpload, setShowLegacyUpload] = useState(false);
     const [resumeBatchId, setResumeBatchId] = useState<string | null>(null);
     const [search, setSearch] = useState('');
@@ -82,6 +90,19 @@ export const EncoderArchivePage = () => {
     const handleEditArchiveRecord = (record: ArchiveDocument) => {
         void prefetchArchiveEditLookups(queryClient, record);
         setEditRecordModal({ isOpen: true, record });
+    };
+
+    const showSection = (section: EncoderArchiveSection) => {
+        if (section === 'archive') {
+            setActiveSection(section);
+            return;
+        }
+
+        setMountedLegacySections((current) => ({
+            ...current,
+            [section]: true,
+        }));
+        setActiveSection(section);
     };
 
     const currentDrill = useMemo(
@@ -220,7 +241,7 @@ export const EncoderArchivePage = () => {
         <div className="flex items-end gap-0 border-b border-border">
             <button
                 type="button"
-                onClick={() => setActiveSection('archive')}
+                onClick={() => showSection('archive')}
                 className={`relative flex items-center gap-2 px-5 py-3 text-sm font-semibold border-b-2 transition-all -mb-px ${
                     activeSection === 'archive'
                         ? 'border-blue-600 text-blue-600'
@@ -234,7 +255,7 @@ export const EncoderArchivePage = () => {
             </button>
             <button
                 type="button"
-                onClick={() => setActiveSection('legacyUpload')}
+                onClick={() => showSection('legacyUpload')}
                 className={`relative flex items-center gap-2 px-5 py-3 text-sm font-semibold border-b-2 transition-all -mb-px ${
                     activeSection === 'legacyUpload'
                         ? 'border-amber-500 text-amber-700'
@@ -248,7 +269,7 @@ export const EncoderArchivePage = () => {
             </button>
             <button
                 type="button"
-                onClick={() => setActiveSection('legacyBatches')}
+                onClick={() => showSection('legacyBatches')}
                 className={`relative flex items-center gap-2 px-5 py-3 text-sm font-semibold border-b-2 transition-all -mb-px ${
                     activeSection === 'legacyBatches'
                         ? 'border-amber-500 text-amber-700'
@@ -281,24 +302,28 @@ export const EncoderArchivePage = () => {
 
             {sectionTabs}
 
-            {activeSection === 'legacyUpload' && (
-                <LegacyFolderUploadView
-                    onOpenBatches={() => {
-                        setResumeBatchId(null);
-                        setActiveSection('legacyBatches');
-                    }}
-                    resumeBatchId={resumeBatchId}
-                    onResumeCleared={() => setResumeBatchId(null)}
-                />
+            {mountedLegacySections.legacyUpload && (
+                <div hidden={activeSection !== 'legacyUpload'}>
+                    <LegacyFolderUploadView
+                        onOpenBatches={() => {
+                            setResumeBatchId(null);
+                            showSection('legacyBatches');
+                        }}
+                        resumeBatchId={resumeBatchId}
+                        onResumeCleared={() => setResumeBatchId(null)}
+                    />
+                </div>
             )}
 
-            {activeSection === 'legacyBatches' && (
-                <LegacyBatchesPage
-                    onResumeBatch={(batchId) => {
-                        setResumeBatchId(batchId);
-                        setActiveSection('legacyUpload');
-                    }}
-                />
+            {mountedLegacySections.legacyBatches && (
+                <div hidden={activeSection !== 'legacyBatches'}>
+                    <LegacyBatchesPage
+                        onResumeBatch={(batchId) => {
+                            setResumeBatchId(batchId);
+                            showSection('legacyUpload');
+                        }}
+                    />
+                </div>
             )}
 
             {activeSection === 'archive' && (

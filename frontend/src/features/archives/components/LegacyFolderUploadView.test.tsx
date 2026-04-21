@@ -101,6 +101,18 @@ const buildCustomFolderFile = (relativePath: string, options?: { type?: string; 
     return file;
 };
 
+const createDeferred = <T,>() => {
+    let resolve!: (value: T | PromiseLike<T>) => void;
+    let reject!: (reason?: unknown) => void;
+
+    const promise = new Promise<T>((res, rej) => {
+        resolve = res;
+        reject = rej;
+    });
+
+    return { promise, resolve, reject };
+};
+
 describe('LegacyFolderUploadView', () => {
     beforeEach(() => {
         useLegacyBatchMock.mockReturnValue({ data: undefined });
@@ -173,6 +185,10 @@ describe('LegacyFolderUploadView', () => {
 
         expect(screen.getByText(/1 file blocked before upload/i)).toBeInTheDocument();
         expect(screen.getByText(/voice memo\.mp3/i)).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /view full structure/i })).toHaveClass('bg-surface');
+        expect(screen.getByRole('button', { name: /view full structure/i })).not.toHaveClass('bg-white');
+        expect(screen.getByText('Upload blocked')).toHaveClass('dark:bg-surface-secondary/85');
+        expect(screen.getByText(/remove the blocked files first/i)).toHaveClass('dark:bg-red-950/25');
         expect(screen.getByRole('button', { name: /start legacy ingestion/i })).toBeDisabled();
     });
 
@@ -245,6 +261,7 @@ describe('LegacyFolderUploadView', () => {
     it('creates, uploads, completes, and finalizes a legacy batch', async () => {
         const onOpenBatches = vi.fn();
         const uploadPath = 'VESSEL 1/KOTA HAKIM/IMPORT ENTRY.pdf';
+        const uploadRequest = createDeferred<Response>();
 
         createBatchMutateAsync.mockResolvedValue(
             buildBatch({
@@ -320,10 +337,7 @@ describe('LegacyFolderUploadView', () => {
             }),
         );
 
-        vi.mocked(fetch).mockResolvedValue({
-            ok: true,
-            status: 200,
-        } as Response);
+        vi.mocked(fetch).mockImplementation(() => uploadRequest.promise);
 
         const { container } = render(<LegacyFolderUploadView onOpenBatches={onOpenBatches} />);
         const folderInput = container.querySelector('input[type="file"]');
@@ -345,6 +359,16 @@ describe('LegacyFolderUploadView', () => {
         });
 
         fireEvent.click(screen.getByRole('button', { name: /start legacy ingestion/i }));
+
+        await waitFor(() => {
+            expect(screen.getByText('Uploading batch')).toBeInTheDocument();
+        });
+        expect(screen.queryByRole('button', { name: /resume upload/i })).not.toBeInTheDocument();
+
+        uploadRequest.resolve({
+            ok: true,
+            status: 200,
+        } as Response);
 
         expect(await screen.findByText('Ingestion complete')).toBeInTheDocument();
 
@@ -369,6 +393,106 @@ describe('LegacyFolderUploadView', () => {
         fireEvent.click(screen.getByRole('button', { name: /open batch list/i }));
 
         expect(onOpenBatches).toHaveBeenCalledTimes(1);
+    });
+
+    it('shows resuming status only for an interrupted batch that is actually being resumed', async () => {
+        const resumeBatch = buildBatch({
+            id: 'resume-batch-1',
+            batchName: 'VESSEL 1 Interrupted',
+            status: 'interrupted',
+            statusLabel: 'Interrupted',
+            fileCount: 1,
+            uploadSummary: {
+                expected: 1,
+                uploaded: 0,
+                failed: 0,
+                remaining: 1,
+            },
+            remainingRelativePaths: ['VESSEL 1/KOTA HAKIM/IMPORT ENTRY.pdf'],
+        });
+
+        useLegacyBatchMock.mockReturnValue({
+            data: resumeBatch,
+        });
+
+        signUploadsMutateAsync.mockResolvedValue({
+            batchId: 'resume-batch-1',
+            status: 'uploading',
+            uploads: [
+                {
+                    relativePath: 'VESSEL 1/KOTA HAKIM/IMPORT ENTRY.pdf',
+                    uploadUrl: 'https://upload.test/resume',
+                    headers: {},
+                    method: 'PUT',
+                },
+            ],
+        });
+
+        completeUploadsMutateAsync.mockResolvedValue(
+            buildBatch({
+                id: 'resume-batch-1',
+                status: 'uploading',
+                statusLabel: 'Uploading',
+                uploadedFileCount: 1,
+                pendingFileCount: 0,
+                uploadSummary: {
+                    expected: 1,
+                    uploaded: 1,
+                    failed: 0,
+                    remaining: 0,
+                },
+            }),
+        );
+
+        finalizeBatchMutateAsync.mockResolvedValue(
+            buildBatch({
+                id: 'resume-batch-1',
+                status: 'completed',
+                statusLabel: 'Completed',
+                canResume: false,
+                uploadedFileCount: 1,
+                pendingFileCount: 0,
+                uploadSummary: {
+                    expected: 1,
+                    uploaded: 1,
+                    failed: 0,
+                    remaining: 0,
+                },
+                tree: {
+                    name: 'VESSEL 1',
+                    type: 'folder',
+                    children: [],
+                },
+                remainingRelativePaths: [],
+            }),
+        );
+
+        vi.mocked(fetch).mockResolvedValue({
+            ok: true,
+            status: 200,
+        } as Response);
+
+        const { container } = render(<LegacyFolderUploadView resumeBatchId="resume-batch-1" />);
+        const folderInput = container.querySelector('input[type="file"]');
+
+        await waitFor(() => {
+            expect(screen.getByText('Interrupted Batch')).toBeInTheDocument();
+        });
+
+        fireEvent.change(folderInput!, {
+            target: {
+                files: [buildFolderFile('VESSEL 1/KOTA HAKIM/IMPORT ENTRY.pdf')],
+            },
+        });
+
+        fireEvent.click(screen.getByRole('button', { name: /resume legacy ingestion/i }));
+
+        await waitFor(() => {
+            expect(screen.getByText('Resuming batch upload')).toBeInTheDocument();
+        });
+        expect(screen.queryByRole('button', { name: /resume upload/i })).not.toBeInTheDocument();
+
+        expect(await screen.findByText('Ingestion complete')).toBeInTheDocument();
     });
 
     it('shows resume guidance when an interrupted batch is opened from the batch list', async () => {
@@ -524,5 +648,43 @@ describe('LegacyFolderUploadView', () => {
             batchId: 'legacy-batch-1',
             relativePaths: [files[250].webkitRelativePath],
         });
+    });
+
+    it('shows the first backend validation message when legacy batch creation fails with 422', async () => {
+        createBatchMutateAsync.mockRejectedValue({
+            response: {
+                data: {
+                    message: 'The given data was invalid.',
+                    errors: {
+                        files: ['Blocked file type detected in selected legacy folder.'],
+                    },
+                },
+            },
+        });
+
+        const { container } = render(<LegacyFolderUploadView />);
+        const folderInput = container.querySelector('input[type="file"]');
+
+        fireEvent.change(folderInput!, {
+            target: {
+                files: [buildFolderFile('VESSEL 1/KOTA HAKIM/IMPORT ENTRY.pdf')],
+            },
+        });
+
+        fireEvent.change(screen.getByLabelText('Batch Name'), {
+            target: { value: 'VESSEL 1' },
+        });
+        fireEvent.change(screen.getByLabelText('Year'), {
+            target: { value: '2026' },
+        });
+        fireEvent.change(screen.getByLabelText('Department'), {
+            target: { value: 'Brokerage' },
+        });
+
+        fireEvent.click(screen.getByRole('button', { name: /start legacy ingestion/i }));
+
+        expect(await screen.findByText('Upload failed')).toBeInTheDocument();
+        expect(screen.getByText('Blocked file type detected in selected legacy folder.')).toBeInTheDocument();
+        expect(screen.queryByText('Request failed with status code 422')).not.toBeInTheDocument();
     });
 });

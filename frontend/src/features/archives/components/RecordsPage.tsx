@@ -4,10 +4,31 @@ import { LegacyBatchesPage } from './LegacyBatchesPage';
 import { LegacyFolderUploadView } from './LegacyFolderUploadView';
 
 type RecordsTab = 'archive' | 'legacyUpload' | 'legacyBatches';
+type MountedLegacyPanels = {
+    legacyUpload: boolean;
+    legacyBatches: boolean;
+};
 
 export const RecordsPage = () => {
     const [activeTab, setActiveTab] = useState<RecordsTab>('legacyUpload');
     const [resumeBatchId, setResumeBatchId] = useState<string | null>(null);
+    const [mountedLegacyPanels, setMountedLegacyPanels] = useState<MountedLegacyPanels>({
+        legacyUpload: true,
+        legacyBatches: false,
+    });
+
+    const showTab = (tab: RecordsTab) => {
+        if (tab === 'archive') {
+            setActiveTab(tab);
+            return;
+        }
+
+        setMountedLegacyPanels((current) => ({
+            ...current,
+            [tab]: true,
+        }));
+        setActiveTab(tab);
+    };
 
     return (
         <div className="w-full pb-12">
@@ -26,7 +47,7 @@ export const RecordsPage = () => {
                 <button
                     id="records-tab-archive"
                     type="button"
-                    onClick={() => setActiveTab('archive')}
+                    onClick={() => showTab('archive')}
                     className={`relative flex items-center gap-2 px-5 py-3 text-sm font-semibold border-b-2 transition-all -mb-px ${
                         activeTab === 'archive'
                             ? 'border-blue-600 text-blue-600'
@@ -42,7 +63,7 @@ export const RecordsPage = () => {
                 <button
                     id="records-tab-legacy"
                     type="button"
-                    onClick={() => setActiveTab('legacyUpload')}
+                    onClick={() => showTab('legacyUpload')}
                     className={`relative flex items-center gap-2 px-5 py-3 text-sm font-semibold border-b-2 transition-all -mb-px ${
                         activeTab === 'legacyUpload'
                             ? 'border-amber-500 text-amber-700'
@@ -58,7 +79,7 @@ export const RecordsPage = () => {
                 <button
                     id="records-tab-legacy-batches"
                     type="button"
-                    onClick={() => setActiveTab('legacyBatches')}
+                    onClick={() => showTab('legacyBatches')}
                     className={`relative flex items-center gap-2 px-5 py-3 text-sm font-semibold border-b-2 transition-all -mb-px ${
                         activeTab === 'legacyBatches'
                             ? 'border-amber-500 text-amber-700'
@@ -73,28 +94,36 @@ export const RecordsPage = () => {
             </div>
 
             {/* ── Sub-view content ── */}
-            {activeTab === 'archive' ? (
-                /* Archive Transactions — renders the full existing ArchivesPage as-is */
-                /* The ArchivesPage renders its own header; we suppress the extra padding by removing p-8 */
+            <div hidden={activeTab !== 'archive'}>
+                {/* Archive Transactions — renders the full existing ArchivesPage as-is */}
+                {/* The ArchivesPage renders its own header; we suppress the extra padding by removing p-8 */}
                 <div className="-mx-0">
                     <ArchivesPage />
                 </div>
-            ) : activeTab === 'legacyUpload' ? (
-                <LegacyFolderUploadView
-                    onOpenBatches={() => {
-                        setResumeBatchId(null);
-                        setActiveTab('legacyBatches');
-                    }}
-                    resumeBatchId={resumeBatchId}
-                    onResumeCleared={() => setResumeBatchId(null)}
-                />
-            ) : (
-                <LegacyBatchesPage
-                    onResumeBatch={(batchId) => {
-                        setResumeBatchId(batchId);
-                        setActiveTab('legacyUpload');
-                    }}
-                />
+            </div>
+
+            {mountedLegacyPanels.legacyUpload && (
+                <div hidden={activeTab !== 'legacyUpload'}>
+                    <LegacyFolderUploadView
+                        onOpenBatches={() => {
+                            setResumeBatchId(null);
+                            showTab('legacyBatches');
+                        }}
+                        resumeBatchId={resumeBatchId}
+                        onResumeCleared={() => setResumeBatchId(null)}
+                    />
+                </div>
+            )}
+
+            {mountedLegacyPanels.legacyBatches && (
+                <div hidden={activeTab !== 'legacyBatches'}>
+                    <LegacyBatchesPage
+                        onResumeBatch={(batchId) => {
+                            setResumeBatchId(batchId);
+                            showTab('legacyUpload');
+                        }}
+                    />
+                </div>
             )}
         </div>
     );

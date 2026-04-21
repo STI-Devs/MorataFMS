@@ -58,6 +58,36 @@ test('admin can create a legacy batch manifest and preserved storage paths', fun
     expect($batch?->files()->first()?->storage_path)->toStartWith('legacy-batches/');
 });
 
+test('legacy batch manifest accepts browser-style modified timestamps with milliseconds', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+
+    $response = $this->actingAs($admin)->postJson('/api/legacy-batches', [
+        'batch_name' => 'OJT Files',
+        'root_folder' => 'OJT Files',
+        'year' => 2026,
+        'department' => 'Brokerage',
+        'notes' => 'Browser-based legacy upload manifest.',
+        'files' => [
+            [
+                'relative_path' => 'OJT Files/Reporting/FIRST WEEK REPORT.pdf',
+                'size_bytes' => 223231,
+                'mime_type' => 'application/pdf',
+                'modified_at' => '2026-01-27T08:01:34.179Z',
+            ],
+        ],
+    ]);
+
+    $response->assertCreated()
+        ->assertJsonPath('data.file_count', 1)
+        ->assertJsonPath('data.upload_summary.remaining', 1);
+
+    $batch = LegacyBatch::query()->latest('id')->first();
+
+    expect($batch)->not->toBeNull();
+    expect($batch?->files()->first()?->modified_at?->format('Y-m-d H:i:s'))
+        ->toBe('2026-01-27 08:01:34');
+});
+
 test('admin can append additional manifest chunks before uploads begin', function () {
     $admin = User::factory()->create(['role' => 'admin']);
 

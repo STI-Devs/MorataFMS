@@ -81,19 +81,19 @@ Route::middleware(['auth:sanctum', 'active-session', 'throttle:api-general'])->g
         Route::get('/', [LegacyBatchController::class, 'index'])
             ->middleware('throttle:api-search');
         Route::post('/', [LegacyBatchController::class, 'store'])
-            ->middleware('throttle:archive-uploads');
+            ->middleware('throttle:legacy-batch-uploads');
         Route::post('{legacyBatch}/manifest', [LegacyBatchController::class, 'appendManifest'])
-            ->middleware('throttle:archive-uploads');
+            ->middleware('throttle:legacy-batch-uploads');
         Route::get('{legacyBatch}', [LegacyBatchController::class, 'show'])
             ->middleware('throttle:api-search');
         Route::post('{legacyBatch}/files/sign', [LegacyBatchController::class, 'signUploads'])
-            ->middleware('throttle:archive-uploads');
+            ->middleware('throttle:legacy-batch-uploads');
         Route::post('{legacyBatch}/files/complete', [LegacyBatchController::class, 'completeUploads'])
-            ->middleware('throttle:archive-uploads');
+            ->middleware('throttle:legacy-batch-uploads');
         Route::post('{legacyBatch}/finalize', [LegacyBatchController::class, 'finalize'])
-            ->middleware('throttle:archive-uploads');
+            ->middleware('throttle:legacy-batch-uploads');
         Route::delete('{legacyBatch}', [LegacyBatchController::class, 'destroy'])
-            ->middleware('throttle:archive-uploads');
+            ->middleware('throttle:legacy-batch-uploads');
         Route::get('{legacyBatch}/files/{legacyBatchFile}/download', [LegacyBatchController::class, 'downloadFile'])
             ->middleware('throttle:api-documents');
     });
