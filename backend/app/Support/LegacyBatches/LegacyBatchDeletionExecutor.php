@@ -8,6 +8,7 @@ use App\Support\Operations\Deletion\Shared\DeletesFilesForPaths;
 use App\Support\Operations\Deletion\Shared\PurgesAuditLogsForSubjects;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use League\Flysystem\UnableToDeleteFile;
 
 class LegacyBatchDeletionExecutor
 {
@@ -103,8 +104,14 @@ class LegacyBatchDeletionExecutor
         }
 
         $storageDisk = Storage::disk($legacyBatch->storage_disk);
-        $storageDisk->delete($inspection['storage_prefix']);
-        $storageDisk->delete($inspection['storage_prefix'].'/');
+        foreach ([$inspection['storage_prefix'], $inspection['storage_prefix'].'/'] as $markerPath) {
+            try {
+                $storageDisk->delete($markerPath);
+            } catch (UnableToDeleteFile) {
+                // Some adapters treat the batch prefix as a directory instead of a zero-byte marker object.
+                // We still follow up with deleteDirectory() below to clear the prefix safely.
+            }
+        }
         $storageDisk->deleteDirectory($inspection['storage_prefix']);
 
         $remainingStoragePaths = collect($storageDisk->allFiles($inspection['storage_prefix']))
