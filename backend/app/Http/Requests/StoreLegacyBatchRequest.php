@@ -12,6 +12,16 @@ class StoreLegacyBatchRequest extends FormRequest
     /**
      * @var list<string>
      */
+    private const KNOWN_SYSTEM_FILENAMES = [
+        'desktop.ini',
+        'thumbs.db',
+        'ehthumbs.db',
+        '.ds_store',
+    ];
+
+    /**
+     * @var list<string>
+     */
     private const ALLOWED_EXTENSIONS = [
         'pdf',
         'doc',
@@ -128,7 +138,7 @@ class StoreLegacyBatchRequest extends FormRequest
                     if ($extension === '' || ! in_array($extension, self::ALLOWED_EXTENSIONS, true)) {
                         $validator->errors()->add(
                             "files.{$index}.relative_path",
-                            'Only PDF, Office documents, spreadsheets, email message files, text files, and images are allowed in legacy uploads.',
+                            self::unsupportedFileMessage($normalizedPath),
                         );
                     }
 
@@ -141,5 +151,16 @@ class StoreLegacyBatchRequest extends FormRequest
                 });
             },
         ];
+    }
+
+    private static function unsupportedFileMessage(string $normalizedPath): string
+    {
+        $filename = strtolower(pathinfo($normalizedPath, PATHINFO_BASENAME));
+
+        if (in_array($filename, self::KNOWN_SYSTEM_FILENAMES, true) || str_starts_with($filename, '~$')) {
+            return "System-generated files such as {$filename} are not supported in legacy uploads. Remove {$normalizedPath} and try again.";
+        }
+
+        return 'Only PDF, Office documents, spreadsheets, email message files, text files, and images are allowed in legacy uploads.';
     }
 }

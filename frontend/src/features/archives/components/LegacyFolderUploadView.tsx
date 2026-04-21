@@ -88,6 +88,12 @@ const LEGACY_ALLOWED_EXTENSIONS = [
 ] as const;
 const LEGACY_ALLOWED_FILE_ACCEPT = LEGACY_ALLOWED_EXTENSIONS.map((extension) => `.${extension}`).join(',');
 const LEGACY_ALLOWED_FILE_LABEL = 'PDF, Word, Excel, PowerPoint, email archive files, CSV, TXT, JPG, JPEG, and PNG';
+const LEGACY_IGNORED_FILENAMES = new Set([
+    'desktop.ini',
+    'thumbs.db',
+    'ehthumbs.db',
+    '.ds_store',
+]);
 const LEGACY_MANIFEST_CHUNK_SIZE = 250;
 const LEGACY_SIGNED_UPLOAD_CHUNK_SIZE = 10;
 const LEGACY_LARGE_BATCH_WARNING_FILE_COUNT = 1000;
@@ -139,12 +145,25 @@ const getFileExtension = (path: string): string => {
     return parts.length > 1 ? parts[parts.length - 1].toLowerCase() : '';
 };
 
+const shouldIgnoreLegacyFile = (path: string): boolean => {
+    const normalizedPath = normalizeRelativePath(path);
+    const segments = normalizedPath.split('/');
+    const filename = (segments[segments.length - 1] ?? '').toLowerCase();
+
+    return LEGACY_IGNORED_FILENAMES.has(filename) || filename.startsWith('~$');
+};
+
 const validateLegacyFiles = (files: File[]): { validFiles: File[]; rejectedFiles: RejectedLegacyFile[] } => {
     const validFiles: File[] = [];
     const rejectedFiles: RejectedLegacyFile[] = [];
 
     files.forEach((file) => {
         const relativePath = normalizeRelativePath(file.webkitRelativePath || file.name);
+
+        if (shouldIgnoreLegacyFile(relativePath)) {
+            return;
+        }
+
         const extension = getFileExtension(relativePath);
 
         if (!LEGACY_ALLOWED_EXTENSIONS.includes(extension as (typeof LEGACY_ALLOWED_EXTENSIONS)[number])) {
@@ -248,7 +267,25 @@ const inspectTree = (node: FileNode, depth = 1): { folders: number; files: numbe
     return { folders, files, maxDepth };
 };
 
+const getRootFolderName = (files: File[]): string =>
+    normalizeRelativePath(files[0]?.webkitRelativePath || files[0]?.name || 'Selected Folder').split('/')[0] || 'Selected Folder';
+
+const buildEmptySummary = (rootName: string): FolderSummary => ({
+    rootName,
+    topLevelFolderCount: 0,
+    subfolderCount: 0,
+    fileCount: 0,
+    totalBytes: 0,
+    maxDepth: 1,
+    selectedAt: new Date(),
+    previewTree: [],
+});
+
 const buildSummaryFromFiles = (files: File[]): FolderSummary => {
+    if (files.length === 0) {
+        return buildEmptySummary('Selected Folder');
+    }
+
     const folderPaths = new Set<string>();
     const topLevelFolders = new Set<string>();
     const previewItems: string[] = [];
@@ -274,7 +311,7 @@ const buildSummaryFromFiles = (files: File[]): FolderSummary => {
         }
     });
 
-    const rootName = normalizeRelativePath(files[0]?.webkitRelativePath || files[0]?.name || 'Selected Folder').split('/')[0];
+    const rootName = getRootFolderName(files);
 
     return {
         rootName,
@@ -1189,8 +1226,13 @@ export const LegacyFolderUploadView = ({
             return;
         }
 
-        const summary = buildSummaryFromFiles(files);
         const validationResult = validateLegacyFiles(files);
+        const summarySourceFiles = validationResult.validFiles.length > 0
+            ? validationResult.validFiles
+            : files.filter((file) => !shouldIgnoreLegacyFile(file.webkitRelativePath || file.name));
+        const summary = summarySourceFiles.length > 0
+            ? buildSummaryFromFiles(summarySourceFiles)
+            : buildEmptySummary(getRootFolderName(files));
 
         setSelectedFiles(validationResult.validFiles);
         setRejectedFiles(validationResult.rejectedFiles);

@@ -279,6 +279,26 @@ describe('LegacyFolderUploadView', () => {
         expect(screen.getByRole('button', { name: /start legacy ingestion/i })).toBeEnabled();
     });
 
+    it('quietly skips known system files from the visible preflight counts', () => {
+        const { container } = render(<LegacyFolderUploadView />);
+        const folderInput = container.querySelector('input[type="file"]');
+
+        fireEvent.change(folderInput!, {
+            target: {
+                files: [
+                    buildFolderFile('VESSEL 1/KOTA HAKIM/IMPORT ENTRY.pdf'),
+                    buildCustomFolderFile('VESSEL 1/KOTA HAKIM/desktop.ini', {
+                        type: 'application/octet-stream',
+                    }),
+                ],
+            },
+        });
+
+        expect(screen.queryByText(/file blocked before upload/i)).not.toBeInTheDocument();
+        expect(screen.getByText('1 files · 1 folders · 6 B')).toBeInTheDocument();
+        expect(screen.getByText('Preflight')).toBeInTheDocument();
+    });
+
     it('reveals range years only when multi-year coverage is enabled', () => {
         const { container } = render(<LegacyFolderUploadView />);
         const folderInput = container.querySelector('input[type="file"]');

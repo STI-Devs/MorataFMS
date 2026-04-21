@@ -263,6 +263,33 @@ test('legacy batch manifest rejects blocked file extensions', function () {
         ->toBe('Only PDF, Office documents, spreadsheets, email message files, text files, and images are allowed in legacy uploads.');
 });
 
+test('legacy batch manifest clearly identifies blocked windows system files', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+
+    $response = $this->actingAs($admin)->postJson('/api/legacy-batches', [
+        'batch_name' => 'JAPAN — Historical Archive',
+        'root_folder' => 'Japan',
+        'year_from' => 2025,
+        'year_to' => 2025,
+        'department' => 'Brokerage',
+        'notes' => 'Historical client archive preserved for retrieval.',
+        'files' => [
+            [
+                'relative_path' => 'Japan/desktop.ini',
+                'size_bytes' => 0,
+                'mime_type' => 'application/octet-stream',
+                'modified_at' => now()->subYear()->toIso8601String(),
+            ],
+        ],
+    ]);
+
+    $response->assertUnprocessable()
+        ->assertJsonValidationErrors(['files.0.relative_path']);
+
+    expect($response->json('errors')['files.0.relative_path'][0])
+        ->toBe('System-generated files such as desktop.ini are not supported in legacy uploads. Remove Japan/desktop.ini and try again.');
+});
+
 test('legacy batch manifest accepts macro-enabled excel files used in transaction folders', function () {
     $admin = User::factory()->create(['role' => 'admin']);
 
@@ -423,6 +450,49 @@ test('admin can append zero-byte files in later manifest chunks', function () {
         ->assertOk()
         ->assertJsonPath('data.registered_file_count', 2)
         ->assertJsonPath('data.remaining_manifest_files', 0);
+});
+
+test('legacy batch append manifest clearly identifies blocked windows system files', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+
+    $createResponse = $this->actingAs($admin)->postJson('/api/legacy-batches', [
+        'batch_name' => 'JAPAN — Historical Archive',
+        'root_folder' => 'Japan',
+        'year_from' => 2025,
+        'year_to' => 2025,
+        'department' => 'Brokerage',
+        'notes' => 'Historical client archive preserved for retrieval.',
+        'expected_file_count' => 2,
+        'total_size_bytes' => 120000,
+        'files' => [
+            [
+                'relative_path' => 'Japan/ENTRY MONITOR.xlsb',
+                'size_bytes' => 120000,
+                'mime_type' => 'application/vnd.ms-excel.sheet.binary.macroEnabled.12',
+                'modified_at' => now()->subYear()->toIso8601String(),
+            ],
+        ],
+    ]);
+
+    $batchId = $createResponse->json('data.id');
+
+    $response = $this->actingAs($admin)
+        ->postJson("/api/legacy-batches/{$batchId}/manifest", [
+            'files' => [
+                [
+                    'relative_path' => 'Japan/desktop.ini',
+                    'size_bytes' => 0,
+                    'mime_type' => 'application/octet-stream',
+                    'modified_at' => now()->subYear()->toIso8601String(),
+                ],
+            ],
+        ]);
+
+    $response->assertUnprocessable()
+        ->assertJsonValidationErrors(['files.0.relative_path']);
+
+    expect($response->json('errors')['files.0.relative_path'][0])
+        ->toBe('System-generated files such as desktop.ini are not supported in legacy uploads. Remove Japan/desktop.ini and try again.');
 });
 
 test('signing uploads returns temporary upload URLs and moves batch to uploading', function () {
