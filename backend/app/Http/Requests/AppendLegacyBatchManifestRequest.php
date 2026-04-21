@@ -12,7 +12,30 @@ class AppendLegacyBatchManifestRequest extends FormRequest
     /**
      * @var list<string>
      */
-    private const ALLOWED_EXTENSIONS = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'xlsm', 'csv', 'txt', 'jpg', 'jpeg', 'png'];
+    private const ALLOWED_EXTENSIONS = [
+        'pdf',
+        'doc',
+        'docx',
+        'docm',
+        'dotm',
+        'xls',
+        'xlsx',
+        'xlsm',
+        'xlsb',
+        'xltm',
+        'xlam',
+        'pptm',
+        'potm',
+        'ppsm',
+        'ppam',
+        'csv',
+        'txt',
+        'msg',
+        'eml',
+        'jpg',
+        'jpeg',
+        'png',
+    ];
 
     public function authorize(): bool
     {
@@ -72,7 +95,7 @@ class AppendLegacyBatchManifestRequest extends FormRequest
                     if ($extension === '' || ! in_array($extension, self::ALLOWED_EXTENSIONS, true)) {
                         $validator->errors()->add(
                             "files.{$index}.relative_path",
-                            'Only PDF, Office documents, spreadsheets, text files, and images are allowed in legacy uploads.',
+                            'Only PDF, Office documents, spreadsheets, email message files, text files, and images are allowed in legacy uploads.',
                         );
                     }
 

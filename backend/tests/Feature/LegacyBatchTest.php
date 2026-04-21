@@ -145,6 +145,58 @@ test('admin can append additional manifest chunks before uploads begin', functio
     expect($batch?->files()->count())->toBe(3);
 });
 
+test('admin can append manifest chunks that include newly allowed office and email archive files', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+
+    $createResponse = $this->actingAs($admin)->postJson('/api/legacy-batches', [
+        'batch_name' => 'VESSEL 1 — Historical Archive',
+        'root_folder' => 'VESSEL 1',
+        'year_from' => 2025,
+        'year_to' => 2025,
+        'department' => 'Brokerage',
+        'notes' => 'Historical vessel archive preserved for retrieval.',
+        'expected_file_count' => 3,
+        'total_size_bytes' => 744288,
+        'files' => [
+            [
+                'relative_path' => 'VESSEL 1/KOTA HAKIM/KOTA HAKIM 2350W/BL COPIES/KOTA HAKIM 2350W BL.pdf',
+                'size_bytes' => 524288,
+                'mime_type' => 'application/pdf',
+                'modified_at' => now()->subYear()->toIso8601String(),
+            ],
+        ],
+    ]);
+
+    $batchId = $createResponse->json('data.id');
+
+    $this->actingAs($admin)
+        ->postJson("/api/legacy-batches/{$batchId}/manifest", [
+            'files' => [
+                [
+                    'relative_path' => 'VESSEL 1/KOTA HAKIM/WORKING PAPERS/ENTRY MONITOR.xlsb',
+                    'size_bytes' => 120000,
+                    'mime_type' => 'application/vnd.ms-excel.sheet.binary.macroEnabled.12',
+                    'modified_at' => now()->subYear()->toIso8601String(),
+                ],
+                [
+                    'relative_path' => 'VESSEL 1/KOTA HAKIM/EMAILS/CUSTOMER APPROVAL.msg',
+                    'size_bytes' => 100000,
+                    'mime_type' => 'application/vnd.ms-outlook',
+                    'modified_at' => now()->subYear()->toIso8601String(),
+                ],
+            ],
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.registered_file_count', 3)
+        ->assertJsonPath('data.expected_file_count', 3)
+        ->assertJsonPath('data.remaining_manifest_files', 0);
+
+    $batch = LegacyBatch::query()->where('uuid', $batchId)->first();
+
+    expect($batch)->not->toBeNull();
+    expect($batch?->files()->count())->toBe(3);
+});
+
 test('encoder only sees their own legacy batches', function () {
     $encoder = User::factory()->create(['role' => 'encoder']);
     $otherEncoder = User::factory()->create(['role' => 'encoder']);
