@@ -17,6 +17,7 @@ class LegacyBatchFile extends Model
     protected $fillable = [
         'legacy_batch_id',
         'relative_path',
+        'relative_path_hash',
         'storage_path',
         'filename',
         'mime_type',
@@ -37,6 +38,13 @@ class LegacyBatchFile extends Model
             'failed_at' => 'datetime',
             'status' => LegacyBatchFileStatus::class,
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (self $legacyBatchFile): void {
+            $legacyBatchFile->relative_path_hash = hash('sha256', (string) $legacyBatchFile->relative_path);
+        });
     }
 
     public function batch(): BelongsTo
