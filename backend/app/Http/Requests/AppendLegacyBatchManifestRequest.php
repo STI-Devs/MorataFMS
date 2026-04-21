@@ -5,7 +5,7 @@ namespace App\Http\Requests;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
-class StoreLegacyBatchRequest extends FormRequest
+class AppendLegacyBatchManifestRequest extends FormRequest
 {
     private const MAX_FILE_SIZE_BYTES = 52_428_800;
 
@@ -22,14 +22,7 @@ class StoreLegacyBatchRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'batch_name' => ['required', 'string', 'max:160'],
-            'root_folder' => ['required', 'string', 'max:255'],
-            'year' => ['required', 'integer', 'min:2000', 'max:'.now()->year],
-            'department' => ['required', 'string', 'max:60'],
-            'notes' => ['nullable', 'string', 'max:2000'],
-            'expected_file_count' => ['nullable', 'integer', 'min:1'],
-            'total_size_bytes' => ['nullable', 'integer', 'min:1'],
-            'files' => ['required', 'array', 'list', 'min:1'],
+            'files' => ['required', 'array', 'list', 'min:1', 'max:250'],
             'files.*.relative_path' => ['required', 'string', 'max:1024'],
             'files.*.size_bytes' => ['required', 'integer', 'min:1'],
             'files.*.mime_type' => ['nullable', 'string', 'max:255'],
@@ -37,25 +30,14 @@ class StoreLegacyBatchRequest extends FormRequest
         ];
     }
 
-    public function messages(): array
-    {
-        return [
-            'batch_name.required' => 'Batch name is required.',
-            'root_folder.required' => 'Root folder is required.',
-            'year.required' => 'Year is required.',
-            'department.required' => 'Department is required.',
-            'files.required' => 'Select at least one file before creating the legacy batch.',
-            'files.min' => 'Select at least one file before creating the legacy batch.',
-        ];
-    }
-
     public function after(): array
     {
         return [
             function (Validator $validator): void {
+                $legacyBatch = $this->route('legacyBatch');
                 $files = collect($this->input('files', []));
 
-                if ($files->isEmpty()) {
+                if (! $legacyBatch || $files->isEmpty()) {
                     return;
                 }
 
@@ -66,10 +48,9 @@ class StoreLegacyBatchRequest extends FormRequest
                     ->values();
 
                 if ($normalizedPaths->count() !== $normalizedPaths->unique()->count()) {
-                    $validator->errors()->add('files', 'Each file in the legacy batch must have a unique relative path.');
+                    $validator->errors()->add('files', 'Each file in the legacy batch must have a unique relative path within the manifest chunk.');
                 }
 
-                $rootFolder = trim((string) $this->input('root_folder'));
                 $detectedRootFolders = $normalizedPaths
                     ->map(fn (string $path): string => str($path)->before('/')->value())
                     ->unique()
@@ -79,19 +60,8 @@ class StoreLegacyBatchRequest extends FormRequest
                     $validator->errors()->add('files', 'All selected files must belong to the same root folder.');
                 }
 
-                if ($detectedRootFolders->isNotEmpty() && $detectedRootFolders->first() !== $rootFolder) {
-                    $validator->errors()->add('root_folder', 'Root folder must match the first segment of every selected file path.');
-                }
-
-                $expectedFileCount = (int) ($this->input('expected_file_count') ?? $files->count());
-                $totalSizeBytes = (int) ($this->input('total_size_bytes') ?? $files->sum('size_bytes'));
-
-                if ($expectedFileCount < $files->count()) {
-                    $validator->errors()->add('expected_file_count', 'Expected file count must be greater than or equal to the initial manifest chunk.');
-                }
-
-                if ($totalSizeBytes < (int) $files->sum('size_bytes')) {
-                    $validator->errors()->add('total_size_bytes', 'Total batch size must be greater than or equal to the initial manifest chunk size.');
+                if ($detectedRootFolders->isNotEmpty() && $detectedRootFolders->first() !== $legacyBatch->root_folder) {
+                    $validator->errors()->add('files', 'Manifest chunk files must match the root folder recorded on the legacy batch.');
                 }
 
                 $files->values()->each(function (array $file, int $index) use ($validator): void {

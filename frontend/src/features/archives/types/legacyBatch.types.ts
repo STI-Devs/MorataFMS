@@ -78,6 +78,8 @@ export interface CreateLegacyBatchPayload {
     year: string;
     department: string;
     notes?: string;
+    expectedFileCount?: number;
+    totalSizeBytes?: number;
     files: LegacyBatchManifestFile[];
 }
 

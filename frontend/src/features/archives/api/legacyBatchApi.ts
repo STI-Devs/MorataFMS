@@ -159,6 +159,8 @@ export const legacyBatchApi = {
             year: Number(payload.year),
             department: payload.department,
             notes: payload.notes || null,
+            expected_file_count: payload.expectedFileCount,
+            total_size_bytes: payload.totalSizeBytes,
             files: payload.files.map((file) => ({
                 relative_path: file.relativePath,
                 size_bytes: file.sizeBytes,
@@ -168,6 +170,36 @@ export const legacyBatchApi = {
         });
 
         return mapDetail(response.data.data);
+    },
+
+    appendLegacyBatchManifest: async (batchId: string, files: CreateLegacyBatchPayload['files']): Promise<{
+        batchId: string;
+        registeredFileCount: number;
+        expectedFileCount: number;
+        remainingManifestFiles: number;
+    }> => {
+        const response = await api.post<{
+            data: {
+                batch_id: string;
+                registered_file_count: number;
+                expected_file_count: number;
+                remaining_manifest_files: number;
+            };
+        }>(`/api/legacy-batches/${batchId}/manifest`, {
+            files: files.map((file) => ({
+                relative_path: file.relativePath,
+                size_bytes: file.sizeBytes,
+                mime_type: file.mimeType,
+                modified_at: file.modifiedAt,
+            })),
+        });
+
+        return {
+            batchId: response.data.data.batch_id,
+            registeredFileCount: response.data.data.registered_file_count,
+            expectedFileCount: response.data.data.expected_file_count,
+            remainingManifestFiles: response.data.data.remaining_manifest_files,
+        };
     },
 
     signLegacyBatchUploads: async (

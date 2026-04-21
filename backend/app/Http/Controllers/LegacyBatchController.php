@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\LegacyBatchFileStatus;
 use App\Enums\LegacyBatchStatus;
+use App\Http\Requests\AppendLegacyBatchManifestRequest;
 use App\Http\Requests\CompleteLegacyBatchUploadsRequest;
 use App\Http\Requests\FinalizeLegacyBatchRequest;
 use App\Http\Requests\SignLegacyBatchUploadsRequest;
@@ -22,6 +23,7 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class LegacyBatchController extends Controller
@@ -67,8 +69,10 @@ class LegacyBatchController extends Controller
 
         $validated = $request->validated();
         $manifestFiles = collect($validated['files']);
+        $expectedFileCount = (int) ($validated['expected_file_count'] ?? $manifestFiles->count());
+        $totalSizeBytes = (int) ($validated['total_size_bytes'] ?? $manifestFiles->sum('size_bytes'));
 
-        $batch = DB::transaction(function () use ($validated, $manifestFiles, $user) {
+        $batch = DB::transaction(function () use ($validated, $manifestFiles, $user, $expectedFileCount, $totalSizeBytes) {
             $batch = LegacyBatch::query()->create([
                 'uuid' => (string) Str::uuid(),
                 'batch_name' => $validated['batch_name'],
@@ -77,30 +81,16 @@ class LegacyBatchController extends Controller
                 'department' => $validated['department'],
                 'notes' => $validated['notes'] ?? null,
                 'status' => LegacyBatchStatus::Draft,
-                'expected_file_count' => $manifestFiles->count(),
+                'expected_file_count' => $expectedFileCount,
                 'uploaded_file_count' => 0,
                 'failed_file_count' => 0,
-                'total_size_bytes' => (int) $manifestFiles->sum('size_bytes'),
+                'total_size_bytes' => $totalSizeBytes,
                 'storage_disk' => config('filesystems.document_disk', 's3'),
                 'uploaded_by' => $user->id,
                 'last_activity_at' => now(),
             ]);
 
-            $batch->files()->createMany(
-                $manifestFiles->map(function (array $file) use ($batch): array {
-                    $relativePath = $this->legacyBatchUploadUrlFactory->normalizeRelativePath($file['relative_path']);
-
-                    return [
-                        'relative_path' => $relativePath,
-                        'storage_path' => $this->legacyBatchUploadUrlFactory->pathFor($batch, $relativePath),
-                        'filename' => str($relativePath)->afterLast('/')->value(),
-                        'mime_type' => $file['mime_type'] ?? null,
-                        'size_bytes' => (int) $file['size_bytes'],
-                        'modified_at' => $file['modified_at'] ?? null,
-                        'status' => LegacyBatchFileStatus::Pending,
-                    ];
-                })->all(),
-            );
+            $this->upsertManifestFiles($batch, $manifestFiles->all());
 
             return $batch;
         });
@@ -111,6 +101,48 @@ class LegacyBatchController extends Controller
         return (new LegacyBatchDetailResource($batch))
             ->response()
             ->setStatusCode(201);
+    }
+
+    public function appendManifest(
+        AppendLegacyBatchManifestRequest $request,
+        LegacyBatch $legacyBatch,
+    ): JsonResponse {
+        $this->authorizeLegacyBatchVisibility($request->user(), $legacyBatch);
+
+        if ($legacyBatch->status !== LegacyBatchStatus::Draft) {
+            abort(409, 'Legacy batch manifest can only be updated before uploads begin.');
+        }
+
+        $validated = $request->validated();
+
+        $registeredFileCount = DB::transaction(function () use ($legacyBatch, $validated) {
+            $this->upsertManifestFiles($legacyBatch, $validated['files']);
+
+            $registeredFileCount = $legacyBatch->files()->count();
+
+            if ($registeredFileCount > $legacyBatch->expected_file_count) {
+                throw ValidationException::withMessages([
+                    'files' => [
+                        'This manifest chunk would register more files than the batch expected when it was created.',
+                    ],
+                ]);
+            }
+
+            $legacyBatch->forceFill([
+                'last_activity_at' => now(),
+            ])->save();
+
+            return $registeredFileCount;
+        });
+
+        return response()->json([
+            'data' => [
+                'batch_id' => $legacyBatch->uuid,
+                'registered_file_count' => $registeredFileCount,
+                'expected_file_count' => $legacyBatch->expected_file_count,
+                'remaining_manifest_files' => max($legacyBatch->expected_file_count - $registeredFileCount, 0),
+            ],
+        ]);
     }
 
     public function show(Request $request, LegacyBatch $legacyBatch): LegacyBatchDetailResource
@@ -128,6 +160,10 @@ class LegacyBatchController extends Controller
         LegacyBatch $legacyBatch,
     ): JsonResponse {
         $this->authorizeLegacyBatchVisibility($request->user(), $legacyBatch);
+
+        if ($legacyBatch->files()->count() !== $legacyBatch->expected_file_count) {
+            abort(409, 'The legacy batch manifest is incomplete. Finish registering the selected files before uploads begin.');
+        }
 
         $relativePaths = collect($request->validated()['relative_paths'])
             ->map(fn (string $path): string => $this->legacyBatchUploadUrlFactory->normalizeRelativePath($path))
@@ -284,5 +320,42 @@ class LegacyBatchController extends Controller
         if ($legacyBatch->uploaded_by !== $user->id) {
             abort(403, 'You are not allowed to access this legacy batch.');
         }
+    }
+
+    /**
+     * @param  list<array{relative_path:string,size_bytes:int,mime_type?:string|null,modified_at?:string|null}>  $files
+     */
+    private function upsertManifestFiles(LegacyBatch $legacyBatch, array $files): void
+    {
+        if ($files === []) {
+            return;
+        }
+
+        $timestamp = now();
+
+        LegacyBatchFile::query()->upsert(
+            collect($files)->map(function (array $file) use ($legacyBatch, $timestamp): array {
+                $relativePath = $this->legacyBatchUploadUrlFactory->normalizeRelativePath($file['relative_path']);
+
+                return [
+                    'legacy_batch_id' => $legacyBatch->id,
+                    'relative_path' => $relativePath,
+                    'relative_path_hash' => hash('sha256', $relativePath),
+                    'storage_path' => $this->legacyBatchUploadUrlFactory->pathFor($legacyBatch, $relativePath),
+                    'filename' => str($relativePath)->afterLast('/')->value(),
+                    'mime_type' => $file['mime_type'] ?? null,
+                    'size_bytes' => (int) $file['size_bytes'],
+                    'modified_at' => $file['modified_at'] ?? null,
+                    'status' => LegacyBatchFileStatus::Pending->value,
+                    'uploaded_at' => null,
+                    'failed_at' => null,
+                    'failure_reason' => null,
+                    'created_at' => $timestamp,
+                    'updated_at' => $timestamp,
+                ];
+            })->all(),
+            ['legacy_batch_id', 'relative_path_hash'],
+            ['relative_path', 'storage_path', 'filename', 'mime_type', 'size_bytes', 'modified_at', 'updated_at'],
+        );
     }
 }

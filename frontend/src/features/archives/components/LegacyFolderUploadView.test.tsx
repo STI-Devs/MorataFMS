@@ -4,12 +4,14 @@ import { LegacyFolderUploadView } from './LegacyFolderUploadView';
 
 const {
     createBatchMutateAsync,
+    appendManifestMutateAsync,
     signUploadsMutateAsync,
     completeUploadsMutateAsync,
     finalizeBatchMutateAsync,
     useLegacyBatchMock,
 } = vi.hoisted(() => ({
     createBatchMutateAsync: vi.fn(),
+    appendManifestMutateAsync: vi.fn(),
     signUploadsMutateAsync: vi.fn(),
     completeUploadsMutateAsync: vi.fn(),
     finalizeBatchMutateAsync: vi.fn(),
@@ -23,6 +25,7 @@ vi.mock('../hooks/useLegacyBatch', () => ({
 vi.mock('../hooks/useLegacyBatchMutations', () => ({
     useLegacyBatchMutations: () => ({
         createBatch: { mutateAsync: createBatchMutateAsync },
+        appendManifest: { mutateAsync: appendManifestMutateAsync },
         signUploads: { mutateAsync: signUploadsMutateAsync },
         completeUploads: { mutateAsync: completeUploadsMutateAsync },
         finalizeBatch: { mutateAsync: finalizeBatchMutateAsync },
@@ -102,6 +105,7 @@ describe('LegacyFolderUploadView', () => {
     beforeEach(() => {
         useLegacyBatchMock.mockReturnValue({ data: undefined });
         createBatchMutateAsync.mockReset();
+        appendManifestMutateAsync.mockReset();
         signUploadsMutateAsync.mockReset();
         completeUploadsMutateAsync.mockReset();
         finalizeBatchMutateAsync.mockReset();
@@ -190,6 +194,52 @@ describe('LegacyFolderUploadView', () => {
         expect(screen.getByText(/large scan\.pdf/i)).toBeInTheDocument();
         expect(screen.getByText(/50 mb limit/i)).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /start legacy ingestion/i })).toBeDisabled();
+    });
+
+    it('accepts xlsm legacy transaction files during preflight', () => {
+        const { container } = render(<LegacyFolderUploadView />);
+        const folderInput = container.querySelector('input[type="file"]');
+
+        fireEvent.change(folderInput!, {
+            target: {
+                files: [
+                    buildCustomFolderFile('VESSEL 1/KOTA HAKIM/WORKING PAPERS/ENTRY MONITOR.xlsm', {
+                        type: 'application/vnd.ms-excel.sheet.macroEnabled.12',
+                    }),
+                ],
+            },
+        });
+
+        expect(screen.queryByText(/file blocked before upload/i)).not.toBeInTheDocument();
+        expect(screen.getByText('Preflight')).toBeInTheDocument();
+
+        fireEvent.change(screen.getByLabelText('Batch Name'), {
+            target: { value: 'VESSEL 1 XLSM Batch' },
+        });
+        fireEvent.change(screen.getByLabelText('Year'), {
+            target: { value: '2026' },
+        });
+        fireEvent.change(screen.getByLabelText('Department'), {
+            target: { value: 'Brokerage' },
+        });
+
+        expect(screen.getByRole('button', { name: /start legacy ingestion/i })).toBeEnabled();
+    });
+
+    it('shows a large-batch warning when the selected root folder contains many files', () => {
+        const { container } = render(<LegacyFolderUploadView />);
+        const folderInput = container.querySelector('input[type="file"]');
+
+        const files = Array.from({ length: 1000 }, (_, index) =>
+            buildCustomFolderFile(`VESSEL 1/KOTA HAKIM/BATCH-${index + 1}.pdf`, { type: 'application/pdf' }),
+        );
+
+        fireEvent.change(folderInput!, {
+            target: { files },
+        });
+
+        expect(screen.getByText(/large legacy batch detected/i)).toBeInTheDocument();
+        expect(screen.getByText(/register the manifest in smaller chunks before upload starts/i)).toBeInTheDocument();
     });
 
     it('creates, uploads, completes, and finalizes a legacy batch', async () => {
@@ -314,6 +364,7 @@ describe('LegacyFolderUploadView', () => {
             relativePaths: [uploadPath],
         });
         expect(finalizeBatchMutateAsync).toHaveBeenCalledWith('legacy-batch-1');
+        expect(appendManifestMutateAsync).not.toHaveBeenCalled();
 
         fireEvent.click(screen.getByRole('button', { name: /open batch list/i }));
 
@@ -349,5 +400,129 @@ describe('LegacyFolderUploadView', () => {
         expect(screen.getByDisplayValue('2026')).toBeInTheDocument();
         expect(screen.getByDisplayValue('Brokerage')).toBeInTheDocument();
         expect(screen.getByText('Remaining Files')).toBeInTheDocument();
+    });
+
+    it('registers additional manifest chunks before uploading large legacy batches', async () => {
+        const uploadPathPrefix = 'VESSEL 1/KOTA HAKIM';
+        const files = Array.from({ length: 251 }, (_, index) =>
+            buildCustomFolderFile(`${uploadPathPrefix}/FILE-${index + 1}.pdf`, { type: 'application/pdf' }),
+        );
+
+        createBatchMutateAsync.mockResolvedValue(
+            buildBatch({
+                fileCount: 251,
+                totalSizeBytes: 1506,
+                totalSize: '1.47 KB',
+                uploadSummary: {
+                    expected: 251,
+                    uploaded: 0,
+                    failed: 0,
+                    remaining: 251,
+                },
+                remainingRelativePaths: [files[0].webkitRelativePath],
+            }),
+        );
+        appendManifestMutateAsync.mockResolvedValue({
+            batchId: 'legacy-batch-1',
+            registeredFileCount: 251,
+            expectedFileCount: 251,
+            remainingManifestFiles: 0,
+        });
+        signUploadsMutateAsync.mockResolvedValue({
+            batchId: 'legacy-batch-1',
+            status: 'uploading',
+            uploads: files.map((file) => ({
+                relativePath: file.webkitRelativePath,
+                uploadUrl: `https://upload.test/${encodeURIComponent(file.webkitRelativePath)}`,
+                headers: {},
+                method: 'PUT' as const,
+            })),
+        });
+        completeUploadsMutateAsync.mockResolvedValue(
+            buildBatch({
+                fileCount: 251,
+                status: 'uploading',
+                statusLabel: 'Uploading',
+                uploadedFileCount: 251,
+                pendingFileCount: 0,
+                uploadSummary: {
+                    expected: 251,
+                    uploaded: 251,
+                    failed: 0,
+                    remaining: 0,
+                },
+            }),
+        );
+        finalizeBatchMutateAsync.mockResolvedValue(
+            buildBatch({
+                fileCount: 251,
+                status: 'completed',
+                statusLabel: 'Completed',
+                canResume: false,
+                uploadedFileCount: 251,
+                pendingFileCount: 0,
+                uploadSummary: {
+                    expected: 251,
+                    uploaded: 251,
+                    failed: 0,
+                    remaining: 0,
+                },
+                tree: {
+                    name: 'VESSEL 1',
+                    type: 'folder',
+                    children: [],
+                },
+                remainingRelativePaths: [],
+            }),
+        );
+        vi.mocked(fetch).mockResolvedValue({
+            ok: true,
+            status: 200,
+        } as Response);
+
+        const { container } = render(<LegacyFolderUploadView />);
+        const folderInput = container.querySelector('input[type="file"]');
+
+        fireEvent.change(folderInput!, {
+            target: { files },
+        });
+        fireEvent.change(screen.getByLabelText('Batch Name'), {
+            target: { value: 'VESSEL 1 Large Batch' },
+        });
+        fireEvent.change(screen.getByLabelText('Year'), {
+            target: { value: '2026' },
+        });
+        fireEvent.change(screen.getByLabelText('Department'), {
+            target: { value: 'Brokerage' },
+        });
+
+        fireEvent.click(screen.getByRole('button', { name: /start legacy ingestion/i }));
+
+        expect(await screen.findByText('Ingestion complete')).toBeInTheDocument();
+        expect(createBatchMutateAsync).toHaveBeenCalledWith(
+            expect.objectContaining({
+                expectedFileCount: 251,
+                totalSizeBytes: expect.any(Number),
+            }),
+        );
+        expect(createBatchMutateAsync.mock.calls[0]?.[0].files).toHaveLength(250);
+        expect(appendManifestMutateAsync).toHaveBeenCalledTimes(1);
+        expect(appendManifestMutateAsync).toHaveBeenCalledWith({
+            batchId: 'legacy-batch-1',
+            files: [
+                expect.objectContaining({
+                    relativePath: files[250].webkitRelativePath,
+                }),
+            ],
+        });
+        expect(signUploadsMutateAsync).toHaveBeenCalledTimes(26);
+        expect(signUploadsMutateAsync).toHaveBeenNthCalledWith(1, {
+            batchId: 'legacy-batch-1',
+            relativePaths: files.slice(0, 10).map((file) => file.webkitRelativePath),
+        });
+        expect(signUploadsMutateAsync).toHaveBeenNthCalledWith(26, {
+            batchId: 'legacy-batch-1',
+            relativePaths: [files[250].webkitRelativePath],
+        });
     });
 });

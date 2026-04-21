@@ -58,10 +58,12 @@ const DEFAULT_META: BatchMeta = {
 };
 
 const LEGACY_MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
-const LEGACY_ALLOWED_EXTENSIONS = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'csv', 'txt', 'jpg', 'jpeg', 'png'] as const;
+const LEGACY_ALLOWED_EXTENSIONS = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'xlsm', 'csv', 'txt', 'jpg', 'jpeg', 'png'] as const;
 const LEGACY_ALLOWED_FILE_ACCEPT = LEGACY_ALLOWED_EXTENSIONS.map((extension) => `.${extension}`).join(',');
-const LEGACY_ALLOWED_FILE_LABEL = 'PDF, Word, Excel, CSV, TXT, JPG, JPEG, and PNG';
+const LEGACY_ALLOWED_FILE_LABEL = 'PDF, Word, Excel (including XLSM), CSV, TXT, JPG, JPEG, and PNG';
+const LEGACY_MANIFEST_CHUNK_SIZE = 250;
 const LEGACY_SIGNED_UPLOAD_CHUNK_SIZE = 10;
+const LEGACY_LARGE_BATCH_WARNING_FILE_COUNT = 1000;
 
 const formatBytes = (bytes: number): string => {
     if (bytes === 0) {
@@ -946,7 +948,7 @@ export const LegacyFolderUploadView = ({
     const folderInputRef = useRef<HTMLInputElement | null>(null);
     const cancelRequestedRef = useRef(false);
     const currentUploadControllerRef = useRef<AbortController | null>(null);
-    const { createBatch, signUploads, completeUploads, finalizeBatch } = useLegacyBatchMutations();
+    const { createBatch, appendManifest, signUploads, completeUploads, finalizeBatch } = useLegacyBatchMutations();
     const { data: resumeBatch } = useLegacyBatch(resumeBatchId, Boolean(resumeBatchId));
 
     useEffect(() => {
@@ -1049,6 +1051,7 @@ export const LegacyFolderUploadView = ({
     const hasUploadableFiles = selectedFiles.length > 0;
     const isMetadataComplete = missingMetadataFields.length === 0 && !resumeRootMismatch;
     const isUploadReady = isMetadataComplete && hasUploadableFiles && !hasRejectedFiles;
+    const isLargeBatch = (folderSummary?.fileCount ?? 0) >= LEGACY_LARGE_BATCH_WARNING_FILE_COUNT;
 
     const selectFiles = (files: File[]) => {
         if (files.length === 0) {
@@ -1115,6 +1118,14 @@ export const LegacyFolderUploadView = ({
                 file,
             ]),
         );
+        const manifestFiles = Array.from(filesByPath.entries()).map(([relativePath, file]) => ({
+            relativePath,
+            sizeBytes: file.size,
+            mimeType: file.type || undefined,
+            modifiedAt: new Date(file.lastModified).toISOString(),
+        }));
+        const manifestChunks = chunk(manifestFiles, LEGACY_MANIFEST_CHUNK_SIZE);
+        const isResumeUpload = Boolean(activeBatch);
 
         setPhase('uploading');
         setErrorMessage('');
@@ -1123,23 +1134,38 @@ export const LegacyFolderUploadView = ({
             let batch = activeBatch;
 
             if (!batch) {
+                const [initialManifestChunk, ...remainingManifestChunks] = manifestChunks;
+
                 batch = await createBatch.mutateAsync({
                     batchName: meta.batchName,
                     rootFolder: folderSummary.rootName,
                     year: meta.year,
                     department: meta.department,
                     notes: meta.notes,
-                    files: Array.from(filesByPath.entries()).map(([relativePath, file]) => ({
-                        relativePath,
-                        sizeBytes: file.size,
-                        mimeType: file.type || undefined,
-                        modifiedAt: new Date(file.lastModified).toISOString(),
-                    })),
+                    expectedFileCount: folderSummary.fileCount,
+                    totalSizeBytes: folderSummary.totalBytes,
+                    files: initialManifestChunk,
                 });
                 setActiveBatch(batch);
+
+                if (remainingManifestChunks.length > 0) {
+                    for (const [chunkIndex, manifestChunk] of remainingManifestChunks.entries()) {
+                        setProgress((current) => ({
+                            ...current,
+                            total: folderSummary.fileCount,
+                            status: `Registering manifest ${chunkIndex + 2} of ${manifestChunks.length}`,
+                            currentItem: `Recording ${manifestChunk.length} files before upload begins...`,
+                        }));
+
+                        await appendManifest.mutateAsync({
+                            batchId: batch.id,
+                            files: manifestChunk,
+                        });
+                    }
+                }
             }
 
-            const uploadTargets = batch.remainingRelativePaths.length > 0
+            const uploadTargets = isResumeUpload && batch.remainingRelativePaths.length > 0
                 ? batch.remainingRelativePaths
                 : Array.from(filesByPath.keys());
 
@@ -1354,6 +1380,13 @@ export const LegacyFolderUploadView = ({
                                     {hasRejectedFiles && (
                                         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                                             Remove the blocked files first. Legacy batches accept only {LEGACY_ALLOWED_FILE_LABEL} up to 50 MB per file.
+                                        </div>
+                                    )}
+
+                                    {isLargeBatch && (
+                                        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                                            Large legacy batch detected. This folder contains {folderSummary?.fileCount} files, so the system will register the
+                                            manifest in smaller chunks before upload starts to reduce browser and network risk.
                                         </div>
                                     )}
 

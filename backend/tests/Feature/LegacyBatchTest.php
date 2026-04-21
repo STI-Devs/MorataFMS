@@ -58,6 +58,57 @@ test('admin can create a legacy batch manifest and preserved storage paths', fun
     expect($batch?->files()->first()?->storage_path)->toStartWith('legacy-batches/');
 });
 
+test('admin can append additional manifest chunks before uploads begin', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+
+    $createResponse = $this->actingAs($admin)->postJson('/api/legacy-batches', [
+        'batch_name' => 'VESSEL 1 — Historical Archive',
+        'root_folder' => 'VESSEL 1',
+        'year' => 2025,
+        'department' => 'Brokerage',
+        'notes' => 'Historical vessel archive preserved for retrieval.',
+        'expected_file_count' => 3,
+        'total_size_bytes' => 744288,
+        'files' => [
+            [
+                'relative_path' => 'VESSEL 1/KOTA HAKIM/KOTA HAKIM 2350W/BL COPIES/KOTA HAKIM 2350W BL.pdf',
+                'size_bytes' => 524288,
+                'mime_type' => 'application/pdf',
+                'modified_at' => now()->subYear()->toIso8601String(),
+            ],
+        ],
+    ]);
+
+    $batchId = $createResponse->json('data.id');
+
+    $this->actingAs($admin)
+        ->postJson("/api/legacy-batches/{$batchId}/manifest", [
+            'files' => [
+                [
+                    'relative_path' => 'VESSEL 1/ED CANCELLATION/ED CANCELLATION NOTICE.pdf',
+                    'size_bytes' => 120000,
+                    'mime_type' => 'application/pdf',
+                    'modified_at' => now()->subYear()->toIso8601String(),
+                ],
+                [
+                    'relative_path' => 'VESSEL 1/KOTA HAKIM/WORKING PAPERS/ENTRY MONITOR.xlsm',
+                    'size_bytes' => 100000,
+                    'mime_type' => 'application/vnd.ms-excel.sheet.macroEnabled.12',
+                    'modified_at' => now()->subYear()->toIso8601String(),
+                ],
+            ],
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.registered_file_count', 3)
+        ->assertJsonPath('data.expected_file_count', 3)
+        ->assertJsonPath('data.remaining_manifest_files', 0);
+
+    $batch = LegacyBatch::query()->where('uuid', $batchId)->first();
+
+    expect($batch)->not->toBeNull();
+    expect($batch?->files()->count())->toBe(3);
+});
+
 test('encoder only sees their own legacy batches', function () {
     $encoder = User::factory()->create(['role' => 'encoder']);
     $otherEncoder = User::factory()->create(['role' => 'encoder']);
@@ -123,6 +174,30 @@ test('legacy batch manifest rejects blocked file extensions', function () {
         ->toBe('Only PDF, Office documents, spreadsheets, text files, and images are allowed in legacy uploads.');
 });
 
+test('legacy batch manifest accepts macro-enabled excel files used in transaction folders', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+
+    $response = $this->actingAs($admin)->postJson('/api/legacy-batches', [
+        'batch_name' => 'VESSEL 1 — Historical Archive',
+        'root_folder' => 'VESSEL 1',
+        'year' => 2025,
+        'department' => 'Brokerage',
+        'notes' => 'Historical vessel archive preserved for retrieval.',
+        'files' => [
+            [
+                'relative_path' => 'VESSEL 1/KOTA HAKIM/WORKING PAPERS/ENTRY MONITOR.xlsm',
+                'size_bytes' => 524288,
+                'mime_type' => 'application/vnd.ms-excel.sheet.macroEnabled.12',
+                'modified_at' => now()->subYear()->toIso8601String(),
+            ],
+        ],
+    ]);
+
+    $response->assertCreated()
+        ->assertJsonPath('data.file_count', 1)
+        ->assertJsonPath('data.upload_summary.remaining', 1);
+});
+
 test('legacy batch manifest rejects files larger than 50 mb', function () {
     $admin = User::factory()->create(['role' => 'admin']);
 
@@ -154,6 +229,7 @@ test('signing uploads returns temporary upload URLs and moves batch to uploading
     $batch = LegacyBatch::factory()->create([
         'uploaded_by' => $admin->id,
         'status' => LegacyBatchStatus::Draft,
+        'expected_file_count' => 1,
     ]);
 
     $batch->files()->create([
@@ -177,6 +253,37 @@ test('signing uploads returns temporary upload URLs and moves batch to uploading
     $batch->refresh();
 
     expect($batch->status)->toBe(LegacyBatchStatus::Uploading);
+});
+
+test('signing uploads is blocked until the full manifest is registered', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+
+    $response = $this->actingAs($admin)->postJson('/api/legacy-batches', [
+        'batch_name' => 'VESSEL 1 — Historical Archive',
+        'root_folder' => 'VESSEL 1',
+        'year' => 2025,
+        'department' => 'Brokerage',
+        'notes' => 'Historical vessel archive preserved for retrieval.',
+        'expected_file_count' => 2,
+        'total_size_bytes' => 624288,
+        'files' => [
+            [
+                'relative_path' => 'VESSEL 1/KOTA HAKIM/IMPORT ENTRY.pdf',
+                'size_bytes' => 524288,
+                'mime_type' => 'application/pdf',
+                'modified_at' => now()->subYear()->toIso8601String(),
+            ],
+        ],
+    ]);
+
+    $batchId = $response->json('data.id');
+
+    $this->actingAs($admin)
+        ->postJson("/api/legacy-batches/{$batchId}/files/sign", [
+            'relative_paths' => ['VESSEL 1/KOTA HAKIM/IMPORT ENTRY.pdf'],
+        ])
+        ->assertStatus(409)
+        ->assertSeeText('The legacy batch manifest is incomplete. Finish registering the selected files before uploads begin.');
 });
 
 test('completing uploaded files and finalizing a legacy batch marks it complete', function () {

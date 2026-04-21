@@ -26,6 +26,14 @@ export const useLegacyBatchMutations = () => {
             legacyBatchApi.signLegacyBatchUploads(batchId, relativePaths),
     });
 
+    const appendManifest = useMutation({
+        mutationFn: ({ batchId, files }: { batchId: string; files: CreateLegacyBatchPayload['files'] }) =>
+            legacyBatchApi.appendLegacyBatchManifest(batchId, files),
+        onSuccess: async (_, variables) => {
+            await invalidateBatch(variables.batchId);
+        },
+    });
+
     const completeUploads = useMutation({
         mutationFn: ({ batchId, relativePaths }: { batchId: string; relativePaths: string[] }) =>
             legacyBatchApi.completeLegacyBatchUploads(batchId, relativePaths),
@@ -52,6 +60,7 @@ export const useLegacyBatchMutations = () => {
 
     return {
         createBatch,
+        appendManifest,
         signUploads,
         completeUploads,
         finalizeBatch,

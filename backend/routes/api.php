@@ -82,6 +82,8 @@ Route::middleware(['auth:sanctum', 'active-session', 'throttle:api-general'])->g
             ->middleware('throttle:api-search');
         Route::post('/', [LegacyBatchController::class, 'store'])
             ->middleware('throttle:archive-uploads');
+        Route::post('{legacyBatch}/manifest', [LegacyBatchController::class, 'appendManifest'])
+            ->middleware('throttle:archive-uploads');
         Route::get('{legacyBatch}', [LegacyBatchController::class, 'show'])
             ->middleware('throttle:api-search');
         Route::post('{legacyBatch}/files/sign', [LegacyBatchController::class, 'signUploads'])
