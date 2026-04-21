@@ -73,6 +73,10 @@ export const LegalDocumentsPage = lazy(() =>
     import('../features/law-firm/components/LegalDocumentsPage').then((module) => ({ default: module.LegalDocumentsPage })),
 );
 
+export const LegalRecordsPage = lazy(() =>
+    import('../features/law-firm/components/LegalRecordsPage').then((module) => ({ default: module.LegalRecordsPage })),
+);
+
 export const ParalegalDashboard = lazy(() =>
     import('../features/law-firm/components/ParalegalDashboard').then((module) => ({ default: module.ParalegalDashboard })),
 );

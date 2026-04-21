@@ -26,6 +26,7 @@ import {
   ImportList,
   LandingPage,
   LegalDocumentsPage,
+  LegalRecordsPage,
   LocationOfGoodsManagement,
   LawFirmPage,
   ParalegalDashboard,
@@ -123,6 +124,7 @@ function App() {
                 <Route path={appRoutes.lawFirm} element={<LawFirmPage />} />
                 <Route path={appRoutes.forms} element={<FormsPage />} />
                 <Route path={appRoutes.paralegalDocuments} element={<LegalDocumentsPage />} />
+                <Route path={appRoutes.paralegalRecords} element={<LegalRecordsPage />} />
               </Route>
 
               {/* Processor module */}
