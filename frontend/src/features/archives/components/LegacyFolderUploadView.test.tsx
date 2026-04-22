@@ -299,6 +299,29 @@ describe('LegacyFolderUploadView', () => {
         expect(screen.getByText('Preflight')).toBeInTheDocument();
     });
 
+    it('quietly skips temporary office lock files from the visible preflight counts', () => {
+        const { container } = render(<LegacyFolderUploadView />);
+        const folderInput = container.querySelector('input[type="file"]');
+
+        fireEvent.change(folderInput!, {
+            target: {
+                files: [
+                    buildCustomFolderFile('IRAN/FOR ED/~$U-DOLE.docx', {
+                        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                    }),
+                    buildCustomFolderFile('IRAN/FOR ED/INVOICE FOR ED.xlsx', {
+                        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    }),
+                ],
+            },
+        });
+
+        expect(screen.queryByText(/file blocked before upload/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/~\$U-DOLE\.docx/i)).not.toBeInTheDocument();
+        expect(screen.getByText('1 files · 1 folders · 6 B')).toBeInTheDocument();
+        expect(screen.getByText('Preflight')).toBeInTheDocument();
+    });
+
     it('reveals range years only when multi-year coverage is enabled', () => {
         const { container } = render(<LegacyFolderUploadView />);
         const folderInput = container.querySelector('input[type="file"]');

@@ -84,6 +84,14 @@ describe('LegacyFolderBrowserPanel', () => {
         expect(screen.getByText(/folder tree/i)).toBeInTheDocument();
     });
 
+    it('hides the status column for completed legacy batches', () => {
+        render(<LegacyFolderBrowserPanel batch={batch} onClose={() => {}} />);
+
+        expect(screen.queryByText(/^Status$/i)).not.toBeInTheDocument();
+        expect(screen.getByText(/^Size$/i)).toHaveClass('text-left');
+        expect(screen.getByText(/^Modified$/i)).toHaveClass('text-left');
+    });
+
     it('sorts folders and files using natural naming order', () => {
         const sortingBatch = {
             ...batch,

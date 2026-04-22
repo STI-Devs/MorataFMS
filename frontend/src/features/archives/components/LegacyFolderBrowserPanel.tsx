@@ -192,10 +192,12 @@ const findNodeByPath = (root: FileNode, path: string): FileNode | null => {
 
 const ContentRow = ({
     batchId,
+    showStatus,
     node,
     onOpenFolder,
 }: {
     batchId: string;
+    showStatus: boolean;
     node: FileNode;
     onOpenFolder?: () => void;
 }) => {
@@ -212,40 +214,52 @@ const ContentRow = ({
     const canDownload = node.type === 'file' && node.id && node.status !== 'pending' && node.status !== 'failed';
 
     return (
-        <div
-            className={`flex items-center gap-3 border-b border-border px-4 py-2.5 last:border-0 ${
+        <tr
+            className={`border-b border-border last:border-0 ${
                 node.type === 'folder'
                     ? 'cursor-pointer transition-colors hover:bg-blue-50/50'
                     : 'transition-colors hover:bg-hover'
             }`}
             onClick={node.type === 'folder' ? onOpenFolder : undefined}
         >
-            {node.type === 'folder'
-                ? <FolderIcon className="h-4 w-4 shrink-0 text-amber-500" />
-                : <FileIcon className="h-4 w-4 shrink-0 text-blue-400" />}
+            <td className="px-4 py-2.5 align-middle">
+                <div className="flex min-w-0 items-center gap-3">
+                    {node.type === 'folder'
+                        ? <FolderIcon className="h-4 w-4 shrink-0 text-amber-500" />
+                        : <FileIcon className="h-4 w-4 shrink-0 text-blue-400" />}
 
-            <span className={`flex-1 truncate text-xs font-medium ${node.type === 'folder' ? 'text-text-primary' : 'text-text-secondary'}`}>
-                {node.name}
-            </span>
+                    <span className={`block truncate text-xs font-medium ${node.type === 'folder' ? 'text-text-primary' : 'text-text-secondary'}`}>
+                        {node.name}
+                    </span>
+                </div>
+            </td>
 
-            <div className="flex w-20 justify-end">
-                <StatusBadge status={node.status} />
-            </div>
-            <span className="w-20 shrink-0 text-right text-[11px] text-text-muted">{node.size ?? ''}</span>
-            <span className="w-28 shrink-0 text-right text-[11px] text-text-muted">{node.modified ?? ''}</span>
-
-            {canDownload ? (
-                <button
-                    type="button"
-                    onClick={handleDownload}
-                    className="w-16 shrink-0 text-right text-[10px] font-bold text-blue-600 hover:underline"
-                >
-                    Download
-                </button>
-            ) : (
-                <span className="w-16 shrink-0" />
+            {showStatus && (
+                <td className="px-4 py-2.5 align-middle">
+                    <div className="flex justify-start">
+                        <StatusBadge status={node.status} />
+                    </div>
+                </td>
             )}
-        </div>
+
+            <td className="px-4 py-2.5 text-left align-middle text-[11px] text-text-muted tabular-nums">
+                {node.size ?? ''}
+            </td>
+            <td className="px-4 py-2.5 text-left align-middle text-[11px] text-text-muted tabular-nums">
+                {node.modified ?? ''}
+            </td>
+            <td className="px-4 py-2.5 text-right align-middle">
+                {canDownload ? (
+                    <button
+                        type="button"
+                        onClick={handleDownload}
+                        className="text-[10px] font-bold text-blue-600 hover:underline"
+                    >
+                        Download
+                    </button>
+                ) : null}
+            </td>
+        </tr>
     );
 };
 
@@ -258,6 +272,7 @@ export const LegacyFolderBrowserPanel = ({ batch, onClose }: LegacyFolderBrowser
     const tree = batch.tree;
     const [selectedPath, setSelectedPath] = useState(tree?.name ?? batch.rootFolder);
     const [search, setSearch] = useState('');
+    const showStatusColumn = batch.status !== 'completed';
 
     const totals = useMemo(() => tree ? countItems(tree) : { folders: 0, files: 0 }, [tree]);
     const currentNode = tree ? (findNodeByPath(tree, selectedPath) ?? tree) : null;
@@ -378,15 +393,6 @@ export const LegacyFolderBrowserPanel = ({ batch, onClose }: LegacyFolderBrowser
                         </div>
                     </div>
 
-                    <div className="flex shrink-0 items-center gap-3 border-b border-border bg-surface-secondary px-4 py-2">
-                        <span className="w-4 shrink-0" />
-                        <span className="flex-1 text-[10px] font-black uppercase tracking-widest text-text-muted">Name</span>
-                        <span className="w-20 text-right text-[10px] font-black uppercase tracking-widest text-text-muted">Status</span>
-                        <span className="w-20 text-right text-[10px] font-black uppercase tracking-widest text-text-muted">Size</span>
-                        <span className="w-28 text-right text-[10px] font-black uppercase tracking-widest text-text-muted">Modified</span>
-                        <span className="w-16 shrink-0" />
-                    </div>
-
                     <div aria-label="Folder contents" className="flex-1 overflow-y-auto bg-surface">
                         {!currentNode ? (
                             <div className="py-12 text-center">
@@ -399,23 +405,45 @@ export const LegacyFolderBrowserPanel = ({ batch, onClose }: LegacyFolderBrowser
                                 </p>
                             </div>
                         ) : (
-                            <>
-                                {folders.map((child) => (
-                                    <ContentRow
-                                        key={`${selectedPath}/${child.name}`}
-                                        batchId={batch.id}
-                                        node={child}
-                                        onOpenFolder={() => setSelectedPath(`${selectedPath}/${child.name}`)}
-                                    />
-                                ))}
-                                {files.map((child) => (
-                                    <ContentRow
-                                        key={`${selectedPath}/${child.name}`}
-                                        batchId={batch.id}
-                                        node={child}
-                                    />
-                                ))}
-                            </>
+                            <table className="w-full table-fixed border-collapse">
+                                <colgroup>
+                                    <col />
+                                    {showStatusColumn && <col className="w-28" />}
+                                    <col className="w-28" />
+                                    <col className="w-40" />
+                                    <col className="w-28" />
+                                </colgroup>
+                                <thead className="sticky top-0 z-10 bg-surface-secondary">
+                                    <tr className="border-b border-border">
+                                        <th className="px-4 py-2 text-left text-[10px] font-black uppercase tracking-widest text-text-muted">Name</th>
+                                        {showStatusColumn && (
+                                            <th className="px-4 py-2 text-left text-[10px] font-black uppercase tracking-widest text-text-muted">Status</th>
+                                        )}
+                                        <th className="px-4 py-2 text-left text-[10px] font-black uppercase tracking-widest text-text-muted">Size</th>
+                                        <th className="px-4 py-2 text-left text-[10px] font-black uppercase tracking-widest text-text-muted">Modified</th>
+                                        <th className="px-4 py-2 text-right text-[10px] font-black uppercase tracking-widest text-text-muted" />
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {folders.map((child) => (
+                                        <ContentRow
+                                            key={`${selectedPath}/${child.name}`}
+                                            batchId={batch.id}
+                                            showStatus={showStatusColumn}
+                                            node={child}
+                                            onOpenFolder={() => setSelectedPath(`${selectedPath}/${child.name}`)}
+                                        />
+                                    ))}
+                                    {files.map((child) => (
+                                        <ContentRow
+                                            key={`${selectedPath}/${child.name}`}
+                                            batchId={batch.id}
+                                            showStatus={showStatusColumn}
+                                            node={child}
+                                        />
+                                    ))}
+                                </tbody>
+                            </table>
                         )}
                     </div>
 
