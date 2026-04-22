@@ -12,25 +12,18 @@ type ModuleCard = {
 
 const moduleCards: ModuleCard[] = [
     {
-        label: 'Law Firm',
-        description: 'Open the legal workspace reserved for registry, notarial, and case-support flows once the backend contract is finalized.',
-        path: appRoutes.lawFirm,
-        accent: '#0a84ff',
-        icon: 'M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3',
-    },
-    {
-        label: 'Forms',
-        description: 'Access the legal forms module and keep the paralegal workflow centered on the approved templates already in this app.',
-        path: appRoutes.forms,
-        accent: '#30d158',
-        icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
-    },
-    {
         label: 'Documents',
-        description: 'Enter the legal documents area without introducing mock counters or fake records before the backend resources are ready.',
-        path: appRoutes.paralegalDocuments,
-        accent: '#ff9f0a',
+        description: 'Access the legal documents module and keep the paralegal workflow centered on the approved templates already in this app.',
+        path: appRoutes.forms,
+        accent: '#0a84ff', // Re-using the blue accent for primary module
         icon: 'M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2',
+    },
+    {
+        label: 'Records',
+        description: 'Access the legal records module to view, manage, and search through uploaded legal files and documentation.',
+        path: appRoutes.paralegalRecords,
+        accent: '#30d158', // Re-using the green accent
+        icon: 'M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4',
     },
 ];
 
@@ -44,7 +37,7 @@ export const ParalegalDashboard = () => {
                     <p className="text-xs font-bold uppercase tracking-[0.28em] text-text-muted">Legal Workspace</p>
                     <h1 className="mt-2 text-4xl font-bold tracking-tight text-text-primary">Paralegal Dashboard</h1>
                     <p className="mt-3 max-w-2xl text-sm text-text-secondary">
-                        Use the new legal landing page to move between law-firm tools, forms, and documents while the backend implementation stays in progress.
+                        Access the legal workspace to manage your documents and records.
                     </p>
                 </div>
                 <CurrentDateTime
@@ -101,22 +94,7 @@ export const ParalegalDashboard = () => {
                 </div>
             </section>
 
-            <section className="rounded-2xl border border-border bg-surface px-6 py-5 shadow-sm">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                        <p className="text-xs font-bold uppercase tracking-[0.22em] text-text-muted">Integration Status</p>
-                        <h2 className="mt-2 text-lg font-bold text-text-primary">Backend implementation remains the source of truth</h2>
-                        <p className="mt-2 max-w-3xl text-sm leading-relaxed text-text-secondary">
-                            This dashboard is intentionally limited to navigation and status messaging. Law-firm records, legal documents,
-                            and workflow counters should stay empty until the backend resources and permissions are finalized.
-                        </p>
-                    </div>
-                    <div className="inline-flex items-center gap-2 self-start rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-700 dark:border-amber-800/60 dark:bg-amber-900/20 dark:text-amber-300">
-                        <span className="h-2 w-2 rounded-full bg-current opacity-80" />
-                        Pending backend integration
-                    </div>
-                </div>
-            </section>
+
         </div>
     );
 };

@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { CurrentDateTime } from '../../../components/CurrentDateTime';
-import { RecordUploadModal } from './RecordUploadModal';
 
 type RecordEntry = {
     id: number;
@@ -19,14 +18,37 @@ const STATUS_COLORS: Record<RecordEntry['status'], string> = {
 
 const RECORD_TYPES = [
     'All Record Types',
-    'Case File',
-    'Court Order',
-    'Legal Opinion',
-    'Notarial Certificate',
-    'Power of Attorney',
-    'Resolution',
-    'Summons',
-    'Subpoena',
+    'Certificate of Completion',
+    'Contract of Lease',
+    'Agreement',
+    'Contract Agreement',
+    'Compromise Agreement',
+    'Waiver of Right',
+    'Secretary Certificate',
+    'Special Power of Attorney',
+    'Sworn Statement',
+    'Position Paper',
+    'Contract to Sell',
+    'Demand Letter',
+    'Affidavit of Loss',
+    'Affidavit of No Income',
+    'Affidavit of Low Income',
+    'Affidavit of No Support',
+    'Affidavit of Support',
+    'Affidavit of Two Disinterested Persons',
+    'Affidavit of Discrepancy',
+    'Affidavit of Undertaking',
+    'Affidavit of Guardianship',
+    'Affidavit of Car Accident',
+    'Affidavit of Own Accident',
+    'Affidavit of Change of Information',
+    'Affidavit of Explanation',
+    'Affidavit of No Client',
+    'Affidavit of No Representative',
+    'Affidavit of No Operation',
+    'Motor Vehicle',
+    'Real Property',
+    'Firearm',
 ];
 
 // Placeholder rows — will be replaced by real API data
@@ -34,7 +56,6 @@ const PLACEHOLDER_RECORDS: RecordEntry[] = [];
 
 export const LegalRecordsPage = () => {
     const [search, setSearch] = useState('');
-    const [uploadModalOpen, setUploadModalOpen] = useState(false);
     const [recordType, setRecordType] = useState('All Record Types');
 
     const filtered = PLACEHOLDER_RECORDS.filter((r) => {
@@ -107,20 +128,6 @@ export const LegalRecordsPage = () => {
                         </div>
                     </div>
                     </div>
-
-                    {/* Upload Record button */}
-                    <button
-                        id="records-upload-btn"
-                        type="button"
-                        onClick={() => setUploadModalOpen(true)}
-                        className="flex items-center gap-1.5 px-3.5 h-9 rounded-lg text-xs font-bold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-90 transition-all shadow-sm shrink-0"
-                    >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
-                                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                        </svg>
-                        Upload Record
-                    </button>
                 </div>
 
                 {/* List header — only shown when records exist */}
@@ -181,7 +188,7 @@ export const LegalRecordsPage = () => {
                 )}
             </div>
 
-            <RecordUploadModal isOpen={uploadModalOpen} onClose={() => setUploadModalOpen(false)} />
+
         </div>
     );
 };
