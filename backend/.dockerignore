@@ -1,10 +1,14 @@
 .env
 .env.docker
+.env.docker.example
 .env.production
 .env.staging
 .agents
 .codex
 .gemini
+.editorconfig
+.gitattributes
+.gitignore
 vendor
 node_modules
 tests
@@ -13,6 +17,9 @@ AGENTS.md
 CLAUDE.md
 boost.json
 .mcp.json
+phpunit.xml
+railway.toml
+storage/app
 storage/logs
 storage/framework/cache
 storage/framework/sessions
