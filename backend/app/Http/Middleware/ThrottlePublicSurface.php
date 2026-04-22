@@ -42,20 +42,12 @@ class ThrottlePublicSurface
                 'message' => 'Too many requests.',
             ], 429, [
                 'Retry-After' => (string) $this->rateLimiter->availableIn($key),
-                'X-RateLimit-Limit' => (string) $limit['attempts'],
-                'X-RateLimit-Remaining' => '0',
             ]);
         }
 
         $this->rateLimiter->hit($key, $limit['decay_seconds']);
 
-        $response = $next($request);
-
-        $attempts = $this->rateLimiter->attempts($key);
-        $response->headers->set('X-RateLimit-Limit', (string) $limit['attempts']);
-        $response->headers->set('X-RateLimit-Remaining', (string) max(0, $limit['attempts'] - $attempts));
-
-        return $response;
+        return $next($request);
     }
 
     private function resolveBucket(Request $request): ?string

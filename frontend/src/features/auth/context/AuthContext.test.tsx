@@ -57,10 +57,11 @@ const authenticatedUser: User = {
 };
 
 function AuthProbe() {
-    const { isLoading, isAuthenticated, login, logout, user } = useAuth();
+    const { bootstrapError, isLoading, isAuthenticated, login, logout, retryBootstrap, user } = useAuth();
 
     return (
         <div>
+            <span data-testid="bootstrap-error">{bootstrapError ?? 'none'}</span>
             <span data-testid="loading">{String(isLoading)}</span>
             <span data-testid="authenticated">{String(isAuthenticated)}</span>
             <span data-testid="name">{user?.name ?? 'none'}</span>
@@ -69,6 +70,9 @@ function AuthProbe() {
                 onClick={() => void login({ email: authenticatedUser.email, password: 'password' })}
             >
                 Login
+            </button>
+            <button type="button" onClick={() => void retryBootstrap()}>
+                Retry bootstrap
             </button>
             <button type="button" onClick={() => void logout()}>
                 Logout
@@ -110,6 +114,7 @@ describe('AuthProvider', () => {
 
         expect(mockGetCurrentUser).toHaveBeenCalledTimes(1);
         expect(screen.getByTestId('authenticated')).toHaveTextContent('true');
+        expect(screen.getByTestId('bootstrap-error')).toHaveTextContent('none');
         expect(screen.getByTestId('name')).toHaveTextContent(authenticatedUser.name);
     });
 
@@ -128,6 +133,7 @@ describe('AuthProvider', () => {
 
         expect(mockGetCurrentUser).toHaveBeenCalledTimes(1);
         expect(screen.getByTestId('authenticated')).toHaveTextContent('false');
+        expect(screen.getByTestId('bootstrap-error')).toHaveTextContent('none');
         expect(screen.getByTestId('name')).toHaveTextContent('none');
     });
 
@@ -145,6 +151,41 @@ describe('AuthProvider', () => {
         });
 
         expect(screen.getByTestId('authenticated')).toHaveTextContent('false');
+        expect(screen.getByTestId('bootstrap-error')).toHaveTextContent('none');
+    });
+
+    it('surfaces a service unavailable state for non-auth bootstrap failures', async () => {
+        mockGetCurrentUser.mockRejectedValue(new Error('Backend unavailable'));
+
+        renderAuthProvider();
+
+        await waitFor(() => {
+            expect(screen.getByTestId('loading')).toHaveTextContent('false');
+        });
+
+        expect(screen.getByTestId('authenticated')).toHaveTextContent('false');
+        expect(screen.getByTestId('bootstrap-error')).toHaveTextContent('service-unavailable');
+    });
+
+    it('can retry bootstrap after a temporary backend outage', async () => {
+        mockGetCurrentUser
+            .mockRejectedValueOnce(new Error('Backend unavailable'))
+            .mockResolvedValueOnce(authenticatedUser);
+
+        renderAuthProvider();
+
+        await waitFor(() => {
+            expect(screen.getByTestId('bootstrap-error')).toHaveTextContent('service-unavailable');
+        });
+
+        fireEvent.click(screen.getByText('Retry bootstrap'));
+
+        await waitFor(() => {
+            expect(screen.getByTestId('authenticated')).toHaveTextContent('true');
+        });
+
+        expect(screen.getByTestId('bootstrap-error')).toHaveTextContent('none');
+        expect(mockGetCurrentUser).toHaveBeenCalledTimes(2);
     });
 
     it('sets the authenticated user after a successful login', async () => {
@@ -167,6 +208,7 @@ describe('AuthProvider', () => {
         });
 
         expect(screen.getByTestId('name')).toHaveTextContent(authenticatedUser.name);
+        expect(screen.getByTestId('bootstrap-error')).toHaveTextContent('none');
         expect(clearSpy).toHaveBeenCalledTimes(1);
     });
 
@@ -190,6 +232,7 @@ describe('AuthProvider', () => {
         });
 
         expect(screen.getByTestId('name')).toHaveTextContent('none');
+        expect(screen.getByTestId('bootstrap-error')).toHaveTextContent('none');
         expect(clearSpy).toHaveBeenCalledTimes(1);
 
         consoleErrorSpy.mockRestore();
@@ -211,6 +254,7 @@ describe('AuthProvider', () => {
             expect(screen.getByTestId('authenticated')).toHaveTextContent('false');
         });
 
+        expect(screen.getByTestId('bootstrap-error')).toHaveTextContent('none');
         expect(clearSpy).toHaveBeenCalledTimes(1);
     });
 });

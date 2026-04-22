@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\SystemController;
 use App\Http\Middleware\EnsureActiveUserSession;
 use App\Http\Middleware\EnsureEmailIsVerified;
 use App\Http\Middleware\MaxRequestSize;
@@ -11,7 +12,11 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Request as SymfonyRequest;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -24,10 +29,19 @@ $trustedProxies = array_values(array_filter(array_map(
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
-        web: __DIR__.'/../routes/web.php',
-        api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
         health: null,
+        using: function (): void {
+            Route::middleware('api')
+                ->prefix('api')
+                ->group(base_path('routes/api.php'));
+
+            Route::middleware('web')
+                ->group(base_path('routes/web.php'));
+
+            Route::get('/up', [SystemController::class, 'health']);
+            Route::get('/', [SystemController::class, 'index']);
+        },
     )
     ->withBroadcasting(
         __DIR__.'/../routes/channels.php',
@@ -122,6 +136,20 @@ return Application::configure(basePath: dirname(__DIR__))
             ], 405);
         });
 
+        $exceptions->render(function (BadRequestHttpException $exception, Request $request) use ($shouldRenderJsonForApiRequest, $shouldRenderPlainTextForBrowserApiRequest, $plainTextApiResponse) {
+            if ($shouldRenderPlainTextForBrowserApiRequest($request)) {
+                return $plainTextApiResponse('Bad request.', 400);
+            }
+
+            if (! $shouldRenderJsonForApiRequest($request)) {
+                return null;
+            }
+
+            return response()->json([
+                'message' => 'Bad request.',
+            ], 400);
+        });
+
         $exceptions->render(function (NotFoundHttpException $exception, Request $request) use ($shouldRenderJsonForApiRequest, $shouldRenderPlainTextForBrowserApiRequest, $plainTextApiResponse, $plainTextWebResponse) {
             if ($shouldRenderPlainTextForBrowserApiRequest($request)) {
                 return $plainTextApiResponse('Route not found.', 404);
@@ -134,5 +162,28 @@ return Application::configure(basePath: dirname(__DIR__))
             return response()->json([
                 'message' => 'Not found.',
             ], 404);
+        });
+
+        $exceptions->render(function (Throwable $exception, Request $request) use ($shouldRenderJsonForApiRequest, $shouldRenderPlainTextForBrowserApiRequest, $plainTextApiResponse) {
+            if (! $shouldRenderJsonForApiRequest($request)) {
+                return null;
+            }
+
+            if (
+                $exception instanceof AuthenticationException ||
+                $exception instanceof AuthorizationException ||
+                $exception instanceof ValidationException ||
+                $exception instanceof HttpExceptionInterface
+            ) {
+                return null;
+            }
+
+            if ($shouldRenderPlainTextForBrowserApiRequest($request)) {
+                return $plainTextApiResponse('Server error.', 500);
+            }
+
+            return response()->json([
+                'message' => 'Server error.',
+            ], 500);
         });
     })->create();

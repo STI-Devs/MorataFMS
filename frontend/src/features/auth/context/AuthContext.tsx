@@ -10,6 +10,7 @@ interface AuthContextType extends AuthState {
   login: (credentials: LoginCredentials) => Promise<User>;
   logout: () => Promise<void>;
   setUser: (user: User | null) => void;
+  retryBootstrap: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -22,8 +23,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     user: null,
     isAuthenticated: false,
     isLoading: true,
+    bootstrapError: null,
   });
   const wasAuthenticatedRef = useRef(false);
+
+  const setBootstrapResolvedState = (user: User | null) => {
+    syncRestoreSessionPromise(user);
+    setAuthState({
+      user,
+      isAuthenticated: !!user,
+      isLoading: false,
+      bootstrapError: null,
+    });
+  };
+
+  const setBootstrapUnavailableState = () => {
+    setAuthState({
+      user: null,
+      isAuthenticated: false,
+      isLoading: false,
+      bootstrapError: 'service-unavailable',
+    });
+  };
+
+  const runBootstrap = async () => {
+    setAuthState((current) => ({
+      ...current,
+      isLoading: true,
+      bootstrapError: null,
+    }));
+
+    try {
+      const user = await restoreSession();
+
+      setBootstrapResolvedState(user);
+    } catch {
+      setBootstrapUnavailableState();
+    }
+  };
 
   useEffect(() => {
     wasAuthenticatedRef.current = authState.isAuthenticated;
@@ -44,6 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user: null,
         isAuthenticated: false,
         isLoading: false,
+        bootstrapError: null,
       });
     };
 
@@ -61,22 +99,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        setAuthState({
-          user,
-          isAuthenticated: !!user,
-          isLoading: false,
-        });
+        setBootstrapResolvedState(user);
       })
       .catch(() => {
         if (!isMounted) {
           return;
         }
 
-        setAuthState({
-          user: null,
-          isAuthenticated: false,
-          isLoading: false,
-        });
+        setBootstrapUnavailableState();
       });
 
     return () => {
@@ -94,6 +124,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user: response.user,
         isAuthenticated: true,
         isLoading: false,
+        bootstrapError: null,
       });
 
       return response.user;
@@ -115,6 +146,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user: null,
         isAuthenticated: false,
         isLoading: false,
+        bootstrapError: null,
       });
     }
   };
@@ -125,11 +157,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       ...prev,
       user,
       isAuthenticated: !!user,
+      bootstrapError: null,
     }));
   };
 
   return (
-    <AuthContext.Provider value={{ ...authState, login, logout, setUser }}>
+    <AuthContext.Provider value={{ ...authState, login, logout, setUser, retryBootstrap: runBootstrap }}>
       {children}
     </AuthContext.Provider>
   );
