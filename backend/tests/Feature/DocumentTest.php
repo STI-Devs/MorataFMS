@@ -11,7 +11,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 
 beforeEach(function () {
-    $this->documentDisk = config('filesystems.document_disk', 's3');
+    $this->documentDisk = config('filesystems.default', 'local');
 
     Storage::fake($this->documentDisk);
 });
@@ -345,7 +345,7 @@ test('encoder cannot upload a later export stage before the earlier required sta
 });
 
 test('document upload stops when the configured disk write fails', function () {
-    config()->set('filesystems.document_disk', 's3');
+    config()->set('filesystems.default', 's3');
 
     $user = User::factory()->create(['role' => 'encoder']);
     $import = ImportTransaction::factory()->pending()->create(['assigned_user_id' => $user->id]);
@@ -598,7 +598,7 @@ test('encoder cannot download another encoders document', function () {
 });
 
 test('document preview streams the file inline for the authorized user', function () {
-    config()->set('filesystems.document_disk', 'local');
+    config()->set('filesystems.default', 'local');
     Storage::fake('local');
 
     $encoder = User::factory()->create(['role' => 'encoder']);
@@ -621,7 +621,7 @@ test('document preview streams the file inline for the authorized user', functio
 });
 
 test('document preview falls back to filename mime type when disk mime detection fails', function () {
-    config()->set('filesystems.document_disk', 'local');
+    config()->set('filesystems.default', 'local');
 
     $encoder = User::factory()->create(['role' => 'encoder']);
     $transaction = ImportTransaction::factory()->create(['assigned_user_id' => $encoder->id]);
@@ -663,7 +663,7 @@ test('document preview falls back to filename mime type when disk mime detection
 });
 
 test('document stream now requires an authenticated authorized session', function () {
-    config()->set('filesystems.document_disk', 'local');
+    config()->set('filesystems.default', 'local');
     Storage::fake('local');
 
     $encoder = User::factory()->create(['role' => 'encoder']);

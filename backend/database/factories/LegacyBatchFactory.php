@@ -37,7 +37,7 @@ class LegacyBatchFactory extends Factory
             'uploaded_file_count' => 0,
             'failed_file_count' => 0,
             'total_size_bytes' => fake()->numberBetween(10_000, 10_000_000),
-            'storage_disk' => config('filesystems.document_disk', 's3'),
+            'storage_disk' => (string) config('filesystems.default', 'local'),
             'uploaded_by' => User::factory(),
             'started_at' => null,
             'completed_at' => null,

@@ -84,7 +84,7 @@ class DocumentDeletionPlanner
             remarkIds: $remarkIds,
             parentTransactions: $parentTransactions,
             existingAuditLogCount: $existingAuditLogCount,
-            storageDisk: (string) config('filesystems.document_disk', 's3'),
+            storageDisk: (string) config('filesystems.default', 'local'),
             connectionName: $connectionName,
         );
     }

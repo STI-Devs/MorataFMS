@@ -13,7 +13,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 
 beforeEach(function () {
-    $this->documentDisk = config('filesystems.document_disk', 's3');
+    $this->documentDisk = config('filesystems.default', 'local');
 
     // Fake the configured document disk to prevent actual storage calls during tests.
     Storage::fake($this->documentDisk);

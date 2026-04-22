@@ -38,7 +38,7 @@ function requiredBroadcastReviewTypes(string $type): array
 }
 
 beforeEach(function () {
-    Storage::fake(config('filesystems.document_disk', 's3'));
+    Storage::fake(config('filesystems.default', 'local'));
     config()->set('transactions.realtime_enabled', true);
 });
 

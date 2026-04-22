@@ -1,6 +1,12 @@
 <?php
 
 return [
+    'database_backups' => [
+        'default_connection' => env('DATABASE_BACKUP_CONNECTION', 'production_ops'),
+        'path' => env('DATABASE_BACKUP_PATH', dirname(__DIR__).DIRECTORY_SEPARATOR.'storage'.DIRECTORY_SEPARATOR.'app'.DIRECTORY_SEPARATOR.'database-backups'),
+        'directory' => env('DATABASE_BACKUP_DIRECTORY', 'database-backups'),
+        'docker_service' => env('DATABASE_BACKUP_DOCKER_SERVICE', env('PRODUCTION_MIRROR_LOCAL_DOCKER_SERVICE', 'mysql')),
+    ],
     'production_mirror' => [
         'source' => [
             'host' => env('PRODUCTION_MIRROR_SOURCE_HOST'),

@@ -13,7 +13,7 @@ use App\Support\Operations\Deletion\LiveTransactions\LiveTransactionResetter;
 use Illuminate\Support\Facades\Storage;
 
 beforeEach(function () {
-    config(['filesystems.document_disk' => 's3']);
+    config(['filesystems.default' => 's3']);
     Storage::fake('s3');
 });
 

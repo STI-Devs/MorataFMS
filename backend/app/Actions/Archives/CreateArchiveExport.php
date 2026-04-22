@@ -77,6 +77,6 @@ class CreateArchiveExport
 
     private function storageDisk(): string
     {
-        return config('filesystems.document_disk', 's3');
+        return (string) config('filesystems.default', 'local');
     }
 }

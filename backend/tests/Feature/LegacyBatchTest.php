@@ -9,8 +9,8 @@ use App\Models\User;
 use Illuminate\Support\Facades\Storage;
 
 beforeEach(function () {
-    config()->set('filesystems.document_disk', 'local');
-    $this->documentDisk = config('filesystems.document_disk', 'local');
+    config()->set('filesystems.default', 'local');
+    $this->documentDisk = config('filesystems.default', 'local');
     Storage::fake($this->documentDisk);
 });
 

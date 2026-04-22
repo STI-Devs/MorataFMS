@@ -7,22 +7,27 @@ RUN apt-get update \
     && apt-get install --yes --no-install-recommends \
         curl \
         gettext-base \
-        git \
         libicu-dev \
         nginx \
         supervisor \
-        unzip \
     && docker-php-ext-install -j"$(nproc)" bcmath intl opcache pdo_mysql \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
-
-COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 
 FROM base AS vendor
 
-COPY . /var/www/html/
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends \
+        git \
+        unzip \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+COPY composer.json composer.lock /var/www/html/
 
 RUN mkdir -p bootstrap/cache \
     storage/framework/cache \
@@ -30,12 +35,18 @@ RUN mkdir -p bootstrap/cache \
     storage/framework/testing \
     storage/framework/views \
     storage/logs \
-    && cp .env.example .env \
     && composer install \
     --no-dev \
     --no-interaction \
     --prefer-dist \
-    --optimize-autoloader \
+    --no-scripts \
+    --no-autoloader
+
+COPY . /var/www/html/
+
+RUN cp .env.example .env \
+    && composer dump-autoload --optimize --no-dev \
+    && php artisan package:discover --ansi \
     && rm -f .env \
     && rm -rf /tmp/composer
 

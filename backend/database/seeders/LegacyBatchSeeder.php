@@ -69,7 +69,7 @@ class LegacyBatchSeeder extends Seeder
                 'uploaded_file_count' => count($files),
                 'failed_file_count' => 0,
                 'total_size_bytes' => collect($files)->sum('size_bytes'),
-                'storage_disk' => config('filesystems.document_disk', 's3'),
+                'storage_disk' => (string) config('filesystems.default', 'local'),
                 'uploaded_by' => $user->id,
                 'started_at' => now()->subDays(3),
                 'completed_at' => now()->subDays(3),
@@ -83,7 +83,7 @@ class LegacyBatchSeeder extends Seeder
             'failed_file_count' => 0,
             'total_size_bytes' => collect($files)->sum('size_bytes'),
             'status' => 'completed',
-            'storage_disk' => config('filesystems.document_disk', 's3'),
+            'storage_disk' => (string) config('filesystems.default', 'local'),
             'uploaded_by' => $user->id,
         ]);
 

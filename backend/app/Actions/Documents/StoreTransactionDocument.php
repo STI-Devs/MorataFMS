@@ -85,7 +85,7 @@ class StoreTransactionDocument
 
     private function storageDisk(): string
     {
-        return config('filesystems.document_disk', 's3');
+        return (string) config('filesystems.default', 'local');
     }
 
     private function storageDateFor(ImportTransaction|ExportTransaction $transaction): CarbonInterface

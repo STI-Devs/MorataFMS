@@ -134,11 +134,11 @@ class DocumentController extends Controller
 
     /**
      * Single source of truth for which storage disk all document operations use.
-     * Override by setting APP_STORAGE_DISK in .env (default: 's3').
+     * Follows Laravel's default filesystem disk configured via FILESYSTEM_DISK.
      */
     private static function storageDisk(): string
     {
-        return config('filesystems.document_disk', 's3');
+        return (string) config('filesystems.default', 'local');
     }
 
     /**

@@ -88,7 +88,7 @@ class LegacyBatchController extends Controller
                 'uploaded_file_count' => 0,
                 'failed_file_count' => 0,
                 'total_size_bytes' => $totalSizeBytes,
-                'storage_disk' => config('filesystems.document_disk', 's3'),
+                'storage_disk' => (string) config('filesystems.default', 'local'),
                 'uploaded_by' => $user->id,
                 'last_activity_at' => now(),
             ]);

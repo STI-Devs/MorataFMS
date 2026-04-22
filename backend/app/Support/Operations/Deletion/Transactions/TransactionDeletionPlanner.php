@@ -135,7 +135,7 @@ class TransactionDeletionPlanner
             importStageCount: $importStageCount,
             exportStageCount: $exportStageCount,
             existingAuditLogCount: $existingAuditLogCount,
-            storageDisk: (string) config('filesystems.document_disk', 's3'),
+            storageDisk: (string) config('filesystems.default', 'local'),
             connectionName: $connectionName,
         );
     }
