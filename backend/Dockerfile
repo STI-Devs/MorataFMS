@@ -1,22 +1,19 @@
-FROM php:8.4-fpm-bookworm AS base
+FROM php:8.4.20-fpm-bookworm AS php-ext-build
 
 ENV COMPOSER_ALLOW_SUPERUSER=1 \
     COMPOSER_HOME=/tmp/composer
 
 RUN apt-get update \
     && apt-get install --yes --no-install-recommends \
-        curl \
         gettext-base \
         libicu-dev \
-        nginx \
-        supervisor \
     && docker-php-ext-install -j"$(nproc)" bcmath intl opcache pdo_mysql \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /var/www/html
 
-FROM base AS vendor
+FROM php-ext-build AS vendor
 
 RUN apt-get update \
     && apt-get install --yes --no-install-recommends \
@@ -50,10 +47,26 @@ RUN cp .env.example .env \
     && rm -f .env \
     && rm -rf /tmp/composer
 
-FROM base AS runtime
+FROM php:8.4.20-fpm-bookworm AS runtime
+
+ENV COMPOSER_ALLOW_SUPERUSER=1 \
+    COMPOSER_HOME=/tmp/composer
+
+WORKDIR /var/www/html
+
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends \
+        gettext-base \
+        libicu72 \
+        nginx \
+        supervisor \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY . /var/www/html/
 COPY --from=vendor /var/www/html/vendor /var/www/html/vendor
+COPY --from=php-ext-build /usr/local/lib/php/extensions/ /usr/local/lib/php/extensions/
+COPY --from=php-ext-build /usr/local/etc/php/conf.d/ /usr/local/etc/php/conf.d/
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint
 COPY docker/nginx/default.conf /etc/nginx/templates/default.conf.template
 COPY docker/php/app.ini /usr/local/etc/php/conf.d/99-app.ini
