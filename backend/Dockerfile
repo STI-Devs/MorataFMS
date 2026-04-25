@@ -70,6 +70,7 @@ COPY --from=php-ext-build /usr/local/etc/php/conf.d/ /usr/local/etc/php/conf.d/
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint
 COPY docker/nginx/default.conf /etc/nginx/templates/default.conf.template
 COPY docker/php/app.ini /usr/local/etc/php/conf.d/99-app.ini
+COPY docker/php/fpm-logging.conf /usr/local/etc/php-fpm.d/zz-logging.conf
 COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 RUN rm -f /etc/nginx/sites-enabled/default /etc/nginx/conf.d/default.conf \
