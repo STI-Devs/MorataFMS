@@ -1,18 +1,61 @@
-﻿import { useEffect, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../auth';
 import { authApi } from '../../auth/api/authApi';
+import { Icon } from '../../../components/Icon';
+
+type SectionKey = 'profile' | 'password';
+type StrengthTone = 'red' | 'amber' | 'blue' | 'green' | 'muted';
+
+interface PasswordVisibility {
+    current: boolean;
+    next: boolean;
+    confirm: boolean;
+}
+
+const STRENGTH_BAR_TONE: Record<StrengthTone, string> = {
+    red: 'bg-red-500',
+    amber: 'bg-amber-500',
+    blue: 'bg-blue-500',
+    green: 'bg-green-500',
+    muted: 'bg-border',
+};
+
+const STRENGTH_TEXT_TONE: Record<StrengthTone, string> = {
+    red: 'text-red-500',
+    amber: 'text-amber-500',
+    blue: 'text-blue-500',
+    green: 'text-green-500',
+    muted: 'text-text-muted',
+};
+
+function getPasswordStrength(password: string): { score: number; label: string; tone: StrengthTone } {
+    if (!password) return { score: 0, label: 'Enter a password', tone: 'muted' };
+    let score = 0;
+    if (password.length >= 8) score += 1;
+    if (password.length >= 12) score += 1;
+    if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score += 1;
+    if (/[0-9]/.test(password)) score += 1;
+    if (/[^A-Za-z0-9]/.test(password)) score += 1;
+    score = Math.min(score, 4);
+
+    const labels = ['Too short', 'Weak', 'Fair', 'Good', 'Strong'];
+    const tones: StrengthTone[] = ['red', 'red', 'amber', 'blue', 'green'];
+    return { score, label: labels[score], tone: tones[score] };
+}
 
 export const Profile = () => {
     const { user, setUser } = useAuth();
     const [formData, setFormData] = useState({
-        name:            user?.name || '',
-        jobTitle:        user?.job_title || '',
-        password:        '',
+        name: user?.name || '',
+        jobTitle: user?.job_title || '',
+        currentPassword: '',
+        password: '',
         confirmPassword: '',
     });
-    const [saving,  setSaving]  = useState(false);
-    const [success, setSuccess] = useState(false);
-    const [error,   setError]   = useState<string | null>(null);
+    const [saving, setSaving] = useState<SectionKey | null>(null);
+    const [success, setSuccess] = useState<SectionKey | null>(null);
+    const [error, setError] = useState<{ section: SectionKey; message: string } | null>(null);
+    const [showPasswords, setShowPasswords] = useState<PasswordVisibility>({ current: false, next: false, confirm: false });
 
     useEffect(() => {
         if (user) {
@@ -29,165 +72,403 @@ export const Profile = () => {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleSave = async () => {
+    const togglePassword = (key: keyof PasswordVisibility) => {
+        setShowPasswords(prev => ({ ...prev, [key]: !prev[key] }));
+    };
+
+    const extractError = (err: unknown, fallback: string): string => {
+        const e = err as { response?: { data?: { message?: string; errors?: { name?: string[]; job_title?: string[]; current_password?: string[]; password?: string[] } } } };
+        return (
+            e?.response?.data?.errors?.current_password?.[0] ||
+            e?.response?.data?.errors?.password?.[0] ||
+            e?.response?.data?.errors?.name?.[0] ||
+            e?.response?.data?.errors?.job_title?.[0] ||
+            e?.response?.data?.message ||
+            fallback
+        );
+    };
+
+    const handleProfileSave = async (event: React.FormEvent) => {
+        event.preventDefault();
         setError(null);
-        setSuccess(false);
+        setSuccess(null);
 
-        if (formData.password && formData.password !== formData.confirmPassword) {
-            setError('Passwords do not match.');
-            return;
-        }
-        if (formData.password && formData.password.length < 8) {
-            setError('Password must be at least 8 characters.');
+        if (!formData.name.trim()) {
+            setError({ section: 'profile', message: 'Name cannot be empty.' });
             return;
         }
 
-        setSaving(true);
+        setSaving('profile');
         try {
-            const payload: { name?: string; job_title?: string | null; password?: string; password_confirmation?: string } = {};
-            if (formData.name.trim())  payload.name = formData.name.trim();
-            payload.job_title = formData.jobTitle.trim() || null;
-            if (formData.password) {
-                payload.password              = formData.password;
-                payload.password_confirmation = formData.confirmPassword;
-            }
-
-            const updated = await authApi.updateProfile(payload);
+            const updated = await authApi.updateProfile({
+                name: formData.name.trim(),
+                job_title: formData.jobTitle.trim() || null,
+            });
             setUser(updated);
-            setFormData(prev => ({ ...prev, jobTitle: updated.job_title || '', password: '', confirmPassword: '' }));
-            setSuccess(true);
-            setTimeout(() => setSuccess(false), 3000);
-        } catch (err: unknown) {
-            const e = err as { response?: { data?: { message?: string; errors?: { name?: string[]; job_title?: string[]; password?: string[] } } } };
-            const msg =
-                e?.response?.data?.message      ||
-                e?.response?.data?.errors?.name?.[0]     ||
-                e?.response?.data?.errors?.job_title?.[0] ||
-                e?.response?.data?.errors?.password?.[0] ||
-                'Failed to update profile. Please try again.';
-            setError(msg);
+            setFormData(prev => ({ ...prev, name: updated.name || '', jobTitle: updated.job_title || '' }));
+            setSuccess('profile');
+            setTimeout(() => setSuccess(null), 3000);
+        } catch (err) {
+            setError({ section: 'profile', message: extractError(err, 'Failed to update profile. Please try again.') });
         } finally {
-            setSaving(false);
+            setSaving(null);
         }
     };
 
-    const initials  = (user?.name || 'U').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+    const handlePasswordSave = async (event: React.FormEvent) => {
+        event.preventDefault();
+        setError(null);
+        setSuccess(null);
+
+        if (!formData.currentPassword) {
+            setError({ section: 'password', message: 'Please enter your current password.' });
+            return;
+        }
+        if (!formData.password) {
+            setError({ section: 'password', message: 'Please enter a new password.' });
+            return;
+        }
+        if (formData.password.length < 8) {
+            setError({ section: 'password', message: 'New password must be at least 8 characters.' });
+            return;
+        }
+        if (formData.password !== formData.confirmPassword) {
+            setError({ section: 'password', message: 'New passwords do not match.' });
+            return;
+        }
+
+        setSaving('password');
+        try {
+            const updated = await authApi.updateProfile({
+                current_password: formData.currentPassword,
+                password: formData.password,
+                password_confirmation: formData.confirmPassword,
+            });
+            setUser(updated);
+            setFormData(prev => ({ ...prev, currentPassword: '', password: '', confirmPassword: '' }));
+            setShowPasswords({ current: false, next: false, confirm: false });
+            setSuccess('password');
+            setTimeout(() => setSuccess(null), 3000);
+        } catch (err) {
+            setError({ section: 'password', message: extractError(err, 'Failed to update password. Please try again.') });
+        } finally {
+            setSaving(null);
+        }
+    };
+
+    const initials = (user?.name || 'U').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
     const roleLabel = user?.role_label || ((user?.role || 'user').charAt(0).toUpperCase() + (user?.role || 'user').slice(1));
     const jobTitleLabel = user?.job_title || 'No job title set';
+    const strength = useMemo(() => getPasswordStrength(formData.password), [formData.password]);
+    const isProfileBusy = saving === 'profile';
+    const isPasswordBusy = saving === 'password';
+    const profileFieldInvalid = error?.section === 'profile';
+    const passwordFieldInvalid = error?.section === 'password';
 
     return (
-        <div className="min-h-full flex items-start justify-center py-8 px-4">
-            <div className="w-full max-w-3xl">
+        <div className="min-h-full px-4 py-8 sm:px-6 lg:px-8">
+            <div className="mx-auto w-full max-w-3xl space-y-6">
 
-                <h1 className="text-3xl font-bold text-text-primary mb-6">Profile</h1>
+                {/* Page header */}
+                <header>
+                    <h1 className="text-2xl font-bold tracking-tight text-text-primary">Profile</h1>
+                    <p className="mt-1 text-sm text-text-secondary">Manage your account information and security settings.</p>
+                </header>
 
-                <div className="bg-surface border border-border rounded-xl overflow-hidden">
-                    <div className="flex flex-col md:flex-row">
-
-                        {/* Left panel — avatar + user info */}
-                        <div className="md:w-56 shrink-0 flex flex-col items-center gap-4 px-6 py-8 border-b md:border-b-0 md:border-r border-border bg-surface-secondary/40">
-
-                            {/* Avatar */}
-                            <div className="relative">
-                                <div className="w-28 h-28 rounded-full bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white text-3xl font-bold shadow-lg select-none">
-                                    {initials}
-                                </div>
-                                <button className="absolute -bottom-1 -right-1 w-8 h-8 bg-surface border border-border rounded-full flex items-center justify-center hover:bg-hover transition-colors shadow-sm">
-                                    <svg className="w-4 h-4 text-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <path d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                                        <path d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                                    </svg>
-                                </button>
-                            </div>
-
-                            <button className="text-xs font-semibold text-blue-500 hover:text-blue-400 transition-colors">
-                                Upload Picture
-                            </button>
-
-                            <div className="text-center">
-                                <p className="text-sm font-bold text-text-primary">{user?.name || 'User'}</p>
-                                <p className="mt-1 text-xs uppercase tracking-[0.18em] text-text-muted">{jobTitleLabel}</p>
-                                <span className="inline-block mt-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-blue-500/10 text-blue-400">
+                {/* Identity summary */}
+                <section
+                    aria-label="Account identity"
+                    className="rounded-xl border border-border bg-surface p-5 shadow-sm"
+                >
+                    <div className="flex items-center gap-4">
+                        <div
+                            className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-indigo-700 text-base font-bold text-white shadow-sm"
+                            aria-hidden="true"
+                        >
+                            {initials}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                                <p className="truncate text-base font-semibold text-text-primary">{user?.name || 'User'}</p>
+                                <span className="inline-flex items-center rounded-full bg-blue-500/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-blue-500">
                                     {roleLabel}
                                 </span>
                             </div>
-
-                            <div className="w-full border-t border-border pt-4 space-y-2 text-xs text-text-secondary">
-                                <div className="flex items-center gap-2">
-                                    <svg className="w-3.5 h-3.5 text-text-muted shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                                    </svg>
-                                    <span className="truncate">{user?.email || '—'}</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <svg className="w-3.5 h-3.5 text-text-muted shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <path d="M20 7l-8-4-8 4m16 0v10l-8 4m8-14l-8 4m0 10l-8-4V7m8 14V11M4 7l8 4" />
-                                    </svg>
-                                    <span className="truncate">{jobTitleLabel}</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <svg className="w-3.5 h-3.5 text-text-muted shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                                    </svg>
-                                    <span className="capitalize">{user?.role || '—'}</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Right panel — form */}
-                        <div className="flex-1 px-8 py-8 space-y-5">
-
-                            {[
-                                { label: 'Name',         name: 'name',    type: 'text',     value: formData.name,            editable: true,  placeholder: '' },
-                                { label: 'Job Title',    name: 'jobTitle', type: 'text',     value: formData.jobTitle,        editable: true,  placeholder: 'e.g. Lawyer, Managing Partner' },
-                                { label: 'Role',         name: 'role',    type: 'text',     value: roleLabel,                editable: false, placeholder: '' },
-                                { label: 'E-mail',       name: 'email',   type: 'email',    value: user?.email || '',         editable: false, placeholder: '' },
-                                { label: 'New Password', name: 'password', type: 'password', value: formData.password,        editable: true,  placeholder: 'Leave blank to keep current password' },
-                                { label: 'Repeat Password', name: 'confirmPassword', type: 'password', value: formData.confirmPassword, editable: true, placeholder: 'Repeat new password' },
-                            ].map(field => (
-                                <div key={field.name}>
-                                    <label className="block text-xs font-semibold text-text-secondary mb-1.5 uppercase tracking-wide">
-                                        {field.label}:
-                                    </label>
-                                    <input
-                                        type={field.type}
-                                        name={field.name}
-                                        value={field.value}
-                                        disabled={!field.editable}
-                                        onChange={field.editable ? handleInputChange : undefined}
-                                        placeholder={field.placeholder}
-                                        title={!field.editable ? `${field.label} cannot be changed` : undefined}
-                                        className={`w-full px-4 py-2.5 text-sm border border-border rounded-lg transition-all ${
-                                            field.editable
-                                                ? 'bg-surface-secondary/60 text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60'
-                                                : 'bg-surface-secondary text-text-muted cursor-not-allowed'
-                                        }`}
-                                    />
-                                </div>
-                            ))}
-
-                            {/* Feedback + save */}
-                            <div className="pt-2 flex flex-col gap-2">
-                                {error && (
-                                    <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">{error}</p>
-                                )}
-                                {success && (
-                                    <p className="text-xs text-green-400 bg-green-500/10 border border-green-500/20 rounded-lg px-3 py-2">Profile updated successfully!</p>
-                                )}
-                                <div className="flex justify-end">
-                                    <button
-                                        onClick={handleSave}
-                                        disabled={saving}
-                                        className="px-8 py-2.5 bg-gradient-to-br from-blue-600 to-indigo-700 text-white text-sm font-semibold rounded-lg hover:opacity-90 transition-opacity shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                        {saving ? 'Saving…' : 'Update Information'}
-                                    </button>
-                                </div>
-                            </div>
+                            <p className="mt-0.5 truncate text-sm text-text-secondary">{user?.email || '—'}</p>
+                            <p className="mt-0.5 truncate text-xs text-text-muted">{jobTitleLabel}</p>
                         </div>
                     </div>
-                </div>
+                </section>
+
+                {/* Profile Information */}
+                <form
+                    onSubmit={handleProfileSave}
+                    className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm"
+                    aria-labelledby="profile-info-heading"
+                    noValidate
+                >
+                    <header className="border-b border-border px-5 py-4">
+                        <div className="flex items-center gap-2">
+                            <Icon name="user" className="h-4 w-4 text-text-muted" />
+                            <h2 id="profile-info-heading" className="text-sm font-bold text-text-primary">Profile Information</h2>
+                        </div>
+                        <p className="mt-1 text-xs text-text-muted">
+                            Update your display name and job title. Role and e-mail are managed by an administrator.
+                        </p>
+                    </header>
+
+                    <div className="space-y-5 px-5 py-5">
+                        <div>
+                            <label htmlFor="profile-name" className="block text-xs font-semibold uppercase tracking-wide text-text-secondary">
+                                Name
+                            </label>
+                            <input
+                                id="profile-name"
+                                type="text"
+                                name="name"
+                                value={formData.name}
+                                onChange={handleInputChange}
+                                aria-invalid={profileFieldInvalid}
+                                disabled={isProfileBusy}
+                                autoComplete="name"
+                                className="mt-1.5 w-full rounded-lg border border-border bg-surface-secondary/60 px-3 py-2 text-sm text-text-primary placeholder:text-text-muted transition-colors focus:border-blue-500/60 focus:outline-none focus:ring-2 focus:ring-blue-500/30 disabled:cursor-not-allowed disabled:opacity-60"
+                            />
+                        </div>
+
+                        <div>
+                            <label htmlFor="profile-jobtitle" className="block text-xs font-semibold uppercase tracking-wide text-text-secondary">
+                                Job Title
+                            </label>
+                            <input
+                                id="profile-jobtitle"
+                                type="text"
+                                name="jobTitle"
+                                value={formData.jobTitle}
+                                onChange={handleInputChange}
+                                placeholder="e.g. Lawyer, Managing Partner"
+                                disabled={isProfileBusy}
+                                autoComplete="organization-title"
+                                className="mt-1.5 w-full rounded-lg border border-border bg-surface-secondary/60 px-3 py-2 text-sm text-text-primary placeholder:text-text-muted transition-colors focus:border-blue-500/60 focus:outline-none focus:ring-2 focus:ring-blue-500/30 disabled:cursor-not-allowed disabled:opacity-60"
+                            />
+                            <p className="mt-1 text-xs text-text-muted">
+                                Optional. Shown next to your name in record headers.
+                            </p>
+                        </div>
+
+                        <dl className="grid grid-cols-1 gap-4 rounded-lg border border-dashed border-border bg-surface-secondary/30 px-4 py-3 sm:grid-cols-2">
+                            <div className="min-w-0">
+                                <dt className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Role</dt>
+                                <dd className="mt-0.5 truncate text-sm font-medium text-text-primary">{roleLabel}</dd>
+                            </div>
+                            <div className="min-w-0">
+                                <dt className="text-[10px] font-bold uppercase tracking-wider text-text-muted">E-mail</dt>
+                                <dd className="mt-0.5 truncate text-sm font-medium text-text-primary" title={user?.email || ''}>
+                                    {user?.email || '—'}
+                                </dd>
+                            </div>
+                        </dl>
+                    </div>
+
+                    <footer className="flex flex-col gap-3 border-t border-border bg-surface-secondary/30 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                        <SectionFeedback
+                            success={success === 'profile' ? 'Profile updated successfully.' : null}
+                            error={error?.section === 'profile' ? error.message : null}
+                        />
+                        <button
+                            type="submit"
+                            disabled={saving !== null}
+                            className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/40 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                            {isProfileBusy ? 'Saving…' : 'Save Profile'}
+                        </button>
+                    </footer>
+                </form>
+
+                {/* Security */}
+                <form
+                    onSubmit={handlePasswordSave}
+                    className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm"
+                    aria-labelledby="security-heading"
+                    noValidate
+                >
+                    <header className="border-b border-border px-5 py-4">
+                        <div className="flex items-center gap-2">
+                            <Icon name="lock" className="h-4 w-4 text-text-muted" />
+                            <h2 id="security-heading" className="text-sm font-bold text-text-primary">Security</h2>
+                        </div>
+                        <p className="mt-1 text-xs text-text-muted">
+                            Change your password. Other devices signed in to this account will be signed out after a successful change.
+                        </p>
+                    </header>
+
+                    <div className="space-y-5 px-5 py-5">
+                        <PasswordField
+                            id="security-current"
+                            name="currentPassword"
+                            label="Current Password"
+                            value={formData.currentPassword}
+                            visible={showPasswords.current}
+                            onToggleVisible={() => togglePassword('current')}
+                            onChange={handleInputChange}
+                            placeholder="Enter your current password"
+                            autoComplete="current-password"
+                            invalid={passwordFieldInvalid}
+                            disabled={isPasswordBusy}
+                        />
+
+                        <div>
+                            <PasswordField
+                                id="security-new"
+                                name="password"
+                                label="New Password"
+                                value={formData.password}
+                                visible={showPasswords.next}
+                                onToggleVisible={() => togglePassword('next')}
+                                onChange={handleInputChange}
+                                placeholder="At least 8 characters"
+                                autoComplete="new-password"
+                                invalid={passwordFieldInvalid}
+                                disabled={isPasswordBusy}
+                                ariaDescribedBy="security-new-strength security-new-helper"
+                            />
+                            <div id="security-new-strength" className="mt-2">
+                                <div className="flex gap-1.5" aria-hidden="true">
+                                    {[0, 1, 2, 3].map(i => (
+                                        <span
+                                            key={i}
+                                            className={`h-1 flex-1 rounded-full transition-colors ${
+                                                i < strength.score ? STRENGTH_BAR_TONE[strength.tone] : STRENGTH_BAR_TONE.muted
+                                            }`}
+                                        />
+                                    ))}
+                                </div>
+                                <p className="mt-1 text-[10px] font-semibold uppercase tracking-wider text-text-muted">
+                                    Strength:{' '}
+                                    <span className={STRENGTH_TEXT_TONE[strength.tone]}>{strength.label}</span>
+                                </p>
+                            </div>
+                            <p id="security-new-helper" className="mt-1 text-xs text-text-muted">
+                                Use 8+ characters. A mix of upper and lower case, numbers, and symbols is strongest.
+                            </p>
+                        </div>
+
+                        <PasswordField
+                            id="security-confirm"
+                            name="confirmPassword"
+                            label="Confirm New Password"
+                            value={formData.confirmPassword}
+                            visible={showPasswords.confirm}
+                            onToggleVisible={() => togglePassword('confirm')}
+                            onChange={handleInputChange}
+                            placeholder="Re-enter new password"
+                            autoComplete="new-password"
+                            invalid={passwordFieldInvalid}
+                            disabled={isPasswordBusy}
+                        />
+                    </div>
+
+                    <footer className="flex flex-col gap-3 border-t border-border bg-surface-secondary/30 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                        <SectionFeedback
+                            success={success === 'password' ? 'Password updated successfully.' : null}
+                            error={error?.section === 'password' ? error.message : null}
+                        />
+                        <button
+                            type="submit"
+                            disabled={saving !== null}
+                            className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/40 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                            {isPasswordBusy ? 'Updating…' : 'Update Password'}
+                        </button>
+                    </footer>
+                </form>
             </div>
         </div>
     );
 };
+
+interface PasswordFieldProps {
+    id: string;
+    name: string;
+    label: string;
+    value: string;
+    visible: boolean;
+    onToggleVisible: () => void;
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    placeholder: string;
+    autoComplete: string;
+    ariaDescribedBy?: string;
+    invalid?: boolean;
+    disabled?: boolean;
+}
+
+function PasswordField({
+    id,
+    name,
+    label,
+    value,
+    visible,
+    onToggleVisible,
+    onChange,
+    placeholder,
+    autoComplete,
+    ariaDescribedBy,
+    invalid,
+    disabled,
+}: PasswordFieldProps) {
+    return (
+        <div>
+            <label htmlFor={id} className="block text-xs font-semibold uppercase tracking-wide text-text-secondary">
+                {label}
+            </label>
+            <div className="relative mt-1.5">
+                <input
+                    id={id}
+                    type={visible ? 'text' : 'password'}
+                    name={name}
+                    value={value}
+                    onChange={onChange}
+                    placeholder={placeholder}
+                    autoComplete={autoComplete}
+                    aria-describedby={ariaDescribedBy}
+                    aria-invalid={invalid}
+                    disabled={disabled}
+                    className="w-full rounded-lg border border-border bg-surface-secondary/60 px-3 py-2 pr-10 text-sm text-text-primary placeholder:text-text-muted transition-colors focus:border-blue-500/60 focus:outline-none focus:ring-2 focus:ring-blue-500/30 disabled:cursor-not-allowed disabled:opacity-60"
+                />
+                <button
+                    type="button"
+                    onClick={onToggleVisible}
+                    aria-label={visible ? `Hide ${label.toLowerCase()}` : `Show ${label.toLowerCase()}`}
+                    aria-pressed={visible}
+                    tabIndex={-1}
+                    className="absolute inset-y-0 right-1.5 my-auto inline-flex h-8 w-8 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-hover hover:text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                >
+                    <Icon name={visible ? 'eye-off' : 'eye'} className="h-4 w-4" />
+                </button>
+            </div>
+        </div>
+    );
+}
+
+interface SectionFeedbackProps {
+    success: string | null;
+    error: string | null;
+}
+
+function SectionFeedback({ success, error }: SectionFeedbackProps) {
+    return (
+        <div role="status" aria-live="polite" className="min-h-[1.25rem] text-xs">
+            {success && (
+                <span className="inline-flex items-center gap-1.5 text-green-500">
+                    <Icon name="check-circle" className="h-3.5 w-3.5" />
+                    {success}
+                </span>
+            )}
+            {error && (
+                <span className="inline-flex items-center gap-1.5 text-red-500">
+                    <Icon name="alert-circle" className="h-3.5 w-3.5" />
+                    {error}
+                </span>
+            )}
+        </div>
+    );
+}

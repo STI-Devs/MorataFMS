@@ -91,7 +91,7 @@ export function VesselGroupedExportList({ filters, onCancel }: Props) {
     
     const [searchParams, setSearchParams] = useSearchParams();
     const page = parseInt(searchParams.get('page') || '1');
-    const perPage = parseInt(searchParams.get('per_page') || '15');
+    const perPage = parseInt(searchParams.get('per_page') || '10');
 
     const setPage = (nextPage: number) => {
         setSearchParams((prev) => { const next = new URLSearchParams(prev); next.set('page', String(nextPage)); return next; });
@@ -155,7 +155,7 @@ export function VesselGroupedExportList({ filters, onCancel }: Props) {
 
     if (isLoading) {
         return (
-            <div className="space-y-3 p-3">
+            <div className="space-y-2 p-2">
                 {Array.from({ length: 4 }).map((_, i) => (
                     <div key={i} className="flex items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-4 shadow-sm">
                         <div className="w-3.5 h-3.5 skeleton-shimmer rounded" />
@@ -181,9 +181,9 @@ export function VesselGroupedExportList({ filters, onCancel }: Props) {
 
     return (
         <>
-            <div className="space-y-3 p-3">
+            <div>
                 {filteredGroups.map(group => (
-                <div key={group.vesselKey} className="overflow-hidden rounded-2xl border border-border/80 bg-surface shadow-sm">
+                <div key={group.vesselKey} className="border-b border-border last:border-0">
                     <VesselGroupHeader
                         group={group}
                         isExpanded={expandedGroups.has(group.vesselKey)}
@@ -192,17 +192,17 @@ export function VesselGroupedExportList({ filters, onCancel }: Props) {
 
                     {expandedGroups.has(group.vesselKey) && (
                         <div
-                            className="bg-surface-secondary/10 px-0 pb-1.5 pt-0.5 dark:bg-transparent sm:pb-2"
+                            className="bg-surface-secondary/10 px-0 pb-1 pt-0 dark:bg-transparent sm:pb-1.5"
                             data-testid="tracking-vessel-group-panel"
                         >
                             <div
-                                className="ml-6 border-l-2 border-slate-300 pl-2.5 dark:border-border/55 sm:ml-7 sm:pl-3"
+                                className="ml-5 border-l-2 border-slate-300 pl-2 dark:border-border/55 sm:ml-6 sm:pl-2.5"
                                 data-testid="tracking-vessel-group-guide"
                             >
                                 <div className="overflow-hidden rounded-lg bg-surface-secondary/15 dark:bg-surface/60">
                                     <div
                                         className="hidden border-b border-border bg-surface-secondary/35 px-4 py-2.5 lg:grid lg:gap-x-3"
-                                        style={{ gridTemplateColumns: '1.25fr 1.25fr 1.45fr 100px 80px 92px 56px' }}
+                                        style={{ gridTemplateColumns: '1.25fr 1.25fr 1.45fr 100px 80px 92px 104px' }}
                                     >
                                         {COL_HEADERS.map(h => (
                                             <span key={h.label} className={`text-[9px] font-bold text-text-muted uppercase tracking-[0.1em] ${h.className}`}>

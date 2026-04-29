@@ -67,10 +67,6 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(20)->by('auth-login:'.$request->ip());
         });
 
-        RateLimiter::for('auth-verification', function (Request $request) {
-            return Limit::perMinute(6)->by('auth-verification:'.$this->rateLimitKey($request));
-        });
-
         RateLimiter::for('api-general', function (Request $request) {
             return Limit::perMinute(90)->by('api-general:'.$this->rateLimitKey($request));
         });

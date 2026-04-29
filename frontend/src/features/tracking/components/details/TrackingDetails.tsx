@@ -1,5 +1,6 @@
 import { FilePreviewModal } from '../../../../components/modals/FilePreviewModal';
 import { UploadModal } from '../../../../components/modals/UploadModal';
+import { Icon } from '../../../../components/Icon';
 import { appRoutes } from '../../../../lib/appRoutes';
 import { trackingApi } from '../../api/trackingApi';
 import { useTrackingDetails } from '../../hooks/useTrackingDetails';
@@ -110,6 +111,7 @@ export const TrackingDetails = () => {
     });
     const importTx = isImport ? (transaction as ImportTransaction) : null;
     const exportTx = !isImport ? (transaction as ExportTransaction) : null;
+    const openRemarksCount = transaction.open_remarks_count ?? 0;
 
     return (
         <div className="flex flex-col space-y-5 pb-6">
@@ -121,6 +123,31 @@ export const TrackingDetails = () => {
                 statusColor={s.color}
                 statusBg={s.bg}
             />
+
+            {openRemarksCount > 0 && (
+                <button
+                    type="button"
+                    onClick={() => setIsRemarkModalOpen(true)}
+                    className="group flex w-full items-center justify-between gap-4 rounded-2xl border border-red-500/25 bg-red-50 px-5 py-4 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-red-500/45 hover:bg-red-50/80 dark:border-red-500/30 dark:bg-red-950/20 dark:hover:bg-red-950/30"
+                >
+                    <div className="flex min-w-0 items-start gap-3">
+                        <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-500/10 text-red-600 ring-1 ring-red-500/20 dark:text-red-300">
+                            <Icon name="flag" className="h-5 w-5" />
+                        </span>
+                        <span className="min-w-0">
+                            <span className="block text-sm font-black text-red-700 dark:text-red-200">
+                                Action required: {openRemarksCount} open admin remark{openRemarksCount === 1 ? '' : 's'}
+                            </span>
+                            <span className="mt-1 block text-sm text-red-700/80 dark:text-red-200/75">
+                                Review the admin notes before continuing document uploads or status updates.
+                            </span>
+                        </span>
+                    </div>
+                    <span className="hidden shrink-0 rounded-lg border border-red-500/25 bg-white/70 px-3 py-1.5 text-xs font-bold text-red-700 transition-colors group-hover:bg-white dark:bg-red-950/30 dark:text-red-200 sm:inline-flex">
+                        Review remarks
+                    </span>
+                </button>
+            )}
 
             <TransactionInfoCard
                 transaction={transaction}

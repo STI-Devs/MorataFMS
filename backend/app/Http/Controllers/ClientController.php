@@ -114,10 +114,11 @@ class ClientController extends Controller
     /**
      * GET /api/clients/{client}/transactions
      * Returns all import and export transactions for a given client.
+     * Admin-only: cross-encoder transaction visibility is an oversight feature.
      */
-    public function transactions(Client $client)
+    public function transactions(Request $request, Client $client)
     {
-        $this->authorize('viewAny', Client::class);
+        abort_unless($request->user()->isAdmin(), 403);
 
         $imports = $client->importTransactions()
             ->with('assignedUser:id,name')

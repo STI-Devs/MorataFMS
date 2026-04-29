@@ -136,7 +136,7 @@ export const EncoderArchivePage = () => {
                         { label: 'BLs Added This Month', value: thisMonthBLsAdded.toLocaleString(), tone: 'text-orange-500' },
                         { label: 'Storage Used', value: formatBytes(totalStorageBytes), tone: 'text-text-primary' },
                     ]}
-                    searchPlaceholder="Search BL number, client, type, or year..."
+                    searchPlaceholder="Search BL number, client, or vessel..."
                     documentViewTitle="My BL Records"
                     showAuditButton={false}
                     canDeleteDocument={(doc, userId) => doc.uploader?.id === userId}

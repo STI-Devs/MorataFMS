@@ -24,7 +24,7 @@ interface VesselListToolbarProps {
 const STATUS_OPTIONS: { value: StatusFilter; label: string }[] = [
     { value: 'all', label: 'All' },
     { value: 'active', label: 'Active' },
-    { value: 'blocked', label: 'Blocked' },
+    { value: 'blocked', label: 'Needs Review' },
     { value: 'completed', label: 'Completed' },
 ];
 

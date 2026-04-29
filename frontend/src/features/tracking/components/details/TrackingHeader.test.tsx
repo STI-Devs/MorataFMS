@@ -4,7 +4,7 @@ import { renderWithProviders } from '../../../../test/renderWithProviders';
 import { TrackingHeader } from './TrackingHeader';
 
 describe('TrackingHeader', () => {
-    it('shows a red dot beside the remarks label when there are open remarks', () => {
+    it('shows a prominent count beside the remarks label when there are open remarks', () => {
         const onRemarksClick = vi.fn();
 
         renderWithProviders(
@@ -33,13 +33,13 @@ describe('TrackingHeader', () => {
             },
         );
 
-        expect(screen.getByTestId('tracking-header-remark-dot')).toBeInTheDocument();
+        expect(screen.getByTestId('tracking-header-remark-dot')).toHaveTextContent('2');
 
         fireEvent.click(screen.getByRole('button', { name: /remarks/i }));
         expect(onRemarksClick).toHaveBeenCalledTimes(1);
     });
 
-    it('hides the red dot when there are no open remarks', () => {
+    it('hides the remark count when there are no open remarks', () => {
         renderWithProviders(
             <TrackingHeader
                 transaction={{

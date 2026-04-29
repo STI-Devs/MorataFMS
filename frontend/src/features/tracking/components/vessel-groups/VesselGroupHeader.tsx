@@ -16,7 +16,11 @@ export function VesselGroupHeader<T>({
     const isReviewMode = mode === 'review';
     const etaLabel = group.type === 'import' ? 'ETA' : 'ETD';
     const progressLabel = isReviewMode ? 'in review' : 'active';
-    const blockedLabel = isReviewMode ? 'flagged' : 'blocked';
+    const reviewLabel = isReviewMode
+        ? 'flagged'
+        : group.stats.blocked === 1
+          ? 'needs review'
+          : 'need review';
     const reviewSubtitle =
         group.type === 'import'
             ? 'Completed import transactions'
@@ -123,7 +127,7 @@ export function VesselGroupHeader<T>({
                 )}
                 {hasBlocked && (
                     <span className="rounded-lg border border-red-100 bg-red-50 px-2.5 py-1 text-[11px] text-red-600 dark:border-red-900/30 dark:bg-red-900/20 dark:text-red-300">
-                        <span className="font-semibold">{group.stats.blocked}</span> {blockedLabel}
+                        <span className="font-semibold">{group.stats.blocked}</span> {reviewLabel}
                     </span>
                 )}
                 {!isReviewMode && group.stats.completed > 0 && (

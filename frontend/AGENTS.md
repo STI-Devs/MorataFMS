@@ -60,6 +60,23 @@ Do not create new top-level directories without approval.
 
 Do not move feature logic into `src/components` just because it is reused once or twice.
 
+### Feature Internal Layout
+
+Inside each `src/features/<feature>/`, use these sub-folders when the concern exists:
+
+- `api/` for HTTP modules; add `api/internal/` for shared helpers (pagination, error wrapping, form-data builders)
+- `hooks/` for React Query hooks and orchestrator hooks (e.g. `useXWorkspace`)
+- `utils/` for pure functions, mappers, and types named `*.utils.ts`
+- `types/` for feature-owned TypeScript contracts
+- `components/` for the feature's UI; group leaves into sub-folders when the flat folder gets crowded
+
+Common `components/` sub-folder names already in use:
+
+- `pages/` for route-level screens
+- `workspace/`, `detail/`, `details/`, `lists/`, `modals/`, `vessel-groups/`, `legacy-upload/sections/`, `nav/`
+
+Pick the sub-folder name that matches sibling features. Do not invent a new grouping when one already exists for the same concern.
+
 ## Routes And Navigation
 
 All route paths must come from `src/lib/appRoutes.ts`.
@@ -116,6 +133,8 @@ Rules:
 - Keep feature-specific endpoints inside that feature's `api/` module.
 - Unwrap backend resource payloads consistently in the API layer, not deep inside components.
 - Do not normalize backend data differently in multiple places.
+- When a feature spans multiple backend resources, split into per-resource modules (e.g. `imports.api.ts`, `exports.api.ts`, `documents.api.ts`) and keep a slim barrel for cross-resource workflows. See `src/features/tracking/api/` for the canonical example.
+- Put cross-module helpers (pagination loops, upload error wrapping, multipart builders) under `api/internal/` rather than duplicating them per resource.
 
 The backend is Laravel-based, so frontend code should expect:
 
@@ -156,6 +175,7 @@ Use the existing division of responsibilities:
 
 - `api/` files talk to the backend
 - `hooks/` files own server-state integration and cache behavior
+- `utils/` files hold pure helpers, mappers, and constants
 - `components/` files render UI and handle local presentation state
 - `pages/` files assemble route-level screens
 
@@ -164,6 +184,25 @@ Rules:
 - Do not place API calls directly inside presentational components unless the feature already follows that pattern and there is a strong reason.
 - Do not create giant components that mix fetching, routing, authorization, and rendering.
 - Extract a hook or utility only when there is a real repeated pattern, not speculative reuse.
+
+### Megacomponent Split Pattern
+
+When a page or orchestrator component grows beyond roughly 300 lines or starts mixing concerns, split it using the established pattern:
+
+1. Extract pure helpers, types, and mappers into `utils/<name>.utils.ts`.
+2. Extract state, effects, and handlers into a `hooks/use<Name>.ts` orchestrator hook.
+3. Extract leaf UI sections into `components/<sub-folder>/` (e.g. `workspace/`, `detail/`, `legacy-upload/sections/`).
+4. Keep the original file as a slim composer that wires the hook output into the leaves.
+
+Canonical examples to copy from:
+
+- `src/features/archives/components/workspace/ArchiveWorkspace.tsx` + `useArchiveWorkspace`
+- `src/features/tracking/components/details/TrackingDetails.tsx` + `useTrackingDetails`
+- `src/features/archives/components/legacy-upload/LegacyFolderUploadView.tsx` + sectioned leaves
+
+### State Sync Pattern
+
+Do not use `useEffect` to mirror props or external state into local state. Use the render-time identity guard pattern: store a ref of the last seen identity and call `setState` during render when the identity changes. This satisfies `react-hooks/set-state-in-effect` and avoids an extra render. See `useLegacyUploadOrchestrator` for the reference implementation.
 
 ## Styling And UI
 
@@ -184,7 +223,8 @@ Follow existing naming patterns:
 
 - components: `PascalCase.tsx`
 - hooks: `useSomething.ts`
-- utilities: `camelCase.ts`
+- utilities: `camelCase.utils.ts` inside a feature's `utils/` folder; plain `camelCase.ts` only for non-utility shared modules
+- API modules: `<resource>.api.ts` when a feature has multiple resources; otherwise `featureNameApi.ts`
 - feature types: `*.types.ts` where that pattern already exists
 - colocated tests: `*.test.ts` or `*.test.tsx`
 

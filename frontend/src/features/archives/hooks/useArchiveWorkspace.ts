@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { ArchiveDocument, ArchiveYear, TransactionType } from '../../documents/types/document.types';
 import { trackingApi } from '../../tracking/api/trackingApi';
 import {
+    archiveGroupMatchesSearch,
     type ArchiveUploadSuccessTarget,
     type DocStatusFilter,
     type DrillState,
@@ -174,18 +175,32 @@ export function useArchiveWorkspace({ archiveData, queryKey }: UseArchiveWorkspa
     const globalResults = useMemo(() => {
         const q = globalSearch.trim().toLowerCase();
         if (!q) return [];
-        const seen = new Map<string, { blNo: string; client: string; type: TransactionType; year: ArchiveYear; month: number; fileCount: number }>();
+        const seen = new Map<string, {
+            blNo: string;
+            client: string;
+            type: TransactionType;
+            year: ArchiveYear;
+            month: number;
+            docs: ArchiveDocument[];
+        }>();
+
         for (const yearData of archiveData) {
             for (const doc of yearData.documents) {
                 const blNo = doc.bl_no || '(no BL)';
                 const key = `${blNo}|${doc.type}|${yearData.year}|${doc.month}`;
                 if (!seen.has(key)) {
-                    seen.set(key, { blNo, client: doc.client, type: doc.type, year: yearData, month: doc.month, fileCount: 0 });
+                    seen.set(key, { blNo, client: doc.client, type: doc.type, year: yearData, month: doc.month, docs: [] });
                 }
-                seen.get(key)!.fileCount++;
+                seen.get(key)!.docs.push(doc);
             }
         }
-        return [...seen.values()].filter((r) => r.blNo.toLowerCase().includes(q) || r.client.toLowerCase().includes(q));
+
+        return [...seen.values()]
+            .filter((record) => archiveGroupMatchesSearch(record.docs, q, record.year.year))
+            .map(({ docs, ...record }) => ({
+                ...record,
+                fileCount: docs.length,
+            }));
     }, [globalSearch, archiveData]);
 
     const flatDocumentList = useMemo(() => {
@@ -202,7 +217,7 @@ export function useArchiveWorkspace({ archiveData, queryKey }: UseArchiveWorkspa
         }
         return [...blMap.values()].filter((r) => {
             const q = globalSearch.trim().toLowerCase();
-            if (q && !r.blNo.toLowerCase().includes(q) && !r.client.toLowerCase().includes(q)) return false;
+            if (q && !archiveGroupMatchesSearch(r.docs, q, r.year)) return false;
             if (filterYear !== 'all' && String(r.year) !== filterYear) return false;
             if (filterType !== 'all' && r.type !== filterType) return false;
             const completion = getArchiveBlCompletion(r.docs, r.type);

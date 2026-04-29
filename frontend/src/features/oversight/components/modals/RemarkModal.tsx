@@ -32,6 +32,11 @@ interface RemarkModalProps {
 export const RemarkModal = ({ isOpen, onClose, transactionType, transactionId, transactionLabel }: RemarkModalProps) => {
     const { theme } = useTheme();
     const isDark = theme === 'dark';
+    const documentSelectClassName = `w-full px-3 py-2 rounded-lg text-sm border transition-colors focus:outline-none [color-scheme:light] dark:[color-scheme:dark] ${isDark
+        ? 'bg-[#242426] border-white/10 text-white focus:border-blue-500/50'
+        : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-blue-500/50'
+    }`;
+    const documentOptionClassName = isDark ? 'bg-[#242426] text-white' : 'bg-white text-gray-900';
 
     const [severity, setSeverity] = useState<CreateRemarkData['severity']>('warning');
     const [message, setMessage] = useState('');
@@ -122,14 +127,11 @@ export const RemarkModal = ({ isOpen, onClose, transactionType, transactionId, t
                             <select
                                 value={documentId ?? ''}
                                 onChange={e => setDocumentId(e.target.value ? Number(e.target.value) : null)}
-                                className={`w-full px-3 py-2 rounded-lg text-sm border transition-colors focus:outline-none ${isDark
-                                        ? 'bg-white/5 border-white/10 text-white focus:border-blue-500/50'
-                                        : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-blue-500/50'
-                                    }`}
+                                className={documentSelectClassName}
                             >
-                                <option value="">Do not pin to a document</option>
+                                <option value="" className={documentOptionClassName}>Do not pin to a document</option>
                                 {documentsData.data.map(doc => (
-                                    <option key={doc.id} value={doc.id}>
+                                    <option key={doc.id} value={doc.id} className={documentOptionClassName}>
                                         {doc.type}: {doc.filename}
                                     </option>
                                 ))}

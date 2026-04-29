@@ -45,6 +45,64 @@ export const MONTH_NAMES = [
 export const toTitleCase = (str: string) =>
     str.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
 
+const normalizeArchiveSearchValue = (value: string | number | null | undefined) =>
+    String(value ?? '').trim().toLowerCase();
+
+const getArchiveDocumentSearchTokens = (
+    doc: ArchiveDocument,
+    year?: number,
+) => {
+    const monthLabel = MONTH_NAMES[doc.month - 1] ?? '';
+
+    return [
+        doc.bl_no,
+        doc.customs_ref_no,
+        doc.client,
+        doc.type,
+        doc.selective_color,
+        doc.origin_country,
+        doc.destination_country,
+        doc.vessel_name,
+        doc.location_of_goods,
+        doc.stage,
+        doc.filename,
+        doc.transaction_date,
+        year,
+        monthLabel,
+        monthLabel.slice(0, 3),
+    ]
+        .map(normalizeArchiveSearchValue)
+        .filter(Boolean);
+};
+
+export const archiveDocumentMatchesSearch = (
+    doc: ArchiveDocument,
+    query: string,
+    year?: number,
+) => {
+    const normalizedQuery = normalizeArchiveSearchValue(query);
+
+    if (!normalizedQuery) {
+        return true;
+    }
+
+    return getArchiveDocumentSearchTokens(doc, year).some((token) => token.includes(normalizedQuery));
+};
+
+export const archiveGroupMatchesSearch = (
+    docs: ArchiveDocument[],
+    query: string,
+    year?: number,
+) => {
+    const normalizedQuery = normalizeArchiveSearchValue(query);
+
+    if (!normalizedQuery) {
+        return true;
+    }
+
+    return docs.some((doc) => archiveDocumentMatchesSearch(doc, normalizedQuery, year));
+};
+
 export const getArchiveBlCompletion = (
     blDocs: ArchiveDocument[],
     typeOverride?: TransactionType,

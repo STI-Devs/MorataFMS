@@ -77,41 +77,56 @@ export function ExportTransactionRow({ transaction, onNavigate, onCancel, onRema
     const assigneeName = transaction.assigned_user?.name;
     const initials = getAssigneeInitials(assigneeName);
     const { primary } = getPrimaryRef(transaction);
+    const openRemarksCount = transaction.open_remarks_count ?? 0;
 
     return (
         <div
             onClick={() => onNavigate(path)}
             className={`
-                group grid gap-x-3 gap-y-3 p-4 lg:grid-cols-[1.25fr_1.25fr_1.45fr_100px_80px_92px_56px] lg:items-center lg:gap-y-0 lg:px-4 lg:py-3
-                cursor-pointer border-b border-border/40 last:border-0 text-xs transition-colors hover:bg-hover/60
-                ${isBlocked ? 'border-l-4 border-red-500 bg-red-50/25 dark:bg-red-950/10' : 'border-l-4 border-transparent'}
+                group grid gap-x-3 gap-y-3 p-4 lg:min-h-[56px] lg:grid-cols-[1.25fr_1.25fr_1.45fr_100px_80px_92px_104px] lg:items-start lg:gap-y-0 lg:px-4 lg:py-1.5
+                cursor-pointer border-b border-border/40 last:border-b-0 border-l-4 border-transparent text-xs transition-colors hover:bg-hover/60
             `}
             role="row"
         >
-            <div className="flex min-w-0 items-center justify-between lg:block">
-                <div className="min-w-0">
+            <div className="flex min-w-0 items-start justify-between lg:block">
+                <div className="min-w-0 lg:grid lg:min-h-[40px] lg:grid-rows-[auto_20px] lg:gap-y-1">
                     <div className="truncate font-mono text-sm font-semibold text-text-primary lg:text-[11px]">{primary}</div>
+                    {isBlocked ? (
+                        <button
+                            type="button"
+                            onClick={(event) => {
+                                event.stopPropagation();
+                                onRemarks(transaction);
+                            }}
+                            className="mt-1 inline-flex w-fit items-center gap-1 rounded-full border border-red-500/25 bg-red-50 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.08em] text-red-600 transition-colors hover:bg-red-100 dark:border-red-500/30 dark:bg-red-950/25 dark:text-red-300 dark:hover:bg-red-950/40 lg:mt-0"
+                        >
+                            <Icon name="flag" className="h-3 w-3" />
+                            {openRemarksCount} remark{openRemarksCount === 1 ? '' : 's'}
+                        </button>
+                    ) : (
+                        <div className="hidden lg:block" aria-hidden="true" />
+                    )}
                 </div>
                 <div className="lg:hidden">
                     <StatusBadge status={transaction.status ?? ''} />
                 </div>
             </div>
 
-            <div className="min-w-0">
+            <div className="min-w-0 lg:pt-0.5">
                 <div className="mb-1 text-[10px] font-bold uppercase text-text-muted lg:hidden">Shipper</div>
                 <div className="truncate text-sm text-text-secondary lg:text-xs">{transaction.shipper?.name ?? '—'}</div>
             </div>
 
-            <div className="min-w-0">
+            <div className="min-w-0 lg:pt-0.5">
                 <div className="mb-1 text-[10px] font-bold uppercase text-text-muted lg:hidden">Current Stage</div>
                 <div className="truncate text-sm font-medium text-text-secondary lg:text-[11px]">{activeStage}</div>
             </div>
 
-            <div className="hidden lg:flex justify-start">
+            <div className="hidden lg:flex lg:justify-start lg:pt-0.5">
                 <StatusBadge status={transaction.status ?? ''} />
             </div>
 
-            <div className="flex items-center gap-2 border-t border-border/50 pt-2 lg:justify-center lg:border-t-0 lg:pt-0">
+            <div className="flex items-center gap-2 border-t border-border/50 pt-2 lg:self-start lg:justify-center lg:border-t-0 lg:pt-0.5">
                 <span className="text-text-muted text-[10px] uppercase font-bold lg:hidden">Assigned</span>
                 <div className="lg:mx-auto">
                     {assigneeName ? (
@@ -128,21 +143,22 @@ export function ExportTransactionRow({ transaction, onNavigate, onCancel, onRema
             </div>
 
             <div
-                className="hidden w-full justify-self-start whitespace-nowrap pl-1 text-left text-[10px] text-text-muted lg:block"
+                className="hidden w-full justify-self-start whitespace-nowrap pl-1 text-left text-[10px] text-text-muted lg:block lg:pt-1"
                 title={formatExactDateTime(transaction.waiting_since ?? transaction.created_at)}
             >
                 {formatRelativeDate(transaction.waiting_since ?? transaction.created_at)}
             </div>
 
-            <div className="col-span-full flex items-center justify-end gap-1 border-t border-border/50 pt-2 lg:col-span-1 lg:justify-self-start lg:gap-0.5 lg:border-t-0 lg:pt-0" onClick={e => e.stopPropagation()}>
+            <div className="col-span-full flex items-center justify-end gap-1 border-t border-border/50 pt-2 lg:col-span-1 lg:self-start lg:justify-self-start lg:gap-0.5 lg:border-t-0 lg:pt-0.5" onClick={e => e.stopPropagation()}>
                 {transaction.open_remarks_count > 0 && (
                     <button
                         type="button"
                         onClick={() => onRemarks(transaction)}
-                        className="rounded-lg border border-red-200 bg-surface p-2 text-red-500 shadow-sm transition-colors hover:bg-red-50 dark:border-red-900 dark:hover:bg-red-900/30 lg:border-transparent lg:bg-transparent lg:p-1 lg:shadow-none"
+                        className="inline-flex min-w-8 items-center justify-center gap-1 rounded-lg border border-red-200 bg-red-50 px-2 py-1.5 text-[10px] font-black text-red-600 shadow-sm transition-colors hover:bg-red-100 dark:border-red-900 dark:bg-red-950/25 dark:text-red-300 dark:hover:bg-red-900/30 lg:min-w-7 lg:border-transparent lg:bg-transparent lg:px-1 lg:py-1 lg:shadow-none"
                         title={`${transaction.open_remarks_count} open remark(s)`}
                     >
                         <Icon name="flag" className="w-3.5 h-3.5" />
+                        <span>{openRemarksCount}</span>
                     </button>
                 )}
                 <button

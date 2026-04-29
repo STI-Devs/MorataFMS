@@ -91,6 +91,7 @@ describe('AdminDashboard', () => {
         expect(screen.queryByText('Delayed Shipments')).not.toBeInTheDocument();
         expect(screen.queryByText('Missing Final Docs')).not.toBeInTheDocument();
         expect(screen.getByText('18')).toBeInTheDocument();
+        expect(screen.getByText('18')).toHaveClass('mt-auto');
         expect(screen.getByText('11')).toBeInTheDocument();
         expect(screen.getByText('7')).toBeInTheDocument();
         expect(screen.getByText('4')).toBeInTheDocument();

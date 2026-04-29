@@ -240,17 +240,17 @@ export const AdminDashboard = () => {
                     return (
                         <article
                             key={card.label}
-                            className="relative overflow-hidden rounded-xl border border-border bg-surface px-3.5 py-3 shadow-sm"
+                            className="relative flex min-h-[152px] flex-col overflow-hidden rounded-xl border border-border bg-surface px-3.5 py-3 shadow-sm"
                         >
                             <div className={`absolute inset-y-0 left-0 w-1 ${card.accent}`} />
-                            <div className="flex items-start justify-between gap-3">
+                            <div className="flex min-h-[58px] items-start justify-between gap-3">
                                 <div className="min-w-0">
                                     <p className="text-[10px] font-black uppercase tracking-[0.22em] text-text-muted">{card.label}</p>
                                     <p className="mt-1 line-clamp-2 text-xs font-semibold text-text-secondary">{card.helper}</p>
                                 </div>
                                 <div className={`mt-0.5 h-2.5 w-2.5 shrink-0 rounded-full ${tone.dot}`} />
                             </div>
-                            <p className={`mt-3 text-3xl font-black tracking-tighter ${tone.value}`}>{card.value}</p>
+                            <p className={`mt-auto pt-3 text-3xl font-black tracking-tighter ${tone.value}`}>{card.value}</p>
                         </article>
                     );
                 })}

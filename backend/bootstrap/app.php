@@ -2,7 +2,6 @@
 
 use App\Http\Controllers\SystemController;
 use App\Http\Middleware\EnsureActiveUserSession;
-use App\Http\Middleware\EnsureEmailIsVerified;
 use App\Http\Middleware\MaxRequestSize;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\ThrottlePublicSurface;
@@ -76,7 +75,6 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'active-session' => EnsureActiveUserSession::class,
-            'verified' => EnsureEmailIsVerified::class,
         ]);
 
         //

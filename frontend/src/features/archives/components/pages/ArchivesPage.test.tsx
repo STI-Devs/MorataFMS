@@ -75,6 +75,7 @@ describe('ArchivesPage', () => {
         expect(screen.getByText(/^Storage$/i)).toBeInTheDocument();
         expect(screen.getByText(/records browser/i)).toBeInTheDocument();
         expect(screen.getByTestId('archives-folder-view')).toBeInTheDocument();
+        expect(screen.getByPlaceholderText(/search bl number, client, or vessel/i)).toBeInTheDocument();
     });
 
     it('keeps export and upload actions available in the filter strip', () => {

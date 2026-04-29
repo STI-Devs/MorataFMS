@@ -1,136 +1,222 @@
 import { useState } from 'react';
+import { Icon, type IconName } from '../../../components/Icon';
+
+interface FaqItem {
+    q: string;
+    a: string;
+}
+
+const FAQS: FaqItem[] = [
+    {
+        q: 'I cannot log in to my account.',
+        a: "Ensure you're using the correct email and password. If the issue persists, contact your system administrator to reset your credentials.",
+    },
+    {
+        q: 'A transaction is missing or not showing up.',
+        a: 'Refresh the page and try searching again. If the record is still missing, it may not have been encoded yet. Reach out to the encoder assigned to that shipment.',
+    },
+    {
+        q: 'I cannot upload or view a document.',
+        a: 'Check your internet connection and try again. If the file still fails to upload, ensure the file size is within limits and the format is supported (PDF, JPG, PNG).',
+    },
+    {
+        q: 'The system is slow or not responding.',
+        a: 'Clear your browser cache (Ctrl+Shift+R) and reload. If the issue continues, please contact IT support immediately.',
+    },
+    {
+        q: 'I need to change my role or permissions.',
+        a: 'Role changes must be approved by an admin. Please coordinate with the system administrator for account access updates.',
+    },
+];
+
+const SUPPORT_EMAIL = 'catherinerabuyarevil@gmail.com';
+const SUPPORT_PHONE_DISPLAY = '09602601754';
+const SUPPORT_PHONE_TEL = '+639602601754';
+const SUPPORT_HOURS = 'Monday – Friday, 8:00 AM – 5:00 PM';
+
+const SYSTEM_INFO: Array<{ label: string; value: string }> = [
+    { label: 'System Name', value: 'F.M Morata Customs Tracking and File Management' },
+    { label: 'Version', value: '1.0.0' },
+    { label: 'Developer', value: 'TWENTI MILL DEV' },
+    { label: 'Company', value: 'Fely M. Morata Customs Brokerage Services and Law Firm' },
+];
 
 export const Help = () => {
     const [openFaq, setOpenFaq] = useState<number | null>(null);
 
-    const faqs = [
-        {
-            q: 'I cannot log in to my account.',
-            a: "Ensure you're using the correct email and password. If the issue persists, contact your system administrator to reset your credentials.",
-        },
-        {
-            q: 'A transaction is missing or not showing up.',
-            a: 'Refresh the page and try searching again. If the record is still missing, it may not have been encoded yet. Reach out to the encoder assigned to that shipment.',
-        },
-        {
-            q: 'I cannot upload or view a document.',
-            a: 'Check your internet connection and try again. If the file still fails to upload, ensure the file size is within limits and the format is supported (PDF, JPG, PNG).',
-        },
-        {
-            q: 'The system is slow or not responding.',
-            a: 'Clear your browser cache (Ctrl+Shift+R) and reload. If the issue continues, please contact IT support immediately.',
-        },
-        {
-            q: 'I need to change my role or permissions.',
-            a: "Role changes must be approved by an admin. Please coordinate with the system administrator for account access updates.",
-        },
-    ];
-
     return (
-        <div className="max-w-3xl mx-auto space-y-6 pb-10">
+        <div className="min-h-full px-4 py-8 sm:px-6 lg:px-8">
+            <div className="mx-auto w-full max-w-3xl space-y-6">
 
-            {/* Page Header */}
-            <div>
-                <h1 className="text-3xl font-bold text-text-primary">Help &amp; IT Support</h1>
-                <p className="text-sm mt-1 text-text-secondary">
-                    Having trouble? Browse common issues below or reach out to the development team.
-                </p>
-            </div>
+                {/* Page header */}
+                <header>
+                    <h1 className="text-2xl font-bold tracking-tight text-text-primary">Help &amp; Support</h1>
+                    <p className="mt-1 text-sm text-text-secondary">
+                        Browse common issues, find system details, and reach the team that maintains MorataFMS.
+                    </p>
+                </header>
 
-            {/* Contact Card */}
-            <div className="bg-surface border border-border/60 rounded-lg p-6">
-                <div className="flex items-start gap-4">
-                    <div className="w-11 h-11 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0">
-                        <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17H4a2 2 0 01-2-2V5a2 2 0 012-2h16a2 2 0 012 2v10a2 2 0 01-2 2h-1" />
-                        </svg>
-                    </div>
-                    <div className="flex-1">
-                        <h2 className="text-base font-bold mb-0.5 text-text-primary">Contact IT / Development Team</h2>
-                        <p className="text-sm mb-4 text-text-secondary">
-                            For system bugs, access issues, or feature requests, reach out directly to the team that built and maintains MorataFMS.
+                {/* Contact Support */}
+                <section
+                    aria-labelledby="contact-heading"
+                    className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm"
+                >
+                    <header className="border-b border-border px-5 py-4">
+                        <div className="flex items-center gap-2">
+                            <Icon name="mail" className="h-4 w-4 text-text-muted" />
+                            <h2 id="contact-heading" className="text-sm font-bold text-text-primary">Contact Support</h2>
+                        </div>
+                        <p className="mt-1 text-xs text-text-muted">
+                            For system bugs, access issues, or feature requests, reach out directly to the team that builds and maintains MorataFMS.
                         </p>
-                        <div className="space-y-3 border-t border-border/40 pt-4">
-                            {[
-                                { icon: 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z', label: 'Email', value: 'seanpaullapasanda@gmail.com' },
-                                { icon: 'M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z', label: 'Phone', value: '09635542345' },
-                                { icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', label: 'Support Hours', value: 'Monday – Friday, 8:00 AM – 5:00 PM' },
-                            ].map(({ icon, label, value }) => (
-                                <div key={label} className="flex items-center gap-3">
-                                    <svg className="w-4 h-4 text-blue-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <path d={icon} />
-                                    </svg>
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-xs font-semibold uppercase tracking-wide text-text-secondary">{label}:</span>
-                                        <span className="text-sm font-medium text-text-primary">{value}</span>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            </div>
+                    </header>
+                    <dl className="divide-y divide-border">
+                        <ContactRow
+                            icon="mail"
+                            label="E-mail"
+                            value={SUPPORT_EMAIL}
+                            href={`mailto:${SUPPORT_EMAIL}`}
+                        />
+                        <ContactRow
+                            icon="phone"
+                            label="Phone"
+                            value={SUPPORT_PHONE_DISPLAY}
+                            href={`tel:${SUPPORT_PHONE_TEL}`}
+                        />
+                        <ContactRow
+                            icon="clock"
+                            label="Support Hours"
+                            value={SUPPORT_HOURS}
+                        />
+                    </dl>
+                </section>
 
-            {/* System Info Card */}
-            <div className="bg-surface border border-border/60 rounded-lg p-6">
-                <h2 className="text-base font-bold mb-4 text-text-primary">System Information</h2>
-                <div className="grid grid-cols-2 gap-3">
-                    {[
-                        { label: 'System Name', value: 'F.M Morata Customs Tracking and File Management' },
-                        { label: 'Version', value: '1.0.0' },
-                        { label: 'Developer', value: 'TWENTI MILL DEV' },
-                        { label: 'Company', value: 'Fely M. Morata Customs Brokerage Services and Law Firm' },
-                    ].map(({ label, value }) => (
-                        <div key={label} className="flex flex-col gap-0.5 p-3 rounded-lg bg-surface-secondary">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-text-secondary">{label}</span>
-                            <span className="text-sm font-semibold text-text-primary">{value}</span>
+                {/* System Information */}
+                <section
+                    aria-labelledby="system-info-heading"
+                    className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm"
+                >
+                    <header className="border-b border-border px-5 py-4">
+                        <div className="flex items-center gap-2">
+                            <Icon name="settings" className="h-4 w-4 text-text-muted" />
+                            <h2 id="system-info-heading" className="text-sm font-bold text-text-primary">System Information</h2>
                         </div>
-                    ))}
-                </div>
-            </div>
-
-            {/* FAQ Accordion */}
-            <div className="bg-surface border border-border/60 rounded-lg overflow-hidden">
-                <div className="px-6 py-4 border-b border-border/40">
-                    <h2 className="text-base font-bold text-text-primary">Frequently Asked Questions</h2>
-                </div>
-                <div className="p-4 space-y-2">
-                    {faqs.map((faq, index) => (
-                        <div
-                            key={index}
-                            className="border border-border/50 rounded-lg overflow-hidden hover:bg-hover/40 transition-colors"
-                        >
-                            <button
-                                onClick={() => setOpenFaq(openFaq === index ? null : index)}
-                                className="w-full px-5 py-4 flex justify-between items-center text-left gap-4"
-                            >
-                                <span className="text-sm font-semibold text-text-primary">
-                                    {faq.q}
-                                </span>
-                                <span
-                                    className={`text-xl font-light text-text-secondary transition-transform duration-300 ease-out shrink-0 ${openFaq === index ? 'rotate-45' : ''}`}
-                                >
-                                    +
-                                </span>
-                            </button>
+                        <p className="mt-1 text-xs text-text-muted">
+                            Reference these values when reporting an issue.
+                        </p>
+                    </header>
+                    <dl className="grid grid-cols-1 divide-y divide-border sm:grid-cols-2 sm:divide-x sm:divide-y-0">
+                        {SYSTEM_INFO.map(({ label, value }, index) => (
                             <div
-                                className={`px-5 transition-all duration-300 ease-in-out overflow-hidden ${openFaq === index ? 'max-h-48 py-4 border-t border-border/30 opacity-100' : 'max-h-0 opacity-0'}`}
+                                key={label}
+                                className={`min-w-0 px-5 py-4 ${
+                                    index >= 2 ? 'sm:border-t sm:border-border' : ''
+                                }`}
                             >
-                                <p className="text-sm text-text-secondary leading-relaxed">
-                                    {faq.a}
-                                </p>
+                                <dt className="text-[10px] font-bold uppercase tracking-wider text-text-muted">{label}</dt>
+                                <dd className="mt-0.5 text-sm font-medium text-text-primary">{value}</dd>
                             </div>
+                        ))}
+                    </dl>
+                </section>
+
+                {/* FAQ */}
+                <section
+                    aria-labelledby="faq-heading"
+                    className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm"
+                >
+                    <header className="border-b border-border px-5 py-4">
+                        <div className="flex items-center gap-2">
+                            <Icon name="alert-circle" className="h-4 w-4 text-text-muted" />
+                            <h2 id="faq-heading" className="text-sm font-bold text-text-primary">Frequently Asked Questions</h2>
                         </div>
-                    ))}
-                </div>
+                        <p className="mt-1 text-xs text-text-muted">
+                            Quick answers to the most common issues.
+                        </p>
+                    </header>
+                    <ul className="divide-y divide-border">
+                        {FAQS.map((faq, index) => {
+                            const isOpen = openFaq === index;
+                            const panelId = `faq-panel-${index}`;
+                            const buttonId = `faq-trigger-${index}`;
+                            return (
+                                <li key={faq.q}>
+                                    <h3 className="m-0">
+                                        <button
+                                            id={buttonId}
+                                            type="button"
+                                            aria-expanded={isOpen}
+                                            aria-controls={panelId}
+                                            onClick={() => setOpenFaq(isOpen ? null : index)}
+                                            className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left transition-colors hover:bg-hover/40 focus:outline-none focus-visible:bg-hover/60"
+                                        >
+                                            <span className="text-sm font-semibold text-text-primary">{faq.q}</span>
+                                            <Icon
+                                                name="chevron-down"
+                                                className={`h-4 w-4 shrink-0 text-text-muted transition-transform duration-200 ${
+                                                    isOpen ? 'rotate-180 text-text-primary' : ''
+                                                }`}
+                                            />
+                                        </button>
+                                    </h3>
+                                    {isOpen && (
+                                        <div
+                                            id={panelId}
+                                            role="region"
+                                            aria-labelledby={buttonId}
+                                            className="border-t border-border/40 bg-surface-secondary/20 px-5 py-4"
+                                        >
+                                            <p className="text-sm leading-relaxed text-text-secondary">{faq.a}</p>
+                                        </div>
+                                    )}
+                                </li>
+                            );
+                        })}
+                    </ul>
+                </section>
+
+                {/* Footer note */}
+                <p className="text-center text-xs text-text-muted">
+                    F.M Morata Customs Tracking and File Management is an internal system maintained by TWENTI MILL DEV.
+                </p>
+
             </div>
-
-            {/* Footer note */}
-            <p className="text-xs text-center text-text-secondary">
-                F.M Morata Customs Tracking and File Management System is an internal freight management system maintained by the TWENTI MILL DEV.
-            </p>
-
         </div>
     );
 };
+
+interface ContactRowProps {
+    icon: IconName;
+    label: string;
+    value: string;
+    href?: string;
+}
+
+function ContactRow({ icon, label, value, href }: ContactRowProps) {
+    return (
+        <div className="flex items-center gap-4 px-5 py-4">
+            <span
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500"
+                aria-hidden="true"
+            >
+                <Icon name={icon} className="h-4 w-4" />
+            </span>
+            <div className="min-w-0 flex-1">
+                <dt className="text-[10px] font-bold uppercase tracking-wider text-text-muted">{label}</dt>
+                <dd className="mt-0.5 truncate">
+                    {href ? (
+                        <a
+                            href={href}
+                            className="text-sm font-medium text-blue-500 transition-colors hover:text-blue-600 hover:underline"
+                        >
+                            {value}
+                        </a>
+                    ) : (
+                        <span className="text-sm font-medium text-text-primary">{value}</span>
+                    )}
+                </dd>
+            </div>
+        </div>
+    );
+}
 

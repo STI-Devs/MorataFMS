@@ -342,6 +342,30 @@ describe('TrackingDetails', () => {
         expect(screen.getByTestId('tracking-status')).toHaveTextContent('Vessel Arrived');
     });
 
+    it('surfaces open admin remarks as a prominent action banner', () => {
+        const detail = makeImportDetailResult({
+            customs_ref_no: 'IMP-2026-004',
+            open_remarks_count: 3,
+        });
+
+        mockUseTransactionDetail.mockReturnValue({ data: detail, isLoading: false });
+        mockUseTransactionDocuments.mockReturnValue({
+            byStageIndex: {},
+            isLoading: false,
+        });
+
+        renderWithProviders(<TrackingDetails />, {
+            route: '/tracking/IMP-2026-004',
+            path: appRoutes.trackingDetail,
+        });
+
+        expect(screen.getByText('Action required: 3 open admin remarks')).toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole('button', { name: /review remarks/i }));
+
+        expect(screen.getByText('Remark modal open')).toBeInTheDocument();
+    });
+
     it('shows the export bill of lading as the visible reference and keeps future stages locked', () => {
         const detail = makeExportDetailResult({
             bl_no: 'BL-EXPORT-900',

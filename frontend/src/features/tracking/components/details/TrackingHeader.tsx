@@ -37,6 +37,8 @@ export const TrackingHeader = ({
     const vesselName = getVesselName(transaction);
     const entryRef = getEntryRef(transaction);
     const bl = getBl(transaction);
+    const openRemarksCount = transaction.open_remarks_count ?? 0;
+    const hasOpenRemarks = openRemarksCount > 0;
 
     return (
         <div>
@@ -71,16 +73,22 @@ export const TrackingHeader = ({
                 <div className="flex items-center gap-2 shrink-0">
                     <button
                         onClick={onRemarksClick}
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-text-secondary border border-border-strong rounded-lg hover:bg-hover hover:text-text-primary transition-colors"
+                        className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                            hasOpenRemarks
+                                ? 'border-red-500/35 bg-red-50 text-red-700 shadow-sm shadow-red-500/10 hover:bg-red-100 dark:bg-red-950/25 dark:text-red-200 dark:hover:bg-red-950/40'
+                                : 'border-border-strong text-text-secondary hover:bg-hover hover:text-text-primary'
+                        }`}
                     >
                         <Icon name="flag" className="w-3.5 h-3.5" />
                         Remarks
-                        {transaction.open_remarks_count > 0 && (
+                        {hasOpenRemarks && (
                             <span
-                                aria-hidden="true"
+                                aria-label={`${openRemarksCount} open remarks`}
                                 data-testid="tracking-header-remark-dot"
-                                className="ml-0.5 inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-red-500 shadow-[0_0_0_3px_rgba(239,68,68,0.12)]"
-                            />
+                                className="ml-0.5 inline-flex min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-black leading-none text-white shadow-[0_0_0_3px_rgba(239,68,68,0.16)]"
+                            >
+                                {openRemarksCount}
+                            </span>
                         )}
                     </button>
                     <button

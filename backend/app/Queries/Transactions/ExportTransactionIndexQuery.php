@@ -63,6 +63,9 @@ class ExportTransactionIndexQuery
             $perPage = 500;
         }
 
-        return $query->orderBy('created_at', 'desc')->paginate($perPage);
+        return $query
+            ->orderBy('created_at', 'desc')
+            ->orderBy('id', 'desc')
+            ->paginate($perPage);
     }
 }

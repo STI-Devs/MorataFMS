@@ -16,13 +16,14 @@ class ClientPolicy
     }
 
     /**
-     * Any authenticated user can create a basic client record.
+     * Brokerage staff can create a basic client record.
      * Encoders need this to register new clients on-the-fly during archive uploads.
-     * Full client details can be enriched by admins later.
+     * Full client details can be enriched by admins later. Legal-only roles
+     * (e.g. paralegal) are not allowed to write into the brokerage domain.
      */
     public function create(User $user): bool
     {
-        return true;
+        return $user->isAdmin() || $user->hasBrokerageAccess();
     }
 
     /**

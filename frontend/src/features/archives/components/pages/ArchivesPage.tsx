@@ -43,7 +43,7 @@ export const ArchivesPage = () => {
                 { label: 'Incomplete', value: incompleteBLs.toLocaleString(), tone: incompleteBLs > 0 ? 'text-red-500' : 'text-emerald-500' },
                 { label: 'Storage', value: formatBytes(totalStorageBytes), tone: 'text-text-primary' },
             ]}
-            searchPlaceholder="Search BL number, importer, exporter, or year..."
+            searchPlaceholder="Search BL number, client, or vessel..."
             documentViewTitle="All BL Records"
             showAuditButton
         />

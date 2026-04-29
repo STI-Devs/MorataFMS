@@ -1,6 +1,11 @@
 import type { ArchiveDocument, ArchiveYear, TransactionType } from '../../../documents/types/document.types';
 import type { DrillState, SortKey, ViewMode } from '../../utils/archive.utils';
-import { getArchiveBlCompletion, MONTH_NAMES, toTitleCase } from '../../utils/archive.utils';
+import {
+    archiveGroupMatchesSearch,
+    getArchiveBlCompletion,
+    MONTH_NAMES,
+    toTitleCase,
+} from '../../utils/archive.utils';
 
 interface ArchivesDocumentViewProps {
     flatDocumentList: {
@@ -81,7 +86,7 @@ export const GlobalSearchResults = ({ globalSearch, globalResults, nav, setGloba
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
             <p className="text-sm font-semibold text-text-secondary">No matches found</p>
-            <p className="text-xs">No BL or client matches <span className="font-mono font-semibold">"{globalSearch}"</span></p>
+            <p className="text-xs">No archive records match <span className="font-mono font-semibold">"{globalSearch}"</span></p>
         </div>
     );
 
@@ -202,10 +207,9 @@ export const ArchivesBLView = ({ drill, search, sortKey, sortDir, nav }: Archive
     }, {});
 
     const filteredBlEntries = (Object.entries(blGroups) as [string, ArchiveDocument[]][])
-        .filter(([blNo, blDocs]) => {
+        .filter(([, blDocs]) => {
             if (!search) return true;
-            const q = search.toLowerCase();
-            return blNo.toLowerCase().includes(q) || blDocs[0]?.client?.toLowerCase().includes(q);
+            return archiveGroupMatchesSearch(blDocs, search, drill.year.year);
         })
         .sort(([aNo, aDocs], [bNo, bDocs]) => {
             const dir = sortDir === 'asc' ? 1 : -1;

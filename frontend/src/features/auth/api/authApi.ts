@@ -62,7 +62,7 @@ export const authApi = {
         return unwrapUserPayload(payload, new InvalidCurrentUserPayloadError());
     },
 
-    async updateProfile(payload: { name?: string; job_title?: string | null; password?: string; password_confirmation?: string }): Promise<User> {
+    async updateProfile(payload: { name?: string; job_title?: string | null; current_password?: string; password?: string; password_confirmation?: string }): Promise<User> {
         const response = await api.put<{ data: User } | User>(`/api/user/profile`, payload);
         return unwrapUserPayload(
             (response.data as { data?: unknown }).data ?? response.data,
