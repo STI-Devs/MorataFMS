@@ -10,8 +10,9 @@ RUN apt-get update \
         libfreetype6-dev \
         libjpeg62-turbo-dev \
         libpng-dev \
+        libzip-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install -j"$(nproc)" bcmath gd intl opcache pdo_mysql \
+    && docker-php-ext-install -j"$(nproc)" bcmath gd intl opcache pdo_mysql zip \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -65,6 +66,7 @@ RUN apt-get update \
         libicu72 \
         libjpeg62-turbo \
         libpng16-16 \
+        libzip4 \
         nginx \
         supervisor \
     && apt-get clean \
