@@ -16,9 +16,10 @@ test('frontend package no longer depends on html2pdf.js', () => {
 });
 
 test('forms export flow relies on browser print instead of html2pdf', () => {
-    const formsPage = read('src/features/forms/components/FormsPage.tsx');
-    assert.doesNotMatch(formsPage, /html2pdf/);
-    assert.match(formsPage, /Print \/ Save as PDF/);
+    const documentPreview = read('src/features/forms/components/DocumentPreview.tsx');
+    assert.doesNotMatch(documentPreview, /html2pdf/);
+    assert.match(documentPreview, /@media print/);
+    assert.match(documentPreview, /print-area/);
 });
 
 test('auth bootstrap uses Sanctum cookie auth instead of bearer tokens', () => {
@@ -36,7 +37,7 @@ test('auth bootstrap uses Sanctum cookie auth instead of bearer tokens', () => {
 });
 
 test('login flow supports optional Cloudflare Turnstile protection', () => {
-    const loginForm = read('src/features/auth/components/LoginForm.tsx');
+    const loginForm = read('src/features/auth/components/login/LoginForm.tsx');
     const envExample = read('.env.example');
 
     assert.match(loginForm, /turnstile_token/);

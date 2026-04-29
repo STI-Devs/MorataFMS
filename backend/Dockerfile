@@ -7,7 +7,11 @@ RUN apt-get update \
     && apt-get install --yes --no-install-recommends \
         gettext-base \
         libicu-dev \
-    && docker-php-ext-install -j"$(nproc)" bcmath intl opcache pdo_mysql \
+        libfreetype6-dev \
+        libjpeg62-turbo-dev \
+        libpng-dev \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install -j"$(nproc)" bcmath gd intl opcache pdo_mysql \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -57,7 +61,10 @@ WORKDIR /var/www/html
 RUN apt-get update \
     && apt-get install --yes --no-install-recommends \
         gettext-base \
+        libfreetype6 \
         libicu72 \
+        libjpeg62-turbo \
+        libpng16-16 \
         nginx \
         supervisor \
     && apt-get clean \
