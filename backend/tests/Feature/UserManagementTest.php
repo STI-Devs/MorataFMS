@@ -26,8 +26,8 @@ test('creating a paralegal user returns normalized departments and permissions',
     $response->assertJsonPath('data.departments', ['legal']);
     $response->assertJsonPath('data.permissions.access_legal_module', true);
     $response->assertJsonPath('data.permissions.access_brokerage_module', false);
-    $response->assertJsonPath('data.permissions.manage_notarial_entries', true);
     $response->assertJsonPath('data.permissions.manage_notarial_books', false);
+    $response->assertJsonPath('data.permissions.manage_notarial_templates', true);
 });
 
 test('creating a brokerage operational user returns normalized departments and permissions', function (string $role, string $roleLabel) {
@@ -50,7 +50,6 @@ test('creating a brokerage operational user returns normalized departments and p
     $response->assertJsonPath('data.permissions.access_brokerage_module', true);
     $response->assertJsonPath('data.permissions.access_legal_module', false);
     $response->assertJsonPath('data.permissions.manage_users', false);
-    $response->assertJsonPath('data.permissions.manage_notarial_entries', false);
 })->with('brokerage operational roles');
 
 test('updating a user role re-syncs departments and permission payload', function () {

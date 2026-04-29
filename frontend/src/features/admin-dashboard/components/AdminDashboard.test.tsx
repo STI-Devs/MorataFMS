@@ -24,12 +24,14 @@ describe('AdminDashboard', () => {
                     active_imports: 18,
                     active_exports: 11,
                     delayed_shipments: 3,
+                    upcoming_eta_etd: 7,
+                    open_remarks: 4,
                     missing_final_docs: 6,
                 },
                 critical_operations: [
                     {
                         id: 'review-export-1',
-                        ref: 'EXP-1044',
+                        ref: 'BL-EXP-FLAG-001',
                         status: 'review',
                         title: 'Flagged export file needs admin review',
                         detail: 'Assigned to Sarah Velasco. Cancelled file. Unresolved remarks are blocking archive review.',
@@ -77,19 +79,28 @@ describe('AdminDashboard', () => {
         });
 
         expect(screen.getByText('Brokerage Dashboard')).toBeInTheDocument();
-        expect(screen.getByText('Critical Operations')).toBeInTheDocument();
+        expect(screen.getByText('Operation Queue')).toBeInTheDocument();
         expect(screen.getByText('Action Feed')).toBeInTheDocument();
         expect(screen.getByText('Quick Actions')).toBeInTheDocument();
         expect(screen.getByText('Active Workloads')).toBeInTheDocument();
+        expect(screen.queryByText('Aging Watch')).not.toBeInTheDocument();
+        expect(screen.getByText('ETA/ETD This Week')).toBeInTheDocument();
+        expect(screen.getByText('Open Remarks')).toBeInTheDocument();
+        expect(screen.getByText('Needs Update')).toBeInTheDocument();
+        expect(screen.getByText('Document Gaps')).toBeInTheDocument();
+        expect(screen.queryByText('Delayed Shipments')).not.toBeInTheDocument();
+        expect(screen.queryByText('Missing Final Docs')).not.toBeInTheDocument();
         expect(screen.getByText('18')).toBeInTheDocument();
         expect(screen.getByText('11')).toBeInTheDocument();
+        expect(screen.getByText('7')).toBeInTheDocument();
+        expect(screen.getByText('4')).toBeInTheDocument();
         expect(screen.getByText('3')).toBeInTheDocument();
         expect(screen.getByText('6')).toBeInTheDocument();
-        expect(screen.getByText('EXP-1044')).toBeInTheDocument();
+        expect(screen.getByText('BL-EXP-FLAG-001')).toBeInTheDocument();
         expect(screen.getByText('Admin User')).toBeInTheDocument();
 
         expect(screen.getByText('User Management')).toBeInTheDocument();
-        expect(screen.getByText('Client Management')).toBeInTheDocument();
+        expect(screen.getByText('Brokerage Client Management')).toBeInTheDocument();
         expect(screen.getByText('Transaction Oversight')).toBeInTheDocument();
         expect(screen.getByText('Reports & Analytics')).toBeInTheDocument();
     });

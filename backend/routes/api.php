@@ -7,12 +7,19 @@ use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\CountryController;
 use App\Http\Controllers\DocumentController;
+use App\Http\Controllers\EncoderDashboardController;
 use App\Http\Controllers\ExportTransactionController;
 use App\Http\Controllers\ImportTransactionController;
 use App\Http\Controllers\LegacyBatchController;
+use App\Http\Controllers\LegalArchiveRecordController;
+use App\Http\Controllers\LegalPartyController;
 use App\Http\Controllers\LocationOfGoodsController;
 use App\Http\Controllers\NotarialBookController;
-use App\Http\Controllers\NotarialEntryController;
+use App\Http\Controllers\NotarialCatalogController;
+use App\Http\Controllers\NotarialLegacyFileController;
+use App\Http\Controllers\NotarialPageScanController;
+use App\Http\Controllers\NotarialTemplateController;
+use App\Http\Controllers\NotarialTemplateRecordController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\TransactionController;
@@ -38,6 +45,8 @@ Route::middleware(['auth:sanctum', 'active-session', 'throttle:api-general'])->g
     Route::put('/user/profile', [ProfileController::class, 'update']);
 
     // Import/Export transactions (encoder-accessible)
+    Route::get('encoder/dashboard', [EncoderDashboardController::class, 'show'])
+        ->middleware('throttle:api-search');
     Route::get('tracking/{referenceId}', [TransactionController::class, 'showTracking']);
     Route::get('import-transactions/stats', [ImportTransactionController::class, 'stats']);
     Route::get('export-transactions/stats', [ExportTransactionController::class, 'stats']);
@@ -49,7 +58,7 @@ Route::middleware(['auth:sanctum', 'active-session', 'throttle:api-general'])->g
     Route::apiResource('export-transactions', ExportTransactionController::class)->only(['index', 'store', 'update', 'destroy']);
 
     // Clients (read for all, write for admin)
-    Route::get('/clients', [ClientController::class, 'index']);
+    Route::get('/brokerage-clients', [ClientController::class, 'index']);
     Route::get('/countries', [CountryController::class, 'index']);
     Route::get('/locations-of-goods', [LocationOfGoodsController::class, 'index']);
 
@@ -100,9 +109,52 @@ Route::middleware(['auth:sanctum', 'active-session', 'throttle:api-general'])->g
 
     // Notarial (Law Firm) module
     Route::prefix('notarial')->group(function () {
+        Route::get('document-types', NotarialCatalogController::class);
+        Route::get('legal-parties', [LegalPartyController::class, 'index'])
+            ->middleware('throttle:api-search');
+        Route::get('templates/{template}/download', [NotarialTemplateController::class, 'download'])
+            ->name('notarial.templates.download')
+            ->middleware('throttle:api-documents');
+        Route::apiResource('templates', NotarialTemplateController::class);
+        Route::get('template-records', [NotarialTemplateRecordController::class, 'index'])
+            ->middleware('throttle:api-search');
+        Route::post('template-records', [NotarialTemplateRecordController::class, 'store'])
+            ->middleware('throttle:api-documents');
+        Route::get('template-records/{record}/download', [NotarialTemplateRecordController::class, 'download'])
+            ->name('notarial.template-records.download')
+            ->middleware('throttle:api-documents');
         Route::apiResource('books', NotarialBookController::class);
-        Route::get('books/{book}/report', [NotarialBookController::class, 'report']);
-        Route::apiResource('books.entries', NotarialEntryController::class);
+        Route::get('books/{book}/scan/download', [NotarialBookController::class, 'downloadScan'])
+            ->name('notarial.books.scan.download')
+            ->middleware('throttle:api-documents');
+        Route::get('books/{book}/legacy-files', [NotarialLegacyFileController::class, 'index'])
+            ->middleware('throttle:api-search');
+        Route::post('books/{book}/legacy-files', [NotarialLegacyFileController::class, 'store'])
+            ->middleware('throttle:api-documents');
+        Route::delete('legacy-files/{legacyFile}', [NotarialLegacyFileController::class, 'destroy']);
+        Route::get('legacy-files/{legacyFile}/download', [NotarialLegacyFileController::class, 'download'])
+            ->name('notarial.legacy-files.download')
+            ->middleware('throttle:api-documents');
+        Route::get('books/{book}/page-scans', [NotarialPageScanController::class, 'index'])
+            ->middleware('throttle:api-search');
+        Route::post('books/{book}/page-scans', [NotarialPageScanController::class, 'store'])
+            ->middleware('throttle:api-documents');
+        Route::post('page-scans/{scan}', [NotarialPageScanController::class, 'update'])
+            ->middleware('throttle:api-documents');
+        Route::delete('page-scans/{scan}', [NotarialPageScanController::class, 'destroy']);
+        Route::get('page-scans/{scan}/download', [NotarialPageScanController::class, 'download'])
+            ->name('notarial.page-scans.download')
+            ->middleware('throttle:api-documents');
+    });
+
+    Route::prefix('legal-archive')->group(function () {
+        Route::get('/', [LegalArchiveRecordController::class, 'index'])
+            ->middleware('throttle:api-search');
+        Route::post('/', [LegalArchiveRecordController::class, 'store'])
+            ->middleware('throttle:api-documents');
+        Route::get('{record}/download', [LegalArchiveRecordController::class, 'download'])
+            ->name('legal-archive.download')
+            ->middleware('throttle:api-documents');
     });
 
     // Admin-only routes — moderate throttle (120 req/min)
@@ -114,9 +166,9 @@ Route::middleware(['auth:sanctum', 'active-session', 'throttle:api-general'])->g
         Route::post('users/{user}/activate', [UserController::class, 'activate']);
 
         // Client management (write operations)
-        Route::apiResource('clients', ClientController::class)->except(['index']);
-        Route::post('clients/{client}/toggle-active', [ClientController::class, 'toggleActive']);
-        Route::get('clients/{client}/transactions', [ClientController::class, 'transactions'])
+        Route::apiResource('brokerage-clients', ClientController::class)->except(['index']);
+        Route::post('brokerage-clients/{client}/toggle-active', [ClientController::class, 'toggleActive']);
+        Route::get('brokerage-clients/{client}/transactions', [ClientController::class, 'transactions'])
             ->middleware('throttle:api-search');
 
         // Country management (write operations)

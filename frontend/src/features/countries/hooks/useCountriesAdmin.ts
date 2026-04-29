@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { countryApi } from '../api/countryApi';
+import { trackingKeys } from '../../tracking/utils/queryKeys';
 import type { CreateCountryData, UpdateCountryData } from '../types/country.types';
 
 export const useCountriesAdmin = () =>
@@ -16,7 +17,7 @@ export const useCreateCountry = () => {
         mutationFn: (data: CreateCountryData) => countryApi.createCountry(data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['admin', 'countries'] });
-            queryClient.invalidateQueries({ queryKey: ['countries'] });
+            queryClient.invalidateQueries({ queryKey: trackingKeys.countries.all });
         },
     });
 };
@@ -28,7 +29,7 @@ export const useUpdateCountry = () => {
         mutationFn: ({ id, data }: { id: number; data: UpdateCountryData }) => countryApi.updateCountry(id, data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['admin', 'countries'] });
-            queryClient.invalidateQueries({ queryKey: ['countries'] });
+            queryClient.invalidateQueries({ queryKey: trackingKeys.countries.all });
         },
     });
 };
@@ -40,7 +41,7 @@ export const useToggleCountry = () => {
         mutationFn: (id: number) => countryApi.toggleActiveCountry(id),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['admin', 'countries'] });
-            queryClient.invalidateQueries({ queryKey: ['countries'] });
+            queryClient.invalidateQueries({ queryKey: trackingKeys.countries.all });
         },
     });
 };

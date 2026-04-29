@@ -42,6 +42,7 @@ test('admin dashboard returns aggregated oversight data', function () {
         'status' => ImportStatus::Processing,
         'assigned_user_id' => $sarah->id,
         'is_archive' => false,
+        'arrival_date' => now()->addDays(2),
         'created_at' => now()->subDays(5),
         'updated_at' => now()->subDays(3),
     ]);
@@ -50,6 +51,7 @@ test('admin dashboard returns aggregated oversight data', function () {
         'status' => ExportStatus::Processing,
         'assigned_user_id' => $mike->id,
         'is_archive' => false,
+        'export_date' => now()->addDays(4),
         'created_at' => now()->subDays(2),
         'updated_at' => now()->subHours(4),
     ]);
@@ -63,6 +65,7 @@ test('admin dashboard returns aggregated oversight data', function () {
     ]);
 
     $flaggedExport = ExportTransaction::factory()->create([
+        'bl_no' => 'BL-EXP-FLAG-001',
         'status' => ExportStatus::Cancelled,
         'assigned_user_id' => $mike->id,
         'is_archive' => false,
@@ -111,16 +114,18 @@ test('admin dashboard returns aggregated oversight data', function () {
         ->assertJsonPath('kpis.active_imports', 1)
         ->assertJsonPath('kpis.active_exports', 1)
         ->assertJsonPath('kpis.delayed_shipments', 1)
+        ->assertJsonPath('kpis.upcoming_eta_etd', 2)
+        ->assertJsonPath('kpis.open_remarks', 1)
         ->assertJsonPath('kpis.missing_final_docs', 1)
         ->assertJsonPath('critical_operations.0.status', 'review')
-        ->assertJsonPath('critical_operations.0.ref', 'EXP-'.str_pad((string) $flaggedExport->id, 4, '0', STR_PAD_LEFT))
+        ->assertJsonPath('critical_operations.0.ref', 'BL-EXP-FLAG-001')
         ->assertJsonPath('critical_operations.1.status', 'missing')
         ->assertJsonPath('critical_operations.1.ref', 'IMP-1001')
         ->assertJsonPath('critical_operations.2.status', 'stuck')
         ->assertJsonPath('critical_operations.2.ref', 'IMP-0921');
 
     expect($actionFeed->contains(fn (array $item): bool => $item['action'] === 'Document Alert'
-        && $item['target'] === 'EXP-'.str_pad((string) $flaggedExport->id, 4, '0', STR_PAD_LEFT)))
+        && $item['target'] === 'BL-EXP-FLAG-001'))
         ->toBeTrue();
 
     expect($actionFeed->contains(fn (array $item): bool => $item['action'] === 'Encoder Reassigned'

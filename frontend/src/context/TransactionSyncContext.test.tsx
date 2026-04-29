@@ -1,6 +1,8 @@
 import { act } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { TransactionSyncProvider } from './TransactionSyncContext';
+import { archiveKeys } from '../features/archives/utils/archiveQueryKeys';
+import { oversightKeys, remarkKeys } from '../features/oversight/utils/queryKeys';
 import { trackingKeys } from '../features/tracking/utils/queryKeys';
 import { renderWithProviders } from '../test/renderWithProviders';
 import type { TransactionSyncPayload } from '../lib/realtime/transactionSync';
@@ -125,8 +127,8 @@ describe('TransactionSyncProvider', () => {
         });
 
         expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: trackingKeys.imports.all });
-        expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['admin', 'transactions'] });
-        expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['remarks', 'import', 42] });
+        expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: oversightKeys.transactions.all });
+        expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: remarkKeys.list('import', 42) });
         expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['admin-document-review'] });
     });
 
@@ -158,8 +160,8 @@ describe('TransactionSyncProvider', () => {
         expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: trackingKeys.exports.all });
         expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: trackingKeys.documents.transactions() });
         expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['admin-document-review'] });
-        expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['archives'] });
-        expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['my-archives'] });
+        expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: archiveKeys.all });
+        expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: archiveKeys.mineAll });
     });
 
     it('disconnects and avoids subscribing when transaction sync is disabled', () => {
@@ -210,6 +212,6 @@ describe('TransactionSyncProvider', () => {
 
         expect(invalidateQueries).toHaveBeenCalledTimes(2);
         expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: trackingKeys.imports.all });
-        expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['admin', 'transactions'] });
+        expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: oversightKeys.transactions.all });
     });
 });

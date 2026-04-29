@@ -2,9 +2,11 @@
 
 namespace App\Queries\Reports;
 
+use App\Enums\ArchiveOrigin;
 use App\Models\ExportTransaction;
 use App\Models\ImportTransaction;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Builder;
 
 class ClientReportQuery
 {
@@ -12,27 +14,25 @@ class ClientReportQuery
     {
         [$start, $end] = $this->periodBounds($year, $month);
 
-        $importQuery = ImportTransaction::query()
-            ->where('is_archive', false)
+        $importQuery = $this->reportableTransactions(ImportTransaction::query(), 'import_transactions')
             ->where('import_transactions.created_at', '>=', $start)
             ->where('import_transactions.created_at', '<', $end)
-            ->join('clients', 'import_transactions.importer_id', '=', 'clients.id')
-            ->selectRaw('clients.id as client_id, clients.name as client_name, clients.type as client_type, COUNT(*) as imports');
+            ->join('brokerage_clients', 'import_transactions.importer_id', '=', 'brokerage_clients.id')
+            ->selectRaw('brokerage_clients.id as client_id, brokerage_clients.name as client_name, brokerage_clients.type as client_type, COUNT(*) as imports');
 
         $importCounts = $importQuery
-            ->groupBy('clients.id', 'clients.name', 'clients.type')
+            ->groupBy('brokerage_clients.id', 'brokerage_clients.name', 'brokerage_clients.type')
             ->get()
             ->keyBy('client_id');
 
-        $exportQuery = ExportTransaction::query()
-            ->where('is_archive', false)
+        $exportQuery = $this->reportableTransactions(ExportTransaction::query(), 'export_transactions')
             ->where('export_transactions.created_at', '>=', $start)
             ->where('export_transactions.created_at', '<', $end)
-            ->join('clients', 'export_transactions.shipper_id', '=', 'clients.id')
-            ->selectRaw('clients.id as client_id, clients.name as client_name, clients.type as client_type, COUNT(*) as exports');
+            ->join('brokerage_clients', 'export_transactions.shipper_id', '=', 'brokerage_clients.id')
+            ->selectRaw('brokerage_clients.id as client_id, brokerage_clients.name as client_name, brokerage_clients.type as client_type, COUNT(*) as exports');
 
         $exportCounts = $exportQuery
-            ->groupBy('clients.id', 'clients.name', 'clients.type')
+            ->groupBy('brokerage_clients.id', 'brokerage_clients.name', 'brokerage_clients.type')
             ->get()
             ->keyBy('client_id');
 
@@ -73,5 +73,14 @@ class ClientReportQuery
         }
 
         return [$start, $start->addMonth()];
+    }
+
+    private function reportableTransactions(Builder $query, string $table): Builder
+    {
+        return $query->where(function (Builder $archiveQuery) use ($table): void {
+            $archiveQuery
+                ->where("{$table}.is_archive", false)
+                ->orWhere("{$table}.archive_origin", ArchiveOrigin::ArchivedFromLive->value);
+        });
     }
 }

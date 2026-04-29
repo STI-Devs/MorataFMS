@@ -1,6 +1,7 @@
 ﻿import { useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { trackingApi } from '../api/trackingApi';
+import { trackingKeys } from '../utils/queryKeys';
 
 /**
  * Warms the TanStack Query cache with data needed by EncodeModal dropdowns.
@@ -14,20 +15,20 @@ export const usePrefetchEncodeData = (type: 'import' | 'export') => {
         const clientType = type === 'import' ? 'importer' : 'exporter';
 
         queryClient.prefetchQuery({
-            queryKey: ['clients', clientType],
+            queryKey: trackingKeys.clients.list(clientType),
             queryFn: () => trackingApi.getClients(clientType),
             staleTime: Infinity,
         });
 
         if (type === 'export') {
             queryClient.prefetchQuery({
-                queryKey: ['countries', 'export_destination'],
+                queryKey: trackingKeys.countries.list('export_destination'),
                 queryFn: () => trackingApi.getCountries('export_destination'),
                 staleTime: Infinity,
             });
         } else {
             queryClient.prefetchQuery({
-                queryKey: ['locations-of-goods'],
+                queryKey: trackingKeys.locationsOfGoods,
                 queryFn: () => trackingApi.getLocationsOfGoods(),
                 staleTime: Infinity,
             });

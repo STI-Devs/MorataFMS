@@ -11,6 +11,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Client extends Model
 {
     use HasFactory;
+
+    protected $table = 'brokerage_clients';
+
     protected $fillable = [
         'name',
         'type',
@@ -24,7 +27,7 @@ class Client extends Model
 
     protected $casts = [
         'is_active' => 'boolean',
-        'type'      => ClientType::class,
+        'type' => ClientType::class,
     ];
 
     public function country(): BelongsTo
@@ -56,24 +59,5 @@ class Client extends Model
     public function scopeExporters($query)
     {
         return $query->whereIn('type', [ClientType::Exporter->value, ClientType::Both->value]);
-    }
-
-    public function scopeNotarial($query)
-    {
-        return $query->whereIn('type', ['notarial', 'all']);
-    }
-
-    /**
-     * Scope to only brokerage-relevant client types (hides 'notarial' from brokerage UI).
-     */
-    public function scopeForBrokerage($query)
-    {
-        return $query->whereIn('type', ['importer', 'exporter', 'both', 'all']);
-    }
-
-    // Notarial entries
-    public function notarialEntries(): HasMany
-    {
-        return $this->hasMany(NotarialEntry::class);
     }
 }

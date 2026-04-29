@@ -10,26 +10,36 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class NotarialBook extends Model
 {
-    use HasFactory, Auditable;
+    use Auditable, HasFactory;
 
     protected $fillable = [
         'book_number',
         'year',
+        'status',
+        'notes',
+        'filename',
+        'path',
+        'disk',
+        'mime_type',
+        'size_bytes',
     ];
 
     protected $casts = [
         'book_number' => 'integer',
         'year' => 'integer',
-        'entries_count' => 'integer',
+        'size_bytes' => 'integer',
         'opened_at' => 'datetime',
         'closed_at' => 'datetime',
     ];
 
-    // --- Relationships ---
-
-    public function entries(): HasMany
+    public function pageScans(): HasMany
     {
-        return $this->hasMany(NotarialEntry::class);
+        return $this->hasMany(NotarialPageScan::class, 'notarial_book_id');
+    }
+
+    public function legacyFiles(): HasMany
+    {
+        return $this->hasMany(NotarialLegacyFile::class, 'notarial_book_id');
     }
 
     public function createdBy(): BelongsTo
@@ -37,26 +47,27 @@ class NotarialBook extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    // --- Helpers ---
-
-    /**
-     * Check if the book has reached its capacity of 525 entries.
-     */
-    public function isFull(): bool
+    public function templateRecords(): HasMany
     {
-        return $this->entries_count >= 525;
+        return $this->hasMany(NotarialTemplateRecord::class, 'notarial_book_id');
     }
 
-    /**
-     * Get the next available doc number in this book.
-     */
-    public function getNextDocNumber(): int
+    public function getFormattedSizeAttribute(): ?string
     {
-        $lastDoc = $this->entries()->max('doc_number');
-        return ($lastDoc ?? 0) + 1;
-    }
+        if ($this->size_bytes === null) {
+            return null;
+        }
 
-    // --- Scopes ---
+        if ($this->size_bytes < 1024) {
+            return $this->size_bytes.' B';
+        }
+
+        if ($this->size_bytes < 1048576) {
+            return round($this->size_bytes / 1024, 2).' KB';
+        }
+
+        return round($this->size_bytes / 1048576, 2).' MB';
+    }
 
     public function scopeActive($query)
     {

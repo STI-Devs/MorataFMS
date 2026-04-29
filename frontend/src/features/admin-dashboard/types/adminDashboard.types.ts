@@ -4,6 +4,8 @@ export interface AdminDashboardKpis {
     active_imports: number;
     active_exports: number;
     delayed_shipments: number;
+    upcoming_eta_etd: number;
+    open_remarks: number;
     missing_final_docs: number;
 }
 

@@ -1,6 +1,7 @@
 import { waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { toast } from 'sonner';
+import { remarkKeys } from '../features/oversight/utils/queryKeys';
 import { trackingKeys } from '../features/tracking/utils/queryKeys';
 import type { TransactionSyncPayload } from '../lib/realtime/transactionSync';
 import { renderWithProviders } from '../test/renderWithProviders';
@@ -147,7 +148,7 @@ describe('useTransactionSyncSubscription', () => {
             queryKey: ['admin-document-review', 'detail', 'import', 42],
         });
         expect(invalidateQueries).toHaveBeenCalledWith({
-            queryKey: ['remarks', 'import', 42],
+            queryKey: remarkKeys.list('import', 42),
         });
         expect(toast.info).toHaveBeenCalledWith('A new remark was added to this transaction.');
     });

@@ -2,28 +2,31 @@
 
 namespace App\Http\Controllers;
 
-use App\Actions\Documents\StoreTransactionDocument;
+use App\Actions\Documents\DeleteTransactionDocument;
+use App\Actions\Documents\ReplaceTransactionDocument;
+use App\Actions\Documents\UploadTransactionDocument;
 use App\Http\Requests\ReplaceDocumentRequest;
 use App\Http\Requests\StoreDocumentRequest;
 use App\Http\Resources\DocumentResource;
 use App\Models\Document;
 use App\Models\ExportTransaction;
 use App\Models\ImportTransaction;
+use App\Queries\Documents\DocumentIndexQuery;
 use App\Queries\Documents\DocumentTransactionIndexQuery;
-use App\Support\Transactions\TransactionSyncBroadcaster;
-use Illuminate\Filesystem\FilesystemAdapter;
+use App\Support\Documents\DocumentFileStreamer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
-use Throwable;
 
 class DocumentController extends Controller
 {
     public function __construct(
-        private StoreTransactionDocument $storeTransactionDocument,
+        private UploadTransactionDocument $uploadTransactionDocument,
+        private DeleteTransactionDocument $deleteTransactionDocument,
+        private ReplaceTransactionDocument $replaceTransactionDocument,
+        private DocumentIndexQuery $documentIndexQuery,
         private DocumentTransactionIndexQuery $documentTransactionIndexQuery,
-        private TransactionSyncBroadcaster $transactionSyncBroadcaster,
+        private DocumentFileStreamer $documentFileStreamer,
     ) {}
 
     /**
@@ -34,19 +37,7 @@ class DocumentController extends Controller
     {
         $this->authorize('viewAny', Document::class);
 
-        $query = Document::query()
-            ->visibleTo($request->user())
-            ->with('uploadedBy');
-
-        // Filter by transaction type and ID
-        if ($request->has('documentable_type') && $request->has('documentable_id')) {
-            $query->where('documentable_type', $request->input('documentable_type'))
-                ->where('documentable_id', $request->input('documentable_id'));
-        }
-
-        $documents = $query->orderBy('created_at', 'desc')->get();
-
-        return DocumentResource::collection($documents);
+        return DocumentResource::collection($this->documentIndexQuery->handle($request));
     }
 
     /**
@@ -69,24 +60,12 @@ class DocumentController extends Controller
         $validated = $request->validated();
         $transaction = $this->resolveDocumentable($validated['documentable_type'], $validated['documentable_id']);
         $this->authorize('create', [Document::class, $transaction]);
-        $document = $this->storeTransactionDocument->handle(
+        $document = $this->uploadTransactionDocument->handle(
             $transaction,
             $request->file('file'),
             $validated['type'],
-            $request->user()->id,
+            $request->user(),
         );
-
-        // Recalculate parent transaction's stage statuses based on uploaded docs
-        $parent = $document->documentable;
-        if ($parent && method_exists($parent, 'recalculateStatus')) {
-            if (method_exists($parent, 'syncStageCompletionForDocument')) {
-                $parent->syncStageCompletionForDocument($validated['type'], $request->user()->id);
-            }
-            $parent->recalculateStatus();
-        }
-        if ($parent instanceof ImportTransaction || $parent instanceof ExportTransaction) {
-            $this->transactionSyncBroadcaster->transactionChanged($parent, $request->user(), 'document_uploaded');
-        }
 
         return (new DocumentResource($document))
             ->response()
@@ -115,7 +94,7 @@ class DocumentController extends Controller
     {
         $this->authorize('view', $document);
 
-        return $this->streamInline($document);
+        return $this->documentFileStreamer->inline($document);
     }
 
     /**
@@ -127,29 +106,7 @@ class DocumentController extends Controller
     {
         $this->authorize('view', $document);
 
-        return $this->streamInline($document);
-    }
-
-    // ─── Shared helpers ────────────────────────────────────────────────────────
-
-    /**
-     * Single source of truth for which storage disk all document operations use.
-     * Follows Laravel's default filesystem disk configured via FILESYSTEM_DISK.
-     */
-    private static function storageDisk(): string
-    {
-        return (string) config('filesystems.default', 'local');
-    }
-
-    /**
-     * @return FilesystemAdapter
-     */
-    private static function documentDisk()
-    {
-        /** @var FilesystemAdapter $disk */
-        $disk = Storage::disk(self::storageDisk());
-
-        return $disk;
+        return $this->documentFileStreamer->inline($document);
     }
 
     /**
@@ -160,84 +117,7 @@ class DocumentController extends Controller
     {
         $this->authorize('view', $document);
 
-        $disk = self::documentDisk();
-
-        if (! $disk->exists($document->path)) {
-            abort(404, 'File not found on storage.');
-        }
-
-        $stream = $disk->readStream($document->path);
-
-        if (! $stream) {
-            abort(500, 'Unable to read file stream.');
-        }
-
-        return response()->streamDownload(function () use ($stream) {
-            fpassthru($stream);
-            if (is_resource($stream)) {
-                fclose($stream);
-            }
-        }, $document->filename);
-    }
-
-    private function streamInline(Document $document): StreamedResponse
-    {
-        $disk = self::documentDisk();
-
-        if (! $disk->exists($document->path)) {
-            abort(404, 'File not found on storage.');
-        }
-
-        $mimeType = $this->resolveInlineMimeType($document, $disk);
-        $stream = $disk->readStream($document->path);
-
-        if (! $stream) {
-            abort(500, 'Unable to read file stream.');
-        }
-
-        return response()->stream(function () use ($stream) {
-            fpassthru($stream);
-            if (is_resource($stream)) {
-                fclose($stream);
-            }
-        }, 200, [
-            'Content-Type' => $mimeType,
-            'Content-Disposition' => 'inline; filename="'.addslashes($document->filename).'"',
-            'Cache-Control' => 'no-store',
-            'X-Frame-Options' => 'SAMEORIGIN',
-        ]);
-    }
-
-    private function resolveInlineMimeType(Document $document, FilesystemAdapter $disk): string
-    {
-        $mimeTypeFromFilename = $this->mimeTypeFromFilename($document);
-
-        if ($mimeTypeFromFilename !== null) {
-            return $mimeTypeFromFilename;
-        }
-
-        try {
-            return $disk->mimeType($document->path) ?: 'application/octet-stream';
-        } catch (Throwable) {
-            return 'application/octet-stream';
-        }
-    }
-
-    private function mimeTypeFromFilename(Document $document): ?string
-    {
-        $filename = $document->filename !== '' ? $document->filename : $document->path;
-        $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
-
-        return match ($extension) {
-            'pdf' => 'application/pdf',
-            'doc' => 'application/msword',
-            'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            'xls' => 'application/vnd.ms-excel',
-            'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'jpg', 'jpeg' => 'image/jpeg',
-            'png' => 'image/png',
-            default => null,
-        };
+        return $this->documentFileStreamer->download($document);
     }
 
     /**
@@ -248,21 +128,7 @@ class DocumentController extends Controller
     {
         $this->authorize('delete', $document);
 
-        // Capture parent before deletion (relationship cleared after)
-        $parent = $document->documentable;
-
-        // delete() is a no-op if the file doesn't exist — no exists() check needed
-        self::documentDisk()->delete($document->path);
-
-        $document->delete();
-
-        // Recalculate after deletion so status rolls back if needed
-        if ($parent && method_exists($parent, 'recalculateStatus')) {
-            $parent->recalculateStatus();
-        }
-        if ($parent instanceof ImportTransaction || $parent instanceof ExportTransaction) {
-            $this->transactionSyncBroadcaster->transactionChanged($parent, $request->user(), 'document_deleted');
-        }
+        $this->deleteTransactionDocument->handle($document, $request->user());
 
         return response()->noContent();
     }
@@ -275,24 +141,11 @@ class DocumentController extends Controller
     {
         $this->authorize('replace', $document);
 
-        $parent = $document->documentable;
-
-        $newDocument = $this->storeTransactionDocument->handle(
-            $parent,
+        $newDocument = $this->replaceTransactionDocument->handle(
+            $document,
             $request->file('file'),
-            $document->type,
-            $request->user()->id,
+            $request->user(),
         );
-
-        self::documentDisk()->delete($document->path);
-        $document->delete();
-
-        if ($parent && method_exists($parent, 'recalculateStatus')) {
-            $parent->recalculateStatus();
-        }
-        if ($parent instanceof ImportTransaction || $parent instanceof ExportTransaction) {
-            $this->transactionSyncBroadcaster->transactionChanged($parent, $request->user(), 'document_uploaded');
-        }
 
         return (new DocumentResource($newDocument))
             ->response()

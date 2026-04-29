@@ -52,7 +52,7 @@ const authenticatedUser: User = {
         manage_transaction_oversight: true,
         upload_archives: true,
         manage_notarial_books: true,
-        manage_notarial_entries: true,
+        manage_notarial_templates: true,
     },
 };
 

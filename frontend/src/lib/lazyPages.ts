@@ -9,11 +9,11 @@ export const AdminDocumentReview = lazy(() =>
 );
 
 export const ArchivesPage = lazy(() =>
-    import('../features/archives/components/ArchivesPage').then((module) => ({ default: module.ArchivesPage })),
+    import('../features/archives/components/pages/ArchivesPage').then((module) => ({ default: module.ArchivesPage })),
 );
 
 export const RecordsPage = lazy(() =>
-    import('../features/archives/components/RecordsPage').then((module) => ({ default: module.RecordsPage })),
+    import('../features/archives/components/pages/RecordsPage').then((module) => ({ default: module.RecordsPage })),
 );
 
 
@@ -30,7 +30,11 @@ export const AccountantImpExpPage = lazy(() =>
 );
 
 export const EncoderArchivePage = lazy(() =>
-    import('../features/archives/components/EncoderArchivePage').then((module) => ({ default: module.EncoderArchivePage })),
+    import('../features/archives/components/pages/EncoderArchivePage').then((module) => ({ default: module.EncoderArchivePage })),
+);
+
+export const EncoderDashboard = lazy(() =>
+    import('../features/encoder-dashboard/components/EncoderDashboard').then((module) => ({ default: module.EncoderDashboard })),
 );
 
 export const AuditLogs = lazy(() =>
@@ -38,7 +42,7 @@ export const AuditLogs = lazy(() =>
 );
 
 export const AuthPage = lazy(() =>
-    import('../features/auth/components/AuthPage').then((module) => ({ default: module.AuthPage })),
+    import('../features/auth/components/login/AuthPage').then((module) => ({ default: module.AuthPage })),
 );
 
 export const ClientManagement = lazy(() =>
@@ -61,20 +65,36 @@ export const DocumentsDetail = lazy(() =>
     import('../features/documents/components/DocumentsDetail').then((module) => ({ default: module.DocumentsDetail })),
 );
 
-export const FormsPage = lazy(() =>
-    import('../features/forms/components/FormsPage').then((module) => ({ default: module.FormsPage })),
-);
-
 export const LawFirmPage = lazy(() =>
-    import('../features/law-firm/components/LawFirmPage').then((module) => ({ default: module.LawFirmPage })),
+    import('../features/law-firm/components/pages/LawFirmPage').then((module) => ({ default: module.LawFirmPage })),
 );
 
 export const LegalDocumentsPage = lazy(() =>
-    import('../features/law-firm/components/LegalDocumentsPage').then((module) => ({ default: module.LegalDocumentsPage })),
+    import('../features/law-firm/components/records/LegalDocumentsPage').then((module) => ({ default: module.LegalDocumentsPage })),
+);
+
+export const NotarialTemplateUploadPage = lazy(() =>
+    import('../features/law-firm/components/notarial/NotarialTemplateUploadPage').then((module) => ({ default: module.NotarialTemplateUploadPage })),
+);
+
+export const NotarialBooksPage = lazy(() =>
+    import('../features/law-firm/components/notarial/NotarialBooksPage').then((module) => ({ default: module.NotarialBooksPage })),
+);
+
+export const LegalArchivePage = lazy(() =>
+    import('../features/law-firm/components/archive/LegalArchivePage').then((module) => ({ default: module.LegalArchivePage })),
+);
+
+export const LegalArchiveRecordsPage = lazy(() =>
+    import('../features/law-firm/components/archive/LegalArchiveRecordsPage').then((module) => ({ default: module.LegalArchiveRecordsPage })),
+);
+
+export const LegalRecordsPage = lazy(() =>
+    import('../features/law-firm/components/records/LegalRecordsPage').then((module) => ({ default: module.LegalRecordsPage })),
 );
 
 export const ParalegalDashboard = lazy(() =>
-    import('../features/law-firm/components/ParalegalDashboard').then((module) => ({ default: module.ParalegalDashboard })),
+    import('../features/law-firm/components/pages/ParalegalDashboard').then((module) => ({ default: module.ParalegalDashboard })),
 );
 
 export const ProcessorDashboard = lazy(() =>
@@ -90,7 +110,7 @@ export const ProcessorTransactionPage = lazy(() =>
 );
 
 export const TransactionOversight = lazy(() =>
-    import('../features/oversight/components/TransactionOversight').then((module) => ({ default: module.TransactionOversight })),
+    import('../features/oversight/components/pages/TransactionOversight').then((module) => ({ default: module.TransactionOversight })),
 );
 
 export const ReportsAnalytics = lazy(() =>
@@ -106,15 +126,15 @@ export const Profile = lazy(() =>
 );
 
 export const AdminLiveTracking = lazy(() =>
-    import('../features/tracking/components/AdminLiveTracking').then((module) => ({ default: module.AdminLiveTracking })),
+    import('../features/tracking/components/pages/AdminLiveTracking').then((module) => ({ default: module.AdminLiveTracking })),
 );
 
 export const ExportList = lazy(() =>
-    import('../features/tracking/components/ExportList').then((module) => ({ default: module.ExportList })),
+    import('../features/tracking/components/lists/ExportList').then((module) => ({ default: module.ExportList })),
 );
 
 export const ImportList = lazy(() =>
-    import('../features/tracking/components/ImportList').then((module) => ({ default: module.ImportList })),
+    import('../features/tracking/components/lists/ImportList').then((module) => ({ default: module.ImportList })),
 );
 
 export const TrackingDashboard = lazy(() =>
@@ -122,7 +142,7 @@ export const TrackingDashboard = lazy(() =>
 );
 
 export const TrackingDetails = lazy(() =>
-    import('../features/tracking/components/TrackingDetails').then((module) => ({ default: module.TrackingDetails })),
+    import('../features/tracking/components/details/TrackingDetails').then((module) => ({ default: module.TrackingDetails })),
 );
 
 export const UserManagement = lazy(() =>

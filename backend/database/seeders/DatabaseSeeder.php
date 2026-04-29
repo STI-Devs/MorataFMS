@@ -52,6 +52,10 @@ class DatabaseSeeder extends Seeder
                 role: 'encoder',
             );
         });
+
+        $this->call([
+            NotarialModuleSeeder::class,
+        ]);
     }
 
     private function seedUser(string $name, string $email, string $jobTitle, string $role): void

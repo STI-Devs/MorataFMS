@@ -4,8 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Actions\Archives\CreateArchiveExport;
 use App\Actions\Archives\CreateArchiveImport;
-use App\Enums\ArchiveOrigin;
-use App\Enums\UserRole;
+use App\Actions\Archives\RollbackArchiveExport;
+use App\Actions\Archives\RollbackArchiveImport;
+use App\Actions\Archives\UpdateArchiveExport;
+use App\Actions\Archives\UpdateArchiveImport;
+use App\Actions\Transactions\UpdateExportStageApplicability;
+use App\Actions\Transactions\UpdateImportStageApplicability;
 use App\Http\Requests\StoreArchiveExportRequest;
 use App\Http\Requests\StoreArchiveImportRequest;
 use App\Http\Requests\UpdateArchiveExportRequest;
@@ -16,11 +20,9 @@ use App\Http\Resources\ExportTransactionResource;
 use App\Http\Resources\ImportTransactionResource;
 use App\Models\ExportTransaction;
 use App\Models\ImportTransaction;
-use App\Models\User;
 use App\Queries\Archives\ArchiveIndexQuery;
 use App\Queries\Archives\ArchiveOperationalQueueQuery;
-use App\Support\Operations\Deletion\Transactions\TransactionDeletionExecutor;
-use App\Support\Operations\Deletion\Transactions\TransactionDeletionPlanner;
+use App\Support\Archives\ArchiveAuthorizer;
 use App\Support\Transactions\TransactionSyncBroadcaster;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -41,60 +43,42 @@ use Illuminate\Http\Response;
 class ArchiveController extends Controller
 {
     public function __construct(
-        private CreateArchiveImport $createArchiveImport,
-        private CreateArchiveExport $createArchiveExport,
+        private ArchiveAuthorizer $archiveAuthorizer,
         private ArchiveIndexQuery $archiveIndexQuery,
         private ArchiveOperationalQueueQuery $archiveOperationalQueueQuery,
+        private CreateArchiveImport $createArchiveImport,
+        private CreateArchiveExport $createArchiveExport,
+        private UpdateArchiveImport $updateArchiveImport,
+        private UpdateArchiveExport $updateArchiveExport,
+        private UpdateImportStageApplicability $updateImportStageApplicability,
+        private UpdateExportStageApplicability $updateExportStageApplicability,
+        private RollbackArchiveImport $rollbackArchiveImport,
+        private RollbackArchiveExport $rollbackArchiveExport,
         private TransactionSyncBroadcaster $transactionSyncBroadcaster,
-        private TransactionDeletionPlanner $transactionDeletionPlanner,
-        private TransactionDeletionExecutor $transactionDeletionExecutor,
     ) {}
 
-    /**
-     * GET /api/archives
-     * List all archived transactions grouped by year.
-     *
-     * An "archive" transaction is any completed import/export whose date
-     * falls in a previous year (not the current year). Documents are loaded
-     * via the polymorphic relationship from the DB — no S3 listing needed.
-     */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $mine = request()->boolean('mine');
-
-        // Admin-only unless ?mine=1 (encoder can see own uploads)
-        if (! $mine && ! request()->user()->isAdmin()) {
-            abort(403, 'Only administrators can access the full archive.');
-        }
+        $mine = $request->boolean('mine');
+        $this->archiveAuthorizer->assertCanIndex($request->user(), $mine);
 
         return response()->json([
-            'data' => $this->archiveIndexQuery->handle(request()->user(), $mine),
+            'data' => $this->archiveIndexQuery->handle($request->user(), $mine),
         ]);
     }
 
     public function operationalQueue(Request $request): JsonResponse
     {
-        $user = $request->user();
-
-        if (! in_array($user->role->value, ['processor', 'accounting'], true)) {
-            abort(403, 'Only processor and accounting users can access the archive task queue.');
-        }
+        $this->archiveAuthorizer->assertCanAccessOperationalQueue($request->user());
 
         return response()->json(
-            $this->archiveOperationalQueueQuery->handle($user),
+            $this->archiveOperationalQueueQuery->handle($request->user()),
         );
     }
 
-    /**
-     * POST /api/archives/import
-     * Create a legacy archive import transaction.
-     * The file_date must be today or in the past (before_or_equal:today).
-     */
-    public function storeImport(StoreArchiveImportRequest $request)
+    public function storeImport(StoreArchiveImportRequest $request): JsonResponse
     {
-        if (! in_array($request->user()->role->value, ['admin', 'encoder'])) {
-            abort(403, 'Only administrators or encoders can upload archive records.');
-        }
+        $this->archiveAuthorizer->assertCanCreate($request->user());
 
         $transaction = $this->createArchiveImport->handle(
             $request->validated(),
@@ -107,16 +91,9 @@ class ArchiveController extends Controller
             ->setStatusCode(201);
     }
 
-    /**
-     * POST /api/archives/export
-     * Create a legacy archive export transaction.
-     * The file_date must be today or in the past (before_or_equal:today).
-     */
-    public function storeExport(StoreArchiveExportRequest $request)
+    public function storeExport(StoreArchiveExportRequest $request): JsonResponse
     {
-        if (! in_array($request->user()->role->value, ['admin', 'encoder'])) {
-            abort(403, 'Only administrators or encoders can upload archive records.');
-        }
+        $this->archiveAuthorizer->assertCanCreate($request->user());
 
         $transaction = $this->createArchiveExport->handle(
             $request->validated(),
@@ -133,27 +110,12 @@ class ArchiveController extends Controller
         UpdateArchiveImportRequest $request,
         ImportTransaction $importTransaction,
     ): ImportTransactionResource {
-        $this->authorizeArchiveUpdate($request->user(), $importTransaction);
+        $this->archiveAuthorizer->assertCanUpdate($request->user(), $importTransaction);
 
-        $validated = $request->validated();
-
-        $importTransaction->update([
-            'customs_ref_no' => $validated['customs_ref_no'] ?? null,
-            'bl_no' => $validated['bl_no'],
-            'vessel_name' => $validated['vessel_name'] ?? null,
-            'selective_color' => $validated['selective_color'],
-            'importer_id' => $validated['importer_id'],
-            'origin_country_id' => $validated['origin_country_id'] ?? null,
-            'location_of_goods_id' => $validated['location_of_goods_id'] ?? null,
-            'arrival_date' => $validated['file_date'],
-        ]);
-
-        $importTransaction->load(['importer', 'originCountry', 'locationOfGoods', 'stages', 'assignedUser']);
-
-        $this->transactionSyncBroadcaster->transactionChanged(
+        $importTransaction = $this->updateArchiveImport->handle(
             $importTransaction,
+            $request->validated(),
             $request->user(),
-            'archive_updated',
         );
 
         return new ImportTransactionResource($importTransaction);
@@ -163,24 +125,12 @@ class ArchiveController extends Controller
         UpdateArchiveExportRequest $request,
         ExportTransaction $exportTransaction,
     ): ExportTransactionResource {
-        $this->authorizeArchiveUpdate($request->user(), $exportTransaction);
+        $this->archiveAuthorizer->assertCanUpdate($request->user(), $exportTransaction);
 
-        $validated = $request->validated();
-
-        $exportTransaction->update([
-            'bl_no' => $validated['bl_no'],
-            'vessel' => $validated['vessel'] ?? null,
-            'shipper_id' => $validated['shipper_id'],
-            'destination_country_id' => $validated['destination_country_id'],
-            'export_date' => $validated['file_date'],
-        ]);
-
-        $exportTransaction->load(['shipper', 'stages', 'assignedUser', 'destinationCountry']);
-
-        $this->transactionSyncBroadcaster->transactionChanged(
+        $exportTransaction = $this->updateArchiveExport->handle(
             $exportTransaction,
+            $request->validated(),
             $request->user(),
-            'archive_updated',
         );
 
         return new ExportTransactionResource($exportTransaction);
@@ -189,33 +139,21 @@ class ArchiveController extends Controller
     public function updateImportStageApplicability(
         UpdateImportStageApplicabilityRequest $request,
         ImportTransaction $importTransaction,
-    ): ImportTransactionResource|JsonResponse {
+    ): ImportTransactionResource {
         $validated = $request->validated();
         $stage = $validated['stage'];
         $notApplicable = (bool) $validated['not_applicable'];
 
-        $this->authorizeArchiveStageApplicability($request->user(), $importTransaction, $stage);
-
-        if ($notApplicable && $importTransaction->documents()->where('type', $stage)->exists()) {
-            return response()->json([
-                'message' => 'You cannot mark this stage as not applicable after files have been uploaded to it.',
-            ], 422);
-        }
-
-        $importTransaction->loadMissing('stages');
-
-        if ($notApplicable && ! $importTransaction->isDocumentTypeReadyForUpload($stage)) {
-            return response()->json([
-                'message' => 'Complete the earlier required stages before marking this stage as not applicable.',
-            ], 422);
-        }
-
-        $importTransaction->setStageApplicability($stage, $notApplicable, $request->user()->id);
-        $importTransaction->recalculateStatus();
-        $importTransaction->load(['importer', 'originCountry', 'locationOfGoods', 'stages', 'assignedUser']);
-
-        $this->transactionSyncBroadcaster->transactionChanged(
+        $this->archiveAuthorizer->assertCanUpdateStageApplicability(
+            $request->user(),
             $importTransaction,
+            $stage,
+        );
+
+        $importTransaction = $this->updateImportStageApplicability->handle(
+            $importTransaction,
+            $stage,
+            $notApplicable,
             $request->user(),
             'archive_stage_applicability_updated',
         );
@@ -226,33 +164,21 @@ class ArchiveController extends Controller
     public function updateExportStageApplicability(
         UpdateExportStageApplicabilityRequest $request,
         ExportTransaction $exportTransaction,
-    ): ExportTransactionResource|JsonResponse {
+    ): ExportTransactionResource {
         $validated = $request->validated();
         $stage = $validated['stage'];
         $notApplicable = (bool) $validated['not_applicable'];
 
-        $this->authorizeArchiveStageApplicability($request->user(), $exportTransaction, $stage);
-
-        if ($notApplicable && $exportTransaction->documents()->where('type', $stage)->exists()) {
-            return response()->json([
-                'message' => 'You cannot mark this stage as not applicable after files have been uploaded to it.',
-            ], 422);
-        }
-
-        $exportTransaction->loadMissing('stages');
-
-        if ($notApplicable && ! $exportTransaction->isDocumentTypeReadyForUpload($stage)) {
-            return response()->json([
-                'message' => 'Complete the earlier required stages before marking this stage as not applicable.',
-            ], 422);
-        }
-
-        $exportTransaction->setStageApplicability($stage, $notApplicable, $request->user()->id);
-        $exportTransaction->recalculateStatus();
-        $exportTransaction->load(['shipper', 'stages', 'assignedUser', 'destinationCountry']);
-
-        $this->transactionSyncBroadcaster->transactionChanged(
+        $this->archiveAuthorizer->assertCanUpdateStageApplicability(
+            $request->user(),
             $exportTransaction,
+            $stage,
+        );
+
+        $exportTransaction = $this->updateExportStageApplicability->handle(
+            $exportTransaction,
+            $stage,
+            $notApplicable,
             $request->user(),
             'archive_stage_applicability_updated',
         );
@@ -262,89 +188,17 @@ class ArchiveController extends Controller
 
     public function rollbackImport(Request $request, ImportTransaction $importTransaction): Response
     {
-        $this->authorizeArchiveRollback($request->user(), $importTransaction);
-
-        $plan = $this->transactionDeletionPlanner->build([$importTransaction->id], [], config('database.default'));
-
-        $this->transactionSyncBroadcaster->transactionChanged($importTransaction, $request->user(), 'archive_rolled_back');
-        $this->transactionDeletionExecutor->delete($plan, true);
+        $this->archiveAuthorizer->assertCanRollback($request->user(), $importTransaction);
+        $this->rollbackArchiveImport->handle($importTransaction, $request->user());
 
         return response()->noContent();
     }
 
     public function rollbackExport(Request $request, ExportTransaction $exportTransaction): Response
     {
-        $this->authorizeArchiveRollback($request->user(), $exportTransaction);
-
-        $plan = $this->transactionDeletionPlanner->build([], [$exportTransaction->id], config('database.default'));
-
-        $this->transactionSyncBroadcaster->transactionChanged($exportTransaction, $request->user(), 'archive_rolled_back');
-        $this->transactionDeletionExecutor->delete($plan, true);
+        $this->archiveAuthorizer->assertCanRollback($request->user(), $exportTransaction);
+        $this->rollbackArchiveExport->handle($exportTransaction, $request->user());
 
         return response()->noContent();
-    }
-
-    private function authorizeArchiveRollback(
-        User $user,
-        ImportTransaction|ExportTransaction $transaction,
-    ): void {
-        if (! $transaction->is_archive || $transaction->archive_origin !== ArchiveOrigin::DirectArchiveUpload) {
-            abort(404, 'Archive transaction not found.');
-        }
-
-        if ($user->isAdmin()) {
-            return;
-        }
-
-        if (! $user->hasBrokerageAccess() || $transaction->assigned_user_id !== $user->id) {
-            abort(403, 'You are not allowed to roll back this archive upload.');
-        }
-    }
-
-    private function authorizeArchiveUpdate(
-        User $user,
-        ImportTransaction|ExportTransaction $transaction,
-    ): void {
-        if (! $transaction->is_archive) {
-            abort(404, 'Archive transaction not found.');
-        }
-
-        if ($transaction instanceof ImportTransaction) {
-            $this->authorize('update', $transaction);
-
-            return;
-        }
-
-        $this->authorize('update', $transaction);
-    }
-
-    private function authorizeArchiveStageApplicability(
-        User $user,
-        ImportTransaction|ExportTransaction $transaction,
-        string $stage,
-    ): void {
-        if (! $transaction->is_archive) {
-            abort(404, 'Archive transaction not found.');
-        }
-
-        if ($user->isAdmin()) {
-            return;
-        }
-
-        $allowedStages = match (true) {
-            $transaction instanceof ImportTransaction && $user->role === UserRole::Processor => array_values(array_intersect(
-                ImportTransaction::processorOperationalDocumentTypes(),
-                ImportTransaction::optionalStageKeys(),
-            )),
-            $transaction instanceof ExportTransaction && $user->role === UserRole::Processor => array_values(array_intersect(
-                ExportTransaction::processorOperationalDocumentTypes(),
-                ExportTransaction::optionalStageKeys(),
-            )),
-            default => [],
-        };
-
-        if (! in_array($stage, $allowedStages, true)) {
-            abort(403, 'You are not allowed to update this archive stage.');
-        }
     }
 }

@@ -37,7 +37,7 @@ class StoreArchiveImportRequest extends FormRequest
                 Rule::unique('import_transactions', 'bl_no'),
             ],
             'selective_color' => ['required', new Enum(SelectiveColor::class)],
-            'importer_id' => ['required', 'integer', 'exists:clients,id'],
+            'importer_id' => ['required', 'integer', 'exists:brokerage_clients,id'],
             'vessel_name' => ['nullable', 'string', 'max:100'],
             'origin_country_id' => ['nullable', 'integer', 'exists:countries,id'],
             'location_of_goods_id' => ['nullable', 'integer', 'exists:locations_of_goods,id'],

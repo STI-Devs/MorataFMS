@@ -34,7 +34,7 @@ class StoreImportTransactionRequest extends FormRequest
             ],
             'vessel_name' => ['required', 'string', 'max:150'],
             'selective_color' => ['required', new Enum(SelectiveColor::class)],
-            'importer_id' => ['required', 'integer', 'exists:clients,id'],
+            'importer_id' => ['required', 'integer', 'exists:brokerage_clients,id'],
             'origin_country_id' => ['nullable', 'integer', 'exists:countries,id'],
             'location_of_goods_id' => ['nullable', 'integer', 'exists:locations_of_goods,id'],
             'arrival_date' => ['required', 'date', 'after_or_equal:2000-01-01'],

@@ -3,77 +3,247 @@ import { useNavigate } from 'react-router-dom';
 import { CurrentDateTime } from '../../../../components/CurrentDateTime';
 import { EmptyState } from '../../../../components/EmptyState';
 import { StatusBadge } from '../../../../components/StatusBadge';
-
 import { appRoutes } from '../../../../lib/appRoutes';
 import { useAllExportsData, useAllImportsData } from '../../hooks/useAllTransactionRecords';
-import { useImportVesselGroups, useExportVesselGroups } from '../../hooks/useVesselGrouping';
+import { useExportVesselGroups, useImportVesselGroups } from '../../hooks/useVesselGrouping';
 import type { ApiExportTransaction, ApiImportTransaction, VesselGroup } from '../../types';
+import { VesselGroupHeader } from '../vessel-groups/VesselGroupHeader';
 
-// ─── Vessel group header (light theme) ───────────────────────────────────────
+const LIVE_PARAMS = { exclude_statuses: 'completed,cancelled' };
 
-function VesselGroupHeader<T>({
-    group,
-    isExpanded,
-    onToggle,
-}: {
-    group: VesselGroup<T>;
-    isExpanded: boolean;
-    onToggle: () => void;
-}) {
-    const etaLabel = group.type === 'import' ? 'ETA' : 'ETD';
-    const formattedEta = group.eta
-        ? new Date(`${group.eta}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-        : '—';
+function SectionColumnHeader({ children, align = 'left' }: { children: React.ReactNode; align?: 'left' | 'center' | 'right' }) {
+    const alignClass = align === 'center' ? 'text-center' : align === 'right' ? 'text-right' : 'text-left';
 
     return (
-        <button
-            type="button"
-            onClick={onToggle}
-            className={`
-                w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors border-b border-border
-                ${group.stats.blocked > 0
-                    ? 'bg-red-50/60 dark:bg-red-950/20 border-l-2 border-l-red-500'
-                    : group.isDelayed
-                        ? 'bg-amber-50/40 dark:bg-amber-950/10 border-l-2 border-l-amber-500'
-                        : 'bg-surface-secondary/50 hover:bg-surface-secondary border-l-2 border-l-transparent'
-                }
-            `}
-        >
-            <svg
-                className={`w-3 h-3 text-text-muted shrink-0 transition-transform duration-150 ${isExpanded ? 'rotate-90' : ''}`}
-                fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}
-            >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
-            <span className="flex-1 text-sm font-bold text-text-primary truncate min-w-0">{group.vesselName}</span>
-            {group.isDelayed && (
-                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500 text-white shrink-0">DELAYED</span>
-            )}
-            <span className="text-[10px] text-text-muted shrink-0 hidden sm:inline">{etaLabel} {formattedEta}</span>
-            <div className="flex items-center gap-1.5 shrink-0">
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-surface border border-border text-text-muted">{group.stats.total}</span>
-                {group.stats.blocked > 0 && (
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400">{group.stats.blocked} blocked</span>
-                )}
-            </div>
-        </button>
+        <span className={`text-[9px] font-bold uppercase tracking-[0.1em] text-text-muted ${alignClass}`}>
+            {children}
+        </span>
     );
 }
 
-// ─── Column header helper ─────────────────────────────────────────────────────
+function formatDateLabel(dateString: string | null | undefined): string {
+    if (!dateString) return '—';
 
-const ColHeader = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
-    <div className={`text-[10px] font-bold text-text-muted uppercase tracking-[0.08em] break-words leading-tight min-w-0 ${className}`}>
-        {children}
-    </div>
-);
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return '—';
 
-// ─── TrackingDashboard ────────────────────────────────────────────────────────
+    return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+    });
+}
+
+function TrackingPanelHeader({
+    title,
+    badgeTone,
+    vesselCount,
+}: {
+    title: string;
+    badgeTone: 'green' | 'blue';
+    vesselCount: number;
+}) {
+    return (
+        <div className="flex items-center justify-between border-b border-border px-5 py-4">
+            <div className="flex items-center gap-2.5">
+                <span className={`h-2.5 w-2.5 rounded-full ${badgeTone === 'green' ? 'bg-emerald-500' : 'bg-blue-500'}`} />
+                <div>
+                    <h2 className="text-sm font-bold text-text-primary">{title}</h2>
+                    <p className="text-xs text-text-muted">Expanded vessel view · assigned active transactions</p>
+                </div>
+            </div>
+            <span className="rounded-full border border-border bg-surface-secondary px-2.5 py-1 text-[10px] font-semibold text-text-muted">
+                {vesselCount} vessels
+            </span>
+        </div>
+    );
+}
+
+function ImportGroupsPanel({
+    groups,
+    isLoading,
+    expandedGroups,
+    onToggle,
+}: {
+    groups: VesselGroup<ApiImportTransaction>[];
+    isLoading: boolean;
+    expandedGroups: Set<string>;
+    onToggle: (key: string) => void;
+}) {
+    const navigate = useNavigate();
+
+    return (
+        <div className="flex min-h-[520px] flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
+            <TrackingPanelHeader title="Import Workload" badgeTone="green" vesselCount={groups.length} />
+
+            <div className="flex-1">
+                {isLoading ? (
+                    <div className="divide-y divide-border/40">
+                        {Array.from({ length: 5 }).map((_, index) => (
+                            <div key={index} className="flex items-center gap-3 px-4 py-4">
+                                <div className="h-4 w-32 rounded skeleton-shimmer" />
+                                <div className="h-4 w-24 rounded skeleton-shimmer" />
+                                <div className="ml-auto h-4 w-20 rounded skeleton-shimmer" />
+                            </div>
+                        ))}
+                    </div>
+                ) : groups.length === 0 ? (
+                    <div className="flex h-full items-center justify-center">
+                        <EmptyState label="imports" />
+                    </div>
+                ) : (
+                    groups.map((group) => (
+                        <div key={group.vesselKey} className="border-b border-border last:border-0">
+                            <VesselGroupHeader
+                                group={group}
+                                isExpanded={expandedGroups.has(group.vesselKey)}
+                                onToggle={() => onToggle(group.vesselKey)}
+                            />
+
+                            {expandedGroups.has(group.vesselKey) && (
+                                <div>
+                                    <div className="hidden border-b border-border bg-surface-secondary/35 px-4 py-2 lg:grid lg:grid-cols-[1.35fr_1.1fr_108px_1.2fr_110px] lg:gap-x-3">
+                                        <SectionColumnHeader>Customs Ref</SectionColumnHeader>
+                                        <SectionColumnHeader>Bill of Lading</SectionColumnHeader>
+                                        <SectionColumnHeader align="center">Status</SectionColumnHeader>
+                                        <SectionColumnHeader>Importer</SectionColumnHeader>
+                                        <SectionColumnHeader align="right">Arrival</SectionColumnHeader>
+                                    </div>
+                                    {group.transactions.map((transaction, index) => (
+                                        <button
+                                            key={transaction.id}
+                                            type="button"
+                                            onClick={() => navigate(appRoutes.trackingDetail.replace(':referenceId', encodeURIComponent(transaction.customs_ref_no)))}
+                                            className={`grid w-full gap-3 border-b border-border/40 px-4 py-4 text-left transition-colors hover:bg-hover/60 last:border-0 lg:grid-cols-[1.35fr_1.1fr_108px_1.2fr_110px] lg:items-center lg:py-3 ${
+                                                index % 2 !== 0 ? 'bg-surface-secondary/15' : ''
+                                            } ${transaction.open_remarks_count > 0 ? 'border-l-4 border-red-500 bg-red-50/20 dark:bg-red-950/10' : 'border-l-4 border-transparent'}`}
+                                        >
+                                            <div className="min-w-0">
+                                                <span className="mb-1 block text-[10px] font-bold uppercase text-text-muted lg:hidden">Customs Ref</span>
+                                                <p className="truncate text-sm font-semibold text-text-primary lg:text-xs">{transaction.customs_ref_no}</p>
+                                            </div>
+                                            <div className="min-w-0">
+                                                <span className="mb-1 block text-[10px] font-bold uppercase text-text-muted lg:hidden">BL No.</span>
+                                                <p className="truncate font-mono text-sm text-text-secondary lg:text-[11px]">{transaction.bl_no || '—'}</p>
+                                            </div>
+                                            <div className="flex lg:justify-center">
+                                                <StatusBadge status={transaction.status ?? ''} />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <span className="mb-1 block text-[10px] font-bold uppercase text-text-muted lg:hidden">Importer</span>
+                                                <p className="truncate text-sm text-text-secondary lg:text-xs">{transaction.importer?.name ?? '—'}</p>
+                                            </div>
+                                            <div className="min-w-0 lg:text-right">
+                                                <span className="mb-1 block text-[10px] font-bold uppercase text-text-muted lg:hidden">Arrival</span>
+                                                <p className="truncate text-sm text-text-muted lg:text-[11px]">{formatDateLabel(transaction.arrival_date)}</p>
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    ))
+                )}
+            </div>
+        </div>
+    );
+}
+
+function ExportGroupsPanel({
+    groups,
+    isLoading,
+    expandedGroups,
+    onToggle,
+}: {
+    groups: VesselGroup<ApiExportTransaction>[];
+    isLoading: boolean;
+    expandedGroups: Set<string>;
+    onToggle: (key: string) => void;
+}) {
+    const navigate = useNavigate();
+
+    return (
+        <div className="flex min-h-[520px] flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
+            <TrackingPanelHeader title="Export Workload" badgeTone="blue" vesselCount={groups.length} />
+
+            <div className="flex-1">
+                {isLoading ? (
+                    <div className="divide-y divide-border/40">
+                        {Array.from({ length: 5 }).map((_, index) => (
+                            <div key={index} className="flex items-center gap-3 px-4 py-4">
+                                <div className="h-4 w-28 rounded skeleton-shimmer" />
+                                <div className="h-4 w-32 rounded skeleton-shimmer" />
+                                <div className="ml-auto h-4 w-20 rounded skeleton-shimmer" />
+                            </div>
+                        ))}
+                    </div>
+                ) : groups.length === 0 ? (
+                    <div className="flex h-full items-center justify-center">
+                        <EmptyState label="exports" />
+                    </div>
+                ) : (
+                    groups.map((group) => (
+                        <div key={group.vesselKey} className="border-b border-border last:border-0">
+                            <VesselGroupHeader
+                                group={group}
+                                isExpanded={expandedGroups.has(group.vesselKey)}
+                                onToggle={() => onToggle(group.vesselKey)}
+                            />
+
+                            {expandedGroups.has(group.vesselKey) && (
+                                <div>
+                                    <div className="hidden border-b border-border bg-surface-secondary/35 px-4 py-2 lg:grid lg:grid-cols-[1.15fr_1.25fr_108px_1fr_120px] lg:gap-x-3">
+                                        <SectionColumnHeader>BL No.</SectionColumnHeader>
+                                        <SectionColumnHeader>Shipper</SectionColumnHeader>
+                                        <SectionColumnHeader align="center">Status</SectionColumnHeader>
+                                        <SectionColumnHeader>Destination</SectionColumnHeader>
+                                        <SectionColumnHeader align="right">Departure</SectionColumnHeader>
+                                    </div>
+                                    {group.transactions.map((transaction, index) => {
+                                        const reference = transaction.bl_no || `EXP-${String(transaction.id).padStart(4, '0')}`;
+
+                                        return (
+                                            <button
+                                                key={transaction.id}
+                                                type="button"
+                                                onClick={() => navigate(appRoutes.trackingDetail.replace(':referenceId', encodeURIComponent(reference)))}
+                                                className={`grid w-full gap-3 border-b border-border/40 px-4 py-4 text-left transition-colors hover:bg-hover/60 last:border-0 lg:grid-cols-[1.15fr_1.25fr_108px_1fr_120px] lg:items-center lg:py-3 ${
+                                                    index % 2 !== 0 ? 'bg-surface-secondary/15' : ''
+                                                } ${transaction.open_remarks_count > 0 ? 'border-l-4 border-red-500 bg-red-50/20 dark:bg-red-950/10' : 'border-l-4 border-transparent'}`}
+                                            >
+                                                <div className="min-w-0">
+                                                    <span className="mb-1 block text-[10px] font-bold uppercase text-text-muted lg:hidden">BL No.</span>
+                                                    <p className="truncate font-mono text-sm font-semibold text-text-primary lg:text-[11px]">{reference}</p>
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <span className="mb-1 block text-[10px] font-bold uppercase text-text-muted lg:hidden">Shipper</span>
+                                                    <p className="truncate text-sm text-text-secondary lg:text-xs">{transaction.shipper?.name ?? '—'}</p>
+                                                </div>
+                                                <div className="flex lg:justify-center">
+                                                    <StatusBadge status={transaction.status ?? ''} />
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <span className="mb-1 block text-[10px] font-bold uppercase text-text-muted lg:hidden">Destination</span>
+                                                    <p className="truncate text-sm text-text-secondary lg:text-xs">{transaction.destination_country?.name ?? '—'}</p>
+                                                </div>
+                                                <div className="min-w-0 lg:text-right">
+                                                    <span className="mb-1 block text-[10px] font-bold uppercase text-text-muted lg:hidden">Departure</span>
+                                                    <p className="truncate text-sm text-text-muted lg:text-[11px]">{formatDateLabel(transaction.export_date)}</p>
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    ))
+                )}
+            </div>
+        </div>
+    );
+}
 
 export const TrackingDashboard = () => {
-    const navigate = useNavigate();
-    const LIVE_PARAMS = { exclude_statuses: 'completed,cancelled' };
-
     const { data: importsData, isLoading: importsLoading } = useAllImportsData(LIVE_PARAMS);
     const { data: exportsData, isLoading: exportsLoading } = useAllExportsData(LIVE_PARAMS);
 
@@ -98,159 +268,32 @@ export const TrackingDashboard = () => {
     });
 
     return (
-        <div className="flex flex-col gap-5">
-            {/* Header */}
-            <div className="shrink-0 flex justify-between items-end">
+        <div className="flex flex-col gap-5 pb-6">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold mb-1 text-text-primary">Live Tracking Overview</h1>
-                    <p className="text-sm text-text-secondary">Your assigned transactions · Grouped by vessel</p>
+                    <h1 className="text-3xl font-bold tracking-tight text-text-primary">Live Tracking Overview</h1>
+                    <p className="mt-1 text-sm text-text-secondary">Your assigned transactions · Grouped by vessel</p>
                 </div>
                 <CurrentDateTime
-                    className="text-right hidden sm:block shrink-0"
-                    timeClassName="text-2xl font-bold tabular-nums text-text-primary"
-                    dateClassName="text-sm text-text-secondary"
+                    className="hidden shrink-0 text-right sm:block"
+                    timeClassName="text-2xl font-bold tabular-nums text-text-primary leading-none"
+                    dateClassName="mt-1 text-sm text-text-secondary leading-none"
                 />
             </div>
 
-            {/* Two panels */}
-            <div className="flex flex-col lg:flex-row gap-4 items-start pb-6">
-
-                {/* Import panel */}
-                <div className="w-full lg:flex-1 lg:min-w-0 flex flex-col bg-surface border border-border rounded-xl shadow-sm">
-                    <div className="shrink-0 px-5 py-3.5 border-b border-border flex items-center justify-between">
-                        <div className="flex items-center gap-2.5">
-                            <div className="w-2 h-2 rounded-full bg-[#30d158]" style={{ boxShadow: '0 0 6px #30d15880' }} />
-                            <h2 className="text-sm font-bold text-text-primary">Import — by Vessel</h2>
-                        </div>
-                        <span className="text-[10px] font-bold text-text-muted bg-surface-secondary px-2 py-0.5 rounded-full border border-border">
-                            {importGroups.length} vessels
-                        </span>
-                    </div>
-
-                    <div className="overflow-x-auto">
-                        {/* Column headers */}
-                        <div className="shrink-0 grid gap-2 px-4 py-3 border-b border-border bg-surface-secondary/50 items-center"
-                            style={{ gridTemplateColumns: '140px 130px 128px 250px 90px', width: 'max-content', minWidth: '100%' }}>
-                            <ColHeader className="whitespace-nowrap">Customs Ref</ColHeader>
-                            <ColHeader className="text-center whitespace-nowrap">Bill of Lading</ColHeader>
-                            <ColHeader className="text-center">Status</ColHeader>
-                            <ColHeader>Importer</ColHeader>
-                            <ColHeader className="text-center">Arrival</ColHeader>
-                        </div>
-
-                        {importsLoading ? (
-                            <div className="divide-y divide-border/30">
-                                {Array.from({ length: 5 }).map((_, i) => (
-                                    <div key={i} className="grid gap-2 px-4 py-3.5 items-center"
-                                        style={{ gridTemplateColumns: '140px 130px 128px 250px 90px', width: 'max-content', minWidth: '100%' }}>
-                                        <div className="h-4 skeleton-shimmer rounded-md w-20" />
-                                        <div className="h-4 skeleton-shimmer rounded-md mx-auto w-16" />
-                                        <div className="h-5 skeleton-shimmer rounded-full mx-auto w-16" />
-                                        <div className="h-4 skeleton-shimmer rounded-md w-28" />
-                                        <div className="h-4 skeleton-shimmer rounded-md mx-auto w-12" />
-                                    </div>
-                                ))}
-                            </div>
-                        ) : importGroups.length === 0 ? (
-                            <EmptyState label="imports" />
-                        ) : (
-                            importGroups.map(group => (
-                                <div key={group.vesselKey}>
-                                    <VesselGroupHeader group={group} isExpanded={expandedImports.has(group.vesselKey)} onToggle={() => toggleImport(group.vesselKey)} />
-                                    {expandedImports.has(group.vesselKey) && group.transactions.map((t, i) => (
-                                        <div
-                                            key={t.id}
-                                            onClick={() => navigate(appRoutes.trackingDetail.replace(':referenceId', encodeURIComponent(t.customs_ref_no)))}
-                                            className={`grid gap-2 px-4 py-3 items-center cursor-pointer hover:bg-hover/60 transition-colors border-b border-border/30 ${i % 2 !== 0 ? 'bg-surface-secondary/30' : ''}`}
-                                            style={{
-                                                gridTemplateColumns: '140px 130px 128px 250px 90px',
-                                                width: 'max-content',
-                                                minWidth: '100%',
-                                                borderLeft: t.open_remarks_count > 0 ? '2px solid #ef4444' : '2px solid transparent',
-                                            }}
-                                        >
-                                            <p className="text-xs font-bold text-text-primary truncate">{t.customs_ref_no}</p>
-                                            <p className="text-xs text-text-secondary truncate text-center">{t.bl_no || '—'}</p>
-                                            <div className="flex justify-center"><StatusBadge status={t.status ?? ''} /></div>
-                                            <p className="text-xs text-text-secondary truncate">{t.importer?.name ?? '—'}</p>
-                                            <p className="text-xs text-text-muted text-center truncate">{t.arrival_date || '—'}</p>
-                                        </div>
-                                    ))}
-                                </div>
-                            ))
-                        )}
-                    </div>
-                </div>
-
-                {/* Export panel */}
-                <div className="w-full lg:flex-1 lg:min-w-0 flex flex-col bg-surface border border-border rounded-xl shadow-sm">
-                    <div className="shrink-0 px-5 py-3.5 border-b border-border flex items-center justify-between">
-                        <div className="flex items-center gap-2.5">
-                            <div className="w-2 h-2 rounded-full bg-[#0a84ff]" style={{ boxShadow: '0 0 6px #0a84ff80' }} />
-                            <h2 className="text-sm font-bold text-text-primary">Export — by Vessel</h2>
-                        </div>
-                        <span className="text-[10px] font-bold text-text-muted bg-surface-secondary px-2 py-0.5 rounded-full border border-border">
-                            {exportGroups.length} vessels
-                        </span>
-                    </div>
-
-                    <div className="overflow-x-auto">
-                        {/* Column headers */}
-                        <div className="shrink-0 grid gap-2 px-4 py-3 border-b border-border bg-surface-secondary/50 items-center"
-                            style={{ gridTemplateColumns: '280px 130px 100px 120px 140px', width: 'max-content', minWidth: '100%' }}>
-                            <ColHeader>Shipper</ColHeader>
-                            <ColHeader className="text-center whitespace-nowrap">Bill of Lading</ColHeader>
-                            <ColHeader className="text-center">Departure</ColHeader>
-                            <ColHeader className="text-center">Status</ColHeader>
-                            <ColHeader className="text-center">Destination</ColHeader>
-                        </div>
-
-                        {exportsLoading ? (
-                            <div className="divide-y divide-border/30">
-                                {Array.from({ length: 5 }).map((_, i) => (
-                                    <div key={i} className="grid gap-2 px-4 py-3.5 items-center"
-                                        style={{ gridTemplateColumns: '280px 130px 100px 120px 140px', width: 'max-content', minWidth: '100%' }}>
-                                        <div className="h-4 skeleton-shimmer rounded-md w-36" />
-                                        <div className="h-4 skeleton-shimmer rounded-md mx-auto w-16" />
-                                        <div className="h-4 skeleton-shimmer rounded-md mx-auto w-12" />
-                                        <div className="h-5 skeleton-shimmer rounded-full mx-auto w-16" />
-                                        <div className="h-4 skeleton-shimmer rounded-md mx-auto w-16" />
-                                    </div>
-                                ))}
-                            </div>
-                        ) : exportGroups.length === 0 ? (
-                            <EmptyState label="exports" />
-                        ) : (
-                            exportGroups.map(group => (
-                                <div key={group.vesselKey}>
-                                    <VesselGroupHeader group={group} isExpanded={expandedExports.has(group.vesselKey)} onToggle={() => toggleExport(group.vesselKey)} />
-                                    {expandedExports.has(group.vesselKey) && group.transactions.map((t, i) => {
-                                        const ref = t.bl_no || `EXP-${String(t.id).padStart(4, '0')}`;
-                                        return (
-                                            <div
-                                                key={t.id}
-                                                onClick={() => navigate(appRoutes.trackingDetail.replace(':referenceId', encodeURIComponent(ref)))}
-                                                className={`grid gap-2 px-4 py-3 items-center cursor-pointer hover:bg-hover/60 transition-colors border-b border-border/30 ${i % 2 !== 0 ? 'bg-surface-secondary/30' : ''}`}
-                                                style={{
-                                                    gridTemplateColumns: '280px 130px 100px 120px 140px',
-                                                    width: 'max-content',
-                                                    minWidth: '100%',
-                                                    borderLeft: t.open_remarks_count > 0 ? '2px solid #ef4444' : '2px solid transparent',
-                                                }}
-                                            >
-                                                <p className="text-xs font-bold text-text-primary truncate">{t.shipper?.name ?? '—'}</p>
-                                                <p className="text-xs text-text-secondary truncate text-center">{t.bl_no || '—'}</p>
-                                                <p className="text-xs text-text-muted text-center truncate">{t.export_date || '—'}</p>
-                                                <div className="flex justify-center"><StatusBadge status={t.status ?? ''} /></div>
-                                                <p className="text-xs text-text-secondary text-center truncate">{t.destination_country?.name ?? '—'}</p>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            ))
-                        )}
-                    </div>
-                </div>
+            <div className="grid gap-4 xl:grid-cols-2">
+                <ImportGroupsPanel
+                    groups={importGroups}
+                    isLoading={importsLoading}
+                    expandedGroups={expandedImports}
+                    onToggle={toggleImport}
+                />
+                <ExportGroupsPanel
+                    groups={exportGroups}
+                    isLoading={exportsLoading}
+                    expandedGroups={expandedExports}
+                    onToggle={toggleExport}
+                />
             </div>
         </div>
     );

@@ -2,6 +2,7 @@
 
 namespace App\Queries\Reports;
 
+use App\Enums\ArchiveOrigin;
 use App\Models\ExportTransaction;
 use App\Models\ImportTransaction;
 use App\Support\Transactions\ExportStatusWorkflow;
@@ -16,16 +17,14 @@ class TurnaroundReportQuery
     {
         [$start, $end] = $this->periodBounds($year, $month);
 
-        $importQuery = ImportTransaction::query()
+        $importQuery = $this->reportableTransactions(ImportTransaction::query(), 'import_transactions')
             ->leftJoin('import_stages', 'import_stages.import_transaction_id', '=', 'import_transactions.id')
-            ->where('import_transactions.is_archive', false)
             ->where('import_transactions.status', ImportStatusWorkflow::completed())
             ->where('import_transactions.created_at', '>=', $start)
             ->where('import_transactions.created_at', '<', $end);
 
-        $exportQuery = ExportTransaction::query()
+        $exportQuery = $this->reportableTransactions(ExportTransaction::query(), 'export_transactions')
             ->leftJoin('export_stages', 'export_stages.export_transaction_id', '=', 'export_transactions.id')
-            ->where('export_transactions.is_archive', false)
             ->where('export_transactions.status', ExportStatusWorkflow::completed())
             ->where('export_transactions.created_at', '>=', $start)
             ->where('export_transactions.created_at', '<', $end);
@@ -101,6 +100,15 @@ class TurnaroundReportQuery
             'min_days' => $durations->min(),
             'max_days' => $durations->max(),
         ];
+    }
+
+    private function reportableTransactions(Builder $query, string $table): Builder
+    {
+        return $query->where(function (Builder $archiveQuery) use ($table): void {
+            $archiveQuery
+                ->where("{$table}.is_archive", false)
+                ->orWhere("{$table}.archive_origin", ArchiveOrigin::ArchivedFromLive->value);
+        });
     }
 
     private function formatStats(?object $stats): array

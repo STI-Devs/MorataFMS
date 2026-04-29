@@ -14,7 +14,7 @@ class StoreExportTransactionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'shipper_id' => ['required', 'integer', 'exists:clients,id'],
+            'shipper_id' => ['required', 'integer', 'exists:brokerage_clients,id'],
             'bl_no' => [
                 'required',
                 'string',

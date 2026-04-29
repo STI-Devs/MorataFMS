@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { CurrentDateTime } from '../../../components/CurrentDateTime';
-import { TransactionHistoryModal } from '../../oversight/components/TransactionHistoryModal';
+import { TransactionHistoryModal } from '../../oversight/components/modals/TransactionHistoryModal';
 import { useClients, useClientTransactions, useCreateClient, useToggleClient, useUpdateClient } from '../hooks/useClients';
 import type { Client, CreateClientData, UpdateClientData } from '../types/client.types';
 import { ClientFormModal } from './ClientFormModal';
@@ -87,8 +87,8 @@ export const ClientManagement = () => {
             {/* Header */}
             <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-2xl font-bold text-text-primary tracking-tight">Client Management</h1>
-                    <p className="text-xs text-text-muted mt-0.5">Manage clients, toggle status, and view transaction history</p>
+                    <h1 className="text-2xl font-bold text-text-primary tracking-tight">Brokerage Client Management</h1>
+                    <p className="text-xs text-text-muted mt-0.5">Manage brokerage clients, toggle status, and view transaction history</p>
                 </div>
                 <CurrentDateTime
                     className="text-right hidden sm:block"
@@ -108,7 +108,7 @@ export const ClientManagement = () => {
 
                 const cards = [
                     {
-                        label: 'Total Clients',
+                        label: 'Total Brokerage Clients',
                         value: total,
                         sub: `${importers} importers · ${exporters} exporters`,
                         dot: null as string | null,
@@ -170,7 +170,7 @@ export const ClientManagement = () => {
                         </svg>
                         <input
                             type="text"
-                            placeholder="Search clients..."
+                            placeholder="Search brokerage clients..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full pl-9 pr-3 h-9 rounded-md border border-border-strong bg-input-bg text-text-primary text-sm placeholder:text-text-muted focus:outline-none focus:border-blue-500/50 transition-colors"
@@ -183,7 +183,7 @@ export const ClientManagement = () => {
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
                         </svg>
-                        Create Client
+                        Create Brokerage Client
                     </button>
                 </div>
 
@@ -193,7 +193,7 @@ export const ClientManagement = () => {
                     </div>
                 ) : isError ? (
                     <div className="p-16 text-center">
-                        <p className="text-sm text-red-500 font-medium">Failed to load clients. Please try again.</p>
+                        <p className="text-sm text-red-500 font-medium">Failed to load brokerage clients. Please try again.</p>
                     </div>
                 ) : filteredClients.length === 0 ? (
                     <div className="p-16 text-center">
@@ -201,7 +201,7 @@ export const ClientManagement = () => {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                         </svg>
                         <p className="text-sm text-text-muted">
-                            {searchTerm ? 'No clients match your search' : 'No clients found'}
+                            {searchTerm ? 'No brokerage clients match your search' : 'No brokerage clients found'}
                         </p>
                     </div>
                 ) : (
@@ -302,7 +302,7 @@ export const ClientManagement = () => {
                             </tbody>
                         </table>
                         <div className="px-5 py-3 text-xs text-text-muted border-t border-border">
-                            Showing {filteredClients.length} of {clients.length} clients
+                            Showing {filteredClients.length} of {clients.length} brokerage clients
                         </div>
                     </div>
                 )}

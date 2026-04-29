@@ -1,185 +1,31 @@
 import { useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { CurrentDateTime } from '../../../components/CurrentDateTime';
+
 import { Icon } from '../../../components/Icon';
 import { FilePreviewModal } from '../../../components/modals/FilePreviewModal';
 import { UploadModal } from '../../../components/modals/UploadModal';
 import { useTransactionSyncSubscription } from '../../../hooks/useTransactionSyncSubscription';
-import { useAuth } from '../../auth';
 import { appRoutes } from '../../../lib/appRoutes';
-import { getStatusStyle } from '../../../lib/statusStyles';
+import { useAuth } from '../../auth';
+import { isEncoder } from '../../auth/utils/access';
 import { trackingApi } from '../../tracking/api/trackingApi';
+import { useDocumentPreview } from '../../tracking/hooks/useDocumentPreview';
 import { useTransactionDetail } from '../../tracking/hooks/useTransactionDetail';
-import { EXPORT_STAGES, IMPORT_STAGES } from '../types/document.types';
 import type {
-    ApiDocument,
     ApiExportTransaction,
     ApiImportTransaction,
     DocumentableType,
 } from '../../tracking/types';
 import { useDocuments } from '../hooks/useDocuments';
 import { useUploadDocument } from '../hooks/useUploadDocument';
-import { useDocumentPreview } from '../../tracking/hooks/useDocumentPreview';
-
-
-type DocFileType = 'pdf' | 'docx' | 'jpg' | 'png' | 'other';
-
-interface TransactionDoc {
-    id: number;
-    name: string;
-    fileType: DocFileType;
-    stageKey: string;
-    stageLabel: string;
-    date: string;
-    uploader: { name: string; initials: string; avatarColor: string };
-    size: string;
-}
+import { mapDocument, type TransactionDoc } from '../utils/documentsDetail.utils';
+import { DocumentRow } from './detail/DocumentRow';
+import { DocumentsDetailHeader } from './detail/DocumentsDetailHeader';
 
 type DocumentDetailLocationState = {
     backLabel?: string;
     backTo?: string;
 };
-
-
-const TYPE_CONFIG = {
-    import:  { label: 'Import',  color: '#0a84ff', bg: 'rgba(10,132,255,0.12)' },
-    export:  { label: 'Export',  color: '#30d158', bg: 'rgba(48,209,88,0.12)'  },
-    legacy:  { label: 'Legacy',  color: '#ff9f0a', bg: 'rgba(255,159,10,0.12)' },
-};
-
-const AVATAR_COLORS = [
-    'bg-blue-500', 'bg-indigo-500', 'bg-emerald-500',
-    'bg-violet-500', 'bg-amber-500', 'bg-rose-500',
-    'bg-cyan-500', 'bg-teal-500',
-];
-
-const STAGE_COLORS: Record<string, { color: string; bg: string }> = {
-    boc:           { color: '#f97316', bg: 'rgba(249,115,22,0.1)' },
-    bonds:         { color: '#d97706', bg: 'rgba(217,119,6,0.1)' },
-    phytosanitary: { color: '#0f766e', bg: 'rgba(15,118,110,0.1)' },
-    ppa:           { color: '#3b82f6', bg: 'rgba(59,130,246,0.1)' },
-    do:            { color: '#8b5cf6', bg: 'rgba(139,92,246,0.1)' },
-    port_charges:  { color: '#06b6d4', bg: 'rgba(6,182,212,0.1)' },
-    releasing:     { color: '#22c55e', bg: 'rgba(34,197,94,0.1)' },
-    billing:       { color: '#ff9f0a', bg: 'rgba(255,159,10,0.1)' },
-    docs_prep:     { color: '#f97316', bg: 'rgba(249,115,22,0.1)' },
-    bl_generation: { color: '#f97316', bg: 'rgba(249,115,22,0.1)' },
-    bl:            { color: '#f97316', bg: 'rgba(249,115,22,0.1)' },
-    co:            { color: '#3b82f6', bg: 'rgba(59,130,246,0.1)' },
-    cil:           { color: '#22c55e', bg: 'rgba(34,197,94,0.1)' },
-    dccci:         { color: '#22c55e', bg: 'rgba(34,197,94,0.1)' },
-    others:        { color: '#6b7280', bg: 'rgba(107,114,128,0.1)' },
-};
-
-const IMPORT_STAGE_LABELS = Object.fromEntries(
-    IMPORT_STAGES.map((stage) => [stage.key, stage.label]),
-) as Record<string, string>;
-
-const EXPORT_STAGE_LABELS = Object.fromEntries(
-    EXPORT_STAGES.map((stage) => [stage.key, stage.label]),
-) as Record<string, string>;
-
-function toTitleCase(str: string): string {
-    if (!str || str === '\u2014') return str;
-    return str.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
-}
-
-function formatDate(dateStr: string): string {
-    if (!dateStr || dateStr === '\u2014') return dateStr;
-    const d = new Date(dateStr + 'T00:00:00');
-    if (isNaN(d.getTime())) return dateStr;
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-}
-
-function formatStageFallback(stageKey: string): string {
-    return stageKey
-        .split('_')
-        .filter(Boolean)
-        .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-        .join(' ');
-}
-
-function getStageLabel(stageKey: string, isImport: boolean): string {
-    const labelMap = isImport ? IMPORT_STAGE_LABELS : EXPORT_STAGE_LABELS;
-
-    return labelMap[stageKey] ?? formatStageFallback(stageKey);
-}
-
-
-function getFileType(filename: string): DocFileType {
-    const ext = filename.split('.').pop()?.toLowerCase() ?? '';
-    if (ext === 'pdf')  return 'pdf';
-    if (ext === 'docx') return 'docx';
-    if (ext === 'jpg' || ext === 'jpeg') return 'jpg';
-    if (ext === 'png')  return 'png';
-    return 'other';
-}
-
-function getInitials(name: string): string {
-    return name
-        .split(' ')
-        .filter(Boolean)
-        .slice(0, 2)
-        .map(w => w[0].toUpperCase())
-        .join('');
-}
-
-function getAvatarColor(name: string): string {
-    let hash = 0;
-    for (let i = 0; i < name.length; i++) hash = (hash + name.charCodeAt(i)) % AVATAR_COLORS.length;
-    return AVATAR_COLORS[hash];
-}
-
-function formatBytes(bytes: number): string {
-    if (bytes < 1024)        return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function mapDocument(doc: ApiDocument, isImport: boolean): TransactionDoc {
-    const uploaderName = doc.uploaded_by?.name ?? 'Unknown';
-
-    return {
-        id:       doc.id,
-        name:     doc.filename,
-        fileType: getFileType(doc.filename),
-        stageKey: doc.type,
-        stageLabel: getStageLabel(doc.type, isImport),
-        date:     doc.created_at.slice(0, 10),
-        uploader: {
-            name:        uploaderName,
-            initials:    getInitials(uploaderName),
-            avatarColor: getAvatarColor(uploaderName),
-        },
-        size: doc.formatted_size || formatBytes(doc.size_bytes),
-    };
-}
-
-
-function FileTypeIcon({ type }: { type: DocFileType }) {
-    const styles: Record<DocFileType, string> = {
-        pdf:   'text-red-500 bg-red-50 dark:bg-red-900/20',
-        docx:  'text-blue-500 bg-blue-50 dark:bg-blue-900/20',
-        jpg:   'text-orange-500 bg-orange-50 dark:bg-orange-900/20',
-        png:   'text-orange-500 bg-orange-50 dark:bg-orange-900/20',
-        other: 'text-text-secondary bg-surface-secondary',
-    };
-    const iconPaths: Record<DocFileType, string> = {
-        pdf:   'M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z',
-        docx:  'M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
-        jpg:   'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z',
-        png:   'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z',
-        other: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
-    };
-    return (
-        <div className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 ${styles[type]}`}>
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={iconPaths[type]} />
-            </svg>
-        </div>
-    );
-}
-
 
 export const DocumentsDetail = () => {
     const { ref } = useParams<{ ref: string }>();
@@ -187,8 +33,8 @@ export const DocumentsDetail = () => {
     const navigate = useNavigate();
     const { user } = useAuth();
 
-    const [isUploadOpen, setIsUploadOpen]         = useState(false);
-    const [uploadError, setUploadError]           = useState<string | undefined>();
+    const [isUploadOpen, setIsUploadOpen] = useState(false);
+    const [uploadError, setUploadError] = useState<string | undefined>();
 
     const { previewFile, setPreviewFile, handlePreviewDoc } = useDocumentPreview();
     const { data: txDetail, isLoading: txnLoading } = useTransactionDetail(ref, { scope: 'record' });
@@ -210,10 +56,10 @@ export const DocumentsDetail = () => {
 
     const { mutate: uploadDocument, isPending: isUploading } = useUploadDocument();
     const rawImport: ApiImportTransaction | null = txDetail?.isImport
-        ? txDetail.raw as ApiImportTransaction
+        ? (txDetail.raw as ApiImportTransaction)
         : null;
     const rawExport: ApiExportTransaction | null = txDetail && !txDetail.isImport
-        ? txDetail.raw as ApiExportTransaction
+        ? (txDetail.raw as ApiExportTransaction)
         : null;
 
     const handleUpload = async (files: File[]) => {
@@ -240,15 +86,15 @@ export const DocumentsDetail = () => {
         });
     };
 
-    const displayRef    = ref ?? '';
+    const displayRef = ref ?? '';
     const displayClient = rawImport?.importer?.name ?? rawExport?.shipper?.name ?? '—';
-    const displayDate   = rawImport?.arrival_date ?? rawExport?.export_date ?? '—';
+    const displayDate = rawImport?.arrival_date ?? rawExport?.export_date ?? '—';
     const displayStatus = txDetail?.mapped.status ?? '—';
-    const displayType   = isImport ? 'import' : 'export';
+    const displayType: 'import' | 'export' = isImport ? 'import' : 'export';
     const locationState = location.state as DocumentDetailLocationState | null;
     const backTarget = locationState?.backTo ?? appRoutes.documents;
     const backLabel = locationState?.backLabel ?? 'Back to Documents';
-    const canUpload = user?.role === 'encoder';
+    const canUpload = isEncoder(user);
 
     useTransactionSyncSubscription({
         type: txDetail ? (txDetail.isImport ? 'import' : 'export') : null,
@@ -330,41 +176,19 @@ export const DocumentsDetail = () => {
         );
     }
 
-    const tc = TYPE_CONFIG[displayType];
-    const sc = getStatusStyle(displayStatus);
-
     return (
         <div className="space-y-5 p-4">
-
-            {/* Back button */}
             {backButton}
 
-            {/* Header */}
-            <div className="flex justify-between items-end">
-                <div>
-                    <div className="flex items-center gap-3 mb-1 flex-wrap">
-                        <h1 className="text-3xl font-bold text-text-primary">{displayRef}</h1>
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold" style={{ color: tc.color, backgroundColor: tc.bg }}>
-                            {tc.label}
-                        </span>
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold" style={{ color: sc.color, backgroundColor: sc.bg }}>
-                            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: sc.color, boxShadow: `0 0 4px ${sc.color}` }} />
-                            {displayStatus}
-                        </span>
-                    </div>
-                    <p className="text-sm text-text-secondary">{toTitleCase(displayClient)} · {formatDate(displayDate)}</p>
-                </div>
-                    <CurrentDateTime
-                        className="text-right hidden sm:block shrink-0"
-                        timeClassName="text-2xl font-bold tabular-nums text-text-primary"
-                        dateClassName="text-sm text-text-secondary"
-                    />
-                </div>
+            <DocumentsDetailHeader
+                displayRef={displayRef}
+                displayClient={displayClient}
+                displayDate={displayDate}
+                displayStatus={displayStatus}
+                displayType={displayType}
+            />
 
-            {/* Document List Card */}
             <div className="bg-surface rounded-xl border border-border overflow-hidden shadow-sm">
-
-                {/* Card header */}
                 <div className="px-6 py-4 border-b border-border bg-surface flex items-center justify-between">
                     <div className="flex items-center gap-2">
                         <svg className="w-4 h-4 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -388,7 +212,6 @@ export const DocumentsDetail = () => {
                     ) : null}
                 </div>
 
-                {/* Table header */}
                 <div
                     className="grid gap-4 px-6 py-3 border-b border-border text-xs font-bold text-text-secondary uppercase tracking-wider bg-surface"
                     style={{ gridTemplateColumns: '40px 2.5fr 1fr 1.4fr 80px 90px' }}
@@ -401,7 +224,6 @@ export const DocumentsDetail = () => {
                     <span className="text-center">Actions</span>
                 </div>
 
-                {/* Document rows */}
                 <div>
                     {docsLoading ? (
                         <div className="flex items-center justify-center py-16 gap-3 text-text-muted">
@@ -416,70 +238,21 @@ export const DocumentsDetail = () => {
                         </div>
                     ) : (
                         documents.map((doc, i) => (
-                            <div
+                            <DocumentRow
                                 key={doc.id}
-                                className={`grid gap-4 px-6 py-3.5 items-center border-b border-border/50 transition-colors hover:bg-hover ${i % 2 !== 0 ? 'bg-surface-secondary/40' : ''}`}
-                                style={{ gridTemplateColumns: '40px 2.5fr 1fr 1.4fr 80px 90px' }}
-                            >
-                                <FileTypeIcon type={doc.fileType} />
-                                <div className="min-w-0 flex items-center gap-2">
-                                    <p className="min-w-0 truncate text-sm font-semibold text-text-primary">
-                                        {doc.name}
-                                    </p>
-                                    {(() => {
-                                        const sc = STAGE_COLORS[doc.stageKey] ?? { color: '#9ca3af', bg: 'rgba(156,163,175,0.1)' };
-                                        return (
-                                            <span 
-                                                className="inline-flex shrink-0 items-center px-2 py-0.5 rounded-md text-[10px] font-semibold"
-                                                style={{ color: sc.color, backgroundColor: sc.bg }}
-                                                title={doc.stageLabel}
-                                            >
-                                                {doc.stageLabel}
-                                            </span>
-                                        );
-                                    })()}
-                                </div>
-                                <p className="text-sm font-semibold text-text-secondary">{formatDate(doc.date)}</p>
-                                <div className="flex items-center gap-2">
-                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold text-white shrink-0 ${doc.uploader.avatarColor}`}>
-                                        {doc.uploader.initials}
-                                    </div>
-                                    <span className="text-sm font-semibold text-text-secondary truncate">{doc.uploader.name}</span>
-                                </div>
-                                <p className="text-sm font-semibold text-text-secondary">{doc.size}</p>
-                                <div className="flex items-center justify-center gap-1">
-                                    {/* Download */}
-                                    <button
-                                        className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-md transition-colors"
-                                        title="Download"
-                                        onClick={() => trackingApi.downloadDocument(doc.id, doc.name)}
-                                    >
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                        </svg>
-                                    </button>
-                                    {/* Preview */}
-                                    <button
-                                        className="p-1.5 text-text-secondary hover:bg-hover rounded-md transition-colors"
-                                        title="Preview"
-                                        onClick={() => {
-                                            const apiDoc = apiDocuments.find(d => d.id === doc.id);
-                                            if (apiDoc) handlePreviewDoc(apiDoc);
-                                        }}
-                                    >
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                        </svg>
-                                    </button>
-                                </div>
-                            </div>
+                                doc={doc}
+                                isAlternate={i % 2 !== 0}
+                                onDownload={(d) => trackingApi.downloadDocument(d.id, d.name)}
+                                onPreview={(d) => {
+                                    const apiDoc = apiDocuments.find((api) => api.id === d.id);
+                                    if (apiDoc) handlePreviewDoc(apiDoc);
+                                }}
+                            />
                         ))
                     )}
                 </div>
             </div>
 
-            {/* Upload modal */}
             {canUpload ? (
                 <UploadModal
                     isOpen={isUploadOpen}
@@ -491,14 +264,13 @@ export const DocumentsDetail = () => {
                 />
             ) : null}
 
-            {/* File preview modal */}
             <FilePreviewModal
                 isOpen={!!previewFile}
                 onClose={() => setPreviewFile(null)}
                 file={previewFile?.file ?? null}
                 fileName={previewFile?.name ?? ''}
                 onDownload={previewFile ? () => {
-                    const doc = apiDocuments.find(d => d.filename === previewFile.name);
+                    const doc = apiDocuments.find((d) => d.filename === previewFile.name);
                     if (doc) trackingApi.downloadDocument(doc.id, doc.filename);
                 } : undefined}
             />

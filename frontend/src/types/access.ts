@@ -10,5 +10,5 @@ export interface PermissionMap {
   manage_transaction_oversight: boolean;
   upload_archives: boolean;
   manage_notarial_books: boolean;
-  manage_notarial_entries: boolean;
+  manage_notarial_templates: boolean;
 }

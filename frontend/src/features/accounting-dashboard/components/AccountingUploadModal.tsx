@@ -8,7 +8,7 @@ import { trackingApi } from '../../tracking/api/trackingApi';
 import { useAddDocumentToCache, useTransactionDocuments } from '../../tracking/hooks/useTransactionDocuments';
 import { useDocumentPreview } from '../../tracking/hooks/useDocumentPreview';
 import { trackingKeys } from '../../tracking/utils/queryKeys';
-import { StageRow } from '../../tracking/components/StageRow';
+import { StageRow } from '../../tracking/components/lists/StageRow';
 import type { ApiDocument, ApiExportStages, ApiImportStages, DocumentableType } from '../../tracking/types';
 import {
     getExportAccountingActionability,

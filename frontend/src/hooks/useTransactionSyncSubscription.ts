@@ -2,6 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useEffectEvent } from 'react';
 import { toast } from 'sonner';
 import { useAuth } from '../features/auth';
+import { isEncoder } from '../features/auth/utils/access';
 import { acquirePrivateChannel, releasePrivateChannel } from '../lib/realtime/echo';
 import {
     getActiveTransactionInvalidationKeys,
@@ -86,7 +87,7 @@ export function useTransactionSyncSubscription({
             handleTransactionSync(payload, eventName);
 
             if (
-                user.role === 'encoder' &&
+                isEncoder(user) &&
                 payload.event_type === 'reassigned' &&
                 payload.assigned_user_id !== user.id
             ) {

@@ -16,7 +16,7 @@ class UpdateArchiveImportRequest extends FormRequest
 
     public function rules(): array
     {
-        $transactionId = $this->route('importTransaction')?->id;
+        $transactionId = $this->route('transaction')?->id;
 
         return [
             'customs_ref_no' => [
@@ -35,7 +35,7 @@ class UpdateArchiveImportRequest extends FormRequest
                 Rule::unique('import_transactions', 'bl_no')->ignore($transactionId),
             ],
             'selective_color' => ['required', new Enum(SelectiveColor::class)],
-            'importer_id' => ['required', 'integer', 'exists:clients,id'],
+            'importer_id' => ['required', 'integer', 'exists:brokerage_clients,id'],
             'vessel_name' => ['nullable', 'string', 'max:100'],
             'origin_country_id' => ['nullable', 'integer', 'exists:countries,id'],
             'location_of_goods_id' => ['nullable', 'integer', 'exists:locations_of_goods,id'],

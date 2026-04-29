@@ -1,4 +1,5 @@
 import type { ApiDocument } from '../../../tracking/types';
+import type { VesselGroup } from '../../../tracking/types/tracking.types';
 import type {
     AdminReviewReadinessFilter,
     AdminReviewQueueItem,
@@ -98,6 +99,57 @@ export const extractErrorMessage = (error: unknown) => {
 
     return 'Failed to archive transaction.';
 };
+
+export function buildReviewGroups(transactions: AdminReviewQueueItem[]): VesselGroup<AdminReviewQueueItem>[] {
+    const grouped = new Map<string, AdminReviewQueueItem[]>();
+
+    for (const transaction of transactions) {
+        const vesselName = transaction.vessel?.trim() || 'Unknown Vessel';
+        const key = `${transaction.type}:${vesselName}`;
+        const existing = grouped.get(key);
+
+        if (existing) {
+            existing.push(transaction);
+        } else {
+            grouped.set(key, [transaction]);
+        }
+    }
+
+    const groups: VesselGroup<AdminReviewQueueItem>[] = [];
+
+    for (const [groupKey, vesselTransactions] of grouped.entries()) {
+        const firstTransaction = vesselTransactions[0];
+        const blockedCount = vesselTransactions.filter((transaction) => transaction.has_exceptions).length;
+        const readyCount = vesselTransactions.filter((transaction) => transaction.archive_ready).length;
+
+        groups.push({
+            vesselKey: groupKey,
+            vesselName: firstTransaction?.vessel?.trim() || 'Unknown Vessel',
+            voyage: null,
+            eta: firstTransaction?.transaction_date ?? null,
+            type: firstTransaction?.type ?? 'import',
+            transactions: vesselTransactions,
+            stats: {
+                total: vesselTransactions.length,
+                in_progress: vesselTransactions.length - readyCount,
+                blocked: blockedCount,
+                completed: readyCount,
+            },
+            isDelayed: false,
+        });
+    }
+
+    return groups.sort((left, right) => {
+        const leftDate = left.eta ? new Date(left.eta).getTime() : Number.POSITIVE_INFINITY;
+        const rightDate = right.eta ? new Date(right.eta).getTime() : Number.POSITIVE_INFINITY;
+
+        if (leftDate !== rightDate) {
+            return leftDate - rightDate;
+        }
+
+        return left.vesselName.localeCompare(right.vesselName);
+    });
+}
 
 export const toPreviewDocument = (file: AdminReviewDocumentFile | null, typeKey: string): ApiDocument | null => {
     if (!file) {

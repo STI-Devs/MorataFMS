@@ -16,7 +16,7 @@ class UpdateExportTransactionRequest extends FormRequest
         $id = $this->route('export_transaction')->id ?? null;
 
         return [
-            'shipper_id' => ['required', 'integer', 'exists:clients,id'],
+            'shipper_id' => ['required', 'integer', 'exists:brokerage_clients,id'],
             'bl_no' => [
                 'required',
                 'string',

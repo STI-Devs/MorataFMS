@@ -47,7 +47,7 @@ export const AdminDocumentReview = () => {
     const { handlePreviewDoc } = useDocumentPreview();
     const archiveMutation = useArchiveReviewedTransaction();
     const encodersQuery = useEncoders();
-    const encoderOptions = (encodersQuery.data ?? []).filter((user) => user.role === 'encoder');
+    const encoderOptions = encodersQuery.data ?? [];
 
     const queueQuery = useReviewQueue({
         page,

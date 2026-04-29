@@ -2,6 +2,7 @@
 
 namespace App\Queries\Reports;
 
+use App\Enums\ArchiveOrigin;
 use App\Models\ExportTransaction;
 use App\Models\ImportTransaction;
 use Carbon\CarbonImmutable;
@@ -15,15 +16,13 @@ class MonthlyReportQuery
         [$start, $end] = $this->yearBounds($year);
 
         $imports = $this->monthlyCounts(
-            ImportTransaction::query()
-                ->where('is_archive', false)
+            $this->reportableTransactions(ImportTransaction::query())
                 ->where('created_at', '>=', $start)
                 ->where('created_at', '<', $end)
         );
 
         $exports = $this->monthlyCounts(
-            ExportTransaction::query()
-                ->where('is_archive', false)
+            $this->reportableTransactions(ExportTransaction::query())
                 ->where('created_at', '>=', $start)
                 ->where('created_at', '<', $end)
         );
@@ -77,6 +76,15 @@ class MonthlyReportQuery
             ->get(['created_at'])
             ->groupBy(fn ($record) => $record->created_at?->month)
             ->map->count();
+    }
+
+    private function reportableTransactions(Builder $query): Builder
+    {
+        return $query->where(function (Builder $archiveQuery): void {
+            $archiveQuery
+                ->where('is_archive', false)
+                ->orWhere('archive_origin', ArchiveOrigin::ArchivedFromLive->value);
+        });
     }
 
     /**

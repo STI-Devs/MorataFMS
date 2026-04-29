@@ -1,2 +1,2 @@
-export { ArchivesPage } from './components/ArchivesPage';
-export { EncoderArchivePage } from './components/EncoderArchivePage';
+export { ArchivesPage } from './components/pages/ArchivesPage';
+export { EncoderArchivePage } from './components/pages/EncoderArchivePage';

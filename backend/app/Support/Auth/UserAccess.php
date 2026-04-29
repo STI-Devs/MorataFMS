@@ -43,7 +43,7 @@ class UserAccess
             'manage_transaction_oversight' => $normalizedRole === UserRole::Admin,
             'upload_archives' => in_array($normalizedRole, [UserRole::Admin, UserRole::Encoder], true),
             'manage_notarial_books' => $normalizedRole === UserRole::Admin,
-            'manage_notarial_entries' => in_array($normalizedRole, [UserRole::Admin, UserRole::Paralegal], true),
+            'manage_notarial_templates' => in_array($normalizedRole, [UserRole::Admin, UserRole::Paralegal], true),
         ];
     }
 

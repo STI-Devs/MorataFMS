@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { locationOfGoodsApi } from '../api/locationOfGoodsApi';
+import { trackingKeys } from '../../tracking/utils/queryKeys';
 import type {
     CreateLocationOfGoodsData,
     LocationOfGoods,
@@ -20,7 +21,7 @@ export const useCreateLocationOfGoods = () => {
         mutationFn: (data: CreateLocationOfGoodsData) => locationOfGoodsApi.createLocationOfGoods(data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['admin', 'locations-of-goods'] });
-            queryClient.invalidateQueries({ queryKey: ['locations-of-goods'] });
+            queryClient.invalidateQueries({ queryKey: trackingKeys.locationsOfGoods });
         },
     });
 };
@@ -33,7 +34,7 @@ export const useUpdateLocationOfGoods = () => {
             locationOfGoodsApi.updateLocationOfGoods(id, data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['admin', 'locations-of-goods'] });
-            queryClient.invalidateQueries({ queryKey: ['locations-of-goods'] });
+            queryClient.invalidateQueries({ queryKey: trackingKeys.locationsOfGoods });
         },
     });
 };
@@ -45,7 +46,7 @@ export const useToggleLocationOfGoods = () => {
         mutationFn: (id: number) => locationOfGoodsApi.toggleActiveLocationOfGoods(id),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['admin', 'locations-of-goods'] });
-            queryClient.invalidateQueries({ queryKey: ['locations-of-goods'] });
+            queryClient.invalidateQueries({ queryKey: trackingKeys.locationsOfGoods });
         },
     });
 };

@@ -1,125 +1,35 @@
-import { useDeferredValue, useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { Icon } from '../../../components/Icon';
-import { trackingApi } from '../../tracking/api/trackingApi';
-import type { ApiExportStages, ApiExportTransaction, ApiImportStages, ApiImportTransaction } from '../../tracking/types';
-import { trackingKeys } from '../../tracking/utils/queryKeys';
+import { useAccountingTaskQueue } from '../hooks/useAccountingTaskQueue';
 import {
-    getExportAccountingActionability,
-    getExportAccountingWaitingReason,
-    getImportAccountingActionability,
-    getImportAccountingWaitingReason,
-    getWaitingAgeLabel,
-} from '../../tracking/utils/stageUtils';
+    FILTER_META,
+    stageToneClassName,
+    type AccountingQueueRow,
+    type QueueState,
+    type QueueStageChip,
+} from '../utils/accountingTransaction.utils';
 import { AccountingUploadModal } from './AccountingUploadModal';
 
-type QueueView = 'import' | 'export';
-type QueueFilter = 'all' | 'ready' | 'blocked' | 'overdue';
-type QueueState = 'ready' | 'waiting';
-type StageTone = 'ready' | 'waiting' | 'uploaded' | 'review' | 'action';
-
-type SelectedTransaction = {
-    id: number;
-    ref: string;
-    clientName: string;
-    type: QueueView;
-    stages?: ApiImportStages | ApiExportStages;
-};
-
-type QueueStageChip = {
-    label: string;
-    tone: StageTone;
-};
-
-type AccountingQueueRow = {
-    id: number;
-    ref: string;
-    clientName: string;
-    typeLabel: 'Import' | 'Export';
-    primaryMeta: string;
-    secondaryMeta: string | null;
-    state: QueueState;
-    actionSummary: string;
-    blocker: string | null;
-    waitingLabel: string | null;
-    isOverdue: boolean;
-    stageChip: QueueStageChip;
-    searchableText: string;
-    selectedTransaction: SelectedTransaction;
-};
-
-const WAITING_OVERDUE_HOURS = 48;
-const FILTER_META: Array<{ key: QueueFilter; label: string }> = [
-    { key: 'all', label: 'All' },
-    { key: 'ready', label: 'Ready' },
-    { key: 'blocked', label: 'Blocked' },
-    { key: 'overdue', label: 'Overdue' },
-];
-
 export const AccountingImpExpPage = () => {
-    const [view, setView] = useState<QueueView>('import');
-    const [search, setSearch] = useState('');
-    const [filter, setFilter] = useState<QueueFilter>('all');
-    const [selectedTx, setSelectedTx] = useState<SelectedTransaction | null>(null);
-
-    const deferredSearch = useDeferredValue(search);
-
-    const importsQuery = useQuery({
-        queryKey: [...trackingKeys.imports.list(), 'accounting-queue'],
-        queryFn: () => trackingApi.getAllImports({ exclude_statuses: 'completed,cancelled', operational_scope: 'workspace' }),
-    });
-
-    const exportsQuery = useQuery({
-        queryKey: [...trackingKeys.exports.list(), 'accounting-queue'],
-        queryFn: () => trackingApi.getAllExports({ exclude_statuses: 'completed,cancelled', operational_scope: 'workspace' }),
-    });
-
-    const importRows = useMemo(
-        () => buildImportQueueRows(importsQuery.data ?? []),
-        [importsQuery.data],
-    );
-    const exportRows = useMemo(
-        () => buildExportQueueRows(exportsQuery.data ?? []),
-        [exportsQuery.data],
-    );
-
-    const activeRows = view === 'import' ? importRows : exportRows;
-    const activeQuery = view === 'import' ? importsQuery : exportsQuery;
-
-    const searchedRows = useMemo(() => {
-        const term = deferredSearch.trim().toLowerCase();
-
-        if (!term) {
-            return activeRows;
-        }
-
-        return activeRows.filter((row) => row.searchableText.includes(term));
-    }, [activeRows, deferredSearch]);
-
-    const filterCounts = useMemo(() => ({
-        all: searchedRows.length,
-        ready: searchedRows.filter((row) => row.state === 'ready').length,
-        blocked: searchedRows.filter((row) => row.state === 'waiting').length,
-        overdue: searchedRows.filter((row) => row.isOverdue).length,
-    }), [searchedRows]);
-
-    const filteredRows = useMemo(() => applyQueueFilter(searchedRows, filter), [searchedRows, filter]);
-
-    const readyRows = useMemo(
-        () => filteredRows.filter((row) => row.state === 'ready').sort(compareQueueRows),
-        [filteredRows],
-    );
-    const waitingRows = useMemo(
-        () => filteredRows.filter((row) => row.state === 'waiting').sort(compareQueueRows),
-        [filteredRows],
-    );
-
-    const queueSummary = useMemo(() => ({
-        visible: filteredRows.length,
-        ready: readyRows.length,
-        waiting: waitingRows.length,
-        overdue: filteredRows.filter((row) => row.isOverdue).length,
-    }), [filteredRows, readyRows.length, waitingRows.length]);
+    const {
+        view,
+        setView,
+        search,
+        setSearch,
+        filter,
+        setFilter,
+        selectedTx,
+        setSelectedTx,
+        importCount,
+        exportCount,
+        filterCounts,
+        queueSummary,
+        isLoading,
+        isError,
+        activeRows,
+        filteredRows,
+        readyRows,
+        waitingRows,
+    } = useAccountingTaskQueue();
 
     return (
         <div className="flex h-full flex-1 flex-col bg-app-bg">
@@ -133,13 +43,13 @@ export const AccountingImpExpPage = () => {
                     <QueueViewButton
                         isActive={view === 'import'}
                         label="Imports"
-                        count={importRows.length}
+                        count={importCount}
                         onClick={() => setView('import')}
                     />
                     <QueueViewButton
                         isActive={view === 'export'}
                         label="Exports"
-                        count={exportRows.length}
+                        count={exportCount}
                         onClick={() => setView('export')}
                     />
                 </div>
@@ -201,32 +111,32 @@ export const AccountingImpExpPage = () => {
             </div>
 
             <div className="flex-1 overflow-y-auto bg-surface-secondary/20 px-4 pb-8 pt-5">
-                {activeQuery.isLoading && (
+                {isLoading && (
                     <div className="rounded-xl border border-dashed border-border bg-surface p-10 text-center text-sm text-text-muted">
                         Loading accounting queue...
                     </div>
                 )}
 
-                {activeQuery.isError && !activeQuery.isLoading && (
+                {isError && !isLoading && (
                     <div className="rounded-xl border border-dashed border-border bg-surface p-10 text-center text-sm text-text-muted">
                         Accounting queue failed to load. Refresh the page and try again.
                     </div>
                 )}
 
-                {!activeQuery.isLoading && !activeQuery.isError && activeRows.length === 0 && (
+                {!isLoading && !isError && activeRows.length === 0 && (
                     <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-surface p-16 text-center text-text-muted">
                         <Icon name="archive" className="h-12 w-12 opacity-50" />
                         <p className="mt-4 text-sm font-semibold">No accounting upload tasks available</p>
                     </div>
                 )}
 
-                {!activeQuery.isLoading && !activeQuery.isError && activeRows.length > 0 && filteredRows.length === 0 && (
+                {!isLoading && !isError && activeRows.length > 0 && filteredRows.length === 0 && (
                     <div className="rounded-xl border border-dashed border-border bg-surface p-10 text-center text-sm text-text-muted">
                         No accounting tasks match the current search and filter.
                     </div>
                 )}
 
-                {!activeQuery.isLoading && !activeQuery.isError && filteredRows.length > 0 && (
+                {!isLoading && !isError && filteredRows.length > 0 && (
                     <div className="space-y-8">
                         <QueueSection
                             title="Ready to Upload"
@@ -475,200 +385,3 @@ const StageChip = ({ chip }: { chip: QueueStageChip }) => (
         {chip.label}
     </span>
 );
-
-function buildImportQueueRows(transactions: ApiImportTransaction[]): AccountingQueueRow[] {
-    return transactions.map((transaction) => {
-        const billingReady = getImportAccountingActionability(transaction.stages).billing;
-        const state: QueueState = billingReady ? 'ready' : 'waiting';
-        const waitAnchor = transaction.waiting_since ?? transaction.created_at;
-        const waitingLabel = getWaitingAgeLabel(waitAnchor);
-        const blocker = state === 'waiting' ? getImportAccountingWaitingReason(transaction.stages) : null;
-
-        return {
-            id: transaction.id,
-            ref: transaction.customs_ref_no || transaction.bl_no || 'Pending Ref',
-            clientName: transaction.importer?.name || 'Unknown Client',
-            typeLabel: 'Import',
-            primaryMeta: transaction.arrival_date ? `ETA ${formatDateLabel(transaction.arrival_date)}` : 'ETA —',
-            secondaryMeta: transaction.location_of_goods?.name ?? transaction.origin_country?.name ?? null,
-            state,
-            actionSummary: billingReady ? 'Billing and Liquidation ready now' : 'Waiting for workflow progress.',
-            blocker,
-            waitingLabel,
-            isOverdue: state === 'waiting' && isOverdue(waitAnchor),
-            stageChip: buildStageChip(transaction.stages?.billing, billingReady),
-            searchableText: [
-                transaction.customs_ref_no,
-                transaction.bl_no,
-                transaction.importer?.name,
-                transaction.location_of_goods?.name,
-                transaction.origin_country?.name,
-                blocker,
-                waitingLabel,
-                'billing and liquidation',
-            ]
-                .filter(Boolean)
-                .join(' ')
-                .toLowerCase(),
-            selectedTransaction: {
-                id: transaction.id,
-                ref: transaction.customs_ref_no || transaction.bl_no || 'Pending Ref',
-                clientName: transaction.importer?.name || 'Unknown Client',
-                type: 'import',
-                stages: transaction.stages,
-            },
-        };
-    });
-}
-
-function buildExportQueueRows(transactions: ApiExportTransaction[]): AccountingQueueRow[] {
-    return transactions.map((transaction) => {
-        const billingReady = getExportAccountingActionability(transaction.stages).billing;
-        const state: QueueState = billingReady ? 'ready' : 'waiting';
-        const waitAnchor = transaction.waiting_since ?? transaction.created_at;
-        const waitingLabel = getWaitingAgeLabel(waitAnchor);
-        const blocker = state === 'waiting' ? getExportAccountingWaitingReason(transaction.stages) : null;
-
-        return {
-            id: transaction.id,
-            ref: transaction.bl_no || 'Pending BL',
-            clientName: transaction.shipper?.name || 'Unknown Client',
-            typeLabel: 'Export',
-            primaryMeta: transaction.vessel ? `Vessel ${transaction.vessel}` : 'Vessel —',
-            secondaryMeta: transaction.destination_country?.name ?? null,
-            state,
-            actionSummary: billingReady ? 'Billing and Liquidation ready now' : 'Waiting for workflow progress.',
-            blocker,
-            waitingLabel,
-            isOverdue: state === 'waiting' && isOverdue(waitAnchor),
-            stageChip: buildStageChip(transaction.stages?.billing, billingReady),
-            searchableText: [
-                transaction.bl_no,
-                transaction.shipper?.name,
-                transaction.vessel,
-                transaction.destination_country?.name,
-                blocker,
-                waitingLabel,
-                'billing and liquidation',
-            ]
-                .filter(Boolean)
-                .join(' ')
-                .toLowerCase(),
-            selectedTransaction: {
-                id: transaction.id,
-                ref: transaction.bl_no || 'Pending BL',
-                clientName: transaction.shipper?.name || 'Unknown Client',
-                type: 'export',
-                stages: transaction.stages,
-            },
-        };
-    });
-}
-
-function buildStageChip(status: string | undefined, isActionable: boolean): QueueStageChip {
-    if (status === 'completed') {
-        return { label: 'Billing Uploaded', tone: 'uploaded' };
-    }
-
-    if (status === 'in_progress' || status === 'review') {
-        return { label: 'Billing For Review', tone: 'review' };
-    }
-
-    if (status === 'rejected') {
-        return { label: 'Billing Action Needed', tone: 'action' };
-    }
-
-    if (isActionable) {
-        return { label: 'Billing Ready', tone: 'ready' };
-    }
-
-    return { label: 'Billing Waiting', tone: 'waiting' };
-}
-
-function applyQueueFilter(rows: AccountingQueueRow[], filter: QueueFilter): AccountingQueueRow[] {
-    switch (filter) {
-        case 'ready':
-            return rows.filter((row) => row.state === 'ready');
-        case 'blocked':
-            return rows.filter((row) => row.state === 'waiting');
-        case 'overdue':
-            return rows.filter((row) => row.isOverdue);
-        default:
-            return rows;
-    }
-}
-
-function compareQueueRows(left: AccountingQueueRow, right: AccountingQueueRow): number {
-    if (left.isOverdue !== right.isOverdue) {
-        return left.isOverdue ? -1 : 1;
-    }
-
-    return getSortAnchor(left.waitingLabel) - getSortAnchor(right.waitingLabel);
-}
-
-function getSortAnchor(waitingLabel: string | null): number {
-    if (!waitingLabel) {
-        return Number.MAX_SAFE_INTEGER;
-    }
-
-    if (waitingLabel.includes('<1 hour')) {
-        return 0;
-    }
-
-    const matched = waitingLabel.match(/Waiting (\d+) (hour|hours|day|days)/i);
-
-    if (!matched) {
-        return Number.MAX_SAFE_INTEGER;
-    }
-
-    const value = Number(matched[1]);
-
-    if (matched[2].startsWith('day')) {
-        return -(value * 24);
-    }
-
-    return -value;
-}
-
-function isOverdue(dateString: string | null | undefined): boolean {
-    if (!dateString) {
-        return false;
-    }
-
-    const waitingSince = new Date(dateString).getTime();
-
-    if (Number.isNaN(waitingSince)) {
-        return false;
-    }
-
-    return (Date.now() - waitingSince) / (1000 * 60 * 60) >= WAITING_OVERDUE_HOURS;
-}
-
-function formatDateLabel(value: string): string {
-    const parsed = new Date(value);
-
-    if (Number.isNaN(parsed.getTime())) {
-        return value;
-    }
-
-    return parsed.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-    });
-}
-
-function stageToneClassName(tone: StageTone): string {
-    switch (tone) {
-        case 'ready':
-            return 'border-emerald-200 bg-emerald-50 text-emerald-700';
-        case 'uploaded':
-            return 'border-emerald-200 bg-emerald-50 text-emerald-700';
-        case 'review':
-            return 'border-amber-200 bg-amber-50 text-amber-700';
-        case 'action':
-            return 'border-red-200 bg-red-50 text-red-700';
-        default:
-            return 'border-slate-200 bg-slate-100 text-slate-600';
-    }
-}

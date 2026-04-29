@@ -33,7 +33,7 @@ vi.mock('../../../tracking/api/trackingApi', () => ({
     },
 }));
 
-vi.mock('../../../tracking/components/StageRow', () => ({
+vi.mock('../../../tracking/components/lists/StageRow', () => ({
     StageRow: ({
         stage,
         stageStatus,

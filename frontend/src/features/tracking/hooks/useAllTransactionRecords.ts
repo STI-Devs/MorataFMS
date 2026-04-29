@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { trackingApi } from '../api/trackingApi';
 import type { ApiExportTransaction, ApiImportTransaction } from '../types';
+import { trackingKeys } from '../utils/queryKeys';
 
 type ImportParams = {
     search?: string;
@@ -17,12 +18,12 @@ type ExportParams = {
 
 export const useAllImportsData = (params?: ImportParams) =>
     useQuery<ApiImportTransaction[]>({
-        queryKey: ['imports', 'all-records', params],
+        queryKey: trackingKeys.imports.allRecords(params),
         queryFn: () => trackingApi.getAllImports(params),
     });
 
 export const useAllExportsData = (params?: ExportParams) =>
     useQuery<ApiExportTransaction[]>({
-        queryKey: ['exports', 'all-records', params],
+        queryKey: trackingKeys.exports.allRecords(params),
         queryFn: () => trackingApi.getAllExports(params),
     });

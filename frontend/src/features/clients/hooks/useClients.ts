@@ -1,10 +1,11 @@
 ﻿import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { clientApi } from '../api/clientApi';
+import { trackingKeys } from '../../tracking/utils/queryKeys';
 import type { CreateClientData, UpdateClientData } from '../types/client.types';
 
 export const useClients = () =>
     useQuery({
-        queryKey: ['admin', 'clients'],
+        queryKey: trackingKeys.clients.all,
         queryFn: () => clientApi.getClients(),
         select: (res) => res.data ?? [],
     });
@@ -22,7 +23,7 @@ export const useCreateClient = () => {
         mutationFn: (data: CreateClientData) => clientApi.createClient(data),
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['admin', 'clients'] });
-            qc.invalidateQueries({ queryKey: ['clients'] });
+            qc.invalidateQueries({ queryKey: trackingKeys.clients.all });
         },
     });
 };
@@ -33,7 +34,7 @@ export const useUpdateClient = () => {
         mutationFn: ({ id, data }: { id: number; data: UpdateClientData }) => clientApi.updateClient(id, data),
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['admin', 'clients'] });
-            qc.invalidateQueries({ queryKey: ['clients'] });
+            qc.invalidateQueries({ queryKey: trackingKeys.clients.all });
         },
     });
 };
@@ -44,7 +45,7 @@ export const useToggleClient = () => {
         mutationFn: (id: number) => clientApi.toggleActiveClient(id),
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['admin', 'clients'] });
-            qc.invalidateQueries({ queryKey: ['clients'] });
+            qc.invalidateQueries({ queryKey: trackingKeys.clients.all });
         },
     });
 };

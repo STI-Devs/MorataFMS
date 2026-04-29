@@ -1,20 +1,21 @@
 ﻿import { useQuery } from '@tanstack/react-query';
 import { reportApi } from '../api/reportApi';
+import { reportKeys } from '../utils/queryKeys';
 
 export const useMonthlyReport = (year: number) =>
     useQuery({
-        queryKey: ['admin', 'reports', 'monthly', year],
+        queryKey: reportKeys.monthly(year),
         queryFn: () => reportApi.getMonthly(year),
     });
 
 export const useClientReport = (year: number, month?: number) =>
     useQuery({
-        queryKey: ['admin', 'reports', 'clients', year, month],
+        queryKey: reportKeys.clients(year, month),
         queryFn: () => reportApi.getClients(year, month),
     });
 
 export const useTurnaroundReport = (year: number, month?: number) =>
     useQuery({
-        queryKey: ['admin', 'reports', 'turnaround', year, month],
+        queryKey: reportKeys.turnaround(year, month),
         queryFn: () => reportApi.getTurnaround(year, month),
     });

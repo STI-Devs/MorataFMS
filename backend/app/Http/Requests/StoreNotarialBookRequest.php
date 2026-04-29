@@ -24,6 +24,9 @@ class StoreNotarialBookRequest extends FormRequest
                 }),
             ],
             'year' => ['required', 'integer', 'min:2000', 'max:2100'],
+            'status' => ['nullable', 'string', 'in:active,full,archived'],
+            'notes' => ['nullable', 'string', 'max:2000'],
+            'file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:51200'],
         ];
     }
 

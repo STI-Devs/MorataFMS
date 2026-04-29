@@ -84,7 +84,7 @@ export const ClientFormModal = ({ isOpen, onClose, onSubmit, client, mode }: Cli
                 onClick={(e) => e.stopPropagation()}
             >
                 <h2 className="text-2xl font-bold mb-6 text-text-primary">
-                    {mode === 'create' ? 'Create New Client' : 'Edit Client'}
+                    {mode === 'create' ? 'Create Brokerage Client' : 'Edit Brokerage Client'}
                 </h2>
 
                 {error && (
@@ -96,7 +96,7 @@ export const ClientFormModal = ({ isOpen, onClose, onSubmit, client, mode }: Cli
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="md:col-span-2">
-                            <label className={labelCls}>Client Name *</label>
+                            <label className={labelCls}>Brokerage Client Name *</label>
                             <input
                                 type="text"
                                 value={formData.name}
@@ -189,7 +189,7 @@ export const ClientFormModal = ({ isOpen, onClose, onSubmit, client, mode }: Cli
                             disabled={isSubmitting}
                             className="flex-1 px-6 py-3 rounded-xl font-bold bg-gradient-to-br from-blue-600 to-indigo-700 text-white hover:opacity-90 transition-opacity disabled:opacity-50"
                         >
-                            {isSubmitting ? 'Saving...' : mode === 'create' ? 'Create Client' : 'Save Changes'}
+                            {isSubmitting ? 'Saving...' : mode === 'create' ? 'Create Brokerage Client' : 'Save Changes'}
                         </button>
                     </div>
                 </form>

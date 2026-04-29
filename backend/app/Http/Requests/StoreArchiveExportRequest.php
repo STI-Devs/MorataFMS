@@ -28,7 +28,7 @@ class StoreArchiveExportRequest extends FormRequest
                 'unique:export_transactions,bl_no',
             ],
             'vessel' => ['nullable', 'string', 'max:100'],
-            'shipper_id' => ['required', 'integer', 'exists:clients,id'],
+            'shipper_id' => ['required', 'integer', 'exists:brokerage_clients,id'],
             'destination_country_id' => ['required', 'integer', 'exists:countries,id'],
 
             // Archive-specific: must be past/present date, and not older than year 2000

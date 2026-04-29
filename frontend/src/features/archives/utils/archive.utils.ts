@@ -6,6 +6,7 @@ import {
     type TransactionType,
 } from '../../documents/types/document.types';
 import { trackingApi } from '../../tracking/api/trackingApi';
+import { trackingKeys } from '../../tracking/utils/queryKeys';
 
 export type DrillState =
     | { level: 'years' }
@@ -155,7 +156,7 @@ export const prefetchArchiveEditLookups = async (
 ): Promise<void> => {
     const tasks: Promise<unknown>[] = [
         queryClient.prefetchQuery({
-            queryKey: ['clients', record.type === 'import' ? 'importer' : 'exporter'],
+            queryKey: trackingKeys.clients.list(record.type === 'import' ? 'importer' : 'exporter'),
             queryFn: () => trackingApi.getClients(record.type === 'import' ? 'importer' : 'exporter'),
             staleTime: Infinity,
         }),
@@ -164,12 +165,12 @@ export const prefetchArchiveEditLookups = async (
     if (record.type === 'import') {
         tasks.push(
             queryClient.prefetchQuery({
-                queryKey: ['countries', 'import_origin'],
+                queryKey: trackingKeys.countries.list('import_origin'),
                 queryFn: () => trackingApi.getCountries('import_origin'),
                 staleTime: Infinity,
             }),
             queryClient.prefetchQuery({
-                queryKey: ['locations-of-goods'],
+                queryKey: trackingKeys.locationsOfGoods,
                 queryFn: () => trackingApi.getLocationsOfGoods(),
                 staleTime: Infinity,
             }),
@@ -177,7 +178,7 @@ export const prefetchArchiveEditLookups = async (
     } else {
         tasks.push(
             queryClient.prefetchQuery({
-                queryKey: ['countries', 'export_destination'],
+                queryKey: trackingKeys.countries.list('export_destination'),
                 queryFn: () => trackingApi.getCountries('export_destination'),
                 staleTime: Infinity,
             }),

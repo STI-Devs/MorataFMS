@@ -5,6 +5,14 @@ import type { ClientReportResponse, MonthlyReportResponse, TurnaroundReportRespo
 
 const MONTH_FULL = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const REPORT_YEAR_START = 2026;
+
+function buildReportYears(currentYear: number): number[] {
+    return Array.from(
+        { length: Math.max(currentYear - REPORT_YEAR_START + 1, 1) },
+        (_, index) => currentYear - index,
+    );
+}
 
 const downloadCSV = (
     monthly: MonthlyReportResponse | undefined,
@@ -137,6 +145,7 @@ export const ReportsAnalytics = () => {
     const dateTime = useCurrentDateTime();
 
     const currentYear = new Date().getFullYear();
+    const reportYears = buildReportYears(currentYear);
     const [year, setYear] = useState(currentYear);
     const [month, setMonth] = useState(0);
 
@@ -175,7 +184,7 @@ export const ReportsAnalytics = () => {
                         onChange={e => setYear(Number(e.target.value))}
                         className="px-3 py-2 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#1c1c1e] text-gray-800 dark:text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 shadow-xs"
                     >
-                        {[2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
+                        {reportYears.map(selectedYear => <option key={selectedYear} value={selectedYear}>{selectedYear}</option>)}
                     </select>
                     <select
                         value={month}

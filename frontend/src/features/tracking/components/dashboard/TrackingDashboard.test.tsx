@@ -78,6 +78,7 @@ describe('TrackingDashboard', () => {
         expect(screen.getByText('Acme Imports')).toBeInTheDocument();
         expect(screen.getByText('Bravo Exports')).toBeInTheDocument();
         expect(screen.getAllByText('completed')).toHaveLength(2);
+        expect(screen.getAllByText('Expanded vessel view · assigned active transactions')).toHaveLength(2);
 
         fireEvent.click(screen.getByText('IMP/2026 001'));
 

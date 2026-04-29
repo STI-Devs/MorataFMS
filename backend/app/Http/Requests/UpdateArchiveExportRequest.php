@@ -14,7 +14,7 @@ class UpdateArchiveExportRequest extends FormRequest
 
     public function rules(): array
     {
-        $transactionId = $this->route('exportTransaction')?->id;
+        $transactionId = $this->route('transaction')?->id;
 
         return [
             'bl_no' => [
@@ -26,7 +26,7 @@ class UpdateArchiveExportRequest extends FormRequest
                 Rule::unique('export_transactions', 'bl_no')->ignore($transactionId),
             ],
             'vessel' => ['nullable', 'string', 'max:100'],
-            'shipper_id' => ['required', 'integer', 'exists:clients,id'],
+            'shipper_id' => ['required', 'integer', 'exists:brokerage_clients,id'],
             'destination_country_id' => ['required', 'integer', 'exists:countries,id'],
             'file_date' => ['required', 'date', 'after_or_equal:2000-01-01', 'before_or_equal:today'],
         ];

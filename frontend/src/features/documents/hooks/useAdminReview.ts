@@ -1,5 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { adminReviewApi } from '../api/adminReviewApi';
+import { archiveKeys } from '../../archives/utils/archiveQueryKeys';
 import type {
     AdminReviewArchiveResponse,
     AdminReviewDetailResponse,
@@ -49,8 +50,8 @@ export const useArchiveReviewedTransaction = () => {
         mutationFn: ({ type, id }) => adminReviewApi.archiveReviewedTransaction(type, id),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: adminReviewKeys.all });
-            queryClient.invalidateQueries({ queryKey: ['archives'] });
-            queryClient.invalidateQueries({ queryKey: ['my-archives'] });
+            queryClient.invalidateQueries({ queryKey: archiveKeys.all });
+            queryClient.invalidateQueries({ queryKey: archiveKeys.mineAll });
         },
     });
 };

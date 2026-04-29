@@ -13,7 +13,7 @@ const createPermissions = (overrides: Partial<PermissionMap>): PermissionMap => 
     manage_transaction_oversight: false,
     upload_archives: false,
     manage_notarial_books: false,
-    manage_notarial_entries: false,
+    manage_notarial_templates: false,
     ...overrides,
 });
 
@@ -80,6 +80,6 @@ describe('getHomePath', () => {
                     access_legal_module: false,
                 }),
             }),
-        ).toBe(appRoutes.tracking);
+        ).toBe(appRoutes.encoderDashboard);
     });
 });

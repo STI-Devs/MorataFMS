@@ -5,6 +5,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { ThemeProvider } from './context/ThemeContext';
 import { TransactionSyncProvider } from './context/TransactionSyncContext';
 import { AuthProvider, GuestRoute, ProtectedRoute, useAuth } from './features/auth';
+import { isAdmin } from './features/auth/utils/access';
 import { appRoutes } from './lib/appRoutes';
 import {
   AdminDashboard,
@@ -20,14 +21,19 @@ import {
   Documents,
   DocumentsDetail,
   EncoderArchivePage,
+  EncoderDashboard,
   ExportList,
-  FormsPage,
   Help,
   ImportList,
+  LegalArchivePage,
+  LegalArchiveRecordsPage,
   LandingPage,
   LegalDocumentsPage,
+  LegalRecordsPage,
   LocationOfGoodsManagement,
   LawFirmPage,
+  NotarialBooksPage,
+  NotarialTemplateUploadPage,
   ParalegalDashboard,
   Profile,
   ProcessorDashboard,
@@ -56,7 +62,7 @@ const RootFallback = () => (
 function DocumentsIndexRoute() {
   const { user } = useAuth();
 
-  if (user?.role === 'admin') {
+  if (isAdmin(user)) {
     return <Navigate to={appRoutes.adminDocumentReview} replace />;
   }
 
@@ -102,7 +108,10 @@ function AppContent() {
 
             {/* Encoder-only brokerage routes */}
             <Route element={<ProtectedRoute allowedRoles={['encoder']} />}>
-              <Route path={appRoutes.myArchive} element={<EncoderArchivePage />} />
+              <Route path={appRoutes.encoderDashboard} element={<EncoderDashboard />} />
+              <Route path={appRoutes.myArchive} element={<Navigate to={appRoutes.encoderRecordsArchive} replace />} />
+              <Route path={appRoutes.encoderRecords} element={<Navigate to={appRoutes.encoderRecordsArchive} replace />} />
+              <Route path={appRoutes.encoderRecordsWildcard} element={<EncoderArchivePage />} />
             </Route>
 
             {/* Admin-only brokerage routes */}
@@ -116,15 +125,24 @@ function AppContent() {
               <Route path={appRoutes.transactions} element={<TransactionOversight />} />
               <Route path={appRoutes.reports} element={<ReportsAnalytics />} />
               <Route path={appRoutes.auditLogs} element={<AuditLogs />} />
-              <Route path={appRoutes.archives} element={<RecordsPage />} />
+              <Route path={appRoutes.archives} element={<Navigate to={appRoutes.archiveTransactions} replace />} />
+              <Route path={appRoutes.archivesWildcard} element={<RecordsPage />} />
             </Route>
 
             {/* Legal module - admin + paralegal */}
             <Route element={<ProtectedRoute allowedRoles={['admin', 'paralegal']} />}>
               <Route path={appRoutes.paralegalDashboard} element={<ParalegalDashboard />} />
               <Route path={appRoutes.lawFirm} element={<LawFirmPage />} />
-              <Route path={appRoutes.forms} element={<FormsPage />} />
-              <Route path={appRoutes.paralegalDocuments} element={<LegalDocumentsPage />} />
+              <Route path={appRoutes.forms} element={<Navigate to={appRoutes.paralegalNotarial} replace />} />
+              <Route path={appRoutes.paralegalDocuments} element={<Navigate to={appRoutes.paralegalNotarial} replace />} />
+              <Route path={appRoutes.paralegalNotarialIndex} element={<Navigate to={appRoutes.paralegalNotarial} replace />} />
+              <Route path={appRoutes.paralegalLegalFilesIndex} element={<Navigate to={appRoutes.paralegalLegalFiles} replace />} />
+              <Route path={appRoutes.paralegalBooks} element={<NotarialBooksPage />} />
+              <Route path={appRoutes.paralegalNotarial} element={<LegalDocumentsPage />} />
+              <Route path={appRoutes.paralegalTemplateUpload} element={<NotarialTemplateUploadPage />} />
+              <Route path={appRoutes.paralegalLegalFiles} element={<LegalArchivePage />} />
+              <Route path={appRoutes.paralegalLegalFileRecords} element={<LegalArchiveRecordsPage />} />
+              <Route path={appRoutes.paralegalRecords} element={<LegalRecordsPage />} />
             </Route>
 
             {/* Processor module */}

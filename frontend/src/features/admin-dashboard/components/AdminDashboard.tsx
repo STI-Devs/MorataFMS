@@ -10,6 +10,7 @@ type KpiCard = {
     value: string;
     tone: 'neutral' | 'warning' | 'danger';
     helper: string;
+    accent: string;
 };
 
 type QuickAction = {
@@ -51,7 +52,7 @@ const quickActions: QuickAction[] = [
         accent: '#bf5af2',
     },
     {
-        label: 'Client Management',
+        label: 'Brokerage Client Management',
         path: appRoutes.clients,
         icon: 'truck',
         accent: '#30d158',
@@ -80,7 +81,7 @@ const statusBadgeStyles: Record<AdminDashboardCriticalItem['status'], string> = 
 };
 
 const statusLabels: Record<AdminDashboardCriticalItem['status'], string> = {
-    stuck: 'Stuck',
+    stuck: 'Needs Update',
     missing: 'Missing',
     review: 'Review',
 };
@@ -91,9 +92,9 @@ const dashboardDestinationPaths: Record<AdminDashboardDestination, string> = {
 };
 
 const SectionHeading = ({ label, accentClass }: { label: string; accentClass: string }) => (
-    <div className="mb-4 flex items-center gap-3">
-        <div className={`h-5 w-1 rounded-full ${accentClass}`} />
-        <h2 className="text-sm font-bold uppercase tracking-[0.22em] text-text-secondary">{label}</h2>
+    <div className="mb-2.5 flex items-center gap-2">
+        <div className={`h-4 w-1 rounded-full ${accentClass}`} />
+        <h2 className="text-xs font-black uppercase tracking-[0.22em] text-text-secondary">{label}</h2>
     </div>
 );
 
@@ -126,25 +127,43 @@ export const AdminDashboard = () => {
             label: 'Active Imports',
             value: dashboardQuery.isLoading ? '—' : String(dashboard?.kpis.active_imports ?? 0),
             tone: 'neutral',
-            helper: 'Brokerage files still in progress',
+            helper: 'Open import workload',
+            accent: 'bg-blue-500',
         },
         {
             label: 'Active Exports',
             value: dashboardQuery.isLoading ? '—' : String(dashboard?.kpis.active_exports ?? 0),
             tone: 'neutral',
-            helper: 'Outbound shipments in motion',
+            helper: 'Open export workload',
+            accent: 'bg-blue-500',
         },
         {
-            label: 'Delayed Shipments',
+            label: 'ETA/ETD This Week',
+            value: dashboardQuery.isLoading ? '—' : String(dashboard?.kpis.upcoming_eta_etd ?? 0),
+            tone: 'warning',
+            helper: 'Arrivals/departures within 7 days',
+            accent: 'bg-amber-500',
+        },
+        {
+            label: 'Open Remarks',
+            value: dashboardQuery.isLoading ? '—' : String(dashboard?.kpis.open_remarks ?? 0),
+            tone: 'warning',
+            helper: 'Unresolved operational blockers',
+            accent: 'bg-orange-500',
+        },
+        {
+            label: 'Needs Update',
             value: dashboardQuery.isLoading ? '—' : String(dashboard?.kpis.delayed_shipments ?? 0),
             tone: 'danger',
-            helper: 'No updates for 48 hours or more',
+            helper: 'No activity logged for 48+ hours',
+            accent: 'bg-red-500',
         },
         {
-            label: 'Missing Final Docs',
+            label: 'Document Gaps',
             value: dashboardQuery.isLoading ? '—' : String(dashboard?.kpis.missing_final_docs ?? 0),
-            tone: 'warning',
+            tone: 'danger',
             helper: 'Finalized files still incomplete',
+            accent: 'bg-red-500',
         },
     ];
 
@@ -155,7 +174,7 @@ export const AdminDashboard = () => {
     const criticalEmptyState = dashboardQuery.isLoading
         ? {
             title: 'Loading critical operations...',
-            body: 'Stuck shipments, missing archive documents, and flagged exceptions will appear here.',
+            body: 'Stale records, missing archive documents, and flagged exceptions will appear here.',
         }
         : dashboardQuery.isError
             ? {
@@ -164,7 +183,7 @@ export const AdminDashboard = () => {
             }
             : {
                 title: 'All clear — no critical issues.',
-                body: 'Stuck shipments, missing archive documents, and flagged exceptions will appear here.',
+                body: 'Stale records, missing archive documents, and flagged exceptions will appear here.',
             };
 
     const actionFeedEmptyState = dashboardQuery.isLoading
@@ -198,44 +217,49 @@ export const AdminDashboard = () => {
             };
 
     return (
-        <div className="space-y-8 px-6 py-6">
-            <header className="flex flex-col gap-4 border-b border-border pb-6 sm:flex-row sm:items-end sm:justify-between">
+        <div className="space-y-4 px-6 py-4">
+            <header className="flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.28em] text-text-muted">System Oversight</p>
-                    <h1 className="mt-2 text-4xl font-bold tracking-tight text-text-primary">Brokerage Dashboard</h1>
-                    <p className="mt-3 max-w-2xl text-sm text-text-secondary">
-                        Monitor today&apos;s brokerage workload, priority issues, and the admin actions that matter most.
+                    <p className="text-[11px] font-black uppercase tracking-[0.28em] text-text-muted">System Oversight</p>
+                    <h1 className="mt-1 text-3xl font-black tracking-tight text-text-primary">Brokerage Dashboard</h1>
+                    <p className="mt-1 max-w-3xl text-sm text-text-secondary">
+                        Monitor active brokerage workload, stale records, document gaps, and admin actions.
                     </p>
                 </div>
                 <CurrentDateTime
-                    className="text-left sm:text-right"
-                    timeClassName="text-2xl font-mono font-bold tracking-tight text-text-primary"
-                    dateClassName="mt-1 text-xs font-mono uppercase tracking-[0.25em] text-text-secondary"
+                    className="hidden text-right sm:block"
+                    timeClassName="text-xl font-mono font-bold tracking-tight text-text-primary leading-none"
+                    dateClassName="mt-1 text-xs font-mono uppercase tracking-[0.25em] text-text-secondary leading-none"
                 />
             </header>
 
-            <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <section className="grid gap-2 md:grid-cols-3 xl:grid-cols-6">
                 {kpiCards.map((card) => {
                     const tone = toneStyles[card.tone];
 
                     return (
                         <article
                             key={card.label}
-                            className="relative overflow-hidden rounded-xl border border-border bg-surface p-5 shadow-sm"
+                            className="relative overflow-hidden rounded-xl border border-border bg-surface px-3.5 py-3 shadow-sm"
                         >
-                            <div className={`absolute right-4 top-4 h-2.5 w-2.5 rounded-full ${tone.dot}`} />
-                            <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-text-muted">{card.label}</p>
-                            <p className={`mt-5 text-5xl font-bold tracking-tighter ${tone.value}`}>{card.value}</p>
-                            <p className="mt-3 text-sm text-text-secondary">{card.helper}</p>
+                            <div className={`absolute inset-y-0 left-0 w-1 ${card.accent}`} />
+                            <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                    <p className="text-[10px] font-black uppercase tracking-[0.22em] text-text-muted">{card.label}</p>
+                                    <p className="mt-1 line-clamp-2 text-xs font-semibold text-text-secondary">{card.helper}</p>
+                                </div>
+                                <div className={`mt-0.5 h-2.5 w-2.5 shrink-0 rounded-full ${tone.dot}`} />
+                            </div>
+                            <p className={`mt-3 text-3xl font-black tracking-tighter ${tone.value}`}>{card.value}</p>
                         </article>
                     );
                 })}
             </section>
 
-            <main className="grid gap-8 xl:grid-cols-[minmax(0,1.7fr)_minmax(320px,0.9fr)]">
-                <div className="space-y-8">
+            <main className="grid gap-4 xl:grid-cols-[minmax(0,1.65fr)_minmax(320px,0.85fr)]">
+                <div className="space-y-4">
                     <section>
-                        <SectionHeading label="Critical Operations" accentClass="bg-red-500" />
+                        <SectionHeading label="Operation Queue" accentClass="bg-red-500" />
                         <div className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
                             {criticalOperations.length === 0 ? (
                                 <EmptyState
@@ -248,21 +272,21 @@ export const AdminDashboard = () => {
                                         key={item.id}
                                         type="button"
                                         onClick={() => navigate(dashboardDestinationPaths[item.destination])}
-                                        className={`flex w-full items-start gap-4 px-5 py-5 text-left transition-colors hover:bg-hover ${
+                                        className={`grid w-full gap-3 px-4 py-3 text-left transition-colors hover:bg-hover sm:grid-cols-[112px_minmax(0,1fr)_88px] sm:items-center ${
                                             index !== criticalOperations.length - 1 ? 'border-b border-border' : ''
                                         }`}
                                     >
-                                        <span className={`mt-0.5 inline-flex rounded-md border px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.2em] ${statusBadgeStyles[item.status]}`}>
+                                        <span className={`inline-flex w-fit rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${statusBadgeStyles[item.status]}`}>
                                             {statusLabels[item.status]}
                                         </span>
                                         <div className="min-w-0 flex-1">
                                             <div className="flex flex-wrap items-baseline gap-2">
-                                                <span className="text-xl font-bold tracking-tight text-text-primary">{item.ref}</span>
+                                                <span className="text-lg font-black tracking-tight text-text-primary">{item.ref}</span>
                                                 <span className="text-sm text-text-muted">{item.title}</span>
                                             </div>
-                                            <p className="mt-2 text-sm text-text-secondary">{item.detail}</p>
+                                            <p className="mt-1 text-sm text-text-secondary">{item.detail}</p>
                                         </div>
-                                        <div className="flex items-center gap-3 pl-4 text-text-muted">
+                                        <div className="flex items-center justify-end gap-3 text-text-muted">
                                             <span className="whitespace-nowrap text-xs font-mono uppercase tracking-[0.18em]">{item.age}</span>
                                             <Icon name="chevron-right" className="h-4 w-4" />
                                         </div>
@@ -284,7 +308,7 @@ export const AdminDashboard = () => {
                                 actionFeed.map((item, index) => (
                                     <div
                                         key={item.id}
-                                        className={`grid gap-3 px-5 py-4 md:grid-cols-[120px_minmax(0,1fr)] ${
+                                        className={`grid gap-3 px-4 py-3 md:grid-cols-[96px_minmax(0,1fr)] ${
                                             index !== actionFeed.length - 1 ? 'border-b border-border' : ''
                                         }`}
                                     >
@@ -306,7 +330,7 @@ export const AdminDashboard = () => {
                     </section>
                 </div>
 
-                <aside className="space-y-8">
+                <aside className="space-y-4">
                     <section>
                         <SectionHeading label="Quick Actions" accentClass="bg-blue-500" />
                         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-2">
@@ -315,19 +339,19 @@ export const AdminDashboard = () => {
                                     key={action.label}
                                     type="button"
                                     onClick={() => navigate(action.path)}
-                                    className="group relative min-h-[104px] rounded-xl border border-border bg-surface p-4 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-border-strong hover:bg-hover"
+                                    className="group relative flex min-h-[76px] items-center gap-3 rounded-xl border border-border bg-surface p-3 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-border-strong hover:bg-hover"
                                 >
                                     <div
                                         className="absolute inset-y-0 left-0 w-1 rounded-l-xl opacity-0 transition-opacity group-hover:opacity-100"
                                         style={{ backgroundColor: action.accent }}
                                     />
                                     <div
-                                        className="flex h-10 w-10 items-center justify-center rounded-lg"
+                                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
                                         style={{ backgroundColor: `${action.accent}18` }}
                                     >
                                         <Icon name={action.icon} className="h-4 w-4" style={{ color: action.accent }} />
                                     </div>
-                                    <p className="mt-4 whitespace-normal text-sm font-semibold leading-5 text-text-primary">
+                                    <p className="whitespace-normal text-sm font-bold leading-5 text-text-primary">
                                         {action.label}
                                     </p>
                                 </button>
@@ -346,7 +370,7 @@ export const AdminDashboard = () => {
                             ) : brokerageWorkloads.map((person, index) => (
                                 <div
                                     key={person.id}
-                                    className={`flex items-center justify-between gap-4 px-5 py-4 ${
+                                    className={`flex items-center justify-between gap-4 px-4 py-3 ${
                                         index !== brokerageWorkloads.length - 1 ? 'border-b border-border' : ''
                                     }`}
                                 >

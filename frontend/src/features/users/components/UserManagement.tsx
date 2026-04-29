@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { CurrentDateTime } from '../../../components/CurrentDateTime';
 import { useAuth } from '../../auth/hooks/useAuth';
+import { isAdmin } from '../../auth/utils/access';
 import { useActivateUser, useCreateUser, useDeactivateUser, useUpdateUser, useUsers } from '../hooks/useUsers';
 import type { CreateUserData, UpdateUserData, User } from '../types/user.types';
 import { UserFormModal } from './UserFormModal';
@@ -121,8 +122,8 @@ export const UserManagement = () => {
                 const total = users.length;
                 const active = users.filter(u => u.is_active).length;
                 const inactive = total - active;
-                const admins = users.filter(u => u.role === 'admin').length;
-                const staff = users.filter(u => u.role !== 'admin').length;
+                const admins = users.filter(u => isAdmin(u)).length;
+                const staff = users.filter(u => !isAdmin(u)).length;
 
                 const cards = [
                     {

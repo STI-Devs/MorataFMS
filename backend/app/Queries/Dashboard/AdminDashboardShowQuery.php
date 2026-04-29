@@ -58,6 +58,8 @@ class AdminDashboardShowQuery
                     ->whereIn('status', $this->activeExportStatuses())
                     ->where('updated_at', '<=', $delayedThreshold)
                     ->count(),
+            'upcoming_eta_etd' => $this->countUpcomingImportArrivals() + $this->countUpcomingExportDepartures(),
+            'open_remarks' => $this->countOpenRemarks(),
             'missing_final_docs' => $this->countMissingRequiredDocuments(
                 ImportTransaction::query()
                     ->where('is_archive', false)
@@ -231,7 +233,7 @@ class AdminDashboardShowQuery
                     'id' => 'stuck-import-'.$transaction->id,
                     'ref' => $this->importReference($transaction),
                     'status' => 'stuck',
-                    'title' => 'Import shipment has not moved recently',
+                    'title' => 'Import record needs a staff update',
                     'detail' => $this->staleDetail($transaction->status->value, $transaction->assignedUser?->name),
                     'age' => $this->shortAge($transaction->updated_at),
                     'destination' => 'transactions',
@@ -257,7 +259,7 @@ class AdminDashboardShowQuery
                     'id' => 'stuck-export-'.$transaction->id,
                     'ref' => $this->exportReference($transaction),
                     'status' => 'stuck',
-                    'title' => 'Export shipment has not moved recently',
+                    'title' => 'Export record needs a staff update',
                     'detail' => $this->staleDetail($transaction->status->value, $transaction->assignedUser?->name),
                     'age' => $this->shortAge($transaction->updated_at),
                     'destination' => 'transactions',
@@ -389,6 +391,43 @@ class AdminDashboardShowQuery
         return $this->missingDocumentQuery($query, $requiredTypes)->count();
     }
 
+    private function countUpcomingImportArrivals(): int
+    {
+        return ImportTransaction::query()
+            ->where('is_archive', false)
+            ->whereIn('status', $this->activeImportStatuses())
+            ->whereBetween('arrival_date', [
+                CarbonImmutable::now()->startOfDay(),
+                CarbonImmutable::now()->addDays(7)->endOfDay(),
+            ])
+            ->count();
+    }
+
+    private function countUpcomingExportDepartures(): int
+    {
+        return ExportTransaction::query()
+            ->where('is_archive', false)
+            ->whereIn('status', $this->activeExportStatuses())
+            ->whereBetween('export_date', [
+                CarbonImmutable::now()->startOfDay(),
+                CarbonImmutable::now()->addDays(7)->endOfDay(),
+            ])
+            ->count();
+    }
+
+    private function countOpenRemarks(): int
+    {
+        return TransactionRemark::query()
+            ->where('is_resolved', false)
+            ->whereHasMorph('remarkble', [
+                ImportTransaction::class,
+                ExportTransaction::class,
+            ], function (Builder $query): void {
+                $query->where('is_archive', false);
+            })
+            ->count();
+    }
+
     private function missingDocumentQuery(Builder $query, array $requiredTypes): Builder
     {
         return $query->where(function (Builder $missingQuery) use ($requiredTypes): void {
@@ -451,7 +490,7 @@ class AdminDashboardShowQuery
 
     private function exportReference(ExportTransaction $transaction): string
     {
-        return 'EXP-'.str_pad((string) $transaction->id, 4, '0', STR_PAD_LEFT);
+        return $transaction->bl_no ?: 'Export #'.$transaction->id;
     }
 
     private function transactionReferenceFromModel(?string $modelType, mixed $model): string

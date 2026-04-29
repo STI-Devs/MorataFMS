@@ -1,5 +1,7 @@
 import type { QueryKey } from '@tanstack/react-query';
+import { archiveKeys } from '../../features/archives/utils/archiveQueryKeys';
 import type { TransactionType } from '../../features/documents/types/document.types';
+import { oversightKeys, remarkKeys } from '../../features/oversight/utils/queryKeys';
 import type { DocumentableType } from '../../features/tracking/types';
 import { trackingKeys } from '../../features/tracking/utils/queryKeys';
 
@@ -60,11 +62,11 @@ export function getListInvalidationKeys(
 ): QueryKey[] {
     const queryKeys: QueryKey[] = [
         payload.transaction_type === 'import' ? trackingKeys.imports.all : trackingKeys.exports.all,
-        ['admin', 'transactions'],
+        oversightKeys.transactions.all,
     ];
 
     if (eventName === TRANSACTION_REMARK_CHANGED_EVENT) {
-        queryKeys.push(['remarks', payload.transaction_type, payload.transaction_id]);
+        queryKeys.push(remarkKeys.list(payload.transaction_type, payload.transaction_id));
         queryKeys.push(['admin-document-review']);
 
         return queryKeys;
@@ -84,8 +86,8 @@ export function getListInvalidationKeys(
     }
 
     if (payload.is_archive || ARCHIVE_RELEVANT_EVENT_TYPES.has(payload.event_type)) {
-        queryKeys.push(['archives']);
-        queryKeys.push(['my-archives']);
+        queryKeys.push(archiveKeys.all);
+        queryKeys.push(archiveKeys.mineAll);
     }
 
     return queryKeys;
@@ -111,7 +113,7 @@ export function getActiveTransactionInvalidationKeys(
     }
 
     if (eventName === TRANSACTION_REMARK_CHANGED_EVENT) {
-        queryKeys.push(['remarks', payload.transaction_type, payload.transaction_id]);
+        queryKeys.push(remarkKeys.list(payload.transaction_type, payload.transaction_id));
     }
 
     return queryKeys;
