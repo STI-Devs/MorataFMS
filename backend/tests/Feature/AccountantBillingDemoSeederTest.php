@@ -6,10 +6,13 @@ use App\Models\ImportTransaction;
 use App\Models\User;
 use Database\Seeders\AccountantBillingDemoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 
 uses(RefreshDatabase::class);
 
 test('accountant billing demo seeder creates five billing-ready imports on the same vessel', function () {
+    Storage::fake(config('filesystems.default', 'local'));
+
     $this->seed(AccountantBillingDemoSeeder::class);
 
     $accountant = User::query()->where('email', 'accountant@morata.com')->first();
@@ -48,6 +51,8 @@ test('accountant billing demo seeder creates five billing-ready imports on the s
 });
 
 test('accountant billing demo seeder resets previous demo billing uploads back to ready state', function () {
+    Storage::fake(config('filesystems.default', 'local'));
+
     $this->seed(AccountantBillingDemoSeeder::class);
 
     $accountant = User::query()->where('email', 'accountant@morata.com')->firstOrFail();
