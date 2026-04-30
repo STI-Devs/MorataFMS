@@ -8,6 +8,8 @@ import type {
     DocumentTransactionListResponse,
     DocumentableType,
     UploadDocumentPayload,
+    UploadVesselBillingDocumentsPayload,
+    VesselBillingUploadResult,
 } from '../types';
 
 export const documentsApi = {
@@ -43,6 +45,30 @@ export const documentsApi = {
         const response = await api.post('/api/documents', formData, {
             headers: { 'Content-Type': 'multipart/form-data' },
         });
+        return response.data.data;
+    },
+
+    uploadVesselBillingDocuments: async (
+        payload: UploadVesselBillingDocumentsPayload,
+    ): Promise<VesselBillingUploadResult> => {
+        for (const file of payload.files) {
+            if (file.size > MAX_UPLOAD_FILE_SIZE_BYTES) {
+                throw new Error(getMaxFileSizeErrorMessage());
+            }
+        }
+
+        const formData = new FormData();
+        formData.append('documentable_type', payload.documentable_type);
+        formData.append('documentable_id', String(payload.documentable_id));
+
+        payload.files.forEach((file) => {
+            formData.append('files[]', file);
+        });
+
+        const response = await api.post('/api/documents/vessel-billing', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        });
+
         return response.data.data;
     },
 

@@ -194,6 +194,33 @@ describe('MainLayout', () => {
         expect(screen.queryByRole('button', { name: 'Records' })).not.toBeInTheDocument();
     });
 
+    it('shows the accountant navigation label as Accounting Tasks', () => {
+        mockUseAuth.mockReturnValue({
+            user: {
+                name: 'Accountant User',
+                email: 'accountant@example.com',
+                role: 'accounting',
+                departments: ['brokerage'],
+                multi_department: false,
+            },
+            logout: vi.fn(),
+        });
+
+        render(
+            <MemoryRouter initialEntries={[appRoutes.accountantImpExp]}>
+                <Routes>
+                    <Route element={<MainLayout />}>
+                        <Route path={appRoutes.accountantImpExp} element={<div>Accounting tasks page</div>} />
+                    </Route>
+                </Routes>
+            </MemoryRouter>,
+        );
+
+        expect(screen.getByRole('button', { name: 'Accounting Tasks' })).toHaveClass('bg-black/8');
+        expect(screen.queryByRole('button', { name: 'ImpExp' })).not.toBeInTheDocument();
+        expect(screen.getByText('Accounting tasks page')).toBeInTheDocument();
+    });
+
     it('shows the encoder dashboard as the brokerage home for encoder users', () => {
         mockUseAuth.mockReturnValue({
             user: {

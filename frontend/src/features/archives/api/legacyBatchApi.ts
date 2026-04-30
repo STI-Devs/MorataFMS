@@ -127,14 +127,17 @@ export const legacyBatchApi = {
     getLegacyBatches: async ({
         page = 1,
         perPage = 20,
+        search = '',
     }: {
         page?: number;
         perPage?: number;
+        search?: string;
     } = {}): Promise<LegacyBatchListResponse> => {
         const response = await api.get<LegacyBatchListApiResponse>('/api/legacy-batches', {
             params: {
                 page,
                 per_page: perPage,
+                search: search.trim() || undefined,
             },
         });
 

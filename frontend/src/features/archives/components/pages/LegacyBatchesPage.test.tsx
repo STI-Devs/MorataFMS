@@ -13,7 +13,7 @@ const {
 }));
 
 vi.mock('../../hooks/useLegacyBatches', () => ({
-    useLegacyBatches: () => useLegacyBatchesMock(),
+    useLegacyBatches: (...args: unknown[]) => useLegacyBatchesMock(...args),
 }));
 
 vi.mock('../../hooks/useLegacyBatch', () => ({
@@ -63,25 +63,52 @@ const batchSummary = {
     canResume: true,
 };
 
+const secondBatchSummary = {
+    ...batchSummary,
+    id: 'legacy-batch-2',
+    batchName: 'KOTA NANHAI',
+    rootFolder: 'KOTA NANHAI',
+    uploadedBy: 'Claire Ivy Florino',
+    uploadDate: 'Apr 21, 2026',
+    metadata: {
+        ...batchSummary.metadata,
+        year: '2023 - 2025',
+    },
+    uploadSummary: {
+        expected: 9,
+        uploaded: 9,
+        failed: 0,
+        remaining: 0,
+    },
+    status: 'completed' as const,
+    statusLabel: 'Completed',
+    fileCount: 9,
+    uploadedFileCount: 9,
+    pendingFileCount: 0,
+    canResume: false,
+};
+
 describe('LegacyBatchesPage', () => {
     beforeEach(() => {
         deleteBatchMutateAsync.mockReset();
         deleteBatchMutateAsync.mockResolvedValue(undefined);
-        useLegacyBatchesMock.mockReturnValue({
+        useLegacyBatchesMock.mockImplementation((params?: { search?: string }) => ({
             data: {
-                items: [batchSummary],
+                items: params?.search?.toLowerCase() === 'claire'
+                    ? [secondBatchSummary]
+                    : [batchSummary, secondBatchSummary],
                 pagination: {
                     currentPage: 1,
                     perPage: 20,
-                    total: 1,
+                    total: params?.search?.toLowerCase() === 'claire' ? 1 : 2,
                     lastPage: 1,
-                    from: 1,
-                    to: 1,
+                    from: params?.search?.toLowerCase() === 'claire' ? 1 : 1,
+                    to: params?.search?.toLowerCase() === 'claire' ? 1 : 2,
                 },
             },
             isLoading: false,
             isError: false,
-        });
+        }));
         useLegacyBatchMock.mockReturnValue({
             data: {
                 ...batchSummary,
@@ -105,8 +132,25 @@ describe('LegacyBatchesPage', () => {
         fireEvent.click(screen.getByRole('button', { name: /resume/i }));
 
         expect(onResumeBatch).toHaveBeenCalledWith('legacy-batch-1');
-        expect(screen.getByText('Showing 1-1 of 1 legacy batches')).toBeInTheDocument();
+        expect(screen.getByText('Showing 1-2 of 2 legacy batches')).toBeInTheDocument();
         expect(screen.getByText('Page 1 of 1')).toBeInTheDocument();
+    });
+
+    it('sends the search term through the legacy batches hook', () => {
+        render(<LegacyBatchesPage />);
+
+        fireEvent.change(screen.getByRole('textbox', { name: /search legacy batches/i }), {
+            target: { value: 'claire' },
+        });
+
+        expect(useLegacyBatchesMock).toHaveBeenLastCalledWith({
+            page: 1,
+            perPage: 20,
+            search: 'claire',
+        });
+        expect(screen.getAllByText('KOTA NANHAI').length).toBeGreaterThan(0);
+        expect(screen.queryByText('VESSEL 1 — Historical Archive')).not.toBeInTheDocument();
+        expect(screen.getAllByText('1 matching batch').length).toBeGreaterThan(0);
     });
 
     it('allows deleting an incomplete legacy batch after confirmation', async () => {

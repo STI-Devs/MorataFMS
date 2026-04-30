@@ -125,6 +125,47 @@ describe('trackingApi.uploadDocuments', () => {
     });
 });
 
+describe('trackingApi.uploadVesselBillingDocuments', () => {
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
+    it('posts the selected files to the vessel billing endpoint as multipart form data', async () => {
+        const firstFile = new File(['billing'], 'billing.pdf', { type: 'application/pdf' });
+        const secondFile = new File(['liquidation'], 'liquidation.xlsx', { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const postSpy = vi.spyOn(api, 'post').mockResolvedValue({
+            data: {
+                data: {
+                    vessel_name: 'MV Shared Ledger',
+                    affected_transaction_ids: [11, 12],
+                    affected_transactions_count: 2,
+                    uploaded_documents_count: 4,
+                },
+            },
+        });
+
+        const result = await trackingApi.uploadVesselBillingDocuments({
+            files: [firstFile, secondFile],
+            documentable_type: 'App\\Models\\ImportTransaction',
+            documentable_id: 42,
+        });
+
+        expect(postSpy).toHaveBeenCalledWith(
+            '/api/documents/vessel-billing',
+            expect.any(FormData),
+            {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            },
+        );
+
+        const sentFormData = postSpy.mock.calls[0]?.[1] as FormData;
+        expect(sentFormData.get('documentable_type')).toBe('App\\Models\\ImportTransaction');
+        expect(sentFormData.get('documentable_id')).toBe('42');
+        expect(sentFormData.getAll('files[]')).toEqual([firstFile, secondFile]);
+        expect(result.affected_transactions_count).toBe(2);
+    });
+});
+
 describe('trackingApi.createArchiveImportWithDocuments', () => {
     afterEach(() => {
         vi.restoreAllMocks();

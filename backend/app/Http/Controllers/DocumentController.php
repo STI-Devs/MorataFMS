@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Actions\Documents\DeleteTransactionDocument;
 use App\Actions\Documents\ReplaceTransactionDocument;
 use App\Actions\Documents\UploadTransactionDocument;
+use App\Actions\Documents\UploadVesselBillingDocuments;
 use App\Http\Requests\ReplaceDocumentRequest;
 use App\Http\Requests\StoreDocumentRequest;
+use App\Http\Requests\StoreVesselBillingDocumentsRequest;
 use App\Http\Resources\DocumentResource;
 use App\Models\Document;
 use App\Models\ExportTransaction;
@@ -22,6 +24,7 @@ class DocumentController extends Controller
 {
     public function __construct(
         private UploadTransactionDocument $uploadTransactionDocument,
+        private UploadVesselBillingDocuments $uploadVesselBillingDocuments,
         private DeleteTransactionDocument $deleteTransactionDocument,
         private ReplaceTransactionDocument $replaceTransactionDocument,
         private DocumentIndexQuery $documentIndexQuery,
@@ -70,6 +73,22 @@ class DocumentController extends Controller
         return (new DocumentResource($document))
             ->response()
             ->setStatusCode(201);
+    }
+
+    public function storeVesselBilling(StoreVesselBillingDocumentsRequest $request): JsonResponse
+    {
+        $validated = $request->validated();
+        $transaction = $this->resolveDocumentable($validated['documentable_type'], $validated['documentable_id']);
+
+        $this->authorize('create', [Document::class, $transaction]);
+
+        return response()->json([
+            'data' => $this->uploadVesselBillingDocuments->handle(
+                $transaction,
+                $request->file('files', []),
+                $request->user(),
+            ),
+        ], 201);
     }
 
     /**

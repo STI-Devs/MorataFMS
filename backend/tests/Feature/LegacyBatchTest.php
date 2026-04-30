@@ -236,6 +236,45 @@ test('legacy batch index paginates results', function () {
         ->assertJsonPath('meta.to', 25);
 });
 
+test('legacy batch index searches across batch metadata before pagination', function () {
+    $admin = User::factory()->create(['role' => 'admin', 'name' => 'Mark Lacsamana']);
+    $otherUploader = User::factory()->create(['role' => 'admin', 'name' => 'Claire Ivy Florino']);
+
+    LegacyBatch::factory()->create([
+        'uploaded_by' => $admin->id,
+        'batch_name' => 'MAERSK FILE',
+        'root_folder' => '2023 SEALAND',
+        'department' => 'Brokerage',
+        'year_from' => 2023,
+        'year_to' => 2023,
+        'notes' => 'Priority customs archive set.',
+    ]);
+
+    LegacyBatch::factory()->create([
+        'uploaded_by' => $otherUploader->id,
+        'batch_name' => 'KOTA NANHAI',
+        'root_folder' => 'KOTA NANHAI',
+        'department' => 'Brokerage',
+        'year_from' => 2024,
+        'year_to' => 2025,
+        'notes' => 'Migration batch for vessel records.',
+    ]);
+
+    $this->actingAs($admin)
+        ->getJson('/api/legacy-batches?search=claire')
+        ->assertOk()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.batch_name', 'KOTA NANHAI')
+        ->assertJsonPath('meta.total', 1);
+
+    $this->actingAs($admin)
+        ->getJson('/api/legacy-batches?search=2023')
+        ->assertOk()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.batch_name', 'MAERSK FILE')
+        ->assertJsonPath('meta.total', 1);
+});
+
 test('legacy batch manifest rejects blocked file extensions', function () {
     $admin = User::factory()->create(['role' => 'admin']);
 

@@ -12,6 +12,7 @@
 vendor
 node_modules
 tests
+scripts
 README.md
 AGENTS.md
 CLAUDE.md

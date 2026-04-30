@@ -26,6 +26,7 @@ class TransactionOversightIndexQuery
             $importQuery->where(function ($query) use ($search) {
                 $query->where('customs_ref_no', 'like', "%{$search}%")
                     ->orWhere('bl_no', 'like', "%{$search}%")
+                    ->orWhere('vessel_name', 'like', "%{$search}%")
                     ->orWhereHas('importer', fn ($importerQuery) => $importerQuery->where('name', 'like', "%{$search}%"))
                     ->orWhereHas('assignedUser', fn ($userQuery) => $userQuery->where('name', 'like', "%{$search}%"));
             });
@@ -103,6 +104,7 @@ class TransactionOversightIndexQuery
                     'bl_no' => $transaction->bl_no,
                     'client' => $transaction->importer?->name,
                     'client_id' => $transaction->importer_id,
+                    'vessel' => $transaction->vessel_name,
                     'date' => $transaction->arrival_date?->toDateString(),
                     'status' => $transaction->status,
                     'selective_color' => $transaction->selective_color,

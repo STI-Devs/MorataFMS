@@ -65,6 +65,7 @@ Route::middleware(['auth:sanctum', 'active-session', 'throttle:api-general'])->g
     // Document management
     Route::get('documents/transactions', [DocumentController::class, 'transactions'])
         ->middleware('throttle:api-search');
+    Route::post('documents/vessel-billing', [DocumentController::class, 'storeVesselBilling']);
     Route::apiResource('documents', DocumentController::class)->except(['update']);
     Route::post('documents/{document}/replace', [DocumentController::class, 'replace']);
     Route::get('documents/{document}/download', [DocumentController::class, 'download'])

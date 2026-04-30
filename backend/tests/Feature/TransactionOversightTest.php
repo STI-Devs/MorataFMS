@@ -48,6 +48,34 @@ test('admin can filter and paginate transaction oversight results', function () 
         ->assertJsonPath('data.0.type', 'import');
 });
 
+test('admin can see and search import vessel names in transaction oversight', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+
+    ImportTransaction::factory()->create([
+        'customs_ref_no' => 'IMP-VESSEL-001',
+        'bl_no' => 'BL-VESSEL-001',
+        'vessel_name' => 'MV Shared Ledger',
+        'status' => 'Pending',
+        'is_archive' => false,
+    ]);
+
+    ImportTransaction::factory()->create([
+        'customs_ref_no' => 'IMP-VESSEL-002',
+        'bl_no' => 'BL-VESSEL-002',
+        'vessel_name' => 'MV Other Vessel',
+        'status' => 'Pending',
+        'is_archive' => false,
+    ]);
+
+    $this->actingAs($admin)
+        ->getJson('/api/transactions?type=import&search=Shared%20Ledger')
+        ->assertOk()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.type', 'import')
+        ->assertJsonPath('data.0.reference_no', 'IMP-VESSEL-001')
+        ->assertJsonPath('data.0.vessel', 'MV Shared Ledger');
+});
+
 test('non admins cannot access the transaction oversight dashboard', function () {
     $encoder = User::factory()->create(['role' => 'encoder']);
 

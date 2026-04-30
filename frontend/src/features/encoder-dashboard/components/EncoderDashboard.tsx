@@ -27,9 +27,9 @@ const statusStyles: Record<EncoderDashboardAttentionItem['status'], string> = {
 };
 
 const statusLabels: Record<EncoderDashboardAttentionItem['status'], string> = {
-    needs_update: 'Needs update',
-    remark: 'Open remark',
-    missing: 'Document gap',
+    needs_update: 'Needs Update',
+    remark: 'Open Remark',
+    missing: 'Missing',
 };
 
 const typeStyles: Record<EncoderDashboardAttentionItem['type'], string> = {
@@ -214,10 +214,10 @@ export const EncoderDashboard = () => {
                                     }`}
                                 >
                                     <div className="flex flex-col items-start gap-1.5">
-                                        <span className={`inline-flex min-h-[34px] min-w-[92px] items-center justify-center rounded-[16px] border px-2.5 text-center text-[10.5px] font-semibold leading-none whitespace-nowrap ${statusStyles[item.status]}`}>
+                                        <span className={`inline-flex w-fit rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${statusStyles[item.status]}`}>
                                             {statusLabels[item.status]}
                                         </span>
-                                        <span className={`inline-flex min-h-[28px] min-w-[72px] items-center justify-center rounded-full border px-3 text-[11px] font-semibold leading-none ${typeStyles[item.type]}`}>
+                                        <span className={`inline-flex min-h-[28px] min-w-[72px] items-center justify-center rounded-md border px-3 text-[11px] font-semibold leading-none ${typeStyles[item.type]}`}>
                                             {typeLabels[item.type]}
                                         </span>
                                     </div>

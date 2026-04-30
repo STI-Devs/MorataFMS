@@ -272,6 +272,195 @@ test('operational roles can upload only their allowed stage documents', function
     'accounting export billing' => ['accounting', ExportTransaction::class, 'billing'],
 ]);
 
+test('accounting can upload billing documents to every ready transaction on the same import vessel', function () {
+    $accounting = User::factory()->create(['role' => 'accounting']);
+    $encoder = User::factory()->create(['role' => 'encoder']);
+
+    $sourceTransaction = ImportTransaction::factory()->pending()->create([
+        'assigned_user_id' => $encoder->id,
+        'vessel_name' => 'MV Shared Ledger',
+    ]);
+    $matchedTransaction = ImportTransaction::factory()->pending()->create([
+        'assigned_user_id' => $encoder->id,
+        'vessel_name' => 'MV Shared Ledger',
+    ]);
+    $blockedTransaction = ImportTransaction::factory()->pending()->create([
+        'assigned_user_id' => $encoder->id,
+        'vessel_name' => 'MV Shared Ledger',
+    ]);
+    $otherVesselTransaction = ImportTransaction::factory()->pending()->create([
+        'assigned_user_id' => $encoder->id,
+        'vessel_name' => 'MV Other Vessel',
+    ]);
+
+    foreach ([$sourceTransaction, $matchedTransaction, $otherVesselTransaction] as $transaction) {
+        $transaction->stages()->update([
+            'boc_status' => 'completed',
+            'bonds_status' => 'completed',
+            'ppa_status' => 'completed',
+            'do_status' => 'completed',
+            'port_charges_status' => 'completed',
+            'releasing_status' => 'completed',
+            'billing_status' => 'pending',
+        ]);
+    }
+
+    $blockedTransaction->stages()->update([
+        'boc_status' => 'completed',
+        'bonds_status' => 'completed',
+        'ppa_status' => 'pending',
+        'do_status' => 'pending',
+        'port_charges_status' => 'pending',
+        'releasing_status' => 'pending',
+        'billing_status' => 'pending',
+    ]);
+
+    $response = $this->actingAs($accounting)->post('/api/documents/vessel-billing', [
+        'documentable_type' => ImportTransaction::class,
+        'documentable_id' => $sourceTransaction->id,
+        'files' => [
+            UploadedFile::fake()->create('billing-summary.pdf', 100, 'application/pdf'),
+            UploadedFile::fake()->create('liquidation-sheet.xlsx', 100, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'),
+        ],
+    ]);
+
+    $response->assertCreated()
+        ->assertJsonPath('data.vessel_name', 'MV Shared Ledger')
+        ->assertJsonPath('data.affected_transactions_count', 2)
+        ->assertJsonPath('data.uploaded_documents_count', 4);
+
+    expect(collect($response->json('data.affected_transaction_ids'))->sort()->values()->all())
+        ->toBe([$sourceTransaction->id, $matchedTransaction->id]);
+
+    $this->assertDatabaseCount('documents', 4);
+
+    foreach ([$sourceTransaction, $matchedTransaction] as $transaction) {
+        $this->assertDatabaseHas('documents', [
+            'type' => 'billing',
+            'documentable_type' => ImportTransaction::class,
+            'documentable_id' => $transaction->id,
+            'uploaded_by' => $accounting->id,
+        ]);
+    }
+
+    $this->assertDatabaseMissing('documents', [
+        'documentable_type' => ImportTransaction::class,
+        'documentable_id' => $blockedTransaction->id,
+    ]);
+    $this->assertDatabaseMissing('documents', [
+        'documentable_type' => ImportTransaction::class,
+        'documentable_id' => $otherVesselTransaction->id,
+    ]);
+
+    $sourceTransaction->refresh()->load('stages');
+    $matchedTransaction->refresh()->load('stages');
+    $blockedTransaction->refresh()->load('stages');
+
+    expect($sourceTransaction->status->value)->toBe('Completed');
+    expect($matchedTransaction->status->value)->toBe('Completed');
+    expect($blockedTransaction->status->value)->toBe('Pending');
+    expect($sourceTransaction->stages->billing_completed_by)->toBe($accounting->id);
+    expect($matchedTransaction->stages->billing_completed_by)->toBe($accounting->id);
+    expect($blockedTransaction->stages->billing_completed_by)->toBeNull();
+});
+
+test('accounting can upload billing documents to every ready transaction on the same export vessel', function () {
+    $accounting = User::factory()->create(['role' => 'accounting']);
+    $encoder = User::factory()->create(['role' => 'encoder']);
+
+    $sourceTransaction = ExportTransaction::factory()->pending()->create([
+        'assigned_user_id' => $encoder->id,
+        'vessel' => 'MV Export Ledger',
+    ]);
+    $matchedTransaction = ExportTransaction::factory()->pending()->create([
+        'assigned_user_id' => $encoder->id,
+        'vessel' => 'MV Export Ledger',
+    ]);
+    $blockedTransaction = ExportTransaction::factory()->pending()->create([
+        'assigned_user_id' => $encoder->id,
+        'vessel' => 'MV Export Ledger',
+    ]);
+
+    foreach ([$sourceTransaction, $matchedTransaction] as $transaction) {
+        $transaction->stages()->update([
+            'docs_prep_status' => 'completed',
+            'bl_status' => 'completed',
+            'phytosanitary_status' => 'completed',
+            'co_status' => 'completed',
+            'cil_status' => 'completed',
+            'dccci_status' => 'completed',
+            'billing_status' => 'pending',
+        ]);
+    }
+
+    $blockedTransaction->stages()->update([
+        'docs_prep_status' => 'completed',
+        'bl_status' => 'completed',
+        'phytosanitary_status' => 'pending',
+        'co_status' => 'pending',
+        'cil_status' => 'pending',
+        'dccci_status' => 'pending',
+        'billing_status' => 'pending',
+    ]);
+
+    $response = $this->actingAs($accounting)->post('/api/documents/vessel-billing', [
+        'documentable_type' => ExportTransaction::class,
+        'documentable_id' => $sourceTransaction->id,
+        'files' => [
+            UploadedFile::fake()->create('billing-summary.pdf', 100, 'application/pdf'),
+        ],
+    ]);
+
+    $response->assertCreated()
+        ->assertJsonPath('data.vessel_name', 'MV Export Ledger')
+        ->assertJsonPath('data.affected_transactions_count', 2)
+        ->assertJsonPath('data.uploaded_documents_count', 2);
+
+    expect(collect($response->json('data.affected_transaction_ids'))->sort()->values()->all())
+        ->toBe([$sourceTransaction->id, $matchedTransaction->id]);
+
+    foreach ([$sourceTransaction, $matchedTransaction] as $transaction) {
+        $this->assertDatabaseHas('documents', [
+            'type' => 'billing',
+            'documentable_type' => ExportTransaction::class,
+            'documentable_id' => $transaction->id,
+            'uploaded_by' => $accounting->id,
+        ]);
+    }
+
+    $this->assertDatabaseMissing('documents', [
+        'documentable_type' => ExportTransaction::class,
+        'documentable_id' => $blockedTransaction->id,
+    ]);
+});
+
+test('non-accounting users cannot use the vessel billing upload endpoint', function () {
+    $processor = User::factory()->create(['role' => 'processor']);
+    $encoder = User::factory()->create(['role' => 'encoder']);
+    $transaction = ImportTransaction::factory()->pending()->create([
+        'assigned_user_id' => $encoder->id,
+        'vessel_name' => 'MV Shared Ledger',
+    ]);
+
+    $transaction->stages()->update([
+        'boc_status' => 'completed',
+        'bonds_status' => 'completed',
+        'ppa_status' => 'completed',
+        'do_status' => 'completed',
+        'port_charges_status' => 'completed',
+        'releasing_status' => 'completed',
+        'billing_status' => 'pending',
+    ]);
+
+    $this->actingAs($processor)->post('/api/documents/vessel-billing', [
+        'documentable_type' => ImportTransaction::class,
+        'documentable_id' => $transaction->id,
+        'files' => [
+            UploadedFile::fake()->create('billing-summary.pdf', 100, 'application/pdf'),
+        ],
+    ])->assertForbidden();
+});
+
 test('operational roles cannot upload document types outside their workflow stages', function (
     string $role,
     string $transactionClass,

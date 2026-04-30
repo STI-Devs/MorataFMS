@@ -22,6 +22,7 @@ export type SelectedTransaction = {
     ref: string;
     clientName: string;
     type: QueueView;
+    vesselName: string | null;
     stages?: ApiImportStages | ApiExportStages;
 };
 
@@ -80,6 +81,7 @@ export function buildImportQueueRows(transactions: ApiImportTransaction[]): Acco
             searchableText: [
                 transaction.customs_ref_no,
                 transaction.bl_no,
+                transaction.vessel_name,
                 transaction.importer?.name,
                 transaction.location_of_goods?.name,
                 transaction.origin_country?.name,
@@ -95,6 +97,7 @@ export function buildImportQueueRows(transactions: ApiImportTransaction[]): Acco
                 ref: transaction.customs_ref_no || transaction.bl_no || 'Pending Ref',
                 clientName: transaction.importer?.name || 'Unknown Client',
                 type: 'import',
+                vesselName: transaction.vessel_name ?? null,
                 stages: transaction.stages,
             },
         };
@@ -139,6 +142,7 @@ export function buildExportQueueRows(transactions: ApiExportTransaction[]): Acco
                 ref: transaction.bl_no || 'Pending BL',
                 clientName: transaction.shipper?.name || 'Unknown Client',
                 type: 'export',
+                vesselName: transaction.vessel ?? null,
                 stages: transaction.stages,
             },
         };

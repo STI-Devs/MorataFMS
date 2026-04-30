@@ -40,11 +40,5 @@ jobs:
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run frontend lint
-        run: pnpm lint
-
-      - name: Run frontend tests
-        run: pnpm test
-
-      - name: Run frontend smoke
-        run: pnpm smoke
+      - name: Run frontend CI checks
+        run: bash scripts/ci/run-frontend-ci-checks.sh

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useDeferredValue, useState } from 'react';
 import { ConfirmationModal } from '../../../../components/ConfirmationModal';
 import { useLegacyBatch } from '../../hooks/useLegacyBatch';
 import { useLegacyBatches } from '../../hooks/useLegacyBatches';
@@ -28,7 +28,10 @@ export const LegacyBatchesPage = ({
 }) => {
     const [page, setPage] = useState(1);
     const [perPage, setPerPage] = useState(20);
-    const { data, isLoading, isError } = useLegacyBatches({ page, perPage });
+    const [search, setSearch] = useState('');
+    const deferredSearch = useDeferredValue(search);
+    const trimmedSearch = deferredSearch.trim();
+    const { data, isLoading, isError } = useLegacyBatches({ page, perPage, search: trimmedSearch });
     const [viewingBatchId, setViewingBatchId] = useState<string | null>(null);
     const [deletingBatchId, setDeletingBatchId] = useState<string | null>(null);
     const { data: viewingBatch } = useLegacyBatch(viewingBatchId, Boolean(viewingBatchId));
@@ -59,6 +62,54 @@ export const LegacyBatchesPage = ({
                         </p>
                     </div>
 
+                    <div className="border-b border-border px-5 py-3">
+                        <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+                            <div className="relative max-w-md flex-1">
+                                <svg className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                                <input
+                                    type="text"
+                                    value={search}
+                                    onChange={(event) => {
+                                        setSearch(event.target.value);
+                                        setPage(1);
+                                    }}
+                                    onKeyDown={(event) => {
+                                        if (event.key === 'Escape') {
+                                            setSearch('');
+                                            setPage(1);
+                                        }
+                                    }}
+                                    placeholder="Search batch, root folder, or uploader..."
+                                    aria-label="Search legacy batches"
+                                    className="h-10 w-full rounded-lg border border-border-strong bg-input-bg pl-10 pr-10 text-sm text-text-primary shadow-sm transition-all placeholder:text-text-muted focus:border-blue-500/60 focus:outline-none focus:ring-2 focus:ring-blue-500/25"
+                                />
+                                {search && (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setSearch('');
+                                            setPage(1);
+                                        }}
+                                        aria-label="Clear legacy batch search"
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted transition-colors hover:text-text-primary"
+                                    >
+                                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                )}
+                            </div>
+
+                            <div className="text-xs font-semibold text-text-muted">
+                                {trimmedSearch
+                                    ? `${pagination.total.toLocaleString()} matching batch${pagination.total === 1 ? '' : 'es'}`
+                                    : `${pagination.total.toLocaleString()} legacy batches`}
+                            </div>
+                        </div>
+                    </div>
+
                     {isLoading && (
                         <div className="px-5 py-10 text-sm text-text-muted">Loading legacy batches...</div>
                     )}
@@ -69,7 +120,9 @@ export const LegacyBatchesPage = ({
 
                     {!isLoading && !isError && batches.length === 0 && (
                         <div className="px-5 py-10 text-sm text-text-muted">
-                            No legacy batches have been uploaded yet.
+                            {trimmedSearch
+                                ? `No legacy batches match "${trimmedSearch}".`
+                                : 'No legacy batches have been uploaded yet.'}
                         </div>
                     )}
 
@@ -158,7 +211,9 @@ export const LegacyBatchesPage = ({
 
                             <div className="flex flex-col gap-4 border-t border-border px-5 py-4 md:flex-row md:items-center md:justify-between">
                                 <div className="text-xs text-text-muted">
-                                    Showing {pagination.from ?? 0}-{pagination.to ?? 0} of {pagination.total.toLocaleString()} legacy batches
+                                    {trimmedSearch
+                                        ? `Showing ${pagination.from ?? 0}-${pagination.to ?? 0} of ${pagination.total.toLocaleString()} matching batch${pagination.total === 1 ? '' : 'es'}`
+                                        : `Showing ${pagination.from ?? 0}-${pagination.to ?? 0} of ${pagination.total.toLocaleString()} legacy batches`}
                                 </div>
 
                                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center">

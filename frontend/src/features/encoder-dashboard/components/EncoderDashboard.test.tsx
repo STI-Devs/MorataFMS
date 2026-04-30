@@ -69,7 +69,7 @@ describe('EncoderDashboard', () => {
         expect(screen.getByText('ETA/ETD This Week')).toBeInTheDocument();
         expect(screen.getByText('Open Remarks')).toBeInTheDocument();
         expect(screen.getByText('No Update in 48h')).toBeInTheDocument();
-        expect(screen.getByText('Needs update')).toHaveClass('inline-flex', 'min-w-[92px]', 'justify-center', 'whitespace-nowrap');
+        expect(screen.getByText('Needs Update')).toHaveClass('inline-flex', 'w-fit', 'rounded-md', 'uppercase');
         expect(screen.getByText('Document Gaps')).toBeInTheDocument();
         expect(screen.getByText('IMP-ENC-001')).toBeInTheDocument();
         expect(screen.getByText('BL-ENC-002')).toBeInTheDocument();

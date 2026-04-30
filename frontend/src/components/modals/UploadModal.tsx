@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { Icon } from '../Icon';
 import {
     getMaxFileSizeErrorMessage,
@@ -17,6 +17,8 @@ interface UploadModalProps {
     title: string;
     isLoading?: boolean;
     errorMessage?: string;
+    contextContent?: ReactNode;
+    submitLabel?: string;
 }
 
 function formatBytes(bytes: number): string {
@@ -26,7 +28,7 @@ function formatBytes(bytes: number): string {
 }
 
 export const UploadModal: React.FC<UploadModalProps> = ({
-    isOpen, onClose, onUpload, title, isLoading = false, errorMessage,
+    isOpen, onClose, onUpload, title, isLoading = false, errorMessage, contextContent, submitLabel,
 }) => {
     const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
     const [isDragging, setIsDragging] = useState(false);
@@ -119,6 +121,7 @@ export const UploadModal: React.FC<UploadModalProps> = ({
                 </div>
 
                 <div className="p-6 space-y-5">
+                    {contextContent}
 
                     {/* Error banner */}
                     {visibleErrorMessage && (
@@ -227,7 +230,7 @@ export const UploadModal: React.FC<UploadModalProps> = ({
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                                 </svg>
-                                Upload {selectedFiles.length > 1 ? `${selectedFiles.length} Files` : 'Document'}
+                                {submitLabel ?? `Upload ${selectedFiles.length > 1 ? `${selectedFiles.length} Files` : 'Document'}`}
                             </>
                         )}
                     </button>

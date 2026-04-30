@@ -49,12 +49,6 @@ jobs:
         run: |
           php artisan key:generate --ansi
 
-      - name: Run backend tests
+      - name: Run backend CI checks
         working-directory: backend
-        run: php artisan test --compact
-
-      - name: Validate Docker Compose configuration
-        run: docker compose config
-
-      - name: Build backend image
-        run: docker build -f backend/Dockerfile -t morata-backend:test backend
+        run: bash scripts/ci/run-backend-ci-checks.sh

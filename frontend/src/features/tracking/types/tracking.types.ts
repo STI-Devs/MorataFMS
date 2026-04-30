@@ -231,6 +231,19 @@ export interface UploadDocumentsPayload {
     documentable_id: number;
 }
 
+export interface UploadVesselBillingDocumentsPayload {
+    files: File[];
+    documentable_type: DocumentableType;
+    documentable_id: number;
+}
+
+export interface VesselBillingUploadResult {
+    vessel_name: string;
+    affected_transaction_ids: number[];
+    affected_transactions_count: number;
+    uploaded_documents_count: number;
+}
+
 export interface VesselGroupStats {
     total: number;
     in_progress: number;

@@ -70,6 +70,16 @@ export const trackingApi = {
         return uploadedDocuments;
     },
 
+    uploadVesselBillingDocuments: async (
+        payload: import('../types').UploadVesselBillingDocumentsPayload,
+    ): Promise<import('../types').VesselBillingUploadResult> => {
+        if (payload.files.length > MAX_MULTI_UPLOAD_FILES) {
+            throw new Error(getMaxFilesErrorMessage());
+        }
+
+        return documentsApi.uploadVesselBillingDocuments(payload);
+    },
+
     // --- Archive create + per-document upload workflow (rollback on failure) ---
     createArchiveImportWithDocuments: async (
         data: import('./archives.api').CreateArchiveImportPayload,
