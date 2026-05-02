@@ -2,71 +2,63 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\CountryType;
+use App\Actions\Countries\CreateCountry;
+use App\Actions\Countries\ToggleCountryActive;
+use App\Actions\Countries\UpdateCountry;
+use App\Http\Requests\CountryIndexRequest;
 use App\Http\Requests\StoreCountryRequest;
 use App\Http\Requests\UpdateCountryRequest;
 use App\Http\Resources\CountryResource;
 use App\Models\Country;
-use Illuminate\Http\Request;
+use App\Queries\ReferenceData\CountryIndexQuery;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class CountryController extends Controller
 {
+    public function __construct(
+        private CountryIndexQuery $countryIndexQuery,
+        private CreateCountry $createCountry,
+        private UpdateCountry $updateCountry,
+        private ToggleCountryActive $toggleCountryActive,
+    ) {}
+
     /**
      * GET /api/countries
      * List active countries, optionally filtered by type.
      */
-    public function index(Request $request)
+    public function index(CountryIndexRequest $request): AnonymousResourceCollection
     {
         $this->authorize('viewAny', Country::class);
 
-        $query = Country::query()->orderBy('name');
-
-        if (! ($request->boolean('include_inactive') && $request->user()->isAdmin())) {
-            $query->active();
-        }
-
-        $type = CountryType::tryFrom((string) $request->query('type'));
-
-        if ($type === CountryType::ImportOrigin) {
-            $query->importOrigins();
-        } elseif ($type === CountryType::ExportDestination) {
-            $query->exportDestinations();
-        } elseif ($type === CountryType::Both) {
-            $query->where('type', CountryType::Both->value);
-        }
-
-        return CountryResource::collection($query->get());
+        return CountryResource::collection($this->countryIndexQuery->handle($request));
     }
 
-    public function store(StoreCountryRequest $request)
+    public function store(StoreCountryRequest $request): JsonResponse
     {
         $this->authorize('create', Country::class);
 
-        $country = new Country($request->validated());
-        $country->is_active = true;
-        $country->save();
+        $country = $this->createCountry->handle($request->validated());
 
         return (new CountryResource($country))
             ->response()
             ->setStatusCode(201);
     }
 
-    public function update(UpdateCountryRequest $request, Country $country)
+    public function update(UpdateCountryRequest $request, Country $country): CountryResource
     {
         $this->authorize('update', $country);
 
-        $country->fill($request->validated());
-        $country->save();
+        $country = $this->updateCountry->handle($country, $request->validated());
 
         return new CountryResource($country);
     }
 
-    public function toggleActive(Country $country)
+    public function toggleActive(Country $country): CountryResource
     {
         $this->authorize('update', $country);
 
-        $country->is_active = ! $country->is_active;
-        $country->save();
+        $country = $this->toggleCountryActive->handle($country);
 
         return new CountryResource($country);
     }

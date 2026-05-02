@@ -18,6 +18,8 @@ use App\Queries\Documents\DocumentTransactionIndexQuery;
 use App\Support\Documents\DocumentFileStreamer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DocumentController extends Controller
@@ -36,7 +38,7 @@ class DocumentController extends Controller
      * GET /api/documents
      * List all documents, optionally filtered by transaction.
      */
-    public function index(Request $request)
+    public function index(Request $request): AnonymousResourceCollection
     {
         $this->authorize('viewAny', Document::class);
 
@@ -58,7 +60,7 @@ class DocumentController extends Controller
      * POST /api/documents
      * Upload a file to S3 and create a document record.
      */
-    public function store(StoreDocumentRequest $request)
+    public function store(StoreDocumentRequest $request): JsonResponse
     {
         $validated = $request->validated();
         $transaction = $this->resolveDocumentable($validated['documentable_type'], $validated['documentable_id']);
@@ -95,7 +97,7 @@ class DocumentController extends Controller
      * GET /api/documents/{document}
      * Get document metadata.
      */
-    public function show(Document $document)
+    public function show(Document $document): DocumentResource
     {
         $this->authorize('view', $document);
 
@@ -143,7 +145,7 @@ class DocumentController extends Controller
      * DELETE /api/documents/{document}
      * Delete the file from S3 and the database record.
      */
-    public function destroy(Request $request, Document $document)
+    public function destroy(Request $request, Document $document): Response
     {
         $this->authorize('delete', $document);
 

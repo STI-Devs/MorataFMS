@@ -2,56 +2,59 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\LocationsOfGoods\CreateLocationOfGoods;
+use App\Actions\LocationsOfGoods\ToggleLocationOfGoodsActive;
+use App\Actions\LocationsOfGoods\UpdateLocationOfGoods;
+use App\Http\Requests\LocationOfGoodsIndexRequest;
 use App\Http\Requests\StoreLocationOfGoodsRequest;
 use App\Http\Requests\UpdateLocationOfGoodsRequest;
 use App\Http\Resources\LocationOfGoodsResource;
 use App\Models\LocationOfGoods;
-use Illuminate\Http\Request;
+use App\Queries\ReferenceData\LocationOfGoodsIndexQuery;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class LocationOfGoodsController extends Controller
 {
-    public function index(Request $request)
+    public function __construct(
+        private LocationOfGoodsIndexQuery $locationOfGoodsIndexQuery,
+        private CreateLocationOfGoods $createLocationOfGoods,
+        private UpdateLocationOfGoods $updateLocationOfGoods,
+        private ToggleLocationOfGoodsActive $toggleLocationOfGoodsActive,
+    ) {}
+
+    public function index(LocationOfGoodsIndexRequest $request): AnonymousResourceCollection
     {
         $this->authorize('viewAny', LocationOfGoods::class);
 
-        $query = LocationOfGoods::query()->orderBy('name');
-
-        if (! ($request->boolean('include_inactive') && $request->user()->isAdmin())) {
-            $query->active();
-        }
-
-        return LocationOfGoodsResource::collection($query->get());
+        return LocationOfGoodsResource::collection($this->locationOfGoodsIndexQuery->handle($request));
     }
 
-    public function store(StoreLocationOfGoodsRequest $request)
+    public function store(StoreLocationOfGoodsRequest $request): JsonResponse
     {
         $this->authorize('create', LocationOfGoods::class);
 
-        $locationOfGoods = new LocationOfGoods($request->validated());
-        $locationOfGoods->is_active = true;
-        $locationOfGoods->save();
+        $locationOfGoods = $this->createLocationOfGoods->handle($request->validated());
 
         return (new LocationOfGoodsResource($locationOfGoods))
             ->response()
             ->setStatusCode(201);
     }
 
-    public function update(UpdateLocationOfGoodsRequest $request, LocationOfGoods $locationOfGoods)
+    public function update(UpdateLocationOfGoodsRequest $request, LocationOfGoods $locationOfGoods): LocationOfGoodsResource
     {
         $this->authorize('update', $locationOfGoods);
 
-        $locationOfGoods->fill($request->validated());
-        $locationOfGoods->save();
+        $locationOfGoods = $this->updateLocationOfGoods->handle($locationOfGoods, $request->validated());
 
         return new LocationOfGoodsResource($locationOfGoods);
     }
 
-    public function toggleActive(LocationOfGoods $locationOfGoods)
+    public function toggleActive(LocationOfGoods $locationOfGoods): LocationOfGoodsResource
     {
         $this->authorize('update', $locationOfGoods);
 
-        $locationOfGoods->is_active = ! $locationOfGoods->is_active;
-        $locationOfGoods->save();
+        $locationOfGoods = $this->toggleLocationOfGoodsActive->handle($locationOfGoods);
 
         return new LocationOfGoodsResource($locationOfGoods);
     }

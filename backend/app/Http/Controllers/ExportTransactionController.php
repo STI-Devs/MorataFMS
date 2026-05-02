@@ -17,6 +17,7 @@ use App\Queries\Transactions\ExportTransactionIndexQuery;
 use App\Queries\Transactions\ExportTransactionStatsQuery;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Symfony\Component\HttpFoundation\Response;
 
 class ExportTransactionController extends Controller
@@ -34,7 +35,7 @@ class ExportTransactionController extends Controller
      * GET /api/export-transactions
      * Paginated list with optional search and filter.
      */
-    public function index(Request $request)
+    public function index(Request $request): AnonymousResourceCollection
     {
         $this->authorize('viewAny', ExportTransaction::class);
 
@@ -45,7 +46,7 @@ class ExportTransactionController extends Controller
      * POST /api/export-transactions
      * Create a new export transaction.
      */
-    public function store(StoreExportTransactionRequest $request)
+    public function store(StoreExportTransactionRequest $request): JsonResponse
     {
         $this->authorize('create', ExportTransaction::class);
 
@@ -60,7 +61,7 @@ class ExportTransactionController extends Controller
      * PUT/PATCH /api/export-transactions/{export_transaction}
      * Update an existing export transaction.
      */
-    public function update(UpdateExportTransactionRequest $request, ExportTransaction $export_transaction)
+    public function update(UpdateExportTransactionRequest $request, ExportTransaction $export_transaction): ExportTransactionResource
     {
         $this->authorize('update', $export_transaction);
 
@@ -77,7 +78,7 @@ class ExportTransactionController extends Controller
      * GET /api/export-transactions/stats
      * Returns total status counts across all records.
      */
-    public function stats()
+    public function stats(): JsonResponse
     {
         $this->authorize('viewAny', ExportTransaction::class);
 
@@ -88,7 +89,7 @@ class ExportTransactionController extends Controller
      * PATCH /api/export-transactions/{export_transaction}/cancel
      * Cancel an export transaction with a reason.
      */
-    public function cancel(CancelTransactionRequest $request, ExportTransaction $export_transaction)
+    public function cancel(CancelTransactionRequest $request, ExportTransaction $export_transaction): ExportTransactionResource
     {
         $this->authorize('update', $export_transaction);
 

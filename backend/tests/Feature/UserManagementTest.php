@@ -1,6 +1,8 @@
 <?php
 
+use App\Actions\Users\DeactivateUser;
 use App\Models\User;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 dataset('brokerage operational roles', [
     'processor' => ['processor', 'Processor'],
@@ -71,4 +73,16 @@ test('updating a user role re-syncs departments and permission payload', functio
 
     expect($user->fresh()->departments)->toBe(['brokerage', 'legal']);
     expect($user->fresh()->job_title)->toBe('Lawyer');
+});
+
+test('deactivating the last active admin is rejected by the action guard', function () {
+    $admin = User::factory()->create([
+        'role' => 'admin',
+        'is_active' => true,
+    ]);
+
+    $action = app(DeactivateUser::class);
+
+    expect(fn () => $action->handle($admin))
+        ->toThrow(HttpException::class, 'Cannot deactivate the last active admin account. Assign another admin first.');
 });

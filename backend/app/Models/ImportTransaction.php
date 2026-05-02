@@ -84,16 +84,6 @@ class ImportTransaction extends Model
         'notes',
     ];
 
-    protected $casts = [
-        'arrival_date' => 'date',
-        'is_archive' => 'boolean',
-        'archived_at' => 'datetime',
-        'archive_origin' => ArchiveOrigin::class,
-        'status' => ImportStatus::class,
-        'selective_color' => SelectiveColor::class,
-    ];
-
-    // Relationships
     public function importer(): BelongsTo
     {
         return $this->belongsTo(Client::class, 'importer_id');
@@ -195,7 +185,6 @@ class ImportTransaction extends Model
         }
     }
 
-    // Scopes
     public function scopePending($query)
     {
         return $query->where('status', ImportStatus::Pending->value);
@@ -221,6 +210,18 @@ class ImportTransaction extends Model
         }
 
         return $query->where('assigned_user_id', $user->id);
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'arrival_date' => 'date',
+            'is_archive' => 'boolean',
+            'archived_at' => 'datetime',
+            'archive_origin' => ArchiveOrigin::class,
+            'status' => ImportStatus::class,
+            'selective_color' => SelectiveColor::class,
+        ];
     }
 
     public function scopeRelevantToOperationalQueue(Builder $query, User $user): Builder
@@ -362,7 +363,9 @@ class ImportTransaction extends Model
         $this->unsetRelation('stages');
     }
 
-    // Helper to get current stage progress
+    /**
+     * @return array<string, mixed>
+     */
     public function getProgressAttribute(): array
     {
         $stages = $this->stages;

@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Http\Resources\AuditLogResource;
 use App\Models\AuditLog;
 use App\Queries\AuditLogs\AuditLogIndexQuery;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class AuditLogController extends Controller
 {
@@ -17,7 +19,7 @@ class AuditLogController extends Controller
      * GET /api/audit-logs
      * Paginated list of audit logs with optional filters.
      */
-    public function index(Request $request)
+    public function index(Request $request): AnonymousResourceCollection
     {
         $this->authorize('viewAny', AuditLog::class);
 
@@ -30,7 +32,7 @@ class AuditLogController extends Controller
      * GET /api/audit-logs/actions
      * Returns distinct event types for use in filter dropdowns.
      */
-    public function actions(Request $request)
+    public function actions(Request $request): JsonResponse
     {
         $this->authorize('viewAny', AuditLog::class);
 

@@ -12,6 +12,7 @@ This application is a Laravel application and its main Laravel ecosystems packag
 - php - 8.4
 - laravel/framework (LARAVEL) - v12
 - laravel/prompts (PROMPTS) - v0
+- laravel/reverb (REVERB) - v1
 - laravel/sanctum (SANCTUM) - v4
 - laravel/boost (BOOST) - v2
 - laravel/breeze (BREEZE) - v2
@@ -175,7 +176,6 @@ protected function isAccessible(User $user, ?string $path = null): bool
 ## Authentication & Authorization
 
 - Use Laravel's built-in authentication and authorization features (gates, policies, Sanctum, etc.).
-- Production note: this app uses Sanctum cookie-based SPA auth for the deployed first-party frontend on the shared `fmmcbs.com` root domain.
 
 ## URL Generation
 
@@ -240,3 +240,126 @@ protected function isAccessible(User $user, ?string $path = null): bool
 - Do NOT delete tests without approval.
 
 </laravel-boost-guidelines>
+
+# MorataFMS Backend Conventions
+
+These project-specific conventions supplement the generated Laravel Boost guidance above.
+
+## Installed Skill Packs
+
+Domain-specific skill packs live in `backend/.agents/skills/`. Consult them as benchmarks when their domain is touched, but treat them as advisory.
+
+Authority order, most authoritative first:
+
+1. this `backend/AGENTS.md`
+2. existing code conventions in the MorataFMS backend
+3. installed skill packs
+
+### Available Packs
+
+- `laravel-best-practices/SKILL.md` — Laravel best practices reference covering architecture, security, eloquent, db-performance, validation, routing, migrations, caching, queues, scheduling, http-client, events, mail, blade, collections, config, and style. Use as a benchmark for non-trivial backend changes; do not override patterns already established in this codebase.
+- `pest-testing/SKILL.md` — Pest 3 testing patterns. Activate whenever any Pest test is written, edited, fixed, or refactored. Covers `it()/expect()` syntax, datasets, mocking, `arch()` rules, and assertion preferences such as `assertSuccessful()` over `assertStatus(200)`.
+
+### Usage
+
+- read the relevant `SKILL.md` before any non-trivial task in its domain
+- drill into `rules/<topic>.md` files for deeper guidance when warranted
+- defer to this AGENTS.md and existing repo patterns when they conflict with skill recommendations
+
+## Preferred Application Flow
+
+For new backend work, prefer this request flow:
+
+Controller
+-> FormRequest
+-> Policy / Gate
+-> Action for state changes
+-> Query for read/list/report concerns
+-> Support or focused Service for reusable technical helpers
+-> Resource or JSON response
+
+## Controllers
+
+Controllers should stay thin. They should:
+
+- authorize the request
+- receive validated input
+- delegate to an Action, Query, or Support class
+- return a Resource or JSON response
+
+Controllers should not own:
+
+- complex query building
+- multi-step business workflows
+- file storage, file deletion, or streaming logic
+- cross-cutting side effects such as broadcasting, tagging, or sync coordination
+
+Small CRUD methods may remain direct when extraction would be pure pass-through noise. Once a controller method starts coordinating filters, branching rules, multiple models, file handling, or side effects, extract that logic.
+
+## Actions
+
+Use `app/Actions` for a single business operation that changes state.
+
+Good fits:
+
+- create, update, cancel, archive, resolve, activate, deactivate
+- transaction lifecycle changes
+- document review/archive handoff
+- profile or account mutations
+
+Use focused names such as `CreateImportTransaction`, `ResolveTransactionRemark`, or `ArchiveReviewedTransaction`. Avoid vague classes like `GeneralService` or `TransactionHelper`.
+
+## Queries
+
+Use `app/Queries` for read-only data retrieval concerns.
+
+Good fits:
+
+- index listings
+- filtered search
+- detail/read models
+- reports
+- dashboards
+- tracking lookups
+
+Queries should encapsulate read composition, eager loading, counts, sorting, and pagination concerns that would otherwise bloat controllers.
+
+## Support And Services
+
+Use `app/Support` or a focused service for reusable technical or domain helpers.
+
+Good fits:
+
+- file storage and downloads
+- route/model resolution helpers
+- template generation
+- document tagging
+- realtime/broadcast coordination
+- operational helpers that are not request entry points
+
+Prefer specific responsibilities over broad catch-all services.
+
+## CQRS Pattern
+
+This backend follows a lightweight CQRS-style structure. Keep command and query responsibilities separate:
+
+- commands / state changes -> `app/Actions`
+- reads / listings / reports / dashboards -> `app/Queries`
+- reusable technical helpers -> `app/Support`
+- persistence and relationships -> Eloquent models
+
+Use this pattern as the default architectural boundary for new backend work. Do not introduce a competing service-heavy or repository-heavy pattern when `Actions + Queries + Support + Eloquent` already fits the problem.
+
+Repository layers are not the default here. Only add one with explicit approval and a clear justification, such as:
+
+- multiple persistence backends
+- a strict external/domain boundary that Eloquent cannot represent cleanly
+- a well-defined integration contract that genuinely benefits from an interface abstraction
+
+## Consistency First
+
+When adding new backend code:
+
+- inspect sibling files first
+- follow the existing `Actions`, `Queries`, `Support`, `Requests`, and `Resources` structure already used in this repository
+- prefer extending an existing focused class over introducing a second competing pattern

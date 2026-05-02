@@ -91,7 +91,7 @@ test('html responses include a browser-safe baseline content security policy', f
         ->toBe('camera=(), microphone=(), geolocation=()');
 });
 
-test('application responses do not emit strict transport security directly', function () {
+test('application responses do not emit strict transport security outside production', function () {
     $response = $this->get('/up', [
         'X-Forwarded-Proto' => 'https',
         'CF-Visitor' => '{"scheme":"https"}',
@@ -99,6 +99,19 @@ test('application responses do not emit strict transport security directly', fun
 
     $response->assertNoContent();
     expect($response->headers->get('strict-transport-security'))->toBeNull();
+});
+
+test('application responses emit a strict transport security header in production', function () {
+    $this->app->detectEnvironment(fn () => 'production');
+
+    $response = $this->get('/up', [
+        'X-Forwarded-Proto' => 'https',
+        'CF-Visitor' => '{"scheme":"https"}',
+    ]);
+
+    $response->assertNoContent();
+    expect($response->headers->get('strict-transport-security'))
+        ->toBe('max-age=31536000; includeSubDomains');
 });
 
 test('health check endpoint returns a minimal no-content response', function () {

@@ -13,10 +13,10 @@ class ThrottlePublicSurface
      * @var array<string, array{attempts: int, decay_seconds: int}>
      */
     private const BUCKETS = [
-        'root' => ['attempts' => 20, 'decay_seconds' => 60],
-        'health' => ['attempts' => 60, 'decay_seconds' => 60],
+        'root' => ['attempts' => 10, 'decay_seconds' => 60],
+        'health' => ['attempts' => 10, 'decay_seconds' => 60],
         'csrf' => ['attempts' => 60, 'decay_seconds' => 60],
-        'docs' => ['attempts' => 20, 'decay_seconds' => 60],
+        'docs' => ['attempts' => 10, 'decay_seconds' => 60],
     ];
 
     public function __construct(private RateLimiter $rateLimiter) {}

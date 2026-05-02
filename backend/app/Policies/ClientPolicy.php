@@ -41,4 +41,9 @@ class ClientPolicy
     {
         return $user->isAdmin();
     }
+
+    public function viewTransactions(User $user, Client $client): bool
+    {
+        return $user->isAdmin();
+    }
 }

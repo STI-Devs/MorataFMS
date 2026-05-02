@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class AuditLog extends Model
 {
-    const UPDATED_AT = null; // Only created_at, no updated_at
+    const UPDATED_AT = null;
 
     protected $fillable = [
         'auditable_type',
@@ -21,12 +21,6 @@ class AuditLog extends Model
         'ip_address',
     ];
 
-    protected $casts = [
-        'old_values' => 'array',
-        'new_values' => 'array',
-    ];
-
-    // Relationships
     public function auditable(): MorphTo
     {
         return $this->morphTo();
@@ -37,7 +31,6 @@ class AuditLog extends Model
         return $this->belongsTo(User::class);
     }
 
-    // Helper to get human-readable model name
     public function getModelNameAttribute(): string
     {
         return str($this->auditable_type)
@@ -72,5 +65,13 @@ class AuditLog extends Model
             'new_values' => ['description' => $description],
             'ip_address' => $ipAddress,
         ]);
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'old_values' => 'array',
+            'new_values' => 'array',
+        ];
     }
 }

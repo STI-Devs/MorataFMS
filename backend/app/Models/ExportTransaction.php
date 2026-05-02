@@ -80,15 +80,6 @@ class ExportTransaction extends Model
         'notes',
     ];
 
-    protected $casts = [
-        'export_date' => 'date',
-        'is_archive' => 'boolean',
-        'archived_at' => 'datetime',
-        'archive_origin' => ArchiveOrigin::class,
-        'status' => ExportStatus::class,
-    ];
-
-    // Relationships
     public function shipper(): BelongsTo
     {
         return $this->belongsTo(Client::class, 'shipper_id');
@@ -124,7 +115,6 @@ class ExportTransaction extends Model
         return $this->morphMany(TransactionRemark::class, 'remarkble');
     }
 
-    // Boot method to auto-create stages
     protected static function booted(): void
     {
         static::created(function (ExportTransaction $transaction) {
@@ -188,7 +178,6 @@ class ExportTransaction extends Model
         }
     }
 
-    // Scopes
     public function scopePending($query)
     {
         return $query->where('status', ExportStatus::Pending->value);
@@ -215,6 +204,17 @@ class ExportTransaction extends Model
         }
 
         return $query->where('assigned_user_id', $user->id);
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'export_date' => 'date',
+            'is_archive' => 'boolean',
+            'archived_at' => 'datetime',
+            'archive_origin' => ArchiveOrigin::class,
+            'status' => ExportStatus::class,
+        ];
     }
 
     public function scopeRelevantToOperationalQueue(Builder $query, User $user): Builder
@@ -359,7 +359,9 @@ class ExportTransaction extends Model
         $this->unsetRelation('stages');
     }
 
-    // Helper to get current stage progress
+    /**
+     * @return array<string, mixed>
+     */
     public function getProgressAttribute(): array
     {
         $stages = $this->stages;

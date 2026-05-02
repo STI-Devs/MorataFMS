@@ -6,10 +6,15 @@ use App\Models\ExportTransaction;
 use App\Models\ImportTransaction;
 use App\Models\TransactionRemark;
 use App\Models\User;
+use App\Support\Transactions\TransactionSyncBroadcaster;
 use Illuminate\Validation\ValidationException;
 
 class CreateTransactionRemark
 {
+    public function __construct(
+        private TransactionSyncBroadcaster $transactionSyncBroadcaster,
+    ) {}
+
     public function handle(
         ImportTransaction|ExportTransaction $transaction,
         array $validated,
@@ -28,6 +33,7 @@ class CreateTransactionRemark
         $remark->is_resolved = false;
         $remark->save();
         $remark->load(['author:id,name,role', 'document:id,filename,type']);
+        $this->transactionSyncBroadcaster->remarkChanged($transaction, $author, 'remark_created');
 
         return $remark;
     }

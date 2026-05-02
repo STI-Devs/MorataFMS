@@ -10,10 +10,15 @@ use App\Models\ImportTransaction;
 use App\Models\User;
 use App\Support\Transactions\ExportStatusWorkflow;
 use App\Support\Transactions\ImportStatusWorkflow;
+use App\Support\Transactions\TransactionSyncBroadcaster;
 use Illuminate\Support\Facades\DB;
 
 class OverrideTransactionStatus
 {
+    public function __construct(
+        private TransactionSyncBroadcaster $transactionSyncBroadcaster,
+    ) {}
+
     public function handle(
         ImportTransaction|ExportTransaction $transaction,
         User $actor,
@@ -44,6 +49,12 @@ class OverrideTransactionStatus
                 ipAddress: $ipAddress,
             );
         });
+
+        $this->transactionSyncBroadcaster->transactionChanged(
+            $transaction,
+            $actor,
+            'status_changed',
+        );
     }
 
     private function syncCompletionStage(

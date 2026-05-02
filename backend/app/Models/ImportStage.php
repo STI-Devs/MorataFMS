@@ -43,27 +43,6 @@ class ImportStage extends Model
         'billing_completed_by',
     ];
 
-    protected $casts = [
-        'boc_completed_at' => 'datetime',
-        'bonds_completed_at' => 'datetime',
-        'ppa_completed_at' => 'datetime',
-        'do_completed_at' => 'datetime',
-        'port_charges_completed_at' => 'datetime',
-        'releasing_completed_at' => 'datetime',
-        'billing_completed_at' => 'datetime',
-        'boc_status' => StageStatus::class,
-        'bonds_status' => StageStatus::class,
-        'ppa_status' => StageStatus::class,
-        'do_status' => StageStatus::class,
-        'port_charges_status' => StageStatus::class,
-        'releasing_status' => StageStatus::class,
-        'billing_status' => StageStatus::class,
-        'bonds_not_applicable' => 'boolean',
-        'ppa_not_applicable' => 'boolean',
-        'port_charges_not_applicable' => 'boolean',
-    ];
-
-    // Relationships
     public function importTransaction(): BelongsTo
     {
         return $this->belongsTo(ImportTransaction::class);
@@ -104,7 +83,6 @@ class ImportStage extends Model
         return $this->belongsTo(User::class, 'billing_completed_by');
     }
 
-    // Helper methods
     public function markStageComplete(string $stage, int $userId): void
     {
         $statusField = "{$stage}_status";
@@ -135,5 +113,28 @@ class ImportStage extends Model
     public function isAllComplete(): bool
     {
         return $this->getCompletedStagesCount() === 7;
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'boc_completed_at' => 'datetime',
+            'bonds_completed_at' => 'datetime',
+            'ppa_completed_at' => 'datetime',
+            'do_completed_at' => 'datetime',
+            'port_charges_completed_at' => 'datetime',
+            'releasing_completed_at' => 'datetime',
+            'billing_completed_at' => 'datetime',
+            'boc_status' => StageStatus::class,
+            'bonds_status' => StageStatus::class,
+            'ppa_status' => StageStatus::class,
+            'do_status' => StageStatus::class,
+            'port_charges_status' => StageStatus::class,
+            'releasing_status' => StageStatus::class,
+            'billing_status' => StageStatus::class,
+            'bonds_not_applicable' => 'boolean',
+            'ppa_not_applicable' => 'boolean',
+            'port_charges_not_applicable' => 'boolean',
+        ];
     }
 }

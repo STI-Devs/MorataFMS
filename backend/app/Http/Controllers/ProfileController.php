@@ -2,15 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Users\UpdateProfile;
 use App\Http\Requests\UpdateProfileRequest;
 use App\Http\Resources\UserResource;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 
 class ProfileController extends Controller
 {
+    public function __construct(
+        private UpdateProfile $updateProfile,
+    ) {}
+
     /**
      * GET /api/user
      */
@@ -25,36 +27,11 @@ class ProfileController extends Controller
      */
     public function update(UpdateProfileRequest $request): UserResource
     {
-        $user = $request->user();
-        $validated = $request->validated();
-
-        if (! empty($validated['name'])) {
-            $user->name = $validated['name'];
-        }
-
-        if (array_key_exists('job_title', $validated)) {
-            $user->job_title = filled($validated['job_title']) ? trim($validated['job_title']) : null;
-        }
-
-        if (! empty($validated['password'])) {
-            Auth::guard('web')->logoutOtherDevices($validated['current_password']);
-
-            $user->password = Hash::make($validated['password']);
-        }
-
-        $user->save();
-
-        if (! empty($validated['password']) && config('session.driver') === 'database') {
-            $currentSessionId = $request->hasSession() ? $request->session()->getId() : null;
-
-            DB::table((string) config('session.table', 'sessions'))
-                ->where('user_id', $user->getKey())
-                ->when(
-                    $currentSessionId !== null,
-                    fn ($query) => $query->where('id', '!=', $currentSessionId),
-                )
-                ->delete();
-        }
+        $user = $this->updateProfile->handle(
+            $request->user(),
+            $request->validated(),
+            $request->hasSession() ? $request->session()->getId() : null,
+        );
 
         return new UserResource($user);
     }

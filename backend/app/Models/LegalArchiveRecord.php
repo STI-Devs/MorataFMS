@@ -26,11 +26,6 @@ class LegalArchiveRecord extends Model
         'size_bytes',
     ];
 
-    protected $casts = [
-        'document_date' => 'date',
-        'size_bytes' => 'integer',
-    ];
-
     /**
      * @return list<string>
      */
@@ -65,5 +60,13 @@ class LegalArchiveRecord extends Model
         }
 
         return round($bytes / 1048576, 2).' MB';
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'document_date' => 'date',
+            'size_bytes' => 'integer',
+        ];
     }
 }

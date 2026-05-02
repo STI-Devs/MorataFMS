@@ -17,6 +17,7 @@ use App\Queries\Transactions\ImportTransactionIndexQuery;
 use App\Queries\Transactions\ImportTransactionStatsQuery;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Symfony\Component\HttpFoundation\Response;
 
 class ImportTransactionController extends Controller
@@ -34,7 +35,7 @@ class ImportTransactionController extends Controller
      * GET /api/import-transactions
      * Paginated list with optional search and filter.
      */
-    public function index(Request $request)
+    public function index(Request $request): AnonymousResourceCollection
     {
         $this->authorize('viewAny', ImportTransaction::class);
 
@@ -45,7 +46,7 @@ class ImportTransactionController extends Controller
      * POST /api/import-transactions
      * Create a new import transaction.
      */
-    public function store(StoreImportTransactionRequest $request)
+    public function store(StoreImportTransactionRequest $request): JsonResponse
     {
         $this->authorize('create', ImportTransaction::class);
 
@@ -60,7 +61,7 @@ class ImportTransactionController extends Controller
      * PUT/PATCH /api/import-transactions/{import_transaction}
      * Update an existing import transaction.
      */
-    public function update(UpdateImportTransactionRequest $request, ImportTransaction $import_transaction)
+    public function update(UpdateImportTransactionRequest $request, ImportTransaction $import_transaction): ImportTransactionResource
     {
         $this->authorize('update', $import_transaction);
 
@@ -77,7 +78,7 @@ class ImportTransactionController extends Controller
      * GET /api/import-transactions/stats
      * Returns total status counts across all records.
      */
-    public function stats()
+    public function stats(): JsonResponse
     {
         $this->authorize('viewAny', ImportTransaction::class);
 
@@ -88,7 +89,7 @@ class ImportTransactionController extends Controller
      * PATCH /api/import-transactions/{import_transaction}/cancel
      * Cancel an import transaction with a reason.
      */
-    public function cancel(CancelTransactionRequest $request, ImportTransaction $import_transaction)
+    public function cancel(CancelTransactionRequest $request, ImportTransaction $import_transaction): ImportTransactionResource
     {
         $this->authorize('update', $import_transaction);
 

@@ -21,6 +21,16 @@ class SecurityHeaders
         $response->headers->set('X-Content-Type-Options', 'nosniff');
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
 
+        if (app()->environment('production')) {
+            // HSTS for the API host: 1 year and any subdomains under `api.fmmcbs.com`.
+            // Required here because `api.fmmcbs.com` is DNS-only on Cloudflare
+            // (the Railway CNAME cannot be proxied), so Cloudflare cannot inject it.
+            $response->headers->set(
+                'Strict-Transport-Security',
+                'max-age=31536000; includeSubDomains'
+            );
+        }
+
         if ($isHtmlResponse) {
             $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
         } else {

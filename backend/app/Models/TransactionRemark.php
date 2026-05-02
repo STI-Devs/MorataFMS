@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\RemarkSeverity;
 use App\Traits\Auditable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class TransactionRemark extends Model
 {
-    use HasFactory, Auditable;
+    use Auditable, HasFactory;
 
     protected $fillable = [
         'remarkble_type',
@@ -21,14 +22,6 @@ class TransactionRemark extends Model
         'message',
         'document_id',
     ];
-
-    protected $casts = [
-        'is_resolved' => 'boolean',
-        'resolved_at' => 'datetime',
-        'severity'    => RemarkSeverity::class,
-    ];
-
-    // ── Relationships ────────────────────────────────────────────────────────
 
     /** The transaction this remark belongs to (polymorphic). */
     public function remarkble(): MorphTo
@@ -54,15 +47,22 @@ class TransactionRemark extends Model
         return $this->belongsTo(Document::class);
     }
 
-    // ── Scopes ───────────────────────────────────────────────────────────────
-
-    public function scopeOpen($query)
+    public function scopeOpen(Builder $query): Builder
     {
         return $query->where('is_resolved', false);
     }
 
-    public function scopeResolved($query)
+    public function scopeResolved(Builder $query): Builder
     {
         return $query->where('is_resolved', true);
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'is_resolved' => 'boolean',
+            'resolved_at' => 'datetime',
+            'severity' => RemarkSeverity::class,
+        ];
     }
 }

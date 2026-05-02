@@ -239,7 +239,7 @@ class DatabaseBackupManager
      */
     private function composeBaseCommand(): array
     {
-        $dockerComposeBinary = trim((string) env('COMPOSE_BINARY', ''));
+        $dockerComposeBinary = trim((string) config('operations.database_backups.compose_binary', ''));
 
         if ($dockerComposeBinary !== '') {
             return [$dockerComposeBinary];

@@ -2,44 +2,48 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\UserRole;
+use App\Actions\Users\ActivateUser;
+use App\Actions\Users\CreateUser;
+use App\Actions\Users\DeactivateUser;
+use App\Actions\Users\DeleteUser;
+use App\Actions\Users\UpdateUser;
 use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
-use Illuminate\Support\Facades\Hash;
+use App\Queries\Users\UserIndexQuery;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class UserController extends Controller
 {
+    public function __construct(
+        private UserIndexQuery $userIndexQuery,
+        private CreateUser $createUser,
+        private UpdateUser $updateUser,
+        private DeleteUser $deleteUser,
+        private DeactivateUser $deactivateUser,
+        private ActivateUser $activateUser,
+    ) {}
+
     /**
      * List all users (admin only).
      */
-    public function index()
+    public function index(): AnonymousResourceCollection
     {
         $this->authorize('viewAny', User::class);
 
-        $users = User::orderBy('name')->get();
-
-        return UserResource::collection($users);
+        return UserResource::collection($this->userIndexQuery->handle());
     }
 
     /**
      * Create a new user (admin only).
      */
-    public function store(StoreUserRequest $request)
+    public function store(StoreUserRequest $request): JsonResponse
     {
         $this->authorize('create', User::class);
 
-        $validated = $request->validated();
-
-        $user = new User([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'job_title' => $validated['job_title'] ?? null,
-            'password' => Hash::make($validated['password']),
-        ]);
-        $user->role = UserRole::from($validated['role']);
-        $user->save();
+        $user = $this->createUser->handle($request->validated());
 
         return (new UserResource($user))
             ->response()
@@ -49,7 +53,7 @@ class UserController extends Controller
     /**
      * Show a single user (admin only).
      */
-    public function show(User $user)
+    public function show(User $user): UserResource
     {
         $this->authorize('viewAny', User::class);
 
@@ -59,29 +63,11 @@ class UserController extends Controller
     /**
      * Update a user (admin only).
      */
-    public function update(UpdateUserRequest $request, User $user)
+    public function update(UpdateUserRequest $request, User $user): UserResource
     {
         $this->authorize('update', $user);
 
-        $validated = $request->validated();
-
-        if (isset($validated['name'])) {
-            $user->name = $validated['name'];
-        }
-        if (isset($validated['email'])) {
-            $user->email = $validated['email'];
-        }
-        if (array_key_exists('job_title', $validated)) {
-            $user->job_title = $validated['job_title'];
-        }
-        if (isset($validated['password'])) {
-            $user->password = Hash::make($validated['password']);
-        }
-        if (isset($validated['role'])) {
-            $user->role = UserRole::from($validated['role']);
-        }
-
-        $user->save();
+        $user = $this->updateUser->handle($user, $request->validated());
 
         return new UserResource($user);
     }
@@ -89,11 +75,11 @@ class UserController extends Controller
     /**
      * Delete a user (admin only).
      */
-    public function destroy(User $user)
+    public function destroy(User $user): JsonResponse
     {
         $this->authorize('delete', $user);
 
-        $user->delete();
+        $this->deleteUser->handle($user);
 
         return response()->json(['message' => 'User deleted successfully.']);
     }
@@ -103,25 +89,11 @@ class UserController extends Controller
      * Soft-disable a user account (admin only).
      * Guard: cannot deactivate the last active admin in the system.
      */
-    public function deactivate(User $user)
+    public function deactivate(User $user): UserResource
     {
         $this->authorize('update', $user);
 
-        // Prevent locking out the entire system by deactivating the last active admin.
-        if ($user->role === UserRole::Admin) {
-            $activeAdminCount = User::where('role', UserRole::Admin->value)
-                ->where('is_active', true)
-                ->count();
-
-            if ($activeAdminCount <= 1) {
-                return response()->json([
-                    'message' => 'Cannot deactivate the last active admin account. Assign another admin first.',
-                ], 422);
-            }
-        }
-
-        $user->is_active = false;
-        $user->save();
+        $user = $this->deactivateUser->handle($user);
 
         return new UserResource($user);
     }
@@ -130,12 +102,11 @@ class UserController extends Controller
      * POST /api/users/{user}/activate
      * Re-enable a deactivated user account (admin only).
      */
-    public function activate(User $user)
+    public function activate(User $user): UserResource
     {
         $this->authorize('update', $user);
 
-        $user->is_active = true;
-        $user->save();
+        $user = $this->activateUser->handle($user);
 
         return new UserResource($user);
     }

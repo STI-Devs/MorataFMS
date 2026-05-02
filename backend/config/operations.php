@@ -6,6 +6,7 @@ return [
         'path' => env('DATABASE_BACKUP_PATH', dirname(__DIR__).DIRECTORY_SEPARATOR.'storage'.DIRECTORY_SEPARATOR.'app'.DIRECTORY_SEPARATOR.'database-backups'),
         'directory' => env('DATABASE_BACKUP_DIRECTORY', 'database-backups'),
         'docker_service' => env('DATABASE_BACKUP_DOCKER_SERVICE', env('PRODUCTION_MIRROR_LOCAL_DOCKER_SERVICE', 'mysql')),
+        'compose_binary' => env('COMPOSE_BINARY'),
     ],
     'production_mirror' => [
         'source' => [

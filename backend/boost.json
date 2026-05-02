@@ -1,7 +1,5 @@
 {
     "agents": [
-        "cursor",
-        "claude_code",
         "codex",
         "gemini"
     ],
@@ -11,6 +9,7 @@
     "nightwatch_mcp": false,
     "sail": false,
     "skills": [
-        "pest-testing"
+        "pest-testing",
+        "laravel-best-practices"
     ]
 }

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ClientType;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -25,11 +26,6 @@ class Client extends Model
         'is_active',
     ];
 
-    protected $casts = [
-        'is_active' => 'boolean',
-        'type' => ClientType::class,
-    ];
-
     public function country(): BelongsTo
     {
         return $this->belongsTo(Country::class);
@@ -45,18 +41,25 @@ class Client extends Model
         return $this->hasMany(ExportTransaction::class, 'shipper_id');
     }
 
-    // Scopes
-    public function scopeActive($query)
+    protected function casts(): array
+    {
+        return [
+            'is_active' => 'boolean',
+            'type' => ClientType::class,
+        ];
+    }
+
+    public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);
     }
 
-    public function scopeImporters($query)
+    public function scopeImporters(Builder $query): Builder
     {
         return $query->whereIn('type', [ClientType::Importer->value, ClientType::Both->value]);
     }
 
-    public function scopeExporters($query)
+    public function scopeExporters(Builder $query): Builder
     {
         return $query->whereIn('type', [ClientType::Exporter->value, ClientType::Both->value]);
     }

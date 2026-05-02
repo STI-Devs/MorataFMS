@@ -43,27 +43,6 @@ class ExportStage extends Model
         'billing_completed_by',
     ];
 
-    protected $casts = [
-        'docs_prep_completed_at' => 'datetime',
-        'co_completed_at' => 'datetime',
-        'phytosanitary_completed_at' => 'datetime',
-        'cil_completed_at' => 'datetime',
-        'dccci_completed_at' => 'datetime',
-        'bl_completed_at' => 'datetime',
-        'billing_completed_at' => 'datetime',
-        'docs_prep_status' => StageStatus::class,
-        'co_status' => StageStatus::class,
-        'phytosanitary_status' => StageStatus::class,
-        'cil_status' => StageStatus::class,
-        'dccci_status' => StageStatus::class,
-        'bl_status' => StageStatus::class,
-        'billing_status' => StageStatus::class,
-        'co_not_applicable' => 'boolean',
-        'phytosanitary_not_applicable' => 'boolean',
-        'dccci_not_applicable' => 'boolean',
-    ];
-
-    // Relationships
     public function exportTransaction(): BelongsTo
     {
         return $this->belongsTo(ExportTransaction::class);
@@ -104,7 +83,6 @@ class ExportStage extends Model
         return $this->belongsTo(User::class, 'billing_completed_by');
     }
 
-    // Helper methods
     public function markStageComplete(string $stage, int $userId): void
     {
         $statusField = "{$stage}_status";
@@ -135,5 +113,28 @@ class ExportStage extends Model
     public function isAllComplete(): bool
     {
         return $this->getCompletedStagesCount() === 7;
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'docs_prep_completed_at' => 'datetime',
+            'co_completed_at' => 'datetime',
+            'phytosanitary_completed_at' => 'datetime',
+            'cil_completed_at' => 'datetime',
+            'dccci_completed_at' => 'datetime',
+            'bl_completed_at' => 'datetime',
+            'billing_completed_at' => 'datetime',
+            'docs_prep_status' => StageStatus::class,
+            'co_status' => StageStatus::class,
+            'phytosanitary_status' => StageStatus::class,
+            'cil_status' => StageStatus::class,
+            'dccci_status' => StageStatus::class,
+            'bl_status' => StageStatus::class,
+            'billing_status' => StageStatus::class,
+            'co_not_applicable' => 'boolean',
+            'phytosanitary_not_applicable' => 'boolean',
+            'dccci_not_applicable' => 'boolean',
+        ];
     }
 }

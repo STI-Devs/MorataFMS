@@ -3,12 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Remarks\CreateTransactionRemark;
+use App\Actions\Remarks\ResolveTransactionRemark;
 use App\Http\Requests\StoreRemarkRequest;
 use App\Http\Resources\TransactionRemarkResource;
-use App\Models\ExportTransaction;
-use App\Models\ImportTransaction;
 use App\Models\TransactionRemark;
-use App\Support\Transactions\TransactionSyncBroadcaster;
+use App\Queries\Remarks\TransactionRemarkIndexQuery;
+use App\Support\Transactions\TransactionRouteResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -16,20 +16,10 @@ class TransactionRemarkController extends Controller
 {
     public function __construct(
         private CreateTransactionRemark $createTransactionRemark,
-        private TransactionSyncBroadcaster $transactionSyncBroadcaster,
+        private ResolveTransactionRemark $resolveTransactionRemark,
+        private TransactionRemarkIndexQuery $transactionRemarkIndexQuery,
+        private TransactionRouteResolver $transactionRouteResolver,
     ) {}
-
-    /**
-     * Resolve the transaction model from the polymorphic {type}/{id} route.
-     */
-    private function resolveTransaction(string $type, string $id)
-    {
-        return match ($type) {
-            'import' => ImportTransaction::findOrFail($id),
-            'export' => ExportTransaction::findOrFail($id),
-            default => abort(404, 'Invalid transaction type.'),
-        };
-    }
 
     /**
      * GET /api/transactions/{type}/{id}/remarks
@@ -37,18 +27,7 @@ class TransactionRemarkController extends Controller
      */
     public function index(Request $request, string $type, string $id): JsonResponse
     {
-        $user = $request->user();
-        $transaction = $this->resolveTransaction($type, $id);
-
-        // Encoders can only see remarks on transactions assigned to them
-        if (! $user->isAdmin() && $transaction->assigned_user_id !== $user->id) {
-            abort(403, 'Unauthorized.');
-        }
-
-        $remarks = $transaction->remarks()
-            ->with(['author:id,name,role', 'resolver:id,name', 'document:id,filename,type'])
-            ->orderByDesc('created_at')
-            ->get();
+        $remarks = $this->transactionRemarkIndexQuery->handle($request->user(), $type, $id);
 
         return response()->json([
             'data' => TransactionRemarkResource::collection($remarks),
@@ -61,13 +40,12 @@ class TransactionRemarkController extends Controller
      */
     public function store(StoreRemarkRequest $request, string $type, string $id): JsonResponse
     {
-        $transaction = $this->resolveTransaction($type, $id);
+        $transaction = $this->transactionRouteResolver->resolve($type, $id);
         $remark = $this->createTransactionRemark->handle(
             $transaction,
             $request->validated(),
             $request->user(),
         );
-        $this->transactionSyncBroadcaster->remarkChanged($transaction, $request->user(), 'remark_created');
 
         return TransactionRemarkResource::make($remark)
             ->response()
@@ -80,25 +58,7 @@ class TransactionRemarkController extends Controller
      */
     public function resolve(Request $request, TransactionRemark $remark): JsonResponse
     {
-        $user = $request->user();
-        $transaction = $remark->remarkble;
-
-        // Only admin or the assigned encoder can resolve
-        if (! $user->isAdmin() && $transaction->assigned_user_id !== $user->id) {
-            abort(403, 'Unauthorized.');
-        }
-
-        if ($remark->is_resolved) {
-            return response()->json(['message' => 'Already resolved.'], 422);
-        }
-
-        $remark->is_resolved = true;
-        $remark->resolved_by = $user->id;
-        $remark->setAttribute('resolved_at', now());
-        $remark->save();
-
-        $remark->load(['author:id,name,role', 'resolver:id,name', 'document:id,filename,type']);
-        $this->transactionSyncBroadcaster->remarkChanged($transaction, $user, 'remark_resolved');
+        $remark = $this->resolveTransactionRemark->handle($remark, $request->user());
 
         return response()->json([
             'message' => 'Remark resolved.',

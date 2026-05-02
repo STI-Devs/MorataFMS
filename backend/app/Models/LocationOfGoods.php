@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Database\Factories\LocationOfGoodsFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -19,16 +20,19 @@ class LocationOfGoods extends Model
         'is_active',
     ];
 
-    protected $casts = [
-        'is_active' => 'boolean',
-    ];
-
     public function importTransactions(): HasMany
     {
         return $this->hasMany(ImportTransaction::class);
     }
 
-    public function scopeActive($query)
+    protected function casts(): array
+    {
+        return [
+            'is_active' => 'boolean',
+        ];
+    }
+
+    public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);
     }

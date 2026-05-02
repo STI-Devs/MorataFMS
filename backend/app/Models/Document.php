@@ -122,12 +122,6 @@ class Document extends Model
         'version',
     ];
 
-    protected $casts = [
-        'size_bytes' => 'integer',
-        'version' => 'integer',
-    ];
-
-    // Polymorphic relationship
     public function documentable(): MorphTo
     {
         return $this->morphTo();
@@ -184,7 +178,6 @@ class Document extends Model
         return $query->whereRaw('1 = 0');
     }
 
-    // Helper to get human-readable file size
     public function getFormattedSizeAttribute(): string
     {
         $bytes = $this->size_bytes;
@@ -198,9 +191,9 @@ class Document extends Model
         return round($bytes / 1048576, 2).' MB';
     }
 
-    // Helper to generate S3 path for transaction documents.
-    // Archive state lives in the database and S3 object tags, not in the root prefix.
-    // Path: {root}/{folder}/{year}/{period-folder}/{BL}/{type}_{name}_{unique}.{ext}
+    /**
+     * Archive state lives in the database and S3 object tags, not in the root prefix.
+     */
     public static function generateS3Path(
         string $documentableType,
         int $documentableId,
@@ -221,12 +214,14 @@ class Document extends Model
         $basename = pathinfo($filename, PATHINFO_FILENAME);
         $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
         $safeName = str($basename)->slug('_')->value();
-        $unique = substr(uniqid(), -6); // short unique suffix to prevent overwrites
+        $unique = substr(uniqid(), -6);
 
         return "{$root}/{$folder}/{$year}/{$periodFolder}/{$blSlug}/{$type}_{$safeName}_{$unique}.{$ext}";
     }
 
-    // Document type labels
+    /**
+     * @return array<string, string>
+     */
     public static function getTypeLabels(): array
     {
         return [
@@ -255,5 +250,13 @@ class Document extends Model
         $monthName = date('F', mktime(0, 0, 0, $month, 1));
 
         return "month-{$monthPad}-{$monthName}";
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'size_bytes' => 'integer',
+            'version' => 'integer',
+        ];
     }
 }
