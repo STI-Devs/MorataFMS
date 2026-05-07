@@ -67,7 +67,7 @@ test('encoders can only list their own finalized document transactions with pagi
         'status' => 'Completed',
         'assigned_user_id' => $user->id,
     ]);
-    Document::factory()->count(2)->create([
+    Document::factory()->count(2)->recycle($user)->create([
         'documentable_type' => ImportTransaction::class,
         'documentable_id' => $importTransaction->id,
     ]);

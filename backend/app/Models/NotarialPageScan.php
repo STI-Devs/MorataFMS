@@ -21,12 +21,6 @@ class NotarialPageScan extends Model
         'size_bytes',
     ];
 
-    protected $casts = [
-        'page_start' => 'integer',
-        'page_end' => 'integer',
-        'size_bytes' => 'integer',
-    ];
-
     public function book(): BelongsTo
     {
         return $this->belongsTo(NotarialBook::class, 'notarial_book_id');
@@ -64,5 +58,14 @@ class NotarialPageScan extends Model
         }
 
         return 'Pages '.$this->page_start.'–'.$this->page_end;
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'page_start' => 'integer',
+            'page_end' => 'integer',
+            'size_bytes' => 'integer',
+        ];
     }
 }

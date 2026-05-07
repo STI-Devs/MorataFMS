@@ -3,6 +3,7 @@
 namespace App\Queries\Transactions;
 
 use App\Enums\UserRole;
+use App\Models\Client;
 use App\Models\ImportTransaction;
 use App\Support\Transactions\ImportStatusWorkflow;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -33,9 +34,10 @@ class ImportTransactionIndexQuery
             $query->where(function ($query) use ($search) {
                 $query->where('customs_ref_no', 'like', "%{$search}%")
                     ->orWhere('bl_no', 'like', "%{$search}%")
-                    ->orWhereHas('importer', function ($query) use ($search) {
-                        $query->where('name', 'like', "%{$search}%");
-                    });
+                    ->orWhereIn(
+                        'importer_id',
+                        Client::query()->where('name', 'like', "%{$search}%")->select('id'),
+                    );
             });
         }
 
@@ -63,8 +65,8 @@ class ImportTransactionIndexQuery
         }
 
         return $query
-            ->orderBy('created_at', 'desc')
-            ->orderBy('id', 'desc')
+            ->latest()
+            ->latest('id')
             ->paginate($perPage);
     }
 }

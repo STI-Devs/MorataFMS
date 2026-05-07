@@ -19,7 +19,6 @@ class NotarialTemplate extends Model
         'document_category',
         'default_notarial_act_type',
         'description',
-        'field_schema',
         'is_active',
         'filename',
         'path',
@@ -31,7 +30,6 @@ class NotarialTemplate extends Model
     protected function casts(): array
     {
         return [
-            'field_schema' => 'array',
             'is_active' => 'boolean',
             'size_bytes' => 'integer',
         ];
@@ -42,9 +40,9 @@ class NotarialTemplate extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    public function records(): HasMany
+    public function generatedDocuments(): HasMany
     {
-        return $this->hasMany(NotarialTemplateRecord::class);
+        return $this->hasMany(NotarialGeneratedDocument::class);
     }
 
     public function hasSourceFile(): bool

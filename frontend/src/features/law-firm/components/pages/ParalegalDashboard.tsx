@@ -5,7 +5,7 @@ import { useAuth } from '../../../auth';
 import {
     useLegalArchive,
     useLegalBooks,
-    useNotarialTemplateRecords,
+    useNotarialGeneratedDocuments,
     useNotarialTemplates,
 } from '../../hooks/useLegalWorkspace';
 
@@ -19,24 +19,24 @@ type ModuleCard = {
 
 const baseModuleCards: ModuleCard[] = [
     {
-        label: 'Template Generator',
-        description: 'Choose the notarial template, fill the needed fields, and generate the Word document.',
-        path: appRoutes.paralegalNotarial,
+        label: 'Create Draft',
+        description: 'Select a master, create a working copy, and open it in the editor.',
+        path: appRoutes.paralegalGenerator,
         accent: '#0a84ff',
         icon: 'M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2',
     },
     {
-        label: 'Generated Records',
-        description: 'Review the generated Word outputs by template, party, book, and notarial act.',
-        path: appRoutes.paralegalRecords,
+        label: 'Generated Documents',
+        description: 'Search and reopen editable Word outputs by party, document type, variant, or file name.',
+        path: appRoutes.paralegalGeneratedDocuments,
         accent: '#30d158',
         icon: 'M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4',
     },
     {
-        label: 'Book Archive',
-        description: 'Register physical books and keep the scanned pages and archive files under each book.',
+        label: 'Book Register',
+        description: 'Register physical legal books and maintain scanned page archives for historical reference.',
         path: appRoutes.paralegalBooks,
-        accent: '#5e5ce6',
+        accent: '#636366',
         icon: 'M4 6h16M4 10h16M6 14h12a2 2 0 012 2v3a1 1 0 01-1 1H5a1 1 0 01-1-1v-3a2 2 0 012-2z',
     },
     {
@@ -48,7 +48,7 @@ const baseModuleCards: ModuleCard[] = [
     },
     {
         label: 'Legal File Records',
-        description: 'Search archive-only legal file records by title, related name, category, and upload status.',
+        description: 'Search legal file records by title, related name, category, and upload status.',
         path: appRoutes.paralegalLegalFileRecords,
         accent: '#ff453a',
         icon: 'M4 6a2 2 0 012-2h8l6 6v8a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm4 7h8m-8 4h8',
@@ -66,29 +66,29 @@ const OverviewCard = ({ label, value, description }: { label: string; value: str
 export const ParalegalDashboard = () => {
     const navigate = useNavigate();
     const { user } = useAuth();
-    const canManageBooks = Boolean(user?.permissions.manage_notarial_books);
+    const canViewBooks = Boolean(user?.permissions.view_notarial_books);
 
     const booksQuery = useLegalBooks({ per_page: 100 });
     const templatesQuery = useNotarialTemplates({ page: 1, per_page: 1 });
     const readyTemplatesQuery = useNotarialTemplates({ template_status: 'ready', page: 1, per_page: 1 });
-    const generatedRecordsQuery = useNotarialTemplateRecords({ page: 1, per_page: 1 });
+    const generatedDocumentsQuery = useNotarialGeneratedDocuments({ page: 1, per_page: 1 });
     const legalArchiveQuery = useLegalArchive({ page: 1, per_page: 1 });
 
     const books = booksQuery.data?.data ?? [];
     const activeBook = books.find((book) => book.status === 'active') ?? null;
     const templateCount = templatesQuery.data?.meta.total ?? 0;
     const readyTemplateCount = readyTemplatesQuery.data?.meta.total ?? 0;
-    const generatedRecordCount = generatedRecordsQuery.data?.meta.total ?? 0;
+    const generatedDocumentCount = generatedDocumentsQuery.data?.meta.total ?? 0;
     const legalArchiveCount = legalArchiveQuery.data?.meta.total ?? 0;
-    const moduleCards = canManageBooks ? baseModuleCards : baseModuleCards.filter((card) => card.label !== 'Book Archive');
+    const moduleCards = canViewBooks ? baseModuleCards : baseModuleCards.filter((card) => card.label !== 'Book Register');
 
     return (
         <div className="space-y-8 px-6 py-6">
             <header className="flex flex-col gap-4 border-b border-border pb-6 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                    <h1 className="mt-2 text-4xl font-bold tracking-tight text-text-primary">Paralegal Dashboard</h1>
+                    <h1 className="mt-2 text-4xl font-bold tracking-tight text-text-primary">Paralegal Workspace</h1>
                     <p className="mt-3 max-w-2xl text-sm text-text-secondary">
-                        Generate notarial documents from templates, keep the output history searchable, and maintain the physical book archive in a separate workspace.
+                        Manage notarial drafting, generated Word files, and the supporting archive work from one legal workspace.
                     </p>
                 </div>
                 <CurrentDateTime
@@ -107,27 +107,27 @@ export const ParalegalDashboard = () => {
                     <OverviewCard
                         label="Current Book"
                         value={activeBook ? `Book ${activeBook.book_number}` : 'None'}
-                        description={activeBook ? `${activeBook.year} is marked active in the archive.` : 'No physical book marked active.'}
+                        description={activeBook ? `${activeBook.year} is the current book in the register.` : 'No physical book marked active.'}
                     />
                     <OverviewCard
-                        label="Templates"
+                        label="Document Masters"
                         value={String(templateCount)}
-                        description="Master notarial templates saved in the system."
+                        description="Document masters saved in the system."
                     />
                     <OverviewCard
-                        label="Ready Templates"
+                        label="Ready Masters"
                         value={String(readyTemplateCount)}
-                        description="Templates that already have their DOCX master file."
+                        description="Masters that already have their DOCX source file."
                     />
                     <OverviewCard
-                        label="Generated Records"
-                        value={String(generatedRecordCount)}
-                        description="Word outputs already generated from the template library."
+                        label="Generated Documents"
+                        value={String(generatedDocumentCount)}
+                        description="Editable Word outputs already created from the master library."
                     />
                     <OverviewCard
                         label="Legal File Records"
                         value={String(legalArchiveCount)}
-                        description="Archive-only legal file records stored outside the notarial flow."
+                        description="Legal file records stored outside the document generation flow."
                     />
                 </div>
             </section>

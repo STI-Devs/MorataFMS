@@ -19,7 +19,6 @@ return new class extends Migration
             $table->string('document_category');
             $table->string('default_notarial_act_type');
             $table->text('description')->nullable();
-            $table->json('field_schema');
             $table->boolean('is_active')->default(true);
             $table->string('filename')->nullable();
             $table->string('path')->nullable();

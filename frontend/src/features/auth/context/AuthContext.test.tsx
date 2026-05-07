@@ -51,6 +51,7 @@ const authenticatedUser: User = {
         view_audit_logs: true,
         manage_transaction_oversight: true,
         upload_archives: true,
+        view_notarial_books: true,
         manage_notarial_books: true,
         manage_notarial_templates: true,
     },

@@ -5,6 +5,7 @@ namespace App\Support\LegacyBatches;
 use App\Models\LegacyBatch;
 use App\Models\LegacyBatchFile;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 class LegacyBatchTreeBuilder
 {
@@ -113,7 +114,7 @@ class LegacyBatchTreeBuilder
             })
             ->sortBy([
                 fn (array $child): int => ($child['type'] ?? null) === 'folder' ? 0 : 1,
-                fn (array $child): string => strtolower((string) ($child['name'] ?? '')),
+                fn (array $child): string => Str::lower((string) ($child['name'] ?? '')),
             ])
             ->values()
             ->all();

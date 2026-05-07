@@ -4,6 +4,7 @@ interface PaginationProps {
     perPage: number;
     onPageChange: (page: number) => void;
     onPerPageChange: (perPage: number) => void;
+    perPageOptions?: number[];
     compact?: boolean;
 }
 
@@ -13,6 +14,7 @@ export const Pagination = ({
     perPage,
     onPageChange,
     onPerPageChange,
+    perPageOptions = [10, 25, 50],
     compact = false,
 }: PaginationProps) => {
     const getPageNumbers = () => {
@@ -57,9 +59,11 @@ export const Pagination = ({
                     onChange={(e) => onPerPageChange(Number(e.target.value))}
                     className="cursor-pointer rounded-lg border border-border-strong bg-surface-secondary p-1 px-2 text-xs font-bold text-text-primary outline-none transition-colors focus:border-blue-500 focus:ring-blue-500"
                 >
-                    <option value="10">10</option>
-                    <option value="25">25</option>
-                    <option value="50">50</option>
+                    {perPageOptions.map((option) => (
+                        <option key={option} value={option}>
+                            {option}
+                        </option>
+                    ))}
                 </select>
                 <span className="text-sm font-bold text-text-primary transition-colors">of {totalPages} pages</span>
             </div>

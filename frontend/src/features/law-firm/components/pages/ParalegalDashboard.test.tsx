@@ -11,13 +11,13 @@ const { mockNavigate } = vi.hoisted(() => ({
 const {
     mockUseLegalBooks,
     mockUseNotarialTemplates,
-    mockUseNotarialTemplateRecords,
+    mockUseNotarialGeneratedDocuments,
     mockUseLegalArchive,
     mockUseAuth,
 } = vi.hoisted(() => ({
     mockUseLegalBooks: vi.fn(),
     mockUseNotarialTemplates: vi.fn(),
-    mockUseNotarialTemplateRecords: vi.fn(),
+    mockUseNotarialGeneratedDocuments: vi.fn(),
     mockUseLegalArchive: vi.fn(),
     mockUseAuth: vi.fn(),
 }));
@@ -38,7 +38,7 @@ vi.mock('../../../../components/CurrentDateTime', () => ({
 vi.mock('../../hooks/useLegalWorkspace', () => ({
     useLegalBooks: mockUseLegalBooks,
     useNotarialTemplates: mockUseNotarialTemplates,
-    useNotarialTemplateRecords: mockUseNotarialTemplateRecords,
+    useNotarialGeneratedDocuments: mockUseNotarialGeneratedDocuments,
     useLegalArchive: mockUseLegalArchive,
 }));
 
@@ -58,7 +58,9 @@ describe('ParalegalDashboard', () => {
                 departments: ['legal'],
                 permissions: {
                     access_legal_module: true,
+                    view_notarial_books: true,
                     manage_notarial_books: true,
+                    manage_notarial_templates: true,
                 },
             },
         });
@@ -71,7 +73,6 @@ describe('ParalegalDashboard', () => {
                         book_number: 2,
                         year: 2026,
                         status: 'active',
-                        generated_record_count: 4,
                         page_scan_count: 2,
                         legacy_file_count: 1,
                         notes: null,
@@ -93,7 +94,7 @@ describe('ParalegalDashboard', () => {
             },
         }));
 
-        mockUseNotarialTemplateRecords.mockReturnValue({
+        mockUseNotarialGeneratedDocuments.mockReturnValue({
             data: {
                 meta: {
                     total: 12,
@@ -117,22 +118,22 @@ describe('ParalegalDashboard', () => {
             </MemoryRouter>,
         );
 
-        expect(screen.getByRole('button', { name: /template generator/i })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /generated records/i })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /book archive/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /Create Draft/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /Generated Documents/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /Book Register/i })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /legal file encode/i })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /legal file records/i })).toBeInTheDocument();
         expect(screen.getByText('Book 2')).toBeInTheDocument();
         expect(screen.getByText('12')).toBeInTheDocument();
         expect(screen.getByText('9')).toBeInTheDocument();
-        expect(screen.queryByRole('button', { name: /notarial register/i })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /Notarial Register/i })).not.toBeInTheDocument();
 
-        fireEvent.click(screen.getByRole('button', { name: /template generator/i }));
-        fireEvent.click(screen.getByRole('button', { name: /generated records/i }));
-        fireEvent.click(screen.getByRole('button', { name: /book archive/i }));
+        fireEvent.click(screen.getByRole('button', { name: /Create Draft/i }));
+        fireEvent.click(screen.getByRole('button', { name: /Generated Documents/i }));
+        fireEvent.click(screen.getByRole('button', { name: /Book Register/i }));
 
-        expect(mockNavigate).toHaveBeenNthCalledWith(1, appRoutes.paralegalNotarial);
-        expect(mockNavigate).toHaveBeenNthCalledWith(2, appRoutes.paralegalRecords);
+        expect(mockNavigate).toHaveBeenNthCalledWith(1, appRoutes.paralegalGenerator);
+        expect(mockNavigate).toHaveBeenNthCalledWith(2, appRoutes.paralegalGeneratedDocuments);
         expect(mockNavigate).toHaveBeenNthCalledWith(3, appRoutes.paralegalBooks);
     });
 });

@@ -2,14 +2,14 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { lawFirmApi } from '../api/lawFirmApi';
 import type {
     CreateNotarialBookPayload,
+    CreateEditableNotarialGeneratedDocumentPayload,
     CreateNotarialLegacyFilesPayload,
     CreateNotarialPageScanPayload,
     CreateNotarialTemplatePayload,
-    GenerateNotarialTemplateRecordPayload,
     LegalArchiveQuery,
     LegalBooksQuery,
     NotarialTemplateQuery,
-    NotarialTemplateRecordQuery,
+    NotarialGeneratedDocumentQuery,
     UpdateNotarialBookPayload,
     UpdateNotarialPageScanPayload,
     UpdateNotarialTemplatePayload,
@@ -42,10 +42,17 @@ export const useNotarialTemplates = (params?: NotarialTemplateQuery) =>
         queryFn: () => lawFirmApi.getTemplates(params),
     });
 
-export const useNotarialTemplateRecords = (params?: NotarialTemplateRecordQuery) =>
+export const useNotarialGeneratedDocuments = (params?: NotarialGeneratedDocumentQuery) =>
     useQuery({
-        queryKey: lawFirmKeys.templateRecords(params),
-        queryFn: () => lawFirmApi.getTemplateRecords(params),
+        queryKey: lawFirmKeys.generatedDocuments(params),
+        queryFn: () => lawFirmApi.getGeneratedDocuments(params),
+    });
+
+export const useNotarialGeneratedDocumentEditorConfig = (documentId: number | null) =>
+    useQuery({
+        queryKey: lawFirmKeys.generatedDocumentEditor(documentId ?? 0),
+        queryFn: () => lawFirmApi.getGeneratedDocumentEditorConfig(documentId!),
+        enabled: documentId !== null && documentId > 0,
     });
 
 export const useLegalArchive = (params?: LegalArchiveQuery) =>
@@ -77,14 +84,14 @@ export const useUpdateNotarialTemplate = () => {
     });
 };
 
-export const useGenerateNotarialTemplateRecord = () => {
+export const useCreateEditableNotarialGeneratedDocument = () => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: (payload: GenerateNotarialTemplateRecordPayload) => lawFirmApi.generateTemplateRecord(payload),
+        mutationFn: (payload: CreateEditableNotarialGeneratedDocumentPayload) =>
+            lawFirmApi.createEditableGeneratedDocument(payload),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['law-firm', 'template-records'] });
-            queryClient.invalidateQueries({ queryKey: ['law-firm', 'books'] });
+            queryClient.invalidateQueries({ queryKey: ['law-firm', 'generated-documents'] });
             queryClient.invalidateQueries({ queryKey: ['law-firm', 'legal-parties'] });
         },
     });

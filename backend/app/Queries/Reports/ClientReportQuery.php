@@ -3,6 +3,7 @@
 namespace App\Queries\Reports;
 
 use App\Enums\ArchiveOrigin;
+use App\Models\Client;
 use App\Models\ExportTransaction;
 use App\Models\ImportTransaction;
 use Carbon\CarbonImmutable;
@@ -14,25 +15,27 @@ class ClientReportQuery
     {
         [$start, $end] = $this->periodBounds($year, $month);
 
+        $clientsTable = (new Client)->getTable();
+
         $importQuery = $this->reportableTransactions(ImportTransaction::query(), 'import_transactions')
             ->where('import_transactions.created_at', '>=', $start)
             ->where('import_transactions.created_at', '<', $end)
-            ->join('brokerage_clients', 'import_transactions.importer_id', '=', 'brokerage_clients.id')
-            ->selectRaw('brokerage_clients.id as client_id, brokerage_clients.name as client_name, brokerage_clients.type as client_type, COUNT(*) as imports');
+            ->join($clientsTable, 'import_transactions.importer_id', '=', "{$clientsTable}.id")
+            ->selectRaw("{$clientsTable}.id as client_id, {$clientsTable}.name as client_name, {$clientsTable}.type as client_type, COUNT(*) as imports");
 
         $importCounts = $importQuery
-            ->groupBy('brokerage_clients.id', 'brokerage_clients.name', 'brokerage_clients.type')
+            ->groupBy("{$clientsTable}.id", "{$clientsTable}.name", "{$clientsTable}.type")
             ->get()
             ->keyBy('client_id');
 
         $exportQuery = $this->reportableTransactions(ExportTransaction::query(), 'export_transactions')
             ->where('export_transactions.created_at', '>=', $start)
             ->where('export_transactions.created_at', '<', $end)
-            ->join('brokerage_clients', 'export_transactions.shipper_id', '=', 'brokerage_clients.id')
-            ->selectRaw('brokerage_clients.id as client_id, brokerage_clients.name as client_name, brokerage_clients.type as client_type, COUNT(*) as exports');
+            ->join($clientsTable, 'export_transactions.shipper_id', '=', "{$clientsTable}.id")
+            ->selectRaw("{$clientsTable}.id as client_id, {$clientsTable}.name as client_name, {$clientsTable}.type as client_type, COUNT(*) as exports");
 
         $exportCounts = $exportQuery
-            ->groupBy('brokerage_clients.id', 'brokerage_clients.name', 'brokerage_clients.type')
+            ->groupBy("{$clientsTable}.id", "{$clientsTable}.name", "{$clientsTable}.type")
             ->get()
             ->keyBy('client_id');
 

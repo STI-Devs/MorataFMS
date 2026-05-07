@@ -760,7 +760,7 @@ test('interrupted legacy batches can be deleted from storage and database', func
     expect(LegacyBatch::query()->whereKey($batch->id)->exists())->toBeFalse();
     expect(Storage::disk($this->documentDisk)->exists($file->storage_path))->toBeFalse();
     expect(Storage::disk($this->documentDisk)->exists('legacy-batches/'.$batch->uuid.'/stray/orphan.txt'))->toBeFalse();
-    $this->assertDatabaseMissing('legacy_batch_files', ['id' => $file->id]);
+    $this->assertModelMissing($file);
     expect(AuditLog::query()->where('auditable_type', LegacyBatch::class)->where('auditable_id', $batch->id)->exists())->toBeFalse();
     expect(AuditLog::query()->where('auditable_type', LegacyBatchFile::class)->where('auditable_id', $file->id)->exists())->toBeFalse();
 });

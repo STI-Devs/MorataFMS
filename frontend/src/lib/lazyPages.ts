@@ -37,6 +37,10 @@ export const EncoderDashboard = lazy(() =>
     import('../features/encoder-dashboard/components/EncoderDashboard').then((module) => ({ default: module.EncoderDashboard })),
 );
 
+export const EncoderReportsAnalytics = lazy(() =>
+    import('../features/encoder-dashboard/components/EncoderReportsAnalytics').then((module) => ({ default: module.EncoderReportsAnalytics })),
+);
+
 export const AuditLogs = lazy(() =>
     import('../features/audit-logs/components/AuditLogs').then((module) => ({ default: module.AuditLogs })),
 );
@@ -69,12 +73,12 @@ export const LawFirmPage = lazy(() =>
     import('../features/law-firm/components/pages/LawFirmPage').then((module) => ({ default: module.LawFirmPage })),
 );
 
-export const LegalDocumentsPage = lazy(() =>
-    import('../features/law-firm/components/records/LegalDocumentsPage').then((module) => ({ default: module.LegalDocumentsPage })),
+export const DocumentGeneratorPage = lazy(() =>
+    import('../features/law-firm/components/records/DocumentGeneratorPage').then((module) => ({ default: module.DocumentGeneratorPage })),
 );
 
-export const NotarialTemplateUploadPage = lazy(() =>
-    import('../features/law-firm/components/notarial/NotarialTemplateUploadPage').then((module) => ({ default: module.NotarialTemplateUploadPage })),
+export const LegalMasterSetupPage = lazy(() =>
+    import('../features/law-firm/components/notarial/LegalMasterSetupPage').then((module) => ({ default: module.LegalMasterSetupPage })),
 );
 
 export const NotarialBooksPage = lazy(() =>
@@ -89,8 +93,12 @@ export const LegalArchiveRecordsPage = lazy(() =>
     import('../features/law-firm/components/archive/LegalArchiveRecordsPage').then((module) => ({ default: module.LegalArchiveRecordsPage })),
 );
 
-export const LegalRecordsPage = lazy(() =>
-    import('../features/law-firm/components/records/LegalRecordsPage').then((module) => ({ default: module.LegalRecordsPage })),
+export const NotarialGeneratedDocumentsPage = lazy(() =>
+    import('../features/law-firm/components/records/NotarialGeneratedDocumentsPage').then((module) => ({ default: module.NotarialGeneratedDocumentsPage })),
+);
+
+export const NotarialGeneratedDocumentEditorPage = lazy(() =>
+    import('../features/law-firm/components/records/NotarialGeneratedDocumentEditorPage').then((module) => ({ default: module.NotarialGeneratedDocumentEditorPage })),
 );
 
 export const ParalegalDashboard = lazy(() =>

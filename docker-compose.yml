@@ -47,6 +47,20 @@ services:
     volumes:
       - ./backend:/host/backend:ro
 
+  onlyoffice:
+    image: onlyoffice/documentserver:latest
+    profiles:
+      - documents
+    environment:
+      JWT_ENABLED: "true"
+      JWT_SECRET: morata-onlyoffice-local-secret
+    ports:
+      - "8082:80"
+    volumes:
+      - onlyoffice_data:/var/www/onlyoffice/Data
+      - onlyoffice_logs:/var/log/onlyoffice
+      - onlyoffice_cache:/var/lib/onlyoffice
+
   frontend:
     image: node:22-bookworm
     profiles:
@@ -71,3 +85,6 @@ services:
 volumes:
   mysql_data:
   frontend_node_modules:
+  onlyoffice_data:
+  onlyoffice_logs:
+  onlyoffice_cache:

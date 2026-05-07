@@ -19,6 +19,6 @@ class DocumentIndexQuery
                 ->where('documentable_id', $request->input('documentable_id'));
         }
 
-        return $query->orderBy('created_at', 'desc')->get();
+        return $query->latest()->get();
     }
 }

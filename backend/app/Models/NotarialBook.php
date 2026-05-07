@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Traits\Auditable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -24,14 +25,6 @@ class NotarialBook extends Model
         'size_bytes',
     ];
 
-    protected $casts = [
-        'book_number' => 'integer',
-        'year' => 'integer',
-        'size_bytes' => 'integer',
-        'opened_at' => 'datetime',
-        'closed_at' => 'datetime',
-    ];
-
     public function pageScans(): HasMany
     {
         return $this->hasMany(NotarialPageScan::class, 'notarial_book_id');
@@ -45,11 +38,6 @@ class NotarialBook extends Model
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
-    }
-
-    public function templateRecords(): HasMany
-    {
-        return $this->hasMany(NotarialTemplateRecord::class, 'notarial_book_id');
     }
 
     public function getFormattedSizeAttribute(): ?string
@@ -69,12 +57,23 @@ class NotarialBook extends Model
         return round($this->size_bytes / 1048576, 2).' MB';
     }
 
-    public function scopeActive($query)
+    protected function casts(): array
+    {
+        return [
+            'book_number' => 'integer',
+            'year' => 'integer',
+            'size_bytes' => 'integer',
+            'opened_at' => 'datetime',
+            'closed_at' => 'datetime',
+        ];
+    }
+
+    public function scopeActive(Builder $query): Builder
     {
         return $query->where('status', 'active');
     }
 
-    public function scopeForYear($query, int $year)
+    public function scopeForYear(Builder $query, int $year): Builder
     {
         return $query->where('year', $year);
     }

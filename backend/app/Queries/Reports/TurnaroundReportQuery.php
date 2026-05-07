@@ -3,7 +3,9 @@
 namespace App\Queries\Reports;
 
 use App\Enums\ArchiveOrigin;
+use App\Models\ExportStage;
 use App\Models\ExportTransaction;
+use App\Models\ImportStage;
 use App\Models\ImportTransaction;
 use App\Support\Transactions\ExportStatusWorkflow;
 use App\Support\Transactions\ImportStatusWorkflow;
@@ -17,14 +19,17 @@ class TurnaroundReportQuery
     {
         [$start, $end] = $this->periodBounds($year, $month);
 
+        $importStagesTable = (new ImportStage)->getTable();
+        $exportStagesTable = (new ExportStage)->getTable();
+
         $importQuery = $this->reportableTransactions(ImportTransaction::query(), 'import_transactions')
-            ->leftJoin('import_stages', 'import_stages.import_transaction_id', '=', 'import_transactions.id')
+            ->leftJoin($importStagesTable, "{$importStagesTable}.import_transaction_id", '=', 'import_transactions.id')
             ->where('import_transactions.status', ImportStatusWorkflow::completed())
             ->where('import_transactions.created_at', '>=', $start)
             ->where('import_transactions.created_at', '<', $end);
 
         $exportQuery = $this->reportableTransactions(ExportTransaction::query(), 'export_transactions')
-            ->leftJoin('export_stages', 'export_stages.export_transaction_id', '=', 'export_transactions.id')
+            ->leftJoin($exportStagesTable, "{$exportStagesTable}.export_transaction_id", '=', 'export_transactions.id')
             ->where('export_transactions.status', ExportStatusWorkflow::completed())
             ->where('export_transactions.created_at', '>=', $start)
             ->where('export_transactions.created_at', '<', $end);
@@ -33,12 +38,12 @@ class TurnaroundReportQuery
             'imports' => $this->statsFor(
                 $importQuery,
                 'import_transactions.created_at',
-                'COALESCE(import_stages.billing_completed_at, import_transactions.updated_at)'
+                "COALESCE({$importStagesTable}.billing_completed_at, import_transactions.updated_at)"
             ),
             'exports' => $this->statsFor(
                 $exportQuery,
                 'export_transactions.created_at',
-                'COALESCE(export_stages.billing_completed_at, export_transactions.updated_at)'
+                "COALESCE({$exportStagesTable}.billing_completed_at, export_transactions.updated_at)"
             ),
         ];
     }

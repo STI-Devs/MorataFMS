@@ -245,26 +245,31 @@ protected function isAccessible(User $user, ?string $path = null): bool
 
 These project-specific conventions supplement the generated Laravel Boost guidance above.
 
-## Installed Skill Packs
+The `<laravel-boost-guidelines>` block and Boost-managed skill files may be refreshed or replaced by `boost:update`. The MorataFMS conventions below are persistent project rules and override generated Boost guidance when they conflict.
 
-Domain-specific skill packs live in `backend/.agents/skills/`. Consult them as benchmarks when their domain is touched, but treat them as advisory.
+## Mandatory Skill Packs
+
+Domain-specific skill packs live in `backend/.agents/skills/`. They are MANDATORY references, not advisory. You MUST read the matching `rules/<topic>.md` before non-trivial work in that domain.
 
 Authority order, most authoritative first:
 
-1. this `backend/AGENTS.md`
-2. existing code conventions in the MorataFMS backend
-3. installed skill packs
+1. direct user request
+2. this `backend/AGENTS.md`
+3. `backend/.agents/skills/**/rules/*.md` (mandatory rules)
+4. existing repo patterns
+
+If existing repo code conflicts with a rule, FLAG it and propose a fix in the same change. Do not silently perpetuate the legacy pattern.
+
+Existing patterns decide between valid local options only. They do not override this file, mandatory rule files, security requirements, normalized contracts, or explicit project conventions. If a generated skill says to prefer existing patterns or use a sub-agent, interpret that through this rule: read the matching rule files directly, and delegate only when the active agent environment supports it.
 
 ### Available Packs
 
-- `laravel-best-practices/SKILL.md` — Laravel best practices reference covering architecture, security, eloquent, db-performance, validation, routing, migrations, caching, queues, scheduling, http-client, events, mail, blade, collections, config, and style. Use as a benchmark for non-trivial backend changes; do not override patterns already established in this codebase.
+- `laravel-best-practices/SKILL.md` — index for the Laravel best-practices rules under `laravel-best-practices/rules/`. Each `rules/<topic>.md` is mandatory for its domain.
 - `pest-testing/SKILL.md` — Pest 3 testing patterns. Activate whenever any Pest test is written, edited, fixed, or refactored. Covers `it()/expect()` syntax, datasets, mocking, `arch()` rules, and assertion preferences such as `assertSuccessful()` over `assertStatus(200)`.
 
-### Usage
+### Required Reading by Trigger
 
-- read the relevant `SKILL.md` before any non-trivial task in its domain
-- drill into `rules/<topic>.md` files for deeper guidance when warranted
-- defer to this AGENTS.md and existing repo patterns when they conflict with skill recommendations
+Use the Quick Reference in `backend/.agents/skills/laravel-best-practices/SKILL.md` to identify which `rules/<topic>.md` apply to your change. Read every matching rule file before editing. If a change spans multiple domains, read each matching rule file.
 
 ## Preferred Application Flow
 

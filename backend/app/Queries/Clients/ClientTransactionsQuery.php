@@ -2,8 +2,8 @@
 
 namespace App\Queries\Clients;
 
-use App\Http\Resources\ExportTransactionResource;
-use App\Http\Resources\ImportTransactionResource;
+use App\Http\Resources\Transactions\ExportTransactionResource;
+use App\Http\Resources\Transactions\ImportTransactionResource;
 use App\Models\Client;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 

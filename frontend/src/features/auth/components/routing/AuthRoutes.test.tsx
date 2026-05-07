@@ -28,6 +28,7 @@ const adminUser = {
     permissions: {
         access_brokerage_module: true,
         access_legal_module: true,
+        view_notarial_books: true,
     },
 };
 
@@ -37,6 +38,7 @@ const encoderUser = {
     permissions: {
         access_brokerage_module: true,
         access_legal_module: false,
+        view_notarial_books: false,
     },
 };
 
@@ -46,6 +48,7 @@ const paralegalUser = {
     permissions: {
         access_brokerage_module: false,
         access_legal_module: true,
+        view_notarial_books: true,
     },
 };
 
@@ -55,6 +58,7 @@ const processorUser = {
     permissions: {
         access_brokerage_module: true,
         access_legal_module: false,
+        view_notarial_books: false,
     },
 };
 
@@ -64,6 +68,7 @@ const accountingUser = {
     permissions: {
         access_brokerage_module: true,
         access_legal_module: false,
+        view_notarial_books: false,
     },
 };
 

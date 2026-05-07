@@ -3,8 +3,8 @@
 namespace App\Queries\Transactions;
 
 use App\Enums\ImportStatus;
-use App\Http\Resources\ExportTransactionResource;
-use App\Http\Resources\ImportTransactionResource;
+use App\Http\Resources\Transactions\ExportTransactionResource;
+use App\Http\Resources\Transactions\ImportTransactionResource;
 use App\Models\ExportTransaction;
 use App\Models\ImportTransaction;
 use Illuminate\Http\Request;

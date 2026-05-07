@@ -2,7 +2,7 @@
 
 namespace App\Queries\LegalArchive;
 
-use App\Http\Requests\LegalArchiveRecordIndexRequest;
+use App\Http\Requests\LegalArchive\LegalArchiveRecordIndexRequest;
 use App\Models\LegalArchiveRecord;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 

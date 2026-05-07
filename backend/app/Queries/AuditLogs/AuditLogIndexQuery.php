@@ -7,6 +7,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 
 class AuditLogIndexQuery
 {
@@ -57,9 +58,13 @@ class AuditLogIndexQuery
 
     public function actions(): Collection
     {
-        return AuditLog::query()
-            ->distinct()
-            ->orderBy('event')
-            ->pluck('event');
+        return Cache::remember(
+            'audit-logs:distinct-events',
+            now()->addHour(),
+            fn (): Collection => AuditLog::query()
+                ->distinct()
+                ->orderBy('event')
+                ->pluck('event'),
+        );
     }
 }

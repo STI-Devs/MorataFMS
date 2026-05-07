@@ -5,6 +5,7 @@ namespace App\Queries\Documents;
 use App\Enums\ExportStatus;
 use App\Enums\ImportStatus;
 use App\Enums\UserRole;
+use App\Models\Client;
 use App\Models\ExportTransaction;
 use App\Models\ImportTransaction;
 use App\Support\Transactions\ExportStatusWorkflow;
@@ -130,9 +131,10 @@ class DocumentTransactionIndexQuery
             $query->where(function (Builder $query) use ($search) {
                 $query->where('customs_ref_no', 'like', "%{$search}%")
                     ->orWhere('bl_no', 'like', "%{$search}%")
-                    ->orWhereHas('importer', function (Builder $importerQuery) use ($search) {
-                        $importerQuery->where('name', 'like', "%{$search}%");
-                    });
+                    ->orWhereIn(
+                        'importer_id',
+                        Client::query()->where('name', 'like', "%{$search}%")->select('id'),
+                    );
             });
         }
 
@@ -168,9 +170,10 @@ class DocumentTransactionIndexQuery
             $query->where(function (Builder $query) use ($search) {
                 $query->where('bl_no', 'like', "%{$search}%")
                     ->orWhere('vessel', 'like', "%{$search}%")
-                    ->orWhereHas('shipper', function (Builder $shipperQuery) use ($search) {
-                        $shipperQuery->where('name', 'like', "%{$search}%");
-                    });
+                    ->orWhereIn(
+                        'shipper_id',
+                        Client::query()->where('name', 'like', "%{$search}%")->select('id'),
+                    );
             });
         }
 

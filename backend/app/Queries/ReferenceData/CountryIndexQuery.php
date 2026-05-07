@@ -3,21 +3,33 @@
 namespace App\Queries\ReferenceData;
 
 use App\Enums\CountryType;
-use App\Http\Requests\CountryIndexRequest;
+use App\Http\Requests\ReferenceData\CountryIndexRequest;
 use App\Models\Country;
+use App\Support\Cache\ReferenceDataCache;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 
 class CountryIndexQuery
 {
     public function handle(CountryIndexRequest $request): Collection
     {
+        $includeInactive = $request->includeInactive() && $request->user()->isAdmin();
+        $type = $request->typeFilter();
+
+        return Cache::remember(
+            ReferenceDataCache::countryKey($includeInactive, $type?->value),
+            ReferenceDataCache::ttlSeconds(),
+            fn (): Collection => $this->buildQuery($includeInactive, $type)->get(),
+        );
+    }
+
+    private function buildQuery(bool $includeInactive, ?CountryType $type)
+    {
         $query = Country::query()->orderBy('name');
 
-        if (! ($request->includeInactive() && $request->user()->isAdmin())) {
+        if (! $includeInactive) {
             $query->active();
         }
-
-        $type = $request->typeFilter();
 
         if ($type === CountryType::ImportOrigin) {
             $query->importOrigins();
@@ -27,6 +39,6 @@ class CountryIndexQuery
             $query->where('type', CountryType::Both->value);
         }
 
-        return $query->get();
+        return $query;
     }
 }

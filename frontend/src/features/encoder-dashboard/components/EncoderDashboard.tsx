@@ -3,21 +3,14 @@ import { CurrentDateTime } from '../../../components/CurrentDateTime';
 import { Icon, type IconName } from '../../../components/Icon';
 import { appRoutes } from '../../../lib/appRoutes';
 import { useEncoderDashboard } from '../hooks/useEncoderDashboard';
-import type { EncoderDashboardAttentionItem } from '../types/encoderDashboard.types';
+import type { EncoderDashboardAttentionItem, EncoderDashboardMonthlyVolumePoint } from '../types/encoderDashboard.types';
 
 type KpiCard = {
     label: string;
-    value: string;
+    value: string | number;
     helper: string;
     tone: 'neutral' | 'warning' | 'danger';
     icon: IconName;
-};
-
-type QuickAction = {
-    label: string;
-    path: string;
-    icon: IconName;
-    helper: string;
 };
 
 const statusStyles: Record<EncoderDashboardAttentionItem['status'], string> = {
@@ -42,33 +35,6 @@ const typeLabels: Record<EncoderDashboardAttentionItem['type'], string> = {
     export: 'Export',
 };
 
-const quickActions: QuickAction[] = [
-    {
-        label: 'Import List',
-        path: appRoutes.imports,
-        icon: 'truck',
-        helper: 'Open assigned import files',
-    },
-    {
-        label: 'Export List',
-        path: appRoutes.exports,
-        icon: 'flag',
-        helper: 'Open assigned export files',
-    },
-    {
-        label: 'Documents',
-        path: appRoutes.documents,
-        icon: 'file-text',
-        helper: 'Upload and review files',
-    },
-    {
-        label: 'Records',
-        path: appRoutes.encoderRecordsArchive,
-        icon: 'archive',
-        helper: 'Archive and legacy folders',
-    },
-];
-
 const toneStyles: Record<KpiCard['tone'], { value: string; surface: string }> = {
     neutral: {
         value: 'text-text-primary',
@@ -91,79 +57,109 @@ const EmptyState = ({ title, body }: { title: string; body: string }) => (
     </div>
 );
 
+const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+const MonthlyVolumePreview = ({ data }: { data: EncoderDashboardMonthlyVolumePoint[] }) => {
+    const max = Math.max(...data.map((point) => point.total), 1);
+
+    return (
+        <div className="mt-4 flex h-32 w-full items-end gap-1.5">
+            {data.map((point) => {
+                const importsHeight = (point.imports / max) * 100;
+                const exportsHeight = (point.exports / max) * 100;
+
+                return (
+                    <div key={point.month} className="flex flex-1 flex-col items-center gap-1">
+                        <div className="flex h-28 w-full flex-col justify-end gap-0.5">
+                            <div
+                                className="w-full rounded-t-sm bg-blue-500 transition-all duration-500"
+                                style={{ height: `${importsHeight}%`, minHeight: point.imports > 0 ? 4 : 0 }}
+                                title={`Imports: ${point.imports}`}
+                            />
+                            <div
+                                className="w-full rounded-b-sm bg-violet-500 transition-all duration-500"
+                                style={{ height: `${exportsHeight}%`, minHeight: point.exports > 0 ? 4 : 0 }}
+                                title={`Exports: ${point.exports}`}
+                            />
+                        </div>
+                        <span className="text-[9px] font-medium text-text-muted">{MONTH_SHORT[point.month - 1]}</span>
+                    </div>
+                );
+            })}
+        </div>
+    );
+};
+
 export const EncoderDashboard = () => {
     const navigate = useNavigate();
     const dashboardQuery = useEncoderDashboard();
     const dashboard = dashboardQuery.data;
 
+    const kpis = dashboard?.kpis;
+    const attentionItems = dashboard?.attention_items ?? [];
+    const analytics = dashboard?.analytics;
+    const reports = dashboard?.reports;
+    const previewClients = reports?.client_volume.clients ?? [];
+    const previewClientMax = Math.max(...previewClients.map((client) => client.total), 1);
+
     const kpiCards: KpiCard[] = [
         {
             label: 'My Imports',
-            value: dashboardQuery.isLoading ? '—' : String(dashboard?.kpis.active_imports ?? 0),
-            helper: 'Assigned active import records',
+            value: dashboardQuery.isLoading ? '—' : (kpis?.active_imports ?? 0),
+            helper: 'Active imports assigned to you',
             tone: 'neutral',
             icon: 'truck',
         },
         {
             label: 'My Exports',
-            value: dashboardQuery.isLoading ? '—' : String(dashboard?.kpis.active_exports ?? 0),
-            helper: 'Assigned active export records',
+            value: dashboardQuery.isLoading ? '—' : (kpis?.active_exports ?? 0),
+            helper: 'Active exports assigned to you',
             tone: 'neutral',
             icon: 'flag',
         },
         {
             label: 'ETA/ETD This Week',
-            value: dashboardQuery.isLoading ? '—' : String(dashboard?.kpis.upcoming_eta_etd ?? 0),
-            helper: 'Assigned arrivals/departures within 7 days',
+            value: dashboardQuery.isLoading ? '—' : (kpis?.upcoming_eta_etd ?? 0),
+            helper: 'Arrivals/departures within 7 days',
             tone: 'warning',
             icon: 'clock',
         },
         {
             label: 'Open Remarks',
-            value: dashboardQuery.isLoading ? '—' : String(dashboard?.kpis.open_remarks ?? 0),
-            helper: 'Unresolved remarks on assigned files',
+            value: dashboardQuery.isLoading ? '—' : (kpis?.open_remarks ?? 0),
+            helper: 'Unresolved remarks on your files',
             tone: 'warning',
             icon: 'alert-circle',
         },
         {
-            label: 'No Update in 48h',
-            value: dashboardQuery.isLoading ? '—' : String(dashboard?.kpis.needs_update ?? 0),
-            helper: 'Assigned active files with no recent activity',
+            label: 'No Update > 48h',
+            value: dashboardQuery.isLoading ? '—' : (kpis?.needs_update ?? 0),
+            helper: 'Your files with no recent activity',
             tone: 'danger',
             icon: 'bell',
         },
         {
             label: 'Document Gaps',
-            value: dashboardQuery.isLoading ? '—' : String(dashboard?.kpis.document_gaps ?? 0),
-            helper: 'Completed files missing final docs',
+            value: dashboardQuery.isLoading ? '—' : (kpis?.document_gaps ?? 0),
+            helper: 'Completed files missing docs',
             tone: 'danger',
             icon: 'file-text',
         },
     ];
 
-    const attentionItems = dashboard?.attention_items ?? [];
-    const emptyState = dashboardQuery.isLoading
-        ? {
-            title: 'Loading assigned workload...',
-            body: 'Your stale files, remarks, and document gaps will appear here.',
-        }
+    const emptyQueueState = dashboardQuery.isLoading
+        ? { title: 'Loading operation queue...', body: 'Your stale files, remarks, and document gaps will appear here.' }
         : dashboardQuery.isError
-            ? {
-                title: 'Unable to load your dashboard.',
-                body: 'Refresh the page to retry the encoder dashboard request.',
-            }
-            : {
-                title: 'No assigned issues right now.',
-                body: 'Files needing update, remarks, or final documents will appear here.',
-            };
+            ? { title: 'Unable to load queue.', body: 'Refresh the page to retry.' }
+            : { title: 'Queue clear.', body: 'No assigned issues right now.' };
 
     return (
-        <div className="space-y-4 px-6 py-4">
-            <header className="flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="space-y-6 px-6 py-6 max-w-[1600px] mx-auto">
+            <header className="flex flex-col gap-3 pb-2 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                    <h1 className="text-3xl font-black tracking-tight text-text-primary">Assigned Brokerage Dashboard</h1>
-                    <p className="mt-1 max-w-3xl text-sm text-text-secondary">
-                        Track your assigned import/export workload, pending updates, remarks, and document gaps.
+                    <h1 className="text-3xl font-black tracking-tight text-text-primary">Dashboard</h1>
+                    <p className="mt-1 text-sm text-text-secondary">
+                        Monitor your active workload, completed activity, and operation queue.
                     </p>
                 </div>
                 <CurrentDateTime
@@ -173,96 +169,179 @@ export const EncoderDashboard = () => {
                 />
             </header>
 
-            <section className="grid gap-2 md:grid-cols-3 xl:grid-cols-6">
-                {kpiCards.map((card) => {
-                    const tone = toneStyles[card.tone];
-
-                    return (
-                        <article key={card.label} className="flex min-h-[152px] flex-col rounded-xl border border-border bg-surface px-4 py-3 shadow-sm">
-                            <div className="flex min-h-[58px] items-start justify-between gap-3">
-                                <div className="min-w-0">
-                                    <p className="text-[10px] font-black uppercase tracking-[0.22em] text-text-muted">{card.label}</p>
-                                    <p className="mt-1 line-clamp-2 text-xs font-semibold text-text-secondary">{card.helper}</p>
-                                </div>
-                                <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${tone.surface}`}>
-                                    <Icon name={card.icon} className="h-4 w-4" />
-                                </div>
-                            </div>
-                            <p className={`mt-auto pt-3 text-3xl font-black tracking-tighter ${tone.value}`}>{card.value}</p>
-                        </article>
-                    );
-                })}
-            </section>
-
-            <main className="grid gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(300px,0.75fr)]">
-                <section>
-                    <div className="mb-2.5 flex items-center gap-2">
-                        <div className="h-4 w-1 rounded-full bg-red-500" />
-                        <h2 className="text-xs font-black uppercase tracking-[0.22em] text-text-secondary">My Operation Queue</h2>
+            <div className="grid gap-6 xl:grid-cols-2">
+                {/* LEFT COLUMN: ASSIGNED TO YOU */}
+                <div className="flex flex-col gap-6 rounded-[2rem] border-2 border-blue-500/10 bg-blue-500/[0.02] p-6 lg:p-8">
+                    <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10 text-blue-500">
+                            <Icon name="archive" className="h-5 w-5" />
+                        </div>
+                        <div>
+                            <h2 className="text-xs font-black uppercase tracking-[0.2em] text-blue-500">Records Currently Assigned To You</h2>
+                            <p className="text-sm font-medium text-text-secondary">Track your active obligations</p>
+                        </div>
                     </div>
-                    <div className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
-                        {attentionItems.length === 0 ? (
-                            <EmptyState title={emptyState.title} body={emptyState.body} />
-                        ) : (
-                            attentionItems.map((item, index) => (
-                                <button
-                                    key={item.id}
-                                    type="button"
-                                    onClick={() => navigate(appRoutes.trackingDetail.replace(':referenceId', encodeURIComponent(item.ref)))}
-                                    className={`grid w-full gap-3 px-4 py-3 text-left transition-colors hover:bg-hover sm:grid-cols-[92px_minmax(0,1fr)_80px] sm:items-center ${
-                                        index !== attentionItems.length - 1 ? 'border-b border-border' : ''
-                                    }`}
-                                >
-                                    <div className="flex flex-col items-start gap-1.5">
-                                        <span className={`inline-flex w-fit rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${statusStyles[item.status]}`}>
-                                            {statusLabels[item.status]}
-                                        </span>
-                                        <span className={`inline-flex min-h-[28px] min-w-[72px] items-center justify-center rounded-md border px-3 text-[11px] font-semibold leading-none ${typeStyles[item.type]}`}>
-                                            {typeLabels[item.type]}
-                                        </span>
-                                    </div>
-                                    <div className="min-w-0">
-                                        <div className="flex flex-wrap items-baseline gap-2">
-                                            <span className="text-base font-black tracking-tight text-text-primary">{item.ref}</span>
-                                            <span className="text-sm text-text-muted">{item.title}</span>
+
+                    {/* Section: Current Workload */}
+                    <section>
+                        <h3 className="mb-4 text-base font-bold text-text-primary">Current Workload</h3>
+                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                            {kpiCards.map((card) => {
+                                const tone = toneStyles[card.tone];
+                                return (
+                                    <article key={card.label} className="flex flex-col rounded-2xl border border-border bg-surface px-4 py-3 shadow-sm transition-shadow hover:shadow-md">
+                                        <div className="flex items-start justify-between gap-3 mb-2">
+                                            <p className="text-[10px] font-black uppercase tracking-[0.1em] text-text-muted leading-tight">{card.label}</p>
+                                            <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${tone.surface}`}>
+                                                <Icon name={card.icon} className="h-3.5 w-3.5" />
+                                            </div>
                                         </div>
-                                        <p className="mt-1 line-clamp-2 text-sm text-text-secondary">{item.detail}</p>
-                                    </div>
-                                    <div className="flex items-center justify-end gap-2 text-text-muted">
-                                        <span className="whitespace-nowrap text-xs font-mono uppercase tracking-[0.16em]">{item.age}</span>
-                                        <Icon name="chevron-right" className="h-4 w-4" />
-                                    </div>
-                                </button>
-                            ))
-                        )}
-                    </div>
-                </section>
+                                        <p className={`text-2xl font-black tracking-tighter ${tone.value}`}>{card.value}</p>
+                                        <p className="mt-1 text-[10px] font-semibold text-text-secondary leading-tight">{card.helper}</p>
+                                    </article>
+                                );
+                            })}
+                        </div>
+                    </section>
 
-                <aside>
-                    <div className="mb-2.5 flex items-center gap-2">
-                        <div className="h-4 w-1 rounded-full bg-blue-500" />
-                        <h2 className="text-xs font-black uppercase tracking-[0.22em] text-text-secondary">Quick Actions</h2>
+                    {/* Section: Operation Queue */}
+                    <section className="flex-1 flex flex-col">
+                        <h3 className="mb-4 text-base font-bold text-text-primary">Operation Queue</h3>
+                        <div className="flex-1 overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
+                            {attentionItems.length === 0 ? (
+                                <EmptyState title={emptyQueueState.title} body={emptyQueueState.body} />
+                            ) : (
+                                <div className="max-h-[500px] overflow-y-auto">
+                                    {attentionItems.map((item, index) => (
+                                        <button
+                                            key={item.id}
+                                            type="button"
+                                            onClick={() => navigate(appRoutes.trackingDetail.replace(':referenceId', encodeURIComponent(item.ref)))}
+                                            className={`grid w-full gap-3 px-4 py-3 text-left transition-colors hover:bg-hover sm:grid-cols-[85px_minmax(0,1fr)_80px] sm:items-center ${
+                                                index !== attentionItems.length - 1 ? 'border-b border-border' : ''
+                                            }`}
+                                        >
+                                            <div className="flex flex-col items-start gap-1.5">
+                                                <span className={`inline-flex w-fit rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.1em] ${statusStyles[item.status]}`}>
+                                                    {statusLabels[item.status]}
+                                                </span>
+                                                <span className={`inline-flex min-w-[60px] items-center justify-center rounded-md border px-2 py-0.5 text-[10px] font-semibold leading-none ${typeStyles[item.type]}`}>
+                                                    {typeLabels[item.type]}
+                                                </span>
+                                            </div>
+                                            <div className="min-w-0">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-sm font-black tracking-tight text-text-primary truncate">{item.ref}</span>
+                                                    <span className="text-xs text-text-muted truncate">{item.title}</span>
+                                                </div>
+                                                <p className="mt-0.5 truncate text-xs text-text-secondary">{item.detail}</p>
+                                            </div>
+                                            <div className="flex items-center justify-end gap-1.5 text-text-muted">
+                                                <span className="whitespace-nowrap text-[10px] font-mono uppercase tracking-widest">{item.age}</span>
+                                                <Icon name="chevron-right" className="h-3 w-3" />
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </section>
+                </div>
+
+                {/* RIGHT COLUMN: COMPLETED BY YOU */}
+                <div className="flex flex-col gap-6 rounded-[2rem] border-2 border-emerald-500/10 bg-emerald-500/[0.02] p-6 lg:p-8">
+                    <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600">
+                            <Icon name="check-circle" className="h-5 w-5" />
+                        </div>
+                        <div>
+                            <h2 className="text-xs font-black uppercase tracking-[0.2em] text-emerald-600">Work Completed By You</h2>
+                            <p className="text-sm font-medium text-text-secondary">Measure your operational output</p>
+                        </div>
                     </div>
-                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-                        {quickActions.map((action) => (
+
+                    {/* Section: Monthly Output */}
+                    <section>
+                        <h3 className="mb-4 text-base font-bold text-text-primary">Monthly Output</h3>
+                        <div className="grid gap-3 sm:grid-cols-3">
+                            <div className="rounded-2xl border border-border bg-surface p-4 shadow-sm text-center">
+                                <Icon name="check-circle" className="h-6 w-6 mx-auto mb-2 text-emerald-500" />
+                                <p className="text-3xl font-black text-text-primary">{dashboardQuery.isLoading ? '—' : (analytics?.activity.transactions_completed.this_month.total ?? 0)}</p>
+                                <p className="text-[10px] font-black uppercase tracking-widest text-text-muted mt-1">Transactions Completed</p>
+                                <p className="text-xs text-text-secondary mt-1">Assigned transactions closed this month</p>
+                            </div>
+                            <div className="rounded-2xl border border-border bg-surface p-4 shadow-sm text-center">
+                                <Icon name="file-text" className="h-6 w-6 mx-auto mb-2 text-emerald-500" />
+                                <p className="text-3xl font-black text-text-primary">{dashboardQuery.isLoading ? '—' : (analytics?.activity.documents_uploaded.this_month.total ?? 0)}</p>
+                                <p className="text-[10px] font-black uppercase tracking-widest text-text-muted mt-1">Documents Added</p>
+                                <p className="text-xs text-text-secondary mt-1">Files you attached this month</p>
+                            </div>
+                            <div className="rounded-2xl border border-border bg-surface p-4 shadow-sm text-center">
+                                <Icon name="archive" className="h-6 w-6 mx-auto mb-2 text-emerald-500" />
+                                <p className="text-3xl font-black text-text-primary">{dashboardQuery.isLoading ? '—' : (analytics?.activity.records_finalized.this_month.total ?? 0)}</p>
+                                <p className="text-[10px] font-black uppercase tracking-widest text-text-muted mt-1">Records Finalized</p>
+                                <p className="text-xs text-text-secondary mt-1">This Month</p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section className="flex-1">
+                        <div className="mb-4 flex items-center justify-between gap-4">
+                            <h3 className="text-base font-bold text-text-primary">Reports & Analytics</h3>
                             <button
-                                key={action.label}
                                 type="button"
-                                onClick={() => navigate(action.path)}
-                                className="flex items-center gap-3 rounded-xl border border-border bg-surface p-3 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-border-strong hover:bg-hover"
+                                onClick={() => navigate(appRoutes.encoderReportsAnalytics)}
+                                className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 transition-colors hover:text-emerald-700"
                             >
-                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500">
-                                    <Icon name={action.icon} className="h-4 w-4" />
-                                </div>
-                                <div className="min-w-0">
-                                    <p className="text-sm font-bold text-text-primary">{action.label}</p>
-                                    <p className="mt-0.5 truncate text-xs text-text-secondary">{action.helper}</p>
-                                </div>
+                                View full
+                                <Icon name="chevron-right" className="h-3 w-3" />
                             </button>
-                        ))}
-                    </div>
-                </aside>
-            </main>
+                        </div>
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            <article className="flex min-h-[240px] flex-col rounded-2xl border border-border bg-surface p-5 shadow-sm">
+                                <div className="flex items-start justify-between gap-3">
+                                    <h4 className="text-sm font-bold text-text-primary">Volume Processed</h4>
+                                    <div className="flex gap-2">
+                                        <span className="flex items-center gap-1 text-[10px] font-medium text-text-muted">
+                                            <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+                                            Imports
+                                        </span>
+                                        <span className="flex items-center gap-1 text-[10px] font-medium text-text-muted">
+                                            <span className="h-1.5 w-1.5 rounded-full bg-violet-500" />
+                                            Exports
+                                        </span>
+                                    </div>
+                                </div>
+                                {reports?.monthly_volume.months ? (
+                                    <MonthlyVolumePreview data={reports.monthly_volume.months.slice(-6)} />
+                                ) : (
+                                    <div className="flex flex-1 items-center justify-center text-sm text-text-muted">No data</div>
+                                )}
+                            </article>
+
+                            <article className="flex min-h-[240px] flex-col rounded-2xl border border-border bg-surface p-5 shadow-sm">
+                                <h4 className="text-sm font-bold text-text-primary">Top Clients Handled</h4>
+                                <div className="mt-4 flex-1 space-y-3 overflow-y-auto pr-2">
+                                    {previewClients.slice(0, 4).map((client) => (
+                                        <div key={client.client_id} className="space-y-1">
+                                            <div className="flex items-center justify-between gap-3">
+                                                <span className="truncate text-xs font-semibold text-text-secondary">{client.client_name}</span>
+                                                <span className="text-xs font-black text-text-primary">{client.total}</span>
+                                            </div>
+                                            <div className="h-1.5 overflow-hidden rounded-full bg-border">
+                                                <div className="h-full rounded-full bg-emerald-500" style={{ width: `${(client.total / previewClientMax) * 100}%` }} />
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {previewClients.length === 0 && (
+                                        <div className="flex h-full items-center justify-center text-sm text-text-muted">No data</div>
+                                    )}
+                                </div>
+                            </article>
+                        </div>
+                    </section>
+                </div>
+            </div>
         </div>
     );
 };

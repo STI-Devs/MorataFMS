@@ -19,10 +19,6 @@ class NotarialLegacyFile extends Model
         'size_bytes',
     ];
 
-    protected $casts = [
-        'size_bytes' => 'integer',
-    ];
-
     public function book(): BelongsTo
     {
         return $this->belongsTo(NotarialBook::class, 'notarial_book_id');
@@ -46,5 +42,12 @@ class NotarialLegacyFile extends Model
         }
 
         return round($bytes / 1048576, 2).' MB';
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'size_bytes' => 'integer',
+        ];
     }
 }

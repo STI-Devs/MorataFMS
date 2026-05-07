@@ -5,10 +5,10 @@ use App\Models\Document;
 use App\Models\ImportTransaction;
 use App\Models\User;
 use Database\Seeders\AccountantBillingDemoSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 
-uses(RefreshDatabase::class);
+uses(LazilyRefreshDatabase::class);
 
 test('accountant billing demo seeder creates five billing-ready imports on the same vessel', function () {
     Storage::fake(config('filesystems.default', 'local'));
@@ -72,9 +72,9 @@ test('accountant billing demo seeder resets previous demo billing uploads back t
         'billing_completed_at' => now(),
         'billing_completed_by' => $accountant->id,
     ]);
-    $transaction->update([
+    $transaction->forceFill([
         'status' => 'Completed',
-    ]);
+    ])->save();
 
     $this->seed(AccountantBillingDemoSeeder::class);
 

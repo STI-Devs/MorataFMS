@@ -3,6 +3,7 @@
 namespace App\Actions\Countries;
 
 use App\Models\Country;
+use App\Support\Cache\ReferenceDataCache;
 
 class UpdateCountry
 {
@@ -10,6 +11,8 @@ class UpdateCountry
     {
         $country->fill($validated);
         $country->save();
+
+        ReferenceDataCache::forgetCountries();
 
         return $country;
     }

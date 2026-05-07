@@ -41,14 +41,17 @@ case "${LARAVEL_RUNTIME_CACHE}" in
         log "Preparing Laravel runtime caches..."
         run_artisan config:clear
         run_artisan route:clear
+        run_artisan event:clear
         run_artisan config:cache
         run_artisan route:cache
+        run_artisan event:cache
         log "Laravel runtime caches are ready."
         ;;
     *)
         log "Skipping Laravel runtime caches."
         run_artisan config:clear
         run_artisan route:clear
+        run_artisan event:clear
         ;;
 esac
 

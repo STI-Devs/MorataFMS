@@ -658,7 +658,7 @@ test('admin can delete a cancelled export transaction', function () {
         ->deleteJson("/api/export-transactions/{$transaction->id}")
         ->assertNoContent();
 
-    $this->assertDatabaseMissing('export_transactions', ['id' => $transaction->id]);
+    $this->assertModelMissing($transaction);
 });
 
 test('admin cannot delete an active export transaction', function () {
@@ -670,7 +670,7 @@ test('admin cannot delete an active export transaction', function () {
         ->assertUnprocessable()
         ->assertJsonPath('message', 'Only cancelled transactions can be deleted.');
 
-    $this->assertDatabaseHas('export_transactions', ['id' => $transaction->id]);
+    $this->assertModelExists($transaction);
 });
 
 test('non-admin cannot delete an export transaction', function () {
@@ -681,5 +681,5 @@ test('non-admin cannot delete an export transaction', function () {
         ->deleteJson("/api/export-transactions/{$transaction->id}")
         ->assertForbidden();
 
-    $this->assertDatabaseHas('export_transactions', ['id' => $transaction->id]);
+    $this->assertModelExists($transaction);
 });

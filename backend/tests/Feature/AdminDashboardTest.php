@@ -44,7 +44,7 @@ test('admin dashboard returns aggregated oversight data', function () {
         'is_archive' => false,
         'arrival_date' => now()->addDays(2),
         'created_at' => now()->subDays(5),
-        'updated_at' => now()->subDays(3),
+        'updated_at' => now()->subHours(60),
     ]);
 
     $activeExport = ExportTransaction::factory()->create([
@@ -53,7 +53,7 @@ test('admin dashboard returns aggregated oversight data', function () {
         'is_archive' => false,
         'export_date' => now()->addDays(4),
         'created_at' => now()->subDays(2),
-        'updated_at' => now()->subHours(4),
+        'updated_at' => now()->subHours(80),
     ]);
 
     $missingDocsImport = ImportTransaction::factory()->create([
@@ -61,6 +61,7 @@ test('admin dashboard returns aggregated oversight data', function () {
         'status' => ImportStatus::Completed,
         'assigned_user_id' => $sarah->id,
         'is_archive' => false,
+        'created_at' => now()->subDays(2),
         'updated_at' => now()->subHours(6),
     ]);
 
@@ -72,6 +73,14 @@ test('admin dashboard returns aggregated oversight data', function () {
         'updated_at' => now()->subMinutes(30),
     ]);
 
+    $completedExport = ExportTransaction::factory()->create([
+        'bl_no' => 'BL-EXP-COMP-002',
+        'status' => ExportStatus::Completed,
+        'is_archive' => false,
+        'created_at' => now()->subDays(6),
+        'updated_at' => now()->subDays(2),
+    ]);
+
     foreach (['boc', 'bl_generation', 'co', 'phytosanitary', 'cil', 'dccci', 'billing'] as $typeKey) {
         Document::factory()->create([
             'documentable_type' => ExportTransaction::class,
@@ -80,6 +89,19 @@ test('admin dashboard returns aggregated oversight data', function () {
             'uploaded_by' => $admin->id,
         ]);
     }
+
+    foreach (['boc', 'bl_generation', 'co', 'phytosanitary', 'cil', 'dccci', 'billing'] as $typeKey) {
+        Document::factory()->create([
+            'documentable_type' => ExportTransaction::class,
+            'documentable_id' => $completedExport->id,
+            'type' => $typeKey,
+            'uploaded_by' => $admin->id,
+        ]);
+    }
+
+    $completedExport->stages()->update([
+        'billing_completed_at' => now()->subDays(2),
+    ]);
 
     TransactionRemark::factory()->create([
         'remarkble_type' => ExportTransaction::class,
@@ -91,7 +113,7 @@ test('admin dashboard returns aggregated oversight data', function () {
         'updated_at' => now()->subMinutes(30),
     ]);
 
-    AuditLog::query()->create([
+    $auditLog = AuditLog::query()->create([
         'auditable_type' => ImportTransaction::class,
         'auditable_id' => $staleImport->id,
         'user_id' => $admin->id,
@@ -100,8 +122,8 @@ test('admin dashboard returns aggregated oversight data', function () {
             'description' => 'Admin User reassigned import #'.$staleImport->id.' from Mike Tan to Sarah Velasco.',
         ],
         'ip_address' => '127.0.0.1',
-        'created_at' => now()->subHour(),
     ]);
+    $auditLog->forceFill(['created_at' => now()->subHour()])->save();
 
     $response = $this->actingAs($admin)
         ->getJson('/api/admin/dashboard')
@@ -109,20 +131,49 @@ test('admin dashboard returns aggregated oversight data', function () {
 
     $workloads = collect($response->json('workloads'))->keyBy('name');
     $actionFeed = collect($response->json('action_feed'));
+    $statusBreakdown = collect($response->json('analytics.status_breakdown'))->keyBy('key');
+    $analytics = $response->json('analytics');
 
     $response
         ->assertJsonPath('kpis.active_imports', 1)
         ->assertJsonPath('kpis.active_exports', 1)
-        ->assertJsonPath('kpis.delayed_shipments', 1)
+        ->assertJsonPath('kpis.delayed_shipments', 2)
         ->assertJsonPath('kpis.upcoming_eta_etd', 2)
         ->assertJsonPath('kpis.open_remarks', 1)
         ->assertJsonPath('kpis.missing_final_docs', 1)
+        ->assertJsonPath('records_summary.in_review_count', 3)
+        ->assertJsonPath('records_summary.completed_count', 2)
+        ->assertJsonPath('records_summary.cancelled_count', 1)
+        ->assertJsonPath('records_summary.missing_docs_count', 1)
+        ->assertJsonPath('records_summary.archive_ready_count', 1)
         ->assertJsonPath('critical_operations.0.status', 'review')
         ->assertJsonPath('critical_operations.0.ref', 'BL-EXP-FLAG-001')
         ->assertJsonPath('critical_operations.1.status', 'missing')
         ->assertJsonPath('critical_operations.1.ref', 'IMP-1001')
         ->assertJsonPath('critical_operations.2.status', 'stuck')
-        ->assertJsonPath('critical_operations.2.ref', 'IMP-0921');
+        ->assertJsonPath('critical_operations.2.ref', 'IMP-0921')
+        ->assertJsonPath('critical_operations.3.status', 'stuck')
+        ->assertJsonPath('critical_operations.3.ref', $activeExport->bl_no)
+        ->assertJsonPath('analytics.year', 2026)
+        ->assertJsonPath('analytics.monthly_volume.year', 2026)
+        ->assertJsonPath('analytics.monthly_volume.months.2.imports', 2)
+        ->assertJsonPath('analytics.monthly_volume.months.2.exports', 3)
+        ->assertJsonPath('analytics.monthly_volume.months.2.total', 5)
+        ->assertJsonPath('analytics.transaction_flow.imports', 2)
+        ->assertJsonPath('analytics.transaction_flow.exports', 3)
+        ->assertJsonPath('analytics.transaction_flow.total', 5)
+        ->assertJsonPath('analytics.transaction_flow.completed', 2)
+        ->assertJsonPath('analytics.transaction_flow.completion_rate', 40)
+        ->assertJsonPath('analytics.overdue_transactions.threshold_hours', 48)
+        ->assertJsonPath('analytics.overdue_transactions.total', 2)
+        ->assertJsonPath('analytics.overdue_transactions.imports.overdue_count', 1)
+        ->assertJsonPath('analytics.overdue_transactions.imports.stale_48_72_count', 1)
+        ->assertJsonPath('analytics.overdue_transactions.imports.stale_over_72_count', 0)
+        ->assertJsonPath('analytics.overdue_transactions.imports.oldest_hours', 60)
+        ->assertJsonPath('analytics.overdue_transactions.exports.overdue_count', 1)
+        ->assertJsonPath('analytics.overdue_transactions.exports.stale_48_72_count', 0)
+        ->assertJsonPath('analytics.overdue_transactions.exports.stale_over_72_count', 1)
+        ->assertJsonPath('analytics.overdue_transactions.exports.oldest_hours', 80);
 
     expect($actionFeed->contains(fn (array $item): bool => $item['action'] === 'Document Alert'
         && $item['target'] === 'BL-EXP-FLAG-001'))
@@ -140,8 +191,29 @@ test('admin dashboard returns aggregated oversight data', function () {
 
     expect($workloads->get('Mike Tan'))->toMatchArray([
         'active' => 1,
-        'overdue' => 0,
+        'overdue' => 1,
     ]);
+
+    expect($statusBreakdown->get('pending'))->toMatchArray([
+        'label' => 'Pending',
+        'value' => 0,
+    ]);
+
+    expect($statusBreakdown->get('in_progress'))->toMatchArray([
+        'label' => 'In Progress',
+        'value' => 2,
+    ]);
+
+    expect($statusBreakdown->get('completed'))->toMatchArray([
+        'label' => 'Completed',
+        'value' => 2,
+    ]);
+
+    expect($statusBreakdown->get('cancelled'))->toMatchArray([
+        'label' => 'Cancelled',
+        'value' => 1,
+    ]);
+
 });
 
 test('non admins cannot access the admin dashboard endpoint', function () {

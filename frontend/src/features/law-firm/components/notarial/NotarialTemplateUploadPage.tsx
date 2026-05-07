@@ -4,36 +4,11 @@ import { CurrentDateTime } from '../../../../components/CurrentDateTime';
 import { useAuth } from '../../../auth';
 import {
     useCreateNotarialTemplate,
-    useLegalBooks,
     useLegalCatalog,
-    useNotarialTemplateRecords,
+    useNotarialGeneratedDocuments,
     useNotarialTemplates,
 } from '../../hooks/useLegalWorkspace';
-import type {
-    NotarialActTypeCode,
-    NotarialTemplateFieldDefinition,
-    NotarialTemplateFieldTypeCode,
-} from '../../types/legalRecords.types';
-
-type DraftTemplateField = {
-    name: string;
-    label: string;
-    type: NotarialTemplateFieldTypeCode;
-    required: boolean;
-    placeholder: string;
-    help_text: string;
-    options_text: string;
-};
-
-const emptyDraftField = (): DraftTemplateField => ({
-    name: '',
-    label: '',
-    type: 'text',
-    required: true,
-    placeholder: '',
-    help_text: '',
-    options_text: '',
-});
+import type { LegalDocumentType, NotarialTemplate } from '../../types/legalRecords.types';
 
 const getErrorMessage = (error: unknown): string => {
     const responseData = (error as {
@@ -49,53 +24,84 @@ const getErrorMessage = (error: unknown): string => {
         ? Object.values(responseData.errors).flat()[0]
         : null;
 
-    return firstValidationMessage ?? responseData?.message ?? 'Unable to save the template.';
+    return firstValidationMessage ?? responseData?.message ?? 'Unable to save the document master.';
 };
 
-const normalizeDraftField = (field: DraftTemplateField): NotarialTemplateFieldDefinition => ({
-    name: field.name.trim(),
-    label: field.label.trim(),
-    type: field.type,
-    required: field.required,
-    placeholder: field.placeholder.trim() || undefined,
-    help_text: field.help_text.trim() || undefined,
-    options: field.type === 'select'
-        ? field.options_text
-            .split(',')
-            .map((option) => option.trim())
-            .filter(Boolean)
-        : undefined,
-});
+const slugify = (value: string): string =>
+    value
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+
+const buildTemplateDraft = (
+    documentType: LegalDocumentType | undefined,
+    variantName: string,
+): { code: string; label: string } | null => {
+    if (!documentType) {
+        return null;
+    }
+
+    const normalizedVariantName = variantName.trim();
+    const normalizedVariantCode = slugify(normalizedVariantName);
+
+    return {
+        code: normalizedVariantCode !== ''
+            ? `${documentType.code.toLowerCase()}-${normalizedVariantCode}`
+            : `${documentType.code.toLowerCase()}-primary`,
+        label: normalizedVariantName !== ''
+            ? `${documentType.label} - ${normalizedVariantName}`
+            : documentType.label,
+    };
+};
+
+const extractTemplateVariant = (template: NotarialTemplate): string | null => {
+    const documentLabel = template.document_code_label ?? template.document_code;
+    const prefix = `${documentLabel} - `;
+
+    if (template.label.startsWith(prefix)) {
+        return template.label.slice(prefix.length).trim() || null;
+    }
+
+    return template.label !== documentLabel ? template.label : null;
+};
 
 export const NotarialTemplateUploadPage = () => {
     const { user } = useAuth();
     const canManageTemplates = Boolean(user?.permissions.manage_notarial_templates);
 
-    const [draftCode, setDraftCode] = useState('');
-    const [draftLabel, setDraftLabel] = useState('');
+    const [draftVariantName, setDraftVariantName] = useState('');
     const [draftDocumentCode, setDraftDocumentCode] = useState('');
     const [draftDescription, setDraftDescription] = useState('');
-    const [draftNotarialActType, setDraftNotarialActType] = useState<NotarialActTypeCode | ''>('');
     const [draftFile, setDraftFile] = useState<File | null>(null);
-    const [draftFields, setDraftFields] = useState<DraftTemplateField[]>([emptyDraftField()]);
 
     const catalogQuery = useLegalCatalog();
     const templatesQuery = useNotarialTemplates({ per_page: 100 });
-    const templateRecordsQuery = useNotarialTemplateRecords({ page: 1, per_page: 1 });
-    const booksQuery = useLegalBooks({ per_page: 100 });
+    const readyTemplatesQuery = useNotarialTemplates({ template_status: 'ready', page: 1, per_page: 1 });
+    const missingTemplatesQuery = useNotarialTemplates({ template_status: 'missing_file', page: 1, per_page: 1 });
+    const generatedDocumentsQuery = useNotarialGeneratedDocuments({ page: 1, per_page: 1 });
     const createTemplate = useCreateNotarialTemplate();
 
     const templates = useMemo(
         () => templatesQuery.data?.data ?? [],
         [templatesQuery.data?.data],
     );
-    const documentTypes = catalogQuery.data?.document_types ?? [];
-    const notarialActTypes = catalogQuery.data?.notarial_act_types ?? [];
-    const fieldTypeOptions = catalogQuery.data?.template_field_types ?? [];
-    const readyTemplateCount = templates.filter((template) => template.template_status === 'ready').length;
-    const missingTemplateCount = templates.filter((template) => template.template_status === 'missing_file').length;
-    const generatedRecords = templateRecordsQuery.data?.meta.total ?? 0;
-    const bookCount = booksQuery.data?.data?.length ?? 0;
+    const documentTypes = useMemo(
+        () => catalogQuery.data?.document_types ?? [],
+        [catalogQuery.data?.document_types],
+    );
+    const readyTemplateCount = readyTemplatesQuery.data?.meta.total ?? 0;
+    const missingTemplateCount = missingTemplatesQuery.data?.meta.total ?? 0;
+    const generatedDocuments = generatedDocumentsQuery.data?.meta.total ?? 0;
+    const documentTypeCount = documentTypes.length;
+    const selectedDocumentType = useMemo(
+        () => documentTypes.find((documentType) => documentType.code === draftDocumentCode),
+        [documentTypes, draftDocumentCode],
+    );
+    const draftTemplate = useMemo(
+        () => buildTemplateDraft(selectedDocumentType, draftVariantName),
+        [selectedDocumentType, draftVariantName],
+    );
 
     const sortedTemplates = useMemo(
         () =>
@@ -113,44 +119,27 @@ export const NotarialTemplateUploadPage = () => {
         [templates],
     );
 
-    const handleDraftFieldChange = (
-        index: number,
-        key: keyof DraftTemplateField,
-        value: string | boolean,
-    ) => {
-        setDraftFields((currentFields) =>
-            currentFields.map((field, fieldIndex) =>
-                fieldIndex === index
-                    ? {
-                        ...field,
-                        [key]: value,
-                    }
-                    : field,
-            ),
-        );
-    };
-
     const handleCreateTemplate = async () => {
+        if (!selectedDocumentType || !draftTemplate) {
+            toast.error('Document type is required.');
+            return;
+        }
+
         try {
             await createTemplate.mutateAsync({
-                code: draftCode.trim(),
-                label: draftLabel.trim(),
+                code: draftTemplate.code,
+                label: draftTemplate.label,
                 document_code: draftDocumentCode,
-                default_notarial_act_type: draftNotarialActType || undefined,
                 description: draftDescription.trim() || undefined,
-                field_schema: draftFields.map(normalizeDraftField),
                 is_active: true,
                 file: draftFile,
             });
 
-            toast.success('Master template saved.');
-            setDraftCode('');
-            setDraftLabel('');
+            toast.success('Document master saved.');
+            setDraftVariantName('');
             setDraftDocumentCode('');
             setDraftDescription('');
-            setDraftNotarialActType('');
             setDraftFile(null);
-            setDraftFields([emptyDraftField()]);
         } catch (error) {
             toast.error(getErrorMessage(error));
         }
@@ -158,296 +147,286 @@ export const NotarialTemplateUploadPage = () => {
 
     if (!canManageTemplates) {
         return (
-            <div className="flex min-h-full items-center justify-center p-8">
-                <div className="max-w-md rounded-2xl border border-border bg-surface p-6 text-center shadow-sm">
-                    <p className="text-sm font-semibold text-text-primary">Template upload is restricted</p>
-                    <p className="mt-2 text-sm text-text-muted">Ask an authorized legal user to upload or update master Word templates.</p>
+            <div className="flex min-h-full items-center justify-center p-8 bg-[#fdfdfd]">
+                <div className="max-w-md rounded-3xl border border-neutral-200/60 bg-white/50 p-8 text-center shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-xl">
+                    <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-50 text-red-500 shadow-inner">
+                        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                    </div>
+                    <p className="text-lg font-semibold tracking-tight text-neutral-900">Access Restricted</p>
+                    <p className="mt-2 text-sm text-neutral-500">You don't have permission to manage document masters. Please contact an administrator.</p>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="w-full space-y-6 p-8 pb-12">
-            <div className="flex items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-4xl font-bold tracking-tight text-text-primary">Template Upload</h1>
-                    <p className="mt-2 max-w-3xl text-sm text-text-muted">
-                        Upload master DOCX files and define the fill-up fields used by the generator.
-                    </p>
-                </div>
-                <CurrentDateTime
-                    className="shrink-0 text-right"
-                    timeClassName="text-2xl font-bold tabular-nums text-text-primary"
-                    dateClassName="text-sm text-text-muted"
-                />
-            </div>
-
-            <div className="grid gap-3 lg:grid-cols-4">
-                <div className="rounded-2xl border border-border bg-surface px-4 py-3.5 shadow-sm">
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">Ready</p>
-                    <p className="mt-1.5 text-xl font-bold tracking-tight text-text-primary">{readyTemplateCount}</p>
-                    <p className="mt-1 text-sm text-text-muted">Templates with DOCX files.</p>
-                </div>
-                <div className="rounded-2xl border border-border bg-surface px-4 py-3.5 shadow-sm">
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">Missing</p>
-                    <p className="mt-1.5 text-xl font-bold tracking-tight text-text-primary">{missingTemplateCount}</p>
-                    <p className="mt-1 text-sm text-text-muted">Templates still waiting for files.</p>
-                </div>
-                <div className="rounded-2xl border border-border bg-surface px-4 py-3.5 shadow-sm">
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">Generated</p>
-                    <p className="mt-1.5 text-xl font-bold tracking-tight text-text-primary">{generatedRecords}</p>
-                    <p className="mt-1 text-sm text-text-muted">Outputs already created.</p>
-                </div>
-                <div className="rounded-2xl border border-border bg-surface px-4 py-3.5 shadow-sm">
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">Books</p>
-                    <p className="mt-1.5 text-xl font-bold tracking-tight text-text-primary">{bookCount}</p>
-                    <p className="mt-1 text-sm text-text-muted">Archived books available.</p>
-                </div>
-            </div>
-
-            <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
-                <section className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
-                    <div className="border-b border-border px-5 py-4">
-                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">Master Template</p>
-                        <h2 className="mt-1.5 text-xl font-bold tracking-tight text-text-primary">Upload Word Template</h2>
-                        <p className="mt-1 text-sm text-text-muted">Save the source file and the fields the staff will fill in.</p>
+        <div className="relative min-h-full w-full bg-[#FAFAFA] font-sans selection:bg-neutral-900 selection:text-white">
+            {/* Subtle Top Gradient background */}
+            <div className="absolute inset-x-0 top-0 h-[500px] bg-gradient-to-b from-neutral-100 to-transparent pointer-events-none" />
+            
+            <div className="relative z-10 mx-auto w-full max-w-7xl space-y-10 p-8 pb-16">
+                
+                {/* 21st.dev Style Header */}
+                <header className="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
+                    <div className="max-w-2xl space-y-3">
+                        <div className="inline-flex items-center gap-2 rounded-full border border-neutral-200/60 bg-white px-3 py-1 shadow-sm">
+                            <span className="flex h-2 w-2 rounded-full bg-neutral-900" />
+                            <p className="text-[11px] font-medium tracking-wide text-neutral-600">Master Library</p>
+                        </div>
+                        <h1 className="text-4xl font-semibold tracking-tight text-neutral-900 md:text-5xl">
+                            Document Masters
+                        </h1>
+                        <p className="text-[15px] leading-relaxed text-neutral-500">
+                            Configure root templates and DOCX variants. The drafting engine uses these blueprints to generate isolated client documents.
+                        </p>
                     </div>
+                    
+                    <div className="flex shrink-0 items-center justify-end">
+                        <CurrentDateTime
+                            className="text-right"
+                            timeClassName="text-2xl font-semibold tracking-tight text-neutral-900 tabular-nums"
+                            dateClassName="text-[13px] font-medium text-neutral-500"
+                        />
+                    </div>
+                </header>
 
-                    <div className="grid gap-4 p-5 xl:grid-cols-[minmax(0,1fr)_340px]">
-                        <div className="space-y-4">
-                            <div className="grid gap-4 md:grid-cols-2">
-                                <label className="space-y-1.5">
-                                    <span className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">Template Code</span>
+                {/* Metrics Bento Grid */}
+                <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                    <div className="group relative overflow-hidden rounded-3xl border border-neutral-200/60 bg-white p-6 shadow-[0_2px_10px_rgb(0,0,0,0.02)] transition-shadow hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+                        <p className="text-[13px] font-medium text-neutral-500">Ready</p>
+                        <p className="mt-2 text-3xl font-semibold tracking-tight text-neutral-900">{readyTemplateCount}</p>
+                        <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full bg-emerald-500/5 transition-transform group-hover:scale-110" />
+                    </div>
+                    <div className="group relative overflow-hidden rounded-3xl border border-neutral-200/60 bg-white p-6 shadow-[0_2px_10px_rgb(0,0,0,0.02)] transition-shadow hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+                        <p className="text-[13px] font-medium text-neutral-500">Needs DOCX</p>
+                        <p className="mt-2 text-3xl font-semibold tracking-tight text-neutral-900">{missingTemplateCount}</p>
+                        <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full bg-amber-500/5 transition-transform group-hover:scale-110" />
+                    </div>
+                    <div className="group relative overflow-hidden rounded-3xl border border-neutral-200/60 bg-white p-6 shadow-[0_2px_10px_rgb(0,0,0,0.02)] transition-shadow hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+                        <p className="text-[13px] font-medium text-neutral-500">Generated Outputs</p>
+                        <p className="mt-2 text-3xl font-semibold tracking-tight text-neutral-900">{generatedDocuments}</p>
+                        <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full bg-blue-500/5 transition-transform group-hover:scale-110" />
+                    </div>
+                    <div className="group relative overflow-hidden rounded-3xl border border-neutral-200/60 bg-white p-6 shadow-[0_2px_10px_rgb(0,0,0,0.02)] transition-shadow hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+                        <p className="text-[13px] font-medium text-neutral-500">Catalog Types</p>
+                        <p className="mt-2 text-3xl font-semibold tracking-tight text-neutral-900">{documentTypeCount}</p>
+                        <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full bg-purple-500/5 transition-transform group-hover:scale-110" />
+                    </div>
+                </div>
+
+                <div className="grid gap-6 xl:grid-cols-[1.1fr_1fr] items-start">
+                    
+                    {/* INTAKE FORM - Sleek Card */}
+                    <section className="relative overflow-hidden rounded-[2rem] border border-neutral-200/60 bg-white shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+                        <div className="border-b border-neutral-100 bg-white/50 px-8 py-6 backdrop-blur-sm">
+                            <h2 className="text-[17px] font-semibold tracking-tight text-neutral-900">Add Document Master</h2>
+                            <p className="mt-1 text-[13px] text-neutral-500">Configure a new template variant and attach its source document.</p>
+                        </div>
+
+                        <div className="p-8 space-y-8">
+                            <div className="grid gap-6 md:grid-cols-2">
+                                <div className="space-y-2">
+                                    <label htmlFor="template-document-code" className="text-[13px] font-medium text-neutral-700">Root Type</label>
+                                    <div className="relative">
+                                        <select
+                                            id="template-document-code"
+                                            value={draftDocumentCode}
+                                            onChange={(event) => setDraftDocumentCode(event.target.value)}
+                                            className="w-full appearance-none rounded-xl border border-neutral-200 bg-neutral-50/50 px-4 py-3 text-[14px] font-medium text-neutral-900 transition-colors hover:bg-neutral-50 focus:border-neutral-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-neutral-900"
+                                        >
+                                            <option value="" disabled>Select document type</option>
+                                            {documentTypes.map((documentType) => (
+                                                <option key={documentType.code} value={documentType.code}>
+                                                    {documentType.label}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center">
+                                            <svg className="h-4 w-4 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                            </svg>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label htmlFor="template-variant-name" className="flex items-center justify-between text-[13px] font-medium text-neutral-700">
+                                        Variant Name
+                                        <span className="text-[11px] font-normal text-neutral-400">Optional</span>
+                                    </label>
                                     <input
-                                        id="template-code"
-                                        value={draftCode}
-                                        onChange={(event) => setDraftCode(event.target.value)}
-                                        placeholder="affidavit-loss-standard"
-                                        className="w-full rounded-xl border border-border bg-input-bg px-3 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-black/10"
+                                        id="template-variant-name"
+                                        value={draftVariantName}
+                                        onChange={(event) => setDraftVariantName(event.target.value)}
+                                        placeholder="e.g. Standard, TIN, Driver's License"
+                                        className="w-full rounded-xl border border-neutral-200 bg-neutral-50/50 px-4 py-3 text-[14px] font-medium text-neutral-900 placeholder:font-normal placeholder:text-neutral-400 transition-colors hover:bg-neutral-50 focus:border-neutral-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-neutral-900"
                                     />
-                                </label>
-
-                                <label className="space-y-1.5">
-                                    <span className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">Template Label</span>
-                                    <input
-                                        id="template-label"
-                                        value={draftLabel}
-                                        onChange={(event) => setDraftLabel(event.target.value)}
-                                        placeholder="Affidavit of Loss"
-                                        className="w-full rounded-xl border border-border bg-input-bg px-3 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-black/10"
-                                    />
-                                </label>
-
-                                <label className="space-y-1.5">
-                                    <span className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">Document Type</span>
-                                    <select
-                                        id="template-document-code"
-                                        value={draftDocumentCode}
-                                        onChange={(event) => setDraftDocumentCode(event.target.value)}
-                                        className="w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-sm font-medium text-text-primary focus:outline-none focus:ring-2 focus:ring-black/10"
-                                    >
-                                        <option value="">Select document type</option>
-                                        {documentTypes.map((documentType) => (
-                                            <option key={documentType.code} value={documentType.code}>
-                                                {documentType.label}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </label>
-
-                                <label className="space-y-1.5">
-                                    <span className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">Default Act</span>
-                                    <select
-                                        id="template-notarial-act"
-                                        value={draftNotarialActType}
-                                        onChange={(event) => setDraftNotarialActType(event.target.value as NotarialActTypeCode | '')}
-                                        className="w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-sm font-medium text-text-primary focus:outline-none focus:ring-2 focus:ring-black/10"
-                                    >
-                                        <option value="">Use catalog default</option>
-                                        {notarialActTypes.map((actType) => (
-                                            <option key={actType.code} value={actType.code}>
-                                                {actType.label}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </label>
+                                </div>
                             </div>
 
-                            <label className="space-y-1.5">
-                                <span className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">Description</span>
+                            {/* Code Preview - Premium subtle box */}
+                            <div className="rounded-2xl border border-neutral-200/60 bg-neutral-50/30 p-5 shadow-sm">
+                                <div className="flex items-center gap-3">
+                                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white shadow-sm border border-neutral-200/50">
+                                        <svg className="h-4 w-4 text-neutral-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <p className="text-[11px] font-medium text-neutral-500">System Code & Label</p>
+                                        <p className="font-mono text-[13px] font-semibold text-neutral-900">
+                                            {draftTemplate?.code ?? <span className="text-neutral-400 font-normal italic">Waiting for selection...</span>}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label htmlFor="template-description" className="text-[13px] font-medium text-neutral-700">Internal Usage Notes</label>
                                 <textarea
                                     id="template-description"
                                     value={draftDescription}
                                     onChange={(event) => setDraftDescription(event.target.value)}
                                     rows={3}
-                                    placeholder="Short internal note for this template."
-                                    className="w-full rounded-xl border border-border bg-input-bg px-3 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-black/10"
+                                    placeholder="Provide context on when staff should use this master..."
+                                    className="w-full resize-y rounded-xl border border-neutral-200 bg-neutral-50/50 px-4 py-3 text-[14px] font-medium text-neutral-900 placeholder:font-normal placeholder:text-neutral-400 transition-colors hover:bg-neutral-50 focus:border-neutral-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-neutral-900"
                                 />
-                            </label>
+                            </div>
 
-                            <div className="space-y-3 rounded-2xl border border-border p-4">
-                                <div className="flex items-center justify-between gap-3">
-                                    <div>
-                                        <p className="text-sm font-semibold text-text-primary">Fill-Up Fields</p>
-                                        <p className="mt-1 text-sm text-text-muted">Match these names with the Word placeholders.</p>
+                            {/* UPLOAD ZONE */}
+                            <div className="relative overflow-hidden rounded-2xl border border-dashed border-neutral-300 bg-neutral-50/50 p-1 transition-all hover:border-neutral-400 hover:bg-neutral-50">
+                                <label className="flex cursor-pointer flex-col items-center justify-center px-6 py-10 text-center">
+                                    <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-sm border border-neutral-200/60">
+                                        <svg className="h-5 w-5 text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                        </svg>
                                     </div>
-                                    <button
-                                        type="button"
-                                        onClick={() => setDraftFields((current) => [...current, emptyDraftField()])}
-                                        className="rounded-lg border border-border px-3 py-2 text-sm font-semibold text-text-primary transition-colors hover:bg-surface-secondary/20"
-                                    >
-                                        Add Field
-                                    </button>
-                                </div>
-
-                                <div className="space-y-3">
-                                    {draftFields.map((field, index) => (
-                                        <div key={`${field.name}-${index}`} className="rounded-xl border border-border p-3">
-                                            <div className="grid gap-3 md:grid-cols-2">
-                                                <label className="space-y-1.5">
-                                                    <span className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">Placeholder</span>
-                                                    <input
-                                                        value={field.name}
-                                                        onChange={(event) => handleDraftFieldChange(index, 'name', event.target.value)}
-                                                        placeholder="party_name"
-                                                        className="w-full rounded-xl border border-border bg-input-bg px-3 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-black/10"
-                                                    />
-                                                </label>
-                                                <label className="space-y-1.5">
-                                                    <span className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">Label</span>
-                                                    <input
-                                                        value={field.label}
-                                                        onChange={(event) => handleDraftFieldChange(index, 'label', event.target.value)}
-                                                        placeholder="Party Name"
-                                                        className="w-full rounded-xl border border-border bg-input-bg px-3 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-black/10"
-                                                    />
-                                                </label>
-                                                <label className="space-y-1.5">
-                                                    <span className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">Type</span>
-                                                    <select
-                                                        value={field.type}
-                                                        onChange={(event) => handleDraftFieldChange(index, 'type', event.target.value as NotarialTemplateFieldTypeCode)}
-                                                        className="w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-sm font-medium text-text-primary focus:outline-none focus:ring-2 focus:ring-black/10"
-                                                    >
-                                                        {fieldTypeOptions.map((fieldType) => (
-                                                            <option key={fieldType.code} value={fieldType.code}>
-                                                                {fieldType.label}
-                                                            </option>
-                                                        ))}
-                                                    </select>
-                                                </label>
-                                                <label className="space-y-1.5">
-                                                    <span className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">Placeholder Hint</span>
-                                                    <input
-                                                        value={field.placeholder}
-                                                        onChange={(event) => handleDraftFieldChange(index, 'placeholder', event.target.value)}
-                                                        placeholder="Enter party name"
-                                                        className="w-full rounded-xl border border-border bg-input-bg px-3 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-black/10"
-                                                    />
-                                                </label>
-                                            </div>
-
-                                            <div className="mt-3 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
-                                                <label className="space-y-1.5">
-                                                    <span className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">Help Text</span>
-                                                    <input
-                                                        value={field.help_text}
-                                                        onChange={(event) => handleDraftFieldChange(index, 'help_text', event.target.value)}
-                                                        placeholder="Short prompt for staff"
-                                                        className="w-full rounded-xl border border-border bg-input-bg px-3 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-black/10"
-                                                    />
-                                                </label>
-                                                <label className="flex items-center gap-2 rounded-xl border border-border px-3 py-2.5 text-sm font-medium text-text-primary">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={field.required}
-                                                        onChange={(event) => handleDraftFieldChange(index, 'required', event.target.checked)}
-                                                    />
-                                                    Required
-                                                </label>
-                                            </div>
-
-                                            {field.type === 'select' ? (
-                                                <label className="mt-3 block space-y-1.5">
-                                                    <span className="text-xs font-semibold uppercase tracking-[0.14em] text-text-muted">Options</span>
-                                                    <input
-                                                        value={field.options_text}
-                                                        onChange={(event) => handleDraftFieldChange(index, 'options_text', event.target.value)}
-                                                        placeholder="Single, Married, Widowed"
-                                                        className="w-full rounded-xl border border-border bg-input-bg px-3 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-black/10"
-                                                    />
-                                                </label>
-                                            ) : null}
+                                    <p className="text-[14px] font-medium text-neutral-900">Attach Master Document</p>
+                                    <p className="mt-1 text-[13px] text-neutral-500">Upload a <span className="font-semibold">.docx</span> file to be used as the generator source.</p>
+                                    
+                                    <input
+                                        id="template-file"
+                                        type="file"
+                                        accept=".docx"
+                                        onChange={(event) => setDraftFile(event.target.files?.[0] ?? null)}
+                                        className="hidden"
+                                    />
+                                    
+                                    {draftFile && (
+                                        <div className="mt-4 flex items-center gap-3 rounded-full border border-neutral-200 bg-white py-1.5 pl-3 pr-1.5 shadow-sm">
+                                            <svg className="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                            </svg>
+                                            <span className="max-w-[180px] truncate text-[13px] font-medium text-neutral-900">{draftFile.name}</span>
+                                            <button 
+                                                type="button" 
+                                                onClick={(e) => { e.preventDefault(); setDraftFile(null); }}
+                                                className="ml-1 rounded-full p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-900 focus:outline-none"
+                                            >
+                                                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
                                         </div>
-                                    ))}
-                                </div>
+                                    )}
+                                </label>
                             </div>
-                        </div>
-
-                        <div className="space-y-4 rounded-2xl border border-border bg-surface-secondary/20 p-4">
-                            <div>
-                                <p className="text-sm font-semibold text-text-primary">Master Word File</p>
-                                <p className="mt-1 text-sm text-text-muted">Upload the source DOCX for this template.</p>
-                            </div>
-
-                            <input
-                                id="template-file"
-                                type="file"
-                                accept=".docx"
-                                onChange={(event) => setDraftFile(event.target.files?.[0] ?? null)}
-                                className="block w-full text-sm text-text-primary file:mr-4 file:rounded-lg file:border-0 file:bg-surface file:px-3 file:py-2 file:text-sm file:font-semibold"
-                            />
 
                             <button
                                 type="button"
                                 id="template-save"
                                 onClick={() => void handleCreateTemplate()}
                                 disabled={createTemplate.isPending}
-                                className="inline-flex w-full items-center justify-center rounded-xl bg-black px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-50"
+                                className="group relative w-full overflow-hidden rounded-xl bg-neutral-900 px-6 py-3.5 text-[14px] font-medium text-white shadow-sm transition-all hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-neutral-900/20 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                             >
-                                Save Template
+                                <div className="absolute inset-0 bg-white/20 translate-y-full transition-transform group-hover:translate-y-0" />
+                                <span className="relative z-10 flex items-center justify-center gap-2">
+                                    {createTemplate.isPending ? (
+                                        <>
+                                            <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            Processing...
+                                        </>
+                                    ) : 'Save Document Master'}
+                                </span>
                             </button>
                         </div>
-                    </div>
-                </section>
+                    </section>
 
-                <section className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
-                    <div className="border-b border-border px-5 py-4">
-                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">Template List</p>
-                        <h2 className="mt-1.5 text-xl font-bold tracking-tight text-text-primary">Current Masters</h2>
-                    </div>
-                    <div className="max-h-[720px] overflow-y-auto p-3">
-                        {sortedTemplates.length > 0 ? (
-                            <div className="space-y-2">
-                                {sortedTemplates.map((template) => (
-                                    <div key={template.id} className="rounded-xl border border-border bg-surface px-3.5 py-3">
-                                        <div className="flex items-start justify-between gap-3">
-                                            <div className="min-w-0">
-                                                <p className="truncate text-sm font-semibold text-text-primary">{template.label}</p>
-                                                <p className="mt-1 text-xs text-text-muted">{template.document_code_label ?? template.document_code}</p>
+                    {/* LIBRARY LIST - Vercel / Linear Style Stack */}
+                    <section className="flex max-h-[850px] flex-col overflow-hidden rounded-[2rem] border border-neutral-200/60 bg-white shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+                        <div className="flex shrink-0 items-center justify-between border-b border-neutral-100 bg-white/50 px-8 py-6 backdrop-blur-sm">
+                            <div>
+                                <h2 className="text-[17px] font-semibold tracking-tight text-neutral-900">Deployed Masters</h2>
+                                <p className="mt-1 text-[13px] text-neutral-500">Live templates available for generation.</p>
+                            </div>
+                            <div className="flex h-7 min-w-[28px] items-center justify-center rounded-full bg-neutral-100 px-2 text-[12px] font-semibold text-neutral-600">
+                                {sortedTemplates.length}
+                            </div>
+                        </div>
+                        
+                        <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                            {sortedTemplates.length > 0 ? (
+                                sortedTemplates.map((template) => (
+                                    <div 
+                                        key={template.id} 
+                                        className="group relative flex items-center justify-between gap-4 rounded-2xl border border-neutral-100 bg-white p-4 transition-all hover:border-neutral-200 hover:shadow-[0_4px_20px_rgb(0,0,0,0.03)]"
+                                    >
+                                        <div className="flex items-center gap-4 min-w-0">
+                                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-neutral-100 bg-neutral-50 group-hover:bg-white transition-colors">
+                                                <svg className="h-5 w-5 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                </svg>
                                             </div>
-                                            <span
-                                                className={[
-                                                    'rounded-full px-2 py-0.5 text-[10px] font-bold',
-                                                    template.template_status === 'ready'
-                                                        ? 'bg-emerald-100 text-emerald-700'
-                                                        : 'bg-amber-100 text-amber-700',
-                                                ].join(' ')}
-                                            >
-                                                {template.template_status === 'ready' ? 'Ready' : 'Missing'}
-                                            </span>
+                                            <div className="min-w-0">
+                                                <p className="truncate text-[14px] font-medium text-neutral-900">
+                                                    {template.document_code_label ?? template.document_code}
+                                                </p>
+                                                <div className="mt-1 flex items-center gap-2">
+                                                    <span className="truncate text-[13px] text-neutral-500">
+                                                        {extractTemplateVariant(template) ?? 'Primary'}
+                                                    </span>
+                                                    <span className="h-1 w-1 rounded-full bg-neutral-300" />
+                                                    <span className="truncate text-[12px] font-mono text-neutral-400">
+                                                        {template.source_file?.filename ?? 'No File attached'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="shrink-0 pl-4">
+                                            {template.template_status === 'ready' ? (
+                                                <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200/50 bg-emerald-50 px-2.5 py-1 text-[11px] font-medium text-emerald-700">
+                                                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                                                    Ready
+                                                </span>
+                                            ) : (
+                                                <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200/50 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-700">
+                                                    <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                                                    Missing
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="flex min-h-48 items-center justify-center px-6 text-center">
-                                <p className="text-sm text-text-muted">No master templates yet.</p>
-                            </div>
-                        )}
-                    </div>
-                </section>
+                                ))
+                            ) : (
+                                <div className="flex h-full min-h-[300px] flex-col items-center justify-center rounded-2xl border border-dashed border-neutral-200 bg-neutral-50/50 p-8 text-center">
+                                    <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-sm">
+                                        <svg className="h-6 w-6 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />
+                                        </svg>
+                                    </div>
+                                    <p className="text-[14px] font-medium text-neutral-900">No Masters Found</p>
+                                    <p className="mt-1 text-[13px] text-neutral-500">Upload your first DOCX to begin.</p>
+                                </div>
+                            )}
+                        </div>
+                    </section>
+                </div>
             </div>
         </div>
     );

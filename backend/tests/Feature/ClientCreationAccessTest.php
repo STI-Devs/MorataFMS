@@ -28,7 +28,7 @@ test('admin can create a client', function () {
     ]);
 });
 
-test('encoder can create a client for on-the-fly archive registration', function () {
+test('encoder cannot create a client', function () {
     $encoder = User::factory()->create(['role' => 'encoder']);
 
     $this->actingAs($encoder)
@@ -36,10 +36,10 @@ test('encoder can create a client for on-the-fly archive registration', function
             'name' => 'Acme Imports',
             'type' => 'importer',
         ])
-        ->assertCreated();
+        ->assertForbidden();
 });
 
-test('processor can create a client', function () {
+test('processor cannot create a client', function () {
     $processor = User::factory()->create(['role' => 'processor']);
 
     $this->actingAs($processor)
@@ -47,10 +47,10 @@ test('processor can create a client', function () {
             'name' => 'Acme Imports',
             'type' => 'importer',
         ])
-        ->assertCreated();
+        ->assertForbidden();
 });
 
-test('accounting can create a client', function () {
+test('accounting cannot create a client', function () {
     $accounting = User::factory()->create(['role' => 'accounting']);
 
     $this->actingAs($accounting)
@@ -58,7 +58,7 @@ test('accounting can create a client', function () {
             'name' => 'Acme Imports',
             'type' => 'importer',
         ])
-        ->assertCreated();
+        ->assertForbidden();
 });
 
 test('paralegal cannot create a brokerage client', function () {

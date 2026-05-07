@@ -31,9 +31,10 @@ class LegacyBatchIndexQuery
                     ->orWhere('status', 'like', "%{$search}%")
                     ->orWhere('year_from', 'like', "%{$search}%")
                     ->orWhere('year_to', 'like', "%{$search}%")
-                    ->orWhereHas('uploadedBy', function (Builder $userQuery) use ($search): void {
-                        $userQuery->where('name', 'like', "%{$search}%");
-                    });
+                    ->orWhereIn(
+                        'uploaded_by',
+                        User::query()->where('name', 'like', "%{$search}%")->select('id'),
+                    );
             });
         }
 

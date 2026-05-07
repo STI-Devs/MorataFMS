@@ -7,6 +7,7 @@ use Dedoc\Scramble\Scramble;
 use Dedoc\Scramble\Support\Generator\OpenApi;
 use Dedoc\Scramble\Support\Generator\SecurityScheme;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -28,6 +29,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Model::shouldBeStrict(! $this->app->environment('production'));
+
         $this->bootRateLimiters();
 
         Gate::define('viewApiDocs', function (?User $user = null): bool {
@@ -49,9 +52,8 @@ class AppServiceProvider extends ServiceProvider
             );
         });
 
-        // Block destructive DB commands (migrate:fresh, db:wipe) on live environments.
-        // This prevents accidental data loss on production and staging servers.
-        if ($this->app->environment(['production', 'staging'])) {
+        // Block destructive DB commands (migrate:fresh, db:wipe) on production.
+        if ($this->app->environment('production')) {
             DB::prohibitDestructiveCommands();
         }
 

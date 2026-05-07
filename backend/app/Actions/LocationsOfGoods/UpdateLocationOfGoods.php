@@ -3,6 +3,7 @@
 namespace App\Actions\LocationsOfGoods;
 
 use App\Models\LocationOfGoods;
+use App\Support\Cache\ReferenceDataCache;
 
 class UpdateLocationOfGoods
 {
@@ -10,6 +11,8 @@ class UpdateLocationOfGoods
     {
         $locationOfGoods->fill($validated);
         $locationOfGoods->save();
+
+        ReferenceDataCache::forgetLocationsOfGoods();
 
         return $locationOfGoods;
     }

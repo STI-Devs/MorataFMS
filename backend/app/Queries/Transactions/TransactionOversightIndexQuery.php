@@ -2,8 +2,10 @@
 
 namespace App\Queries\Transactions;
 
+use App\Models\Client;
 use App\Models\ExportTransaction;
 use App\Models\ImportTransaction;
+use App\Models\User;
 use App\Support\Transactions\ExportStatusWorkflow;
 use App\Support\Transactions\ImportStatusWorkflow;
 use Illuminate\Http\Request;
@@ -27,8 +29,14 @@ class TransactionOversightIndexQuery
                 $query->where('customs_ref_no', 'like', "%{$search}%")
                     ->orWhere('bl_no', 'like', "%{$search}%")
                     ->orWhere('vessel_name', 'like', "%{$search}%")
-                    ->orWhereHas('importer', fn ($importerQuery) => $importerQuery->where('name', 'like', "%{$search}%"))
-                    ->orWhereHas('assignedUser', fn ($userQuery) => $userQuery->where('name', 'like', "%{$search}%"));
+                    ->orWhereIn(
+                        'importer_id',
+                        Client::query()->where('name', 'like', "%{$search}%")->select('id'),
+                    )
+                    ->orWhereIn(
+                        'assigned_user_id',
+                        User::query()->where('name', 'like', "%{$search}%")->select('id'),
+                    );
             });
         }
 
@@ -47,8 +55,14 @@ class TransactionOversightIndexQuery
             $exportQuery->where(function ($query) use ($search) {
                 $query->where('bl_no', 'like', "%{$search}%")
                     ->orWhere('vessel', 'like', "%{$search}%")
-                    ->orWhereHas('shipper', fn ($shipperQuery) => $shipperQuery->where('name', 'like', "%{$search}%"))
-                    ->orWhereHas('assignedUser', fn ($userQuery) => $userQuery->where('name', 'like', "%{$search}%"));
+                    ->orWhereIn(
+                        'shipper_id',
+                        Client::query()->where('name', 'like', "%{$search}%")->select('id'),
+                    )
+                    ->orWhereIn(
+                        'assigned_user_id',
+                        User::query()->where('name', 'like', "%{$search}%")->select('id'),
+                    );
             });
         }
 

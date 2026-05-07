@@ -1,34 +1,43 @@
 <?php
 
-use App\Http\Controllers\AdminDashboardController;
-use App\Http\Controllers\AdminDocumentReviewController;
-use App\Http\Controllers\ArchiveController;
-use App\Http\Controllers\AuditLogController;
-use App\Http\Controllers\ClientController;
-use App\Http\Controllers\CountryController;
-use App\Http\Controllers\DocumentController;
-use App\Http\Controllers\EncoderDashboardController;
-use App\Http\Controllers\ExportTransactionController;
-use App\Http\Controllers\ImportTransactionController;
-use App\Http\Controllers\LegacyBatchController;
-use App\Http\Controllers\LegalArchiveRecordController;
-use App\Http\Controllers\LegalPartyController;
-use App\Http\Controllers\LocationOfGoodsController;
-use App\Http\Controllers\NotarialBookController;
-use App\Http\Controllers\NotarialCatalogController;
-use App\Http\Controllers\NotarialLegacyFileController;
-use App\Http\Controllers\NotarialPageScanController;
-use App\Http\Controllers\NotarialTemplateController;
-use App\Http\Controllers\NotarialTemplateRecordController;
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\ReportController;
-use App\Http\Controllers\TransactionController;
-use App\Http\Controllers\TransactionRemarkController;
-use App\Http\Controllers\UserController;
+use App\Http\Controllers\AdminDocumentReview\AdminDocumentReviewController;
+use App\Http\Controllers\Archives\ArchiveController;
+use App\Http\Controllers\AuditLogs\AuditLogController;
+use App\Http\Controllers\Clients\ClientController;
+use App\Http\Controllers\Dashboard\AdminDashboardController;
+use App\Http\Controllers\Dashboard\EncoderDashboardController;
+use App\Http\Controllers\Documents\DocumentController;
+use App\Http\Controllers\LegacyBatches\LegacyBatchController;
+use App\Http\Controllers\LegalArchive\LegalArchiveRecordController;
+use App\Http\Controllers\Notarial\NotarialBookController;
+use App\Http\Controllers\Notarial\NotarialCatalogController;
+use App\Http\Controllers\Notarial\NotarialGeneratedDocumentController;
+use App\Http\Controllers\Notarial\NotarialLegacyFileController;
+use App\Http\Controllers\Notarial\NotarialPageScanController;
+use App\Http\Controllers\Notarial\NotarialTemplateController;
+use App\Http\Controllers\ReferenceData\CountryController;
+use App\Http\Controllers\ReferenceData\LegalPartyController;
+use App\Http\Controllers\ReferenceData\LocationOfGoodsController;
+use App\Http\Controllers\Reports\ReportController;
+use App\Http\Controllers\Transactions\ExportTransactionController;
+use App\Http\Controllers\Transactions\ImportTransactionController;
+use App\Http\Controllers\Transactions\TransactionController;
+use App\Http\Controllers\Transactions\TransactionRemarkController;
+use App\Http\Controllers\Users\ProfileController;
+use App\Http\Controllers\Users\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->group(function () {
     require __DIR__.'/auth.php';
+});
+
+Route::prefix('notarial')->group(function () {
+    Route::get('generated-documents/{document}/onlyoffice/file', [NotarialGeneratedDocumentController::class, 'onlyOfficeFile'])
+        ->name('notarial.generated-documents.onlyoffice-file')
+        ->middleware('throttle:api-documents');
+    Route::post('generated-documents/{document}/onlyoffice/callback', [NotarialGeneratedDocumentController::class, 'onlyOfficeCallback'])
+        ->name('notarial.generated-documents.onlyoffice-callback')
+        ->middleware('throttle:api-documents');
 });
 
 // Document management
@@ -117,12 +126,15 @@ Route::middleware(['auth:sanctum', 'active-session', 'throttle:api-general'])->g
             ->name('notarial.templates.download')
             ->middleware('throttle:api-documents');
         Route::apiResource('templates', NotarialTemplateController::class);
-        Route::get('template-records', [NotarialTemplateRecordController::class, 'index'])
+        Route::get('generated-documents', [NotarialGeneratedDocumentController::class, 'index'])
             ->middleware('throttle:api-search');
-        Route::post('template-records', [NotarialTemplateRecordController::class, 'store'])
+        Route::post('generated-documents', [NotarialGeneratedDocumentController::class, 'storeEditableCopy'])
             ->middleware('throttle:api-documents');
-        Route::get('template-records/{record}/download', [NotarialTemplateRecordController::class, 'download'])
-            ->name('notarial.template-records.download')
+        Route::get('generated-documents/{document}/onlyoffice/config', [NotarialGeneratedDocumentController::class, 'editorConfig'])
+            ->name('notarial.generated-documents.onlyoffice-config')
+            ->middleware('throttle:api-documents');
+        Route::get('generated-documents/{document}/download', [NotarialGeneratedDocumentController::class, 'download'])
+            ->name('notarial.generated-documents.download')
             ->middleware('throttle:api-documents');
         Route::apiResource('books', NotarialBookController::class);
         Route::get('books/{book}/scan/download', [NotarialBookController::class, 'downloadScan'])

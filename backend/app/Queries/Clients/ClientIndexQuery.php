@@ -2,7 +2,7 @@
 
 namespace App\Queries\Clients;
 
-use App\Http\Requests\ClientIndexRequest;
+use App\Http\Requests\Clients\ClientIndexRequest;
 use App\Models\Client;
 use Illuminate\Support\Collection;
 

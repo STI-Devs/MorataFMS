@@ -1,6 +1,7 @@
 <?php
 
-use App\Http\Controllers\SystemController;
+use App\Http\Controllers\System\SystemController;
+use App\Http\Middleware\EnrichLogContext;
 use App\Http\Middleware\EnsureActiveUserSession;
 use App\Http\Middleware\MaxRequestSize;
 use App\Http\Middleware\SecurityHeaders;
@@ -68,6 +69,12 @@ return Application::configure(basePath: dirname(__DIR__))
             MaxRequestSize::class,
         ]);
 
+        // API group: enrich request context so log entries, queued jobs, and
+        // observers carry the same request_id / user_id / role without manual wiring.
+        $middleware->api(append: [
+            EnrichLogContext::class,
+        ]);
+
         $middleware->append(ThrottlePublicSurface::class);
 
         // Global: attach security headers to every response
@@ -80,6 +87,10 @@ return Application::configure(basePath: dirname(__DIR__))
         //
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // Prevent the same exception instance from being logged twice when report()
+        // is called in more than one catch block (e.g. enriched context + rethrow).
+        $exceptions->dontReportDuplicates();
+
         $shouldRenderJsonForApiRequest = static function (Request $request): bool {
             return $request->is('api/*') || $request->is('sanctum/*');
         };

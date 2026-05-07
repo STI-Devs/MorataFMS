@@ -4,12 +4,11 @@ namespace Database\Seeders;
 
 use App\Models\LegalParty;
 use App\Models\NotarialBook;
+use App\Models\NotarialGeneratedDocument;
 use App\Models\NotarialLegacyFile;
 use App\Models\NotarialPageScan;
 use App\Models\NotarialTemplate;
-use App\Models\NotarialTemplateRecord;
 use App\Models\User;
-use App\Services\NotarialTemplates\WordTemplateGenerator;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Storage;
@@ -46,7 +45,7 @@ class NotarialModuleSeeder extends Seeder
                 ['book_number' => 2, 'year' => 2026],
                 [
                     'status' => 'active',
-                    'notes' => 'Current physical book used for archived scans and optional generated-record linkage.',
+                    'notes' => 'Current physical book used for scanned page archives.',
                     'opened_at' => Carbon::create(2026, 1, 2, 8, 0, 0),
                     'closed_at' => null,
                     'created_by' => $admin->id,
@@ -59,7 +58,7 @@ class NotarialModuleSeeder extends Seeder
 
         $readyTemplate = $this->seedReadyTemplate($admin);
         $this->seedPendingTemplate($admin);
-        $this->seedGeneratedRecords($readyTemplate, $currentBook, $paralegal);
+        $this->seedGeneratedRecords($readyTemplate, $paralegal);
     }
 
     private function seedLegacyFiles(NotarialBook $book, User $paralegal): void
@@ -138,6 +137,7 @@ class NotarialModuleSeeder extends Seeder
             'Affiant: ${affiant_name}',
             'Lost Item: ${lost_item}',
             'Address: ${principal_address}',
+            '${loss_circumstances_clause}',
         ]);
 
         Storage::disk($this->diskName())->put($path, $docxContents);
@@ -150,27 +150,7 @@ class NotarialModuleSeeder extends Seeder
                     'document_code' => 'AFFIDAVIT_LOSS',
                     'document_category' => 'affidavit_oath',
                     'default_notarial_act_type' => 'jurat',
-                    'description' => 'Sample master template for affidavit generation.',
-                    'field_schema' => [
-                        [
-                            'name' => 'affiant_name',
-                            'label' => 'Affiant Name',
-                            'type' => 'text',
-                            'required' => true,
-                        ],
-                        [
-                            'name' => 'lost_item',
-                            'label' => 'Lost Item',
-                            'type' => 'text',
-                            'required' => true,
-                        ],
-                        [
-                            'name' => 'principal_address',
-                            'label' => 'Address',
-                            'type' => 'text',
-                            'required' => false,
-                        ],
-                    ],
+                    'description' => 'Sample master DOCX used for editable affidavit copies.',
                     'is_active' => true,
                     'filename' => $filename,
                     'path' => $path,
@@ -193,21 +173,7 @@ class NotarialModuleSeeder extends Seeder
                     'document_code' => 'SPECIAL_POWER_OF_ATTORNEY',
                     'document_category' => 'power_of_attorney',
                     'default_notarial_act_type' => 'acknowledgment',
-                    'description' => 'Placeholder template definition waiting for the transferred master DOCX.',
-                    'field_schema' => [
-                        [
-                            'name' => 'principal_name',
-                            'label' => 'Principal Name',
-                            'type' => 'text',
-                            'required' => true,
-                        ],
-                        [
-                            'name' => 'agent_name',
-                            'label' => 'Agent Name',
-                            'type' => 'text',
-                            'required' => true,
-                        ],
-                    ],
+                    'description' => 'Template definition waiting for the transferred master DOCX.',
                     'is_active' => true,
                     'filename' => null,
                     'path' => null,
@@ -220,35 +186,21 @@ class NotarialModuleSeeder extends Seeder
         });
     }
 
-    private function seedGeneratedRecords(NotarialTemplate $template, NotarialBook $book, User $paralegal): void
+    private function seedGeneratedRecords(NotarialTemplate $template, User $paralegal): void
     {
-        $generator = app(WordTemplateGenerator::class);
-
         foreach ([
             [
                 'party_name' => 'Maria Santos',
-                'template_data' => [
-                    'party_name' => 'Maria Santos',
-                    'affiant_name' => 'Maria Santos',
-                    'lost_item' => 'Passport',
-                    'principal_address' => 'Rizal Avenue, Tagum City',
-                ],
-                'notes' => 'Generated from the sample affidavit master.',
-                'book_id' => $book->id,
+                'principal_address' => 'Rizal Avenue, Tagum City',
+                'notes' => 'Editable DOCX copy seeded from the sample affidavit master.',
             ],
             [
                 'party_name' => 'Northpoint Trading Corporation',
-                'template_data' => [
-                    'party_name' => 'Northpoint Trading Corporation',
-                    'affiant_name' => 'Ana Velasco',
-                    'lost_item' => 'Secretary Certificate',
-                    'principal_address' => 'JP Laurel Avenue, Davao City',
-                ],
-                'notes' => 'Generated sample output kept without a book-link override.',
-                'book_id' => null,
+                'principal_address' => 'JP Laurel Avenue, Davao City',
+                'notes' => 'Editable sample output kept in generated documents.',
             ],
         ] as $recordData) {
-            $existingRecord = NotarialTemplateRecord::query()
+            $existingRecord = NotarialGeneratedDocument::query()
                 ->where('notarial_template_id', $template->id)
                 ->where('party_name', $recordData['party_name'])
                 ->first();
@@ -257,22 +209,26 @@ class NotarialModuleSeeder extends Seeder
                 Storage::disk($existingRecord->disk ?: $this->diskName())->delete($existingRecord->path);
             }
 
-            $generatedFile = $generator->generate($template, $recordData['template_data']);
+            $legalParty = LegalParty::query()->updateOrCreate(
+                ['name' => $recordData['party_name']],
+                ['principal_address' => $recordData['principal_address']],
+            );
 
-            NotarialTemplateRecord::withoutAuditing(function () use ($template, $paralegal, $recordData, $generatedFile): void {
-                NotarialTemplateRecord::query()->updateOrCreate(
+            $generatedFile = $this->copyTemplateForSeedRecord($template, $recordData['party_name']);
+
+            NotarialGeneratedDocument::withoutAuditing(function () use ($template, $paralegal, $recordData, $generatedFile, $legalParty): void {
+                NotarialGeneratedDocument::query()->updateOrCreate(
                     [
                         'notarial_template_id' => $template->id,
                         'party_name' => $recordData['party_name'],
                     ],
                     [
-                        'notarial_book_id' => $recordData['book_id'],
                         'template_code' => $template->code,
                         'template_label' => $template->label,
                         'document_code' => $template->document_code,
                         'document_category' => $template->document_category,
                         'notarial_act_type' => $template->default_notarial_act_type,
-                        'template_data' => $recordData['template_data'],
+                        'legal_party_id' => $legalParty->id,
                         'notes' => $recordData['notes'],
                         'filename' => $generatedFile['filename'],
                         'path' => $generatedFile['path'],
@@ -284,12 +240,34 @@ class NotarialModuleSeeder extends Seeder
                     ],
                 );
             });
-
-            LegalParty::query()->updateOrCreate(
-                ['name' => $recordData['party_name']],
-                ['principal_address' => $recordData['template_data']['principal_address']],
-            );
         }
+    }
+
+    /**
+     * @return array{filename:string,path:string,disk:string,mime_type:string,size_bytes:int}
+     */
+    private function copyTemplateForSeedRecord(NotarialTemplate $template, string $partyName): array
+    {
+        $diskName = $template->disk ?: $this->diskName();
+        $disk = Storage::disk($diskName);
+
+        if (! $template->path || ! $disk->exists($template->path)) {
+            throw new RuntimeException('Unable to locate the sample notarial master template.');
+        }
+
+        $filename = now()->format('YmdHis').'_'.str($template->code)->slug('_')->toString().'_'.str($partyName)->slug('_')->toString().'.docx';
+        $path = 'notarial-generated/'.now()->format('Y').'/'.$template->code.'/'.$filename;
+        $contents = (string) $disk->get($template->path);
+
+        $disk->put($path, $contents);
+
+        return [
+            'filename' => $filename,
+            'path' => $path,
+            'disk' => $diskName,
+            'mime_type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'size_bytes' => strlen($contents),
+        ];
     }
 
     /**

@@ -70,18 +70,18 @@ describe('MainLayout', () => {
         });
 
         render(
-            <MemoryRouter initialEntries={[appRoutes.paralegalNotarial]}>
+            <MemoryRouter initialEntries={[appRoutes.paralegalGenerator]}>
                 <Routes>
                     <Route element={<MainLayout />}>
-                        <Route path={appRoutes.paralegalNotarial} element={<div>Legal notarial page</div>} />
+                        <Route path={appRoutes.paralegalGenerator} element={<div>Legal notarial page</div>} />
                     </Route>
                 </Routes>
             </MemoryRouter>,
         );
 
         const dashboardButton = screen.getByRole('button', { name: 'Dashboard' });
-        const notarialGroupButton = screen.getByRole('button', { name: 'Notarial' });
-        const templateGeneratorButton = screen.getByRole('button', { name: 'Template Generator' });
+        const notarialGroupButton = screen.getByRole('button', { name: 'Notarial Documents' });
+        const templateGeneratorButton = screen.getByRole('button', { name: 'Create Draft' });
 
         expect(screen.getByText('Legal notarial page')).toBeInTheDocument();
         expect(notarialGroupButton).toBeInTheDocument();
@@ -103,18 +103,18 @@ describe('MainLayout', () => {
         });
 
         render(
-            <MemoryRouter initialEntries={[appRoutes.paralegalRecords]}>
+            <MemoryRouter initialEntries={[appRoutes.paralegalGeneratedDocuments]}>
                 <Routes>
                     <Route element={<MainLayout />}>
-                        <Route path={appRoutes.paralegalRecords} element={<div>Legal records page</div>} />
+                        <Route path={appRoutes.paralegalGeneratedDocuments} element={<div>Generated documents page</div>} />
                     </Route>
                 </Routes>
             </MemoryRouter>,
         );
 
-        const generatedRecordsButton = screen.getByRole('button', { name: 'Generated Records' });
+        const generatedRecordsButton = screen.getByRole('button', { name: 'Generated Documents' });
 
-        expect(screen.getByText('Legal records page')).toBeInTheDocument();
+        expect(screen.getByText('Generated documents page')).toBeInTheDocument();
         expect(generatedRecordsButton).toHaveClass('bg-black/8');
     });
 

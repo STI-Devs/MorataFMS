@@ -41,4 +41,11 @@ return [
         'siteverify_url' => 'https://challenges.cloudflare.com/turnstile/v0/siteverify',
     ],
 
+    'onlyoffice' => [
+        'document_server_url' => env('ONLYOFFICE_DOCUMENT_SERVER_URL'),
+        'internal_app_url' => env('ONLYOFFICE_INTERNAL_APP_URL', env('APP_URL')),
+        'jwt_secret' => env('ONLYOFFICE_JWT_SECRET'),
+        'url_ttl_minutes' => (int) env('ONLYOFFICE_URL_TTL_MINUTES', 720),
+    ],
+
 ];

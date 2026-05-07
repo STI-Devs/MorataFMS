@@ -2,6 +2,7 @@
 
 namespace App\Queries\Dashboard;
 
+use App\Enums\ArchiveOrigin;
 use App\Enums\AuditEvent;
 use App\Enums\ExportStatus;
 use App\Enums\ImportStatus;
@@ -12,6 +13,9 @@ use App\Models\ExportTransaction;
 use App\Models\ImportTransaction;
 use App\Models\TransactionRemark;
 use App\Models\User;
+use App\Queries\AdminDocumentReview\AdminDocumentReviewStatsQuery;
+use App\Queries\Reports\MonthlyReportQuery;
+use App\Support\AdminDocumentReview\AdminDocumentReviewData;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
@@ -25,6 +29,12 @@ class AdminDashboardShowQuery
 
     private const ACTIVITY_FEED_LIMIT = 5;
 
+    public function __construct(
+        private AdminDocumentReviewStatsQuery $adminDocumentReviewStatsQuery,
+        private MonthlyReportQuery $monthlyReportQuery,
+        private AdminDocumentReviewData $reviewData,
+    ) {}
+
     public function handle(): array
     {
         return [
@@ -32,44 +42,59 @@ class AdminDashboardShowQuery
             'critical_operations' => $this->criticalOperations(),
             'action_feed' => $this->actionFeed(),
             'workloads' => $this->workloads(),
+            'records_summary' => $this->recordsSummary(),
+            'analytics' => $this->analytics(),
+        ];
+    }
+
+    private function recordsSummary(): array
+    {
+        return $this->adminDocumentReviewStatsQuery->handle();
+    }
+
+    private function analytics(): array
+    {
+        $currentDate = CarbonImmutable::now();
+        $year = $currentDate->year;
+
+        $monthlyVolume = $this->monthlyReportQuery->handle($year);
+
+        return [
+            'year' => $year,
+            'monthly_volume' => [
+                'year' => $year,
+                ...$monthlyVolume,
+            ],
+            'transaction_flow' => $this->transactionFlow($monthlyVolume, $year),
+            'status_breakdown' => $this->statusBreakdown(),
+            'overdue_transactions' => $this->overdueTransactions(),
         ];
     }
 
     private function kpis(): array
     {
         $delayedThreshold = CarbonImmutable::now()->subHours(self::DELAYED_AFTER_HOURS);
+        $upcomingStart = CarbonImmutable::now()->startOfDay();
+        $upcomingEnd = CarbonImmutable::now()->addDays(7)->endOfDay();
+        $importKpiRow = $this->importKpiRow($delayedThreshold, $upcomingStart, $upcomingEnd);
+        $exportKpiRow = $this->exportKpiRow($delayedThreshold, $upcomingStart, $upcomingEnd);
 
         return [
-            'active_imports' => ImportTransaction::query()
-                ->where('is_archive', false)
-                ->whereIn('status', $this->activeImportStatuses())
-                ->count(),
-            'active_exports' => ExportTransaction::query()
-                ->where('is_archive', false)
-                ->whereIn('status', $this->activeExportStatuses())
-                ->count(),
-            'delayed_shipments' => ImportTransaction::query()
-                ->where('is_archive', false)
-                ->whereIn('status', $this->activeImportStatuses())
-                ->where('updated_at', '<=', $delayedThreshold)
-                ->count()
-                + ExportTransaction::query()
-                    ->where('is_archive', false)
-                    ->whereIn('status', $this->activeExportStatuses())
-                    ->where('updated_at', '<=', $delayedThreshold)
-                    ->count(),
-            'upcoming_eta_etd' => $this->countUpcomingImportArrivals() + $this->countUpcomingExportDepartures(),
+            'active_imports' => (int) ($importKpiRow->active_count ?? 0),
+            'active_exports' => (int) ($exportKpiRow->active_count ?? 0),
+            'delayed_shipments' => (int) ($importKpiRow->delayed_count ?? 0) + (int) ($exportKpiRow->delayed_count ?? 0),
+            'upcoming_eta_etd' => (int) ($importKpiRow->upcoming_count ?? 0) + (int) ($exportKpiRow->upcoming_count ?? 0),
             'open_remarks' => $this->countOpenRemarks(),
-            'missing_final_docs' => $this->countMissingRequiredDocuments(
+            'missing_final_docs' => $this->reviewData->countMissingRequiredDocuments(
                 ImportTransaction::query()
                     ->where('is_archive', false)
                     ->whereIn('status', $this->terminalImportStatuses()),
-                $this->requiredDocumentTypes('import'),
-            ) + $this->countMissingRequiredDocuments(
+                'import',
+            ) + $this->reviewData->countMissingRequiredDocuments(
                 ExportTransaction::query()
                     ->where('is_archive', false)
                     ->whereIn('status', $this->terminalExportStatuses()),
-                $this->requiredDocumentTypes('export'),
+                'export',
             ),
         ];
     }
@@ -214,6 +239,114 @@ class AdminDashboardShowQuery
             ->sortByDesc(fn (array $workload): int => ($workload['active'] * 1000) + $workload['overdue'])
             ->values()
             ->all();
+    }
+
+    private function transactionFlow(array $monthlyVolume, int $year): array
+    {
+        $imports = (int) ($monthlyVolume['total_imports'] ?? 0);
+        $exports = (int) ($monthlyVolume['total_exports'] ?? 0);
+        $total = (int) ($monthlyVolume['total'] ?? 0);
+        $completed = $this->completedTransactionsCountForYear($year);
+
+        return [
+            'imports' => $imports,
+            'exports' => $exports,
+            'total' => $total,
+            'completed' => $completed,
+            'completion_rate' => $total > 0
+                ? (int) round(($completed / $total) * 100)
+                : 0,
+        ];
+    }
+
+    private function statusBreakdown(): array
+    {
+        $importRow = ImportTransaction::query()
+            ->toBase()
+            ->where('is_archive', false)
+            ->selectRaw(
+                'COUNT(CASE WHEN status = ? THEN 1 END) as pending, '.
+                'COUNT(CASE WHEN status IN (?, ?) THEN 1 END) as in_progress, '.
+                'COUNT(CASE WHEN status = ? THEN 1 END) as completed, '.
+                'COUNT(CASE WHEN status = ? THEN 1 END) as cancelled',
+                [
+                    ImportStatus::Pending->value,
+                    ImportStatus::VesselArrived->value,
+                    ImportStatus::Processing->value,
+                    ImportStatus::Completed->value,
+                    ImportStatus::Cancelled->value,
+                ],
+            )
+            ->first();
+
+        $exportRow = ExportTransaction::query()
+            ->toBase()
+            ->where('is_archive', false)
+            ->selectRaw(
+                'COUNT(CASE WHEN status = ? THEN 1 END) as pending, '.
+                'COUNT(CASE WHEN status IN (?, ?, ?) THEN 1 END) as in_progress, '.
+                'COUNT(CASE WHEN status = ? THEN 1 END) as completed, '.
+                'COUNT(CASE WHEN status = ? THEN 1 END) as cancelled',
+                [
+                    ExportStatus::Pending->value,
+                    ExportStatus::InTransit->value,
+                    ExportStatus::Departure->value,
+                    ExportStatus::Processing->value,
+                    ExportStatus::Completed->value,
+                    ExportStatus::Cancelled->value,
+                ],
+            )
+            ->first();
+
+        $pending = (int) ($importRow->pending ?? 0) + (int) ($exportRow->pending ?? 0);
+        $inProgress = (int) ($importRow->in_progress ?? 0) + (int) ($exportRow->in_progress ?? 0);
+        $completed = (int) ($importRow->completed ?? 0) + (int) ($exportRow->completed ?? 0);
+        $cancelled = (int) ($importRow->cancelled ?? 0) + (int) ($exportRow->cancelled ?? 0);
+
+        return [
+            [
+                'key' => 'pending',
+                'label' => 'Pending',
+                'value' => $pending,
+            ],
+            [
+                'key' => 'in_progress',
+                'label' => 'In Progress',
+                'value' => $inProgress,
+            ],
+            [
+                'key' => 'completed',
+                'label' => 'Completed',
+                'value' => $completed,
+            ],
+            [
+                'key' => 'cancelled',
+                'label' => 'Cancelled',
+                'value' => $cancelled,
+            ],
+        ];
+    }
+
+    private function overdueTransactions(): array
+    {
+        $imports = $this->overdueStats(
+            ImportTransaction::query()
+                ->where('is_archive', false)
+                ->whereIn('status', $this->activeImportStatuses())
+        );
+
+        $exports = $this->overdueStats(
+            ExportTransaction::query()
+                ->where('is_archive', false)
+                ->whereIn('status', $this->activeExportStatuses())
+        );
+
+        return [
+            'threshold_hours' => self::DELAYED_AFTER_HOURS,
+            'total' => $imports['overdue_count'] + $exports['overdue_count'],
+            'imports' => $imports,
+            'exports' => $exports,
+        ];
     }
 
     private function staleActiveImports(): Collection
@@ -386,9 +519,75 @@ class AdminDashboardShowQuery
             });
     }
 
-    private function countMissingRequiredDocuments(Builder $query, array $requiredTypes): int
+    private function importKpiRow(
+        CarbonImmutable $delayedThreshold,
+        CarbonImmutable $upcomingStart,
+        CarbonImmutable $upcomingEnd,
+    ): ?object {
+        return $this->aggregateTransactionKpis(
+            ImportTransaction::query(),
+            $this->activeImportStatuses(),
+            'arrival_date',
+            $delayedThreshold,
+            $upcomingStart,
+            $upcomingEnd,
+        );
+    }
+
+    private function exportKpiRow(
+        CarbonImmutable $delayedThreshold,
+        CarbonImmutable $upcomingStart,
+        CarbonImmutable $upcomingEnd,
+    ): ?object {
+        return $this->aggregateTransactionKpis(
+            ExportTransaction::query(),
+            $this->activeExportStatuses(),
+            'export_date',
+            $delayedThreshold,
+            $upcomingStart,
+            $upcomingEnd,
+        );
+    }
+
+    /**
+     * @param  list<string>  $activeStatuses
+     */
+    private function aggregateTransactionKpis(
+        Builder $query,
+        array $activeStatuses,
+        string $dateColumn,
+        CarbonImmutable $delayedThreshold,
+        CarbonImmutable $upcomingStart,
+        CarbonImmutable $upcomingEnd,
+    ): ?object {
+        $placeholders = implode(', ', array_fill(0, count($activeStatuses), '?'));
+
+        return $query
+            ->toBase()
+            ->where('is_archive', false)
+            ->selectRaw(
+                "COUNT(CASE WHEN status IN ({$placeholders}) THEN 1 END) as active_count, ".
+                "COUNT(CASE WHEN status IN ({$placeholders}) AND updated_at <= ? THEN 1 END) as delayed_count, ".
+                "COUNT(CASE WHEN status IN ({$placeholders}) AND {$dateColumn} BETWEEN ? AND ? THEN 1 END) as upcoming_count",
+                array_merge(
+                    $activeStatuses,
+                    $activeStatuses,
+                    [$delayedThreshold],
+                    $activeStatuses,
+                    [$upcomingStart, $upcomingEnd],
+                ),
+            )
+            ->first();
+    }
+
+    private function completedTransactionsCountForYear(int $year): int
     {
-        return $this->missingDocumentQuery($query, $requiredTypes)->count();
+        return $this->reportableTransactionsWithinYear(ImportTransaction::query(), $year)
+            ->where('status', ImportStatus::Completed->value)
+            ->count()
+            + $this->reportableTransactionsWithinYear(ExportTransaction::query(), $year)
+                ->where('status', ExportStatus::Completed->value)
+                ->count();
     }
 
     private function countUpcomingImportArrivals(): int
@@ -426,6 +625,56 @@ class AdminDashboardShowQuery
                 $query->where('is_archive', false);
             })
             ->count();
+    }
+
+    /**
+     * @return array{
+     *     overdue_count: int,
+     *     stale_48_72_count: int,
+     *     stale_over_72_count: int,
+     *     oldest_hours: int|null
+     * }
+     */
+    private function overdueStats(Builder $query): array
+    {
+        $threshold = CarbonImmutable::now()->subHours(self::DELAYED_AFTER_HOURS);
+
+        $ages = (clone $query)
+            ->where('updated_at', '<=', $threshold)
+            ->pluck('updated_at')
+            ->map(function (mixed $updatedAt): int {
+                return CarbonImmutable::parse($updatedAt)->diffInHours(CarbonImmutable::now());
+            })
+            ->values();
+
+        return [
+            'overdue_count' => $ages->count(),
+            'stale_48_72_count' => $ages
+                ->filter(fn (int $hours): bool => $hours >= self::DELAYED_AFTER_HOURS && $hours < 72)
+                ->count(),
+            'stale_over_72_count' => $ages
+                ->filter(fn (int $hours): bool => $hours >= 72)
+                ->count(),
+            'oldest_hours' => $ages->isEmpty() ? null : $ages->max(),
+        ];
+    }
+
+    private function reportableTransactionsWithinYear(Builder $query, int $year): Builder
+    {
+        [$start, $end] = $this->yearBounds($year);
+
+        return $this->reportableTransactions($query)
+            ->where('created_at', '>=', $start)
+            ->where('created_at', '<', $end);
+    }
+
+    private function reportableTransactions(Builder $query): Builder
+    {
+        return $query->where(function (Builder $archiveQuery): void {
+            $archiveQuery
+                ->where('is_archive', false)
+                ->orWhere('archive_origin', ArchiveOrigin::ArchivedFromLive->value);
+        });
     }
 
     private function missingDocumentQuery(Builder $query, array $requiredTypes): Builder
@@ -481,6 +730,13 @@ class AdminDashboardShowQuery
             ExportStatus::Completed->value,
             ExportStatus::Cancelled->value,
         ];
+    }
+
+    private function yearBounds(int $year): array
+    {
+        $start = CarbonImmutable::create($year, 1, 1, 0, 0, 0);
+
+        return [$start, $start->addYear()];
     }
 
     private function importReference(ImportTransaction $transaction): string

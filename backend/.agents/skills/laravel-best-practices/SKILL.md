@@ -1,20 +1,12 @@
 ---
-name: laravel-best-practices-reference
-description: "Reference skill for auditing MorataFMS backend code against the broader Laravel best-practices rule set. Use for comparison and review coverage across architecture, security, caching, HTTP client, jobs, scheduling, error handling, routing, migrations, and related backend concerns. Treat backend/AGENTS.md as the source of truth and use this skill as a benchmark, not a mandatory override."
+name: laravel-best-practices
+description: "Apply this skill whenever writing, reviewing, or refactoring Laravel PHP code. This includes creating or modifying controllers, models, migrations, form requests, policies, jobs, scheduled commands, service classes, and Eloquent queries. Triggers for N+1 and query performance issues, caching strategies, authorization and security patterns, validation, error handling, queue and job configuration, route definitions, and architectural decisions. Also use for Laravel code reviews and refactoring existing Laravel code to follow best practices. Covers any task involving Laravel backend PHP code patterns."
 license: MIT
 metadata:
   author: laravel
 ---
 
-# Laravel Best Practices Reference
-
-This copy is kept as a comparison benchmark for MorataFMS backend reviews. It is not the primary project contract.
-
-Authority order for this repository:
-
-1. `backend/AGENTS.md`
-2. existing code conventions in the MorataFMS backend
-3. this reference skill
+# Laravel Best Practices
 
 Best practices for Laravel, prioritized by impact. Each rule teaches what to do and why. For exact API syntax, verify with `search-docs`.
 

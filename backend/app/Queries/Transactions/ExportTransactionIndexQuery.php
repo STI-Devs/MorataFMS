@@ -3,6 +3,7 @@
 namespace App\Queries\Transactions;
 
 use App\Enums\UserRole;
+use App\Models\Client;
 use App\Models\ExportTransaction;
 use App\Support\Transactions\ExportStatusWorkflow;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -33,9 +34,10 @@ class ExportTransactionIndexQuery
             $query->where(function ($query) use ($search) {
                 $query->where('bl_no', 'like', "%{$search}%")
                     ->orWhere('vessel', 'like', "%{$search}%")
-                    ->orWhereHas('shipper', function ($query) use ($search) {
-                        $query->where('name', 'like', "%{$search}%");
-                    });
+                    ->orWhereIn(
+                        'shipper_id',
+                        Client::query()->where('name', 'like', "%{$search}%")->select('id'),
+                    );
 
                 $cleanSearch = str_replace('EXP-', '', $search);
                 if (is_numeric($cleanSearch)) {
@@ -64,8 +66,8 @@ class ExportTransactionIndexQuery
         }
 
         return $query
-            ->orderBy('created_at', 'desc')
-            ->orderBy('id', 'desc')
+            ->latest()
+            ->latest('id')
             ->paginate($perPage);
     }
 }

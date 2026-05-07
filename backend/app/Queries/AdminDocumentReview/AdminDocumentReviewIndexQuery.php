@@ -2,7 +2,10 @@
 
 namespace App\Queries\AdminDocumentReview;
 
+use App\Models\Client;
+use App\Models\ExportStage;
 use App\Models\ExportTransaction;
+use App\Models\ImportStage;
 use App\Models\ImportTransaction;
 use App\Support\AdminDocumentReview\AdminDocumentReviewData;
 use Illuminate\Database\Eloquent\Builder;
@@ -61,13 +64,15 @@ class AdminDocumentReviewIndexQuery
         string $readinessFilter,
         ?int $assignedUserId,
     ): Builder {
+        $importStagesTable = (new ImportStage)->getTable();
+
         $query = ImportTransaction::query()
-            ->leftJoin('import_stages', 'import_stages.import_transaction_id', '=', 'import_transactions.id')
+            ->leftJoin($importStagesTable, "{$importStagesTable}.import_transaction_id", '=', 'import_transactions.id')
             ->selectRaw("
                 import_transactions.id,
                 'import' as type,
                 import_transactions.created_at as created_at,
-                COALESCE(import_stages.billing_completed_at, import_transactions.updated_at) as finalized_at
+                COALESCE({$importStagesTable}.billing_completed_at, import_transactions.updated_at) as finalized_at
             ")
             ->where('import_transactions.is_archive', false)
             ->whereIn('import_transactions.status', $this->reviewData->importStatusValues($statusFilter));
@@ -82,9 +87,10 @@ class AdminDocumentReviewIndexQuery
                     ->where('import_transactions.bl_no', 'like', "%{$search}%")
                     ->orWhere('import_transactions.customs_ref_no', 'like', "%{$search}%")
                     ->orWhere('import_transactions.vessel_name', 'like', "%{$search}%")
-                    ->orWhereHas('importer', function (Builder $clientQuery) use ($search) {
-                        $clientQuery->where('name', 'like', "%{$search}%");
-                    });
+                    ->orWhereIn(
+                        'import_transactions.importer_id',
+                        Client::query()->where('name', 'like', "%{$search}%")->select('id'),
+                    );
             });
         }
 
@@ -99,13 +105,15 @@ class AdminDocumentReviewIndexQuery
         string $readinessFilter,
         ?int $assignedUserId,
     ): Builder {
+        $exportStagesTable = (new ExportStage)->getTable();
+
         $query = ExportTransaction::query()
-            ->leftJoin('export_stages', 'export_stages.export_transaction_id', '=', 'export_transactions.id')
+            ->leftJoin($exportStagesTable, "{$exportStagesTable}.export_transaction_id", '=', 'export_transactions.id')
             ->selectRaw("
                 export_transactions.id,
                 'export' as type,
                 export_transactions.created_at as created_at,
-                COALESCE(export_stages.billing_completed_at, export_transactions.updated_at) as finalized_at
+                COALESCE({$exportStagesTable}.billing_completed_at, export_transactions.updated_at) as finalized_at
             ")
             ->where('export_transactions.is_archive', false)
             ->whereIn('export_transactions.status', $this->reviewData->exportStatusValues($statusFilter));
@@ -120,9 +128,10 @@ class AdminDocumentReviewIndexQuery
                     ->where('export_transactions.bl_no', 'like', "%{$search}%")
                     ->orWhere('export_transactions.vessel', 'like', "%{$search}%")
                     ->orWhereRaw($this->reviewData->exportReferenceExpression().' like ?', ["%{$search}%"])
-                    ->orWhereHas('shipper', function (Builder $clientQuery) use ($search) {
-                        $clientQuery->where('name', 'like', "%{$search}%");
-                    });
+                    ->orWhereIn(
+                        'export_transactions.shipper_id',
+                        Client::query()->where('name', 'like', "%{$search}%")->select('id'),
+                    );
             });
         }
 
@@ -152,9 +161,6 @@ class AdminDocumentReviewIndexQuery
             ->with([
                 'importer:id,name',
                 'assignedUser:id,name',
-                'stages:import_transaction_id,billing_completed_at,bonds_not_applicable,ppa_not_applicable,port_charges_not_applicable',
-                'documents:id,documentable_id,documentable_type,type',
-                'remarks:id,remarkble_id,remarkble_type,is_resolved',
             ])
             ->whereIn('id', $ids->all())
             ->get()
@@ -181,9 +187,6 @@ class AdminDocumentReviewIndexQuery
             ->with([
                 'shipper:id,name',
                 'assignedUser:id,name',
-                'stages:export_transaction_id,billing_completed_at,phytosanitary_not_applicable,co_not_applicable,dccci_not_applicable',
-                'documents:id,documentable_id,documentable_type,type',
-                'remarks:id,remarkble_id,remarkble_type,is_resolved',
             ])
             ->whereIn('id', $ids->all())
             ->get()

@@ -63,19 +63,23 @@ class DocumentDeletionExecutor
     {
         if ($plan->parentTransactions[ImportTransaction::class] !== []) {
             ImportTransaction::on($plan->connectionName)
+                ->with('stages')
                 ->whereIn('id', $plan->parentTransactions[ImportTransaction::class])
-                ->get()
-                ->each(function (ImportTransaction $transaction): void {
-                    $transaction->recalculateStatus();
+                ->chunkById(200, function ($transactions): void {
+                    $transactions->each(function (ImportTransaction $transaction): void {
+                        $transaction->recalculateStatus();
+                    });
                 });
         }
 
         if ($plan->parentTransactions[ExportTransaction::class] !== []) {
             ExportTransaction::on($plan->connectionName)
+                ->with('stages')
                 ->whereIn('id', $plan->parentTransactions[ExportTransaction::class])
-                ->get()
-                ->each(function (ExportTransaction $transaction): void {
-                    $transaction->recalculateStatus();
+                ->chunkById(200, function ($transactions): void {
+                    $transactions->each(function (ExportTransaction $transaction): void {
+                        $transaction->recalculateStatus();
+                    });
                 });
         }
     }

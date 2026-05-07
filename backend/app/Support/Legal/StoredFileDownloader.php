@@ -33,13 +33,20 @@ class StoredFileDownloader
             throw new HttpException(500, $readFailureMessage);
         }
 
+        $mimeType = $disk->mimeType($path);
+        $headers = [];
+
+        if (is_string($mimeType) && $mimeType !== '') {
+            $headers['Content-Type'] = $mimeType;
+        }
+
         return response()->streamDownload(function () use ($stream): void {
             fpassthru($stream);
 
             if (is_resource($stream)) {
                 fclose($stream);
             }
-        }, $downloadName);
+        }, $downloadName, $headers);
     }
 
     public function disk(string $diskName): FilesystemAdapter

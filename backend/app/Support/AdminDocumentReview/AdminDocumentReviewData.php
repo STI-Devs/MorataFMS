@@ -9,11 +9,22 @@ use App\Models\ExportTransaction;
 use App\Models\ImportTransaction;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class AdminDocumentReviewData
 {
+    /**
+     * @var array<string, list<string>>
+     */
+    private array $displayTypeKeysCache = [];
+
+    /**
+     * @var array<string, array<string, string>>
+     */
+    private array $optionalStageColumnsCache = [];
+
     public function normalizeTypeFilter(mixed $value): string
     {
         $normalized = strtolower(trim((string) $value));
@@ -66,7 +77,7 @@ class AdminDocumentReviewData
 
     public function displayTypeKeysFor(string $type): array
     {
-        return Document::requiredTypeKeysFor(
+        return $this->displayTypeKeysCache[$type] ??= Document::requiredTypeKeysFor(
             $type === 'import' ? ImportTransaction::class : ExportTransaction::class,
         );
     }
@@ -123,6 +134,10 @@ class AdminDocumentReviewData
 
     public function formatDateTime(mixed $value): ?string
     {
+        if (is_string($value) && $value !== '') {
+            return Carbon::parse($value)->format(DateTimeInterface::ATOM);
+        }
+
         if (! $value instanceof DateTimeInterface) {
             return null;
         }
@@ -152,9 +167,16 @@ class AdminDocumentReviewData
                 }
 
                 $requiredTypes = $this->requiredTypeKeysFor('import', $transaction);
-                $hasExceptions = $this->hasUnresolvedRemarks($transaction->remarks);
-                $requiredCompleted = $this->countUploadedRequiredTypes($transaction->documents, $requiredTypes);
-                $archiveReady = $requiredCompleted === count($requiredTypes) && ! $hasExceptions;
+                $requiredCompleted = isset($item->docs_count)
+                    ? (int) $item->docs_count
+                    : $this->countUploadedRequiredTypes($transaction->documents, $requiredTypes);
+                $requiredTotal = isset($item->docs_total)
+                    ? (int) $item->docs_total
+                    : count($requiredTypes);
+                $hasExceptions = isset($item->has_exceptions)
+                    ? (bool) $item->has_exceptions
+                    : $this->hasUnresolvedRemarks($transaction->remarks);
+                $archiveReady = $requiredCompleted >= $requiredTotal && ! $hasExceptions;
 
                 $rows[] = [
                     'id' => $transaction->id,
@@ -167,9 +189,9 @@ class AdminDocumentReviewData
                     'assigned_user_id' => $transaction->assigned_user_id,
                     'status' => $transaction->status->value,
                     'transaction_date' => $this->formatDate($transaction->arrival_date),
-                    'finalized_date' => $this->formatDateTime($this->finalizedDateForImport($transaction)),
+                    'finalized_date' => $this->formatDateTime($item->finalized_at ?? $this->finalizedDateForImport($transaction)),
                     'docs_count' => $requiredCompleted,
-                    'docs_total' => count($requiredTypes),
+                    'docs_total' => $requiredTotal,
                     'has_exceptions' => $hasExceptions,
                     'archive_ready' => $archiveReady,
                     'readiness' => $this->readinessFor($archiveReady, $hasExceptions),
@@ -185,9 +207,16 @@ class AdminDocumentReviewData
             }
 
             $requiredTypes = $this->requiredTypeKeysFor('export', $transaction);
-            $hasExceptions = $this->hasUnresolvedRemarks($transaction->remarks);
-            $requiredCompleted = $this->countUploadedRequiredTypes($transaction->documents, $requiredTypes);
-            $archiveReady = $requiredCompleted === count($requiredTypes) && ! $hasExceptions;
+            $requiredCompleted = isset($item->docs_count)
+                ? (int) $item->docs_count
+                : $this->countUploadedRequiredTypes($transaction->documents, $requiredTypes);
+            $requiredTotal = isset($item->docs_total)
+                ? (int) $item->docs_total
+                : count($requiredTypes);
+            $hasExceptions = isset($item->has_exceptions)
+                ? (bool) $item->has_exceptions
+                : $this->hasUnresolvedRemarks($transaction->remarks);
+            $archiveReady = $requiredCompleted >= $requiredTotal && ! $hasExceptions;
 
             $rows[] = [
                 'id' => $transaction->id,
@@ -200,9 +229,9 @@ class AdminDocumentReviewData
                 'assigned_user_id' => $transaction->assigned_user_id,
                 'status' => $transaction->status->value,
                 'transaction_date' => $this->formatDate($transaction->export_date),
-                'finalized_date' => $this->formatDateTime($this->finalizedDateForExport($transaction)),
+                'finalized_date' => $this->formatDateTime($item->finalized_at ?? $this->finalizedDateForExport($transaction)),
                 'docs_count' => $requiredCompleted,
-                'docs_total' => count($requiredTypes),
+                'docs_total' => $requiredTotal,
                 'has_exceptions' => $hasExceptions,
                 'archive_ready' => $archiveReady,
                 'readiness' => $this->readinessFor($archiveReady, $hasExceptions),
@@ -245,35 +274,106 @@ class AdminDocumentReviewData
 
     public function countWithAllRequiredDocuments(Builder $query, string $type): int
     {
-        return $this->applyRequiredDocumentsConstraint($query, $type)->count();
+        $metricsQuery = $this->applyReadinessMetrics($query, $type);
+
+        return $this->countMetricRows($metricsQuery, function ($metricQuery): void {
+            $metricQuery->whereColumn('docs_count', '>=', 'docs_total');
+        });
     }
 
     public function countArchiveReady(Builder $query, string $type): int
     {
-        return $this->applyRequiredDocumentsConstraint($query, $type)
-            ->whereDoesntHave('remarks', function (Builder $remarkQuery) {
-                $remarkQuery->where('is_resolved', false);
-            })
-            ->count();
+        $metricsQuery = $this->applyReadinessMetrics($query, $type);
+
+        return $this->countMetricRows($metricsQuery, function ($metricQuery): void {
+            $metricQuery
+                ->whereColumn('docs_count', '>=', 'docs_total')
+                ->where('has_exceptions', 0);
+        });
+    }
+
+    public function countMissingRequiredDocuments(Builder $query, string $type): int
+    {
+        $metricsQuery = $this->applyReadinessMetrics($query, $type);
+
+        return $this->countMetricRows($metricsQuery, function ($metricQuery): void {
+            $metricQuery->whereColumn('docs_count', '<', 'docs_total');
+        });
     }
 
     public function applyReadinessFilter(Builder $query, string $type, string $readinessFilter): Builder
     {
+        $this->applyReadinessMetrics($query, $type);
+
         return match ($readinessFilter) {
-            'ready' => $this->applyRequiredDocumentsConstraint($query, $type)
-                ->whereDoesntHave('remarks', function (Builder $remarkQuery) {
-                    $remarkQuery->where('is_resolved', false);
-                }),
+            'ready' => $query
+                ->havingRaw('docs_count >= docs_total')
+                ->having('has_exceptions', '=', 0),
             'missing_docs' => $query
-                ->whereDoesntHave('remarks', function (Builder $remarkQuery) {
-                    $remarkQuery->where('is_resolved', false);
-                })
-                ->where(fn (Builder $missingQuery) => $this->applyMissingRequiredDocumentsConstraint($missingQuery, $type)),
-            'flagged' => $query->whereHas('remarks', function (Builder $remarkQuery) {
-                $remarkQuery->where('is_resolved', false);
-            }),
+                ->havingRaw('docs_count < docs_total')
+                ->having('has_exceptions', '=', 0),
+            'flagged' => $query->having('has_exceptions', '>', 0),
             default => $query,
         };
+    }
+
+    public function applyReadinessMetrics(Builder $query, string $type): Builder
+    {
+        [$transactionTable, $stageTable, $stageForeignKey, $documentableType] = $this->readinessTablesFor($type);
+        $requiredTypes = $this->displayTypeKeysFor($type);
+        $optionalStageColumns = $this->optionalStageColumnsFor($type);
+
+        if (! $this->queryHasJoin($query, $stageTable)) {
+            $query->leftJoin($stageTable, "{$stageTable}.{$stageForeignKey}", '=', "{$transactionTable}.id");
+        }
+
+        if (! $this->queryHasJoin($query, 'documents as review_documents')) {
+            $query->leftJoin('documents as review_documents', function ($join) use (
+                $transactionTable,
+                $documentableType,
+                $requiredTypes,
+            ): void {
+                $join
+                    ->on('review_documents.documentable_id', '=', "{$transactionTable}.id")
+                    ->where('review_documents.documentable_type', '=', $documentableType)
+                    ->whereIn('review_documents.type', $requiredTypes);
+            });
+        }
+
+        if (! $this->queryHasJoin($query, 'transaction_remarks as unresolved_review_remarks')) {
+            $query->leftJoin('transaction_remarks as unresolved_review_remarks', function ($join) use (
+                $transactionTable,
+                $documentableType,
+            ): void {
+                $join
+                    ->on('unresolved_review_remarks.remarkble_id', '=', "{$transactionTable}.id")
+                    ->where('unresolved_review_remarks.remarkble_type', '=', $documentableType)
+                    ->where('unresolved_review_remarks.is_resolved', '=', false);
+            });
+        }
+
+        $documentCountExpressions = [];
+
+        foreach ($requiredTypes as $typeKey) {
+            $documentCountExpressions[] = "MAX(CASE WHEN review_documents.type = '{$typeKey}' THEN 1 ELSE 0 END)";
+        }
+
+        $requiredTotalExpressions = [];
+
+        foreach ($requiredTypes as $typeKey) {
+            $optionalStageColumn = $optionalStageColumns[$typeKey] ?? null;
+            $requiredTotalExpressions[] = $optionalStageColumn === null
+                ? '1'
+                : "CASE WHEN {$optionalStageColumn} = 1 THEN 0 ELSE 1 END";
+        }
+
+        $query
+            ->selectRaw(implode(' + ', $documentCountExpressions).' as docs_count')
+            ->selectRaw(implode(' + ', $requiredTotalExpressions).' as docs_total')
+            ->selectRaw('MAX(CASE WHEN unresolved_review_remarks.id IS NULL THEN 0 ELSE 1 END) as has_exceptions')
+            ->groupBy($this->readinessGroupByColumns($transactionTable, $stageTable, $optionalStageColumns));
+
+        return $query;
     }
 
     public function applyRequiredDocumentsConstraint(Builder $query, string $type): Builder
@@ -336,7 +436,7 @@ class AdminDocumentReviewData
 
     public function optionalStageColumnsFor(string $type): array
     {
-        return match ($type) {
+        return $this->optionalStageColumnsCache[$type] ??= match ($type) {
             'import' => [
                 'bonds' => 'import_stages.bonds_not_applicable',
                 'ppa' => 'import_stages.ppa_not_applicable',
@@ -357,5 +457,50 @@ class AdminDocumentReviewData
             'sqlite' => "'EXP-' || printf('%04d', export_transactions.id)",
             default => "CONCAT('EXP-', LPAD(export_transactions.id, 4, '0'))",
         };
+    }
+
+    /**
+     * @param  callable(\Illuminate\Database\Query\Builder): void  $constraint
+     */
+    private function countMetricRows(Builder $query, callable $constraint): int
+    {
+        $metricQuery = DB::query()->fromSub($query->toBase(), 'review_metrics');
+        $constraint($metricQuery);
+
+        return $metricQuery->count();
+    }
+
+    /**
+     * @param  array<string, string>  $optionalStageColumns
+     * @return array{0: string, 1: string, 2: string, 3: class-string<ImportTransaction>|class-string<ExportTransaction>}
+     */
+    private function readinessTablesFor(string $type): array
+    {
+        return match ($type) {
+            'import' => ['import_transactions', 'import_stages', 'import_transaction_id', ImportTransaction::class],
+            'export' => ['export_transactions', 'export_stages', 'export_transaction_id', ExportTransaction::class],
+            default => throw new \InvalidArgumentException("Unsupported readiness type [{$type}]."),
+        };
+    }
+
+    /**
+     * @param  array<string, string>  $optionalStageColumns
+     * @return list<string>
+     */
+    private function readinessGroupByColumns(string $transactionTable, string $stageTable, array $optionalStageColumns): array
+    {
+        return array_values([
+            "{$transactionTable}.id",
+            "{$transactionTable}.created_at",
+            "{$transactionTable}.updated_at",
+            "{$stageTable}.billing_completed_at",
+            ...array_values($optionalStageColumns),
+        ]);
+    }
+
+    private function queryHasJoin(Builder $query, string $table): bool
+    {
+        return collect($query->getQuery()->joins ?? [])
+            ->contains(fn ($join): bool => $join->table === $table);
     }
 }

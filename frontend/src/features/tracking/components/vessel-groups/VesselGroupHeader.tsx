@@ -85,8 +85,8 @@ export function VesselGroupHeader<T>({
                     )}
                     <span className={`hidden shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide sm:inline-flex ${
                         group.type === 'import'
-                            ? 'bg-blue-50 text-blue-700 border border-blue-100'
-                            : 'bg-amber-50 text-amber-700 border border-amber-100'
+                            ? 'border border-blue-500/20 bg-blue-500/10 text-blue-600 dark:text-blue-300'
+                            : 'border border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300'
                     }`}>
                         {group.type}
                     </span>

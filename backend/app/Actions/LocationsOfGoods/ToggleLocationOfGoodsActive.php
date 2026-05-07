@@ -3,6 +3,7 @@
 namespace App\Actions\LocationsOfGoods;
 
 use App\Models\LocationOfGoods;
+use App\Support\Cache\ReferenceDataCache;
 
 class ToggleLocationOfGoodsActive
 {
@@ -10,6 +11,8 @@ class ToggleLocationOfGoodsActive
     {
         $locationOfGoods->is_active = ! $locationOfGoods->is_active;
         $locationOfGoods->save();
+
+        ReferenceDataCache::forgetLocationsOfGoods();
 
         return $locationOfGoods;
     }

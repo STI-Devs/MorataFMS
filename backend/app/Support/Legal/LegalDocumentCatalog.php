@@ -19,21 +19,6 @@ class LegalDocumentCatalog
     }
 
     /**
-     * @return list<array{code: string, label: string}>
-     */
-    public static function templateFieldTypes(): array
-    {
-        return [
-            ['code' => 'text', 'label' => 'Text'],
-            ['code' => 'textarea', 'label' => 'Long Text'],
-            ['code' => 'date', 'label' => 'Date'],
-            ['code' => 'number', 'label' => 'Number'],
-            ['code' => 'email', 'label' => 'Email'],
-            ['code' => 'select', 'label' => 'Select'],
-        ];
-    }
-
-    /**
      * @return list<array{code: string, label: string, description: string}>
      */
     public static function categories(): array

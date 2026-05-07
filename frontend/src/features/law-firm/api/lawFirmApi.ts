@@ -1,6 +1,7 @@
 import api from '../../../lib/axios';
 import type {
     CreateLegalArchiveRecordPayload,
+    CreateEditableNotarialGeneratedDocumentPayload,
     CreateNotarialBookPayload,
     CreateNotarialLegacyFilesPayload,
     CreateNotarialPageScanPayload,
@@ -15,16 +16,31 @@ import type {
     LegalParty,
     NotarialTemplate,
     NotarialTemplateQuery,
-    NotarialTemplateRecord,
-    NotarialTemplateRecordQuery,
+    NotarialGeneratedDocument,
+    NotarialGeneratedDocumentQuery,
+    OnlyOfficeEditorConfigResponse,
     PaginatedResponse,
     UpdateNotarialBookPayload,
     UpdateNotarialTemplatePayload,
     UpdateNotarialPageScanPayload,
-    GenerateNotarialTemplateRecordPayload,
 } from '../types/legalRecords.types';
 
 export const lawFirmApi = {
+    async downloadFile(downloadUrl: string, filename: string): Promise<void> {
+        const response = await api.get(downloadUrl, {
+            responseType: 'blob',
+        });
+
+        const objectUrl = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = objectUrl;
+        link.setAttribute('download', filename);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(objectUrl);
+    },
+
     async getCatalog(): Promise<LegalCatalogResponse> {
         const response = await api.get('/api/notarial/document-types');
 
@@ -54,11 +70,6 @@ export const lawFirmApi = {
         formData.append('code', payload.code);
         formData.append('label', payload.label);
         formData.append('document_code', payload.document_code);
-        formData.append('field_schema', JSON.stringify(payload.field_schema));
-
-        if (payload.default_notarial_act_type) {
-            formData.append('default_notarial_act_type', payload.default_notarial_act_type);
-        }
 
         if (payload.description) {
             formData.append('description', payload.description);
@@ -97,16 +108,8 @@ export const lawFirmApi = {
             formData.append('document_code', payload.document_code);
         }
 
-        if (payload.default_notarial_act_type !== undefined) {
-            formData.append('default_notarial_act_type', payload.default_notarial_act_type);
-        }
-
         if (payload.description !== undefined) {
             formData.append('description', payload.description);
-        }
-
-        if (payload.field_schema !== undefined) {
-            formData.append('field_schema', JSON.stringify(payload.field_schema));
         }
 
         if (payload.is_active !== undefined) {
@@ -185,16 +188,22 @@ export const lawFirmApi = {
         return response.data.data;
     },
 
-    async getTemplateRecords(params?: NotarialTemplateRecordQuery): Promise<PaginatedResponse<NotarialTemplateRecord>> {
-        const response = await api.get('/api/notarial/template-records', { params });
+    async getGeneratedDocuments(params?: NotarialGeneratedDocumentQuery): Promise<PaginatedResponse<NotarialGeneratedDocument>> {
+        const response = await api.get('/api/notarial/generated-documents', { params });
 
         return response.data;
     },
 
-    async generateTemplateRecord(payload: GenerateNotarialTemplateRecordPayload): Promise<NotarialTemplateRecord> {
-        const response = await api.post('/api/notarial/template-records', payload);
+    async createEditableGeneratedDocument(payload: CreateEditableNotarialGeneratedDocumentPayload): Promise<NotarialGeneratedDocument> {
+        const response = await api.post('/api/notarial/generated-documents', payload);
 
         return response.data.data;
+    },
+
+    async getGeneratedDocumentEditorConfig(documentId: number): Promise<OnlyOfficeEditorConfigResponse> {
+        const response = await api.get(`/api/notarial/generated-documents/${documentId}/onlyoffice/config`);
+
+        return response.data;
     },
 
     async getLegacyBookFiles(bookId: number): Promise<{ data: LegalLegacyBookFile[] }> {

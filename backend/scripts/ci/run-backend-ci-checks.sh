@@ -6,6 +6,12 @@ script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 backend_dir=$(cd -- "$script_dir/../.." && pwd)
 repo_root=$(cd -- "$backend_dir/.." && pwd)
 
+echo "[backend-ci] Auditing Composer dependencies for vulnerabilities"
+(
+    cd "$backend_dir"
+    composer audit --no-dev --ansi
+)
+
 echo "[backend-ci] Running backend tests"
 (
     cd "$backend_dir"

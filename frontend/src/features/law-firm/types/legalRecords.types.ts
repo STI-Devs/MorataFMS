@@ -16,7 +16,6 @@ export type LegalBookStatus = 'active' | 'full' | 'archived';
 
 export type NotarialActTypeCode = 'jurat' | 'acknowledgment' | 'oath_affirmation';
 export type NotarialTemplateStatus = 'ready' | 'missing_file';
-export type NotarialTemplateFieldTypeCode = 'text' | 'textarea' | 'date' | 'number' | 'email' | 'select';
 
 export type PaginationMeta = {
     current_page: number;
@@ -47,11 +46,6 @@ export type NotarialActType = {
     label: string;
 };
 
-export type NotarialTemplateFieldType = {
-    code: NotarialTemplateFieldTypeCode;
-    label: string;
-};
-
 export type LegalDocumentType = {
     code: string;
     label: string;
@@ -75,7 +69,6 @@ export type LegalGroupedFileCategory = LegalFileCategory & {
 
 export type LegalCatalogResponse = {
     notarial_act_types: NotarialActType[];
-    template_field_types: NotarialTemplateFieldType[];
     categories: LegalDocumentCategory[];
     document_types: LegalDocumentType[];
     grouped_document_types: LegalGroupedDocumentCategory[];
@@ -97,7 +90,6 @@ export type LegalBook = {
     book_number: number;
     year: number;
     status: LegalBookStatus;
-    generated_record_count?: number;
     page_scan_count?: number;
     legacy_file_count?: number;
     opened_at: string | null;
@@ -151,16 +143,6 @@ export type LegalParty = {
     updated_at: string | null;
 };
 
-export type NotarialTemplateFieldDefinition = {
-    name: string;
-    label: string;
-    type: NotarialTemplateFieldTypeCode;
-    required: boolean;
-    placeholder?: string | null;
-    help_text?: string | null;
-    options?: string[] | null;
-};
-
 export type NotarialTemplate = {
     id: number;
     code: string;
@@ -169,10 +151,7 @@ export type NotarialTemplate = {
     document_code_label: string | null;
     document_category: LegalDocumentCategoryCode;
     document_category_label: string | null;
-    default_notarial_act_type: NotarialActTypeCode;
-    default_notarial_act_type_label: string | null;
     description: string | null;
-    field_schema: NotarialTemplateFieldDefinition[];
     is_active: boolean;
     template_status: NotarialTemplateStatus;
     source_file: LegalArchiveFile | null;
@@ -184,7 +163,7 @@ export type NotarialTemplate = {
     updated_at: string | null;
 };
 
-export type NotarialTemplateRecord = {
+export type NotarialGeneratedDocument = {
     id: number;
     template_code: string;
     template_label: string;
@@ -192,10 +171,7 @@ export type NotarialTemplateRecord = {
     document_code_label: string | null;
     document_category: LegalDocumentCategoryCode;
     document_category_label: string | null;
-    notarial_act_type: NotarialActTypeCode;
-    notarial_act_type_label: string | null;
     party_name: string;
-    template_data: Record<string, unknown>;
     notes: string | null;
     generated_at: string | null;
     generated_file: LegalArchiveFile;
@@ -204,11 +180,10 @@ export type NotarialTemplateRecord = {
         code: string;
         label: string;
     } | null;
-    book?: {
+    party?: {
         id: number;
-        book_number: number | null;
-        year: number | null;
-        status: LegalBookStatus | null;
+        name: string;
+        principal_address: string | null;
     } | null;
     created_by?: {
         id: number;
@@ -242,9 +217,7 @@ export type CreateNotarialTemplatePayload = {
     code: string;
     label: string;
     document_code: string;
-    default_notarial_act_type?: NotarialActTypeCode;
     description?: string;
-    field_schema: NotarialTemplateFieldDefinition[];
     is_active?: boolean;
     file?: File | null;
 };
@@ -253,19 +226,21 @@ export type UpdateNotarialTemplatePayload = {
     code?: string;
     label?: string;
     document_code?: string;
-    default_notarial_act_type?: NotarialActTypeCode;
     description?: string;
-    field_schema?: NotarialTemplateFieldDefinition[];
     is_active?: boolean;
     file?: File | null;
 };
 
-export type GenerateNotarialTemplateRecordPayload = {
+export type CreateEditableNotarialGeneratedDocumentPayload = {
     notarial_template_id: number;
-    notarial_book_id?: number;
     party_name: string;
+    party_id?: number;
     notes?: string;
-    template_data: Record<string, unknown>;
+};
+
+export type OnlyOfficeEditorConfigResponse = {
+    document_server_url: string;
+    config: Record<string, unknown>;
 };
 
 export type CreateNotarialPageScanPayload = {
@@ -326,13 +301,11 @@ export type NotarialTemplateQuery = {
     per_page?: number;
 };
 
-export type NotarialTemplateRecordQuery = {
+export type NotarialGeneratedDocumentQuery = {
     search?: string;
     document_code?: string;
     document_category?: LegalDocumentCategoryCode;
-    notarial_act_type?: NotarialActTypeCode;
     notarial_template_id?: number;
-    book_id?: number;
     page?: number;
     per_page?: number;
 };

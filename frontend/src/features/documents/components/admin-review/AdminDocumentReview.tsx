@@ -1,6 +1,5 @@
 import { startTransition, useDeferredValue, useState } from 'react';
 
-import { CurrentDateTime } from '../../../../components/CurrentDateTime';
 import { useTransactionSyncSubscription } from '../../../../hooks/useTransactionSyncSubscription';
 import { useDebounce } from '../../../../hooks/useDebounce';
 import { trackingApi } from '../../../tracking/api/trackingApi';
@@ -181,104 +180,88 @@ export const AdminDocumentReview = () => {
     };
 
     return (
-        <div className="absolute inset-0 flex flex-col bg-background overflow-hidden">
-            <header className="flex-none px-6 pt-4 pb-3">
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                    <div>
-                        <h1 className="text-3xl font-bold tracking-tight text-text-primary">
-                            Completed Transactions Overview
-                        </h1>
-                        <p className="mt-1 max-w-3xl text-sm text-text-secondary">
-                            Inspect completed brokerage transactions, resolve exceptions, and manage records readiness.
-                        </p>
+        <div className="absolute inset-0 flex flex-col overflow-hidden bg-background font-sans selection:bg-text-primary selection:text-background">
+            <div className="relative z-10 flex h-full flex-col">
+                <main className="min-h-0 flex-1 p-0 text-text-primary flex flex-col">
+                    <div
+                        className={`min-h-0 flex-1 grid ${
+                            selectedTransaction
+                                ? 'grid-cols-[minmax(28rem,0.82fr)_minmax(46rem,1.18fr)] xl:grid-cols-[minmax(26rem,0.9fr)_minmax(36rem,1.1fr)]'
+                                : 'grid-cols-1'
+                        }`}
+                    >
+                        <AdminReviewQueuePane
+                            summary={reviewStats}
+                            isSummaryLoading={statsQuery.isLoading}
+                            expanded={!selectedTransaction}
+                            searchQuery={searchQuery}
+                            typeFilter={typeFilter}
+                            statusFilter={statusFilter}
+                            readinessFilter={readinessFilter}
+                            assignedUserIdFilter={assignedUserIdFilter}
+                            assignedUsers={encoderOptions}
+                            debouncedSearch={debouncedSearch}
+                            selection={selectedReview}
+                            transactions={transactions}
+                            queueData={queueQuery.data}
+                            isLoading={queueQuery.isLoading}
+                            isError={queueQuery.isError}
+                            isFetching={queueQuery.isFetching}
+                            onSearchChange={handleSearchChange}
+                            onTypeFilterChange={handleTypeFilterChange}
+                            onStatusFilterChange={handleStatusFilterChange}
+                            onReadinessFilterChange={handleReadinessFilterChange}
+                            onAssignedUserFilterChange={handleAssignedUserFilterChange}
+                            onRetry={() => {
+                                void queueQuery.refetch();
+                            }}
+                            onSelect={handleSelectTransaction}
+                            onResetFilters={handleResetFilters}
+                            onPageChange={(nextPage) => {
+                                startTransition(() => {
+                                    setPage(nextPage);
+                                });
+                            }}
+                            onPerPageChange={(nextPerPage) => {
+                                startTransition(() => {
+                                    setPerPage(nextPerPage);
+                                    setPage(1);
+                                });
+                            }}
+                        />
+
+                        {selectedTransaction ? (
+                            <div
+                                className="flex h-full min-w-0 flex-1 flex-col overflow-hidden bg-surface"
+                                data-testid="admin-review-workspace"
+                            >
+                                <AdminReviewDetailPane
+                                    selectedTransaction={selectedTransaction}
+                                    detailData={detailQuery.data}
+                                    archiveError={archiveError}
+                                    isDetailLoading={detailQuery.isLoading}
+                                    isDetailError={detailQuery.isError}
+                                    isArchiving={archiveMutation.isPending}
+                                    onClearSelection={() => {
+                                        setSelectedReview(null);
+                                        setArchiveError(null);
+                                    }}
+                                    onRetry={() => {
+                                        void detailQuery.refetch();
+                                    }}
+                                    onArchive={handleArchive}
+                                    onPreview={(file, typeKey) => {
+                                        void handlePreview(file, typeKey);
+                                    }}
+                                    onDownload={(file) => {
+                                        void handleDownload(file);
+                                    }}
+                                />
+                            </div>
+                        ) : null}
                     </div>
-                    <CurrentDateTime
-                        className="text-right"
-                        timeClassName="text-xl font-mono font-bold tracking-tight text-text-primary"
-                        dateClassName="mt-0.5 text-[10px] font-mono uppercase tracking-[0.2em] text-text-secondary"
-                    />
-                </div>
-            </header>
-
-            <main className="min-h-0 flex-1 px-6 pb-6 text-text-primary">
-                <div
-                    className={`grid h-full min-h-0 gap-4 ${
-                        selectedTransaction
-                            ? '2xl:grid-cols-[minmax(28rem,0.82fr)_minmax(46rem,1.18fr)] xl:grid-cols-[minmax(26rem,0.9fr)_minmax(36rem,1.1fr)]'
-                            : 'grid-cols-1'
-                    }`}
-                >
-                    <AdminReviewQueuePane
-                        summary={reviewStats}
-                        isSummaryLoading={statsQuery.isLoading}
-                        expanded={!selectedTransaction}
-                        searchQuery={searchQuery}
-                        typeFilter={typeFilter}
-                        statusFilter={statusFilter}
-                        readinessFilter={readinessFilter}
-                        assignedUserIdFilter={assignedUserIdFilter}
-                        assignedUsers={encoderOptions}
-                        debouncedSearch={debouncedSearch}
-                        selection={selectedReview}
-                        transactions={transactions}
-                        queueData={queueQuery.data}
-                        isLoading={queueQuery.isLoading}
-                        isError={queueQuery.isError}
-                        isFetching={queueQuery.isFetching}
-                        onSearchChange={handleSearchChange}
-                        onTypeFilterChange={handleTypeFilterChange}
-                        onStatusFilterChange={handleStatusFilterChange}
-                        onReadinessFilterChange={handleReadinessFilterChange}
-                        onAssignedUserFilterChange={handleAssignedUserFilterChange}
-                        onRetry={() => {
-                            void queueQuery.refetch();
-                        }}
-                        onSelect={handleSelectTransaction}
-                        onResetFilters={handleResetFilters}
-                        onPageChange={(nextPage) => {
-                            startTransition(() => {
-                                setPage(nextPage);
-                            });
-                        }}
-                        onPerPageChange={(nextPerPage) => {
-                            startTransition(() => {
-                                setPerPage(nextPerPage);
-                                setPage(1);
-                            });
-                        }}
-                    />
-
-                    {selectedTransaction ? (
-                        <div
-                            className="flex h-full min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-sm"
-                            data-testid="admin-review-workspace"
-                        >
-                            <AdminReviewDetailPane
-                                selectedTransaction={selectedTransaction}
-                                detailData={detailQuery.data}
-                                archiveError={archiveError}
-                                isDetailLoading={detailQuery.isLoading}
-                                isDetailError={detailQuery.isError}
-                                isArchiving={archiveMutation.isPending}
-                                onClearSelection={() => {
-                                    setSelectedReview(null);
-                                    setArchiveError(null);
-                                }}
-                                onRetry={() => {
-                                    void detailQuery.refetch();
-                                }}
-                                onArchive={handleArchive}
-                                onPreview={(file, typeKey) => {
-                                    void handlePreview(file, typeKey);
-                                }}
-                                onDownload={(file) => {
-                                    void handleDownload(file);
-                                }}
-                            />
-                        </div>
-                    ) : null}
-                </div>
-            </main>
+                </main>
+            </div>
         </div>
     );
 };

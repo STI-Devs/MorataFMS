@@ -77,7 +77,7 @@ test('admin can list the paginated admin document review queue', function () {
     ]);
 
     $response = $this->actingAs($admin)
-        ->getJson('/api/admin/document-review?type=import&status=completed&readiness=flagged&assigned_user_id='.$encoder->id.'&search=GLOBAL%20STAR&per_page=1')
+        ->getJson('/api/admin/document-review?type=import&status=completed&readiness=flagged&assigned_user_id='.$encoder->id.'&search=Global%20Tech&per_page=1')
         ->assertOk();
 
     $response
@@ -231,8 +231,15 @@ test('stats endpoint reports completed cancelled missing documents and archive r
     ]);
     $readyImport->stages()->update([
         'billing_completed_at' => Carbon::parse('2026-03-20 09:00:00', 'UTC'),
+        'bonds_not_applicable' => true,
+        'ppa_not_applicable' => true,
+        'port_charges_not_applicable' => true,
     ]);
-    attachReviewDocuments($readyImport, requiredReviewTypes('import'), $uploader);
+    attachReviewDocuments(
+        $readyImport,
+        Document::requiredTypeKeysFor(ImportTransaction::class, ['bonds', 'ppa', 'port_charges']),
+        $uploader,
+    );
 
     $flaggedExport = ExportTransaction::factory()->create([
         'status' => ExportStatus::Completed,

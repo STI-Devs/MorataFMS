@@ -223,7 +223,7 @@ describe('AdminDocumentReview', () => {
     it('renders queue data and loads detail when a transaction is selected', async () => {
         renderWithProviders(<AdminDocumentReview />);
 
-        expect(screen.getByText('Completed Transactions Overview')).toBeInTheDocument();
+        expect(screen.getByText('Completed Transaction Queue')).toBeInTheDocument();
         expect(screen.getByText('24')).toBeInTheDocument();
         expect(screen.getByTestId('admin-review-kpi-strip')).toBeInTheDocument();
         expect(screen.getByText('Show')).toBeInTheDocument();
@@ -275,6 +275,7 @@ describe('AdminDocumentReview', () => {
 
         // Queue pane is in expanded (full-width) mode before a transaction is selected
         expect(screen.getByTestId('admin-review-queue-pane')).toHaveClass('max-w-none');
+        expect(screen.getByTestId('admin-review-queue-pane')).toHaveClass('bg-surface');
 
         fireEvent.click(screen.getByRole('button', { name: /BL-98210344/i }));
 
@@ -287,6 +288,8 @@ describe('AdminDocumentReview', () => {
             'xl:min-w-[26rem]',
             'xl:max-w-[38rem]',
         );
+
+        expect(screen.getByTestId('admin-review-workspace')).toHaveClass('bg-surface');
     });
 
     it('wires search and filter controls into the queue query params', async () => {

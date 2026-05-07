@@ -33,7 +33,17 @@ vi.mock('../../../../components/CurrentDateTime', () => ({
 }));
 
 vi.mock('../../../../components/Pagination', () => ({
-    Pagination: () => null,
+    Pagination: ({
+        perPage,
+        perPageOptions,
+    }: {
+        perPage: number;
+        perPageOptions?: number[];
+    }) => (
+        <div data-testid="pagination">
+            {perPage}:{perPageOptions?.join(',')}
+        </div>
+    ),
 }));
 
 vi.mock('../modals/RemarkModal', () => ({
@@ -98,7 +108,7 @@ describe('TransactionOversight', () => {
             },
         ];
 
-        mockUseAllTransactions.mockImplementation((params?: { type?: 'import' | 'export' }) => {
+        mockUseAllTransactions.mockImplementation((params?: { per_page?: number; type?: 'import' | 'export' }) => {
             const visibleTransactions = params?.type
                 ? allTransactions.filter((transaction) => transaction.type === params.type)
                 : allTransactions;
@@ -111,8 +121,8 @@ describe('TransactionOversight', () => {
                     exports_count: allTransactions.filter((transaction) => transaction.type === 'export').length,
                     meta: {
                         current_page: 1,
-                        last_page: 1,
-                        per_page: 15,
+                        last_page: 2,
+                        per_page: params?.per_page ?? 50,
                         total_records: visibleTransactions.length,
                     },
                 },
@@ -131,6 +141,7 @@ describe('TransactionOversight', () => {
         expect(screen.getByTitle('Restore Transaction')).toBeInTheDocument();
         expect(screen.getByTitle('Delete Cancelled Transaction')).toBeInTheDocument();
         expect(screen.getByTitle('Override Status')).toBeInTheDocument();
+        expect(screen.getByTestId('pagination')).toHaveTextContent('50:50,75,100');
 
         fireEvent.click(screen.getByTitle('Restore Transaction'));
         expect(screen.getByText('Restore modal for 11')).toBeInTheDocument();
@@ -151,7 +162,7 @@ describe('TransactionOversight', () => {
         await waitFor(() => {
             expect(mockUseAllTransactions).toHaveBeenLastCalledWith({
                 page: 1,
-                per_page: 15,
+                per_page: 50,
                 search: '',
                 status: 'all',
                 type: 'export',
@@ -163,5 +174,6 @@ describe('TransactionOversight', () => {
         expect(sharedVesselHeader).not.toBeNull();
         expect(sharedVesselHeader).toHaveTextContent('export');
         expect(sharedVesselHeader).not.toHaveTextContent('import');
+        expect(screen.getByText('BL-EXP-022')).toBeInTheDocument();
     });
 });

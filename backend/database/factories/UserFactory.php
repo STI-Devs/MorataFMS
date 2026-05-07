@@ -56,4 +56,34 @@ class UserFactory extends Factory
             'email_verified_at' => null,
         ]);
     }
+
+    public function admin(): static
+    {
+        return $this->state(fn (array $attributes) => ['role' => 'admin']);
+    }
+
+    public function encoder(): static
+    {
+        return $this->state(fn (array $attributes) => ['role' => 'encoder']);
+    }
+
+    public function processor(): static
+    {
+        return $this->state(fn (array $attributes) => ['role' => 'processor']);
+    }
+
+    public function accounting(): static
+    {
+        return $this->state(fn (array $attributes) => ['role' => 'accounting']);
+    }
+
+    public function paralegal(): static
+    {
+        return $this->state(fn (array $attributes) => ['role' => 'paralegal']);
+    }
+
+    public function inactive(): static
+    {
+        return $this->state(fn (array $attributes) => ['is_active' => false]);
+    }
 }

@@ -60,6 +60,7 @@ describe('NotarialBooksPage', () => {
                 id: 1,
                 role: 'admin',
                 permissions: {
+                    view_notarial_books: true,
                     manage_notarial_books: true,
                 },
             },
@@ -73,7 +74,6 @@ describe('NotarialBooksPage', () => {
                         book_number: 2,
                         year: 2026,
                         status: 'active',
-                        generated_record_count: 4,
                         page_scan_count: 1,
                         legacy_file_count: 2,
                         notes: 'Current archive book.',
@@ -104,15 +104,17 @@ describe('NotarialBooksPage', () => {
         mockUseDeleteLegacyBookFile.mockReturnValue({ mutateAsync: vi.fn(), isPending: false });
     });
 
-    it('treats books as archive records and saves new books without workflow mode', async () => {
+    it('treats books as register records and saves new books without workflow mode', async () => {
         renderWithProviders(<NotarialBooksPage />, {
             route: appRoutes.paralegalBooks,
             path: appRoutes.paralegalBooks,
         });
 
-        expect(screen.getByText('Book Archive')).toBeInTheDocument();
+        expect(screen.getAllByText('Book Register')[0]).toBeInTheDocument();
+        expect(screen.getByText('Register a Physical Book')).toBeInTheDocument();
         expect(screen.getByText('Page-Indexed Scans')).toBeInTheDocument();
         expect(screen.getByText('Archive Files')).toBeInTheDocument();
+        expect(screen.queryByText('Book Archive')).not.toBeInTheDocument();
         expect(screen.queryByText('Active Register Book')).not.toBeInTheDocument();
         expect(screen.queryByText('Legacy Scanned Book')).not.toBeInTheDocument();
 

@@ -4,7 +4,9 @@ namespace App\Queries\AdminDocumentReview;
 
 use App\Enums\ExportStatus;
 use App\Enums\ImportStatus;
+use App\Models\ExportStage;
 use App\Models\ExportTransaction;
+use App\Models\ImportStage;
 use App\Models\ImportTransaction;
 use App\Support\AdminDocumentReview\AdminDocumentReviewData;
 
@@ -16,33 +18,44 @@ class AdminDocumentReviewStatsQuery
 
     public function handle(): array
     {
+        $importStagesTable = (new ImportStage)->getTable();
+        $exportStagesTable = (new ExportStage)->getTable();
+
         $importTerminalQuery = ImportTransaction::query()
-            ->leftJoin('import_stages', 'import_stages.import_transaction_id', '=', 'import_transactions.id')
+            ->leftJoin($importStagesTable, "{$importStagesTable}.import_transaction_id", '=', 'import_transactions.id')
             ->where('is_archive', false)
             ->whereIn('status', $this->reviewData->importStatusValues('all'));
 
         $exportTerminalQuery = ExportTransaction::query()
-            ->leftJoin('export_stages', 'export_stages.export_transaction_id', '=', 'export_transactions.id')
+            ->leftJoin($exportStagesTable, "{$exportStagesTable}.export_transaction_id", '=', 'export_transactions.id')
             ->where('is_archive', false)
             ->whereIn('status', $this->reviewData->exportStatusValues('all'));
 
-        $completedCount = ImportTransaction::query()
+        $importTerminalRow = ImportTransaction::query()
+            ->toBase()
             ->where('is_archive', false)
-            ->where('status', ImportStatus::Completed->value)
-            ->count()
-            + ExportTransaction::query()
-                ->where('is_archive', false)
-                ->where('status', ExportStatus::Completed->value)
-                ->count();
+            ->selectRaw(
+                'COUNT(CASE WHEN status = ? THEN 1 END) as completed, '.
+                'COUNT(CASE WHEN status = ? THEN 1 END) as cancelled',
+                [ImportStatus::Completed->value, ImportStatus::Cancelled->value],
+            )
+            ->first();
 
-        $cancelledCount = ImportTransaction::query()
+        $exportTerminalRow = ExportTransaction::query()
+            ->toBase()
             ->where('is_archive', false)
-            ->where('status', ImportStatus::Cancelled->value)
-            ->count()
-            + ExportTransaction::query()
-                ->where('is_archive', false)
-                ->where('status', ExportStatus::Cancelled->value)
-                ->count();
+            ->selectRaw(
+                'COUNT(CASE WHEN status = ? THEN 1 END) as completed, '.
+                'COUNT(CASE WHEN status = ? THEN 1 END) as cancelled',
+                [ExportStatus::Completed->value, ExportStatus::Cancelled->value],
+            )
+            ->first();
+
+        $completedCount = (int) ($importTerminalRow->completed ?? 0)
+            + (int) ($exportTerminalRow->completed ?? 0);
+
+        $cancelledCount = (int) ($importTerminalRow->cancelled ?? 0)
+            + (int) ($exportTerminalRow->cancelled ?? 0);
 
         $completeImportsCount = $this->reviewData->countWithAllRequiredDocuments(clone $importTerminalQuery, 'import');
         $completeExportsCount = $this->reviewData->countWithAllRequiredDocuments(clone $exportTerminalQuery, 'export');
@@ -56,6 +69,7 @@ class AdminDocumentReviewStatsQuery
             + $this->reviewData->countArchiveReady(clone $exportTerminalQuery, 'export');
 
         return [
+            'in_review_count' => $completedCount + $cancelledCount,
             'completed_count' => $completedCount,
             'cancelled_count' => $cancelledCount,
             'missing_docs_count' => $missingDocsCount,

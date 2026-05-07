@@ -20,20 +20,22 @@ import {
   CountryManagement,
   Documents,
   DocumentsDetail,
+  DocumentGeneratorPage,
   EncoderArchivePage,
   EncoderDashboard,
+  EncoderReportsAnalytics,
   ExportList,
   Help,
   ImportList,
   LegalArchivePage,
   LegalArchiveRecordsPage,
   LandingPage,
-  LegalDocumentsPage,
-  LegalRecordsPage,
+  LegalMasterSetupPage,
+  NotarialGeneratedDocumentsPage,
   LocationOfGoodsManagement,
   LawFirmPage,
   NotarialBooksPage,
-  NotarialTemplateUploadPage,
+  NotarialGeneratedDocumentEditorPage,
   ParalegalDashboard,
   Profile,
   ProcessorDashboard,
@@ -109,6 +111,7 @@ function AppContent() {
             {/* Encoder-only brokerage routes */}
             <Route element={<ProtectedRoute allowedRoles={['encoder']} />}>
               <Route path={appRoutes.encoderDashboard} element={<EncoderDashboard />} />
+              <Route path={appRoutes.encoderReportsAnalytics} element={<EncoderReportsAnalytics />} />
               <Route path={appRoutes.myArchive} element={<Navigate to={appRoutes.encoderRecordsArchive} replace />} />
               <Route path={appRoutes.encoderRecords} element={<Navigate to={appRoutes.encoderRecordsArchive} replace />} />
               <Route path={appRoutes.encoderRecordsWildcard} element={<EncoderArchivePage />} />
@@ -133,16 +136,17 @@ function AppContent() {
             <Route element={<ProtectedRoute allowedRoles={['admin', 'paralegal']} />}>
               <Route path={appRoutes.paralegalDashboard} element={<ParalegalDashboard />} />
               <Route path={appRoutes.lawFirm} element={<LawFirmPage />} />
-              <Route path={appRoutes.forms} element={<Navigate to={appRoutes.paralegalNotarial} replace />} />
-              <Route path={appRoutes.paralegalDocuments} element={<Navigate to={appRoutes.paralegalNotarial} replace />} />
-              <Route path={appRoutes.paralegalNotarialIndex} element={<Navigate to={appRoutes.paralegalNotarial} replace />} />
+              <Route path={appRoutes.forms} element={<Navigate to={appRoutes.paralegalGenerator} replace />} />
+              <Route path={appRoutes.paralegalDocuments} element={<Navigate to={appRoutes.paralegalGenerator} replace />} />
+              <Route path={appRoutes.paralegalNotarialIndex} element={<Navigate to={appRoutes.paralegalGenerator} replace />} />
               <Route path={appRoutes.paralegalLegalFilesIndex} element={<Navigate to={appRoutes.paralegalLegalFiles} replace />} />
               <Route path={appRoutes.paralegalBooks} element={<NotarialBooksPage />} />
-              <Route path={appRoutes.paralegalNotarial} element={<LegalDocumentsPage />} />
-              <Route path={appRoutes.paralegalTemplateUpload} element={<NotarialTemplateUploadPage />} />
+              <Route path={appRoutes.paralegalGenerator} element={<DocumentGeneratorPage />} />
+              <Route path={appRoutes.paralegalMasterSetup} element={<LegalMasterSetupPage />} />
               <Route path={appRoutes.paralegalLegalFiles} element={<LegalArchivePage />} />
               <Route path={appRoutes.paralegalLegalFileRecords} element={<LegalArchiveRecordsPage />} />
-              <Route path={appRoutes.paralegalRecords} element={<LegalRecordsPage />} />
+              <Route path={appRoutes.paralegalGeneratedDocuments} element={<NotarialGeneratedDocumentsPage />} />
+              <Route path={appRoutes.paralegalGeneratedDocumentEditor} element={<NotarialGeneratedDocumentEditorPage />} />
             </Route>
 
             {/* Processor module */}

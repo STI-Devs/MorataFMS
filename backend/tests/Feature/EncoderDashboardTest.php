@@ -73,6 +73,36 @@ test('encoder dashboard returns only the authenticated encoder workload', functi
         ]);
     }
 
+    $remarkImport->stages()->update([
+        'boc_completed_by' => $encoder->id,
+        'boc_completed_at' => now()->subDay(),
+        'billing_completed_by' => $encoder->id,
+        'billing_completed_at' => now()->subHours(2),
+    ]);
+
+    $missingDocsExport->stages()->update([
+        'cil_completed_by' => $encoder->id,
+        'cil_completed_at' => now()->subDay(),
+        'billing_completed_by' => $encoder->id,
+        'billing_completed_at' => now()->subHours(3),
+    ]);
+
+    Document::factory()->create([
+        'documentable_type' => ImportTransaction::class,
+        'documentable_id' => $remarkImport->id,
+        'type' => 'others',
+        'uploaded_by' => $encoder->id,
+        'created_at' => now()->subYear(),
+        'updated_at' => now()->subYear(),
+    ]);
+
+    Document::factory()->create([
+        'documentable_type' => ImportTransaction::class,
+        'documentable_id' => $remarkImport->id,
+        'type' => 'others',
+        'uploaded_by' => $otherEncoder->id,
+    ]);
+
     TransactionRemark::factory()->create([
         'remarkble_type' => ImportTransaction::class,
         'remarkble_id' => $remarkImport->id,
@@ -97,6 +127,10 @@ test('encoder dashboard returns only the authenticated encoder workload', functi
         ->assertOk();
 
     $attentionItems = collect($response->json('attention_items'));
+    $importStageCounts = collect($response->json('analytics.activity.stages_completed.this_month.imports.stages'))
+        ->keyBy('key');
+    $exportStageCounts = collect($response->json('analytics.activity.stages_completed.this_month.exports.stages'))
+        ->keyBy('key');
 
     $response
         ->assertJsonPath('kpis.active_imports', 1)
@@ -104,7 +138,30 @@ test('encoder dashboard returns only the authenticated encoder workload', functi
         ->assertJsonPath('kpis.needs_update', 1)
         ->assertJsonPath('kpis.upcoming_eta_etd', 2)
         ->assertJsonPath('kpis.open_remarks', 1)
-        ->assertJsonPath('kpis.document_gaps', 1);
+        ->assertJsonPath('kpis.document_gaps', 1)
+        ->assertJsonPath('reports.year', 2026)
+        ->assertJsonPath('reports.month', 3)
+        ->assertJsonPath('reports.monthly_volume.total_imports', 2)
+        ->assertJsonPath('reports.monthly_volume.total_exports', 2)
+        ->assertJsonPath('reports.monthly_volume.total', 4)
+        ->assertJsonPath('reports.turnaround.imports.completed_count', 1)
+        ->assertJsonPath('reports.turnaround.exports.completed_count', 1)
+        ->assertJsonPath('analytics.year', 2026)
+        ->assertJsonPath('analytics.month', 3)
+        ->assertJsonPath('analytics.activity.transactions_completed.this_month.imports', 1)
+        ->assertJsonPath('analytics.activity.transactions_completed.this_month.exports', 1)
+        ->assertJsonPath('analytics.activity.transactions_completed.this_month.total', 2)
+        ->assertJsonPath('analytics.activity.transactions_completed.this_year.total', 2)
+        ->assertJsonPath('analytics.activity.documents_uploaded.this_month.total', 7)
+        ->assertJsonPath('analytics.activity.documents_uploaded.this_month.imports', 7)
+        ->assertJsonPath('analytics.activity.documents_uploaded.this_year.total', 7)
+        ->assertJsonPath('analytics.activity.stages_completed.this_month.total', 4)
+        ->assertJsonPath('analytics.activity.stages_completed.this_month.imports.total', 2)
+        ->assertJsonPath('analytics.activity.stages_completed.this_month.exports.total', 2)
+        ->assertJsonPath('analytics.activity.records_finalized.this_month.imports', 1)
+        ->assertJsonPath('analytics.activity.records_finalized.this_month.exports', 1)
+        ->assertJsonPath('analytics.activity.records_finalized.this_month.total', 2)
+        ->assertJsonPath('analytics.overdue_transactions.total', 1);
 
     expect($attentionItems->contains(fn (array $item): bool => $item['status'] === 'remark'
         && $item['ref'] === 'IMP-REMARK-001'))
@@ -120,6 +177,26 @@ test('encoder dashboard returns only the authenticated encoder workload', functi
 
     expect($attentionItems->contains(fn (array $item): bool => $item['ref'] === 'IMP-OTHER-001'))
         ->toBeFalse();
+
+    expect($importStageCounts->get('boc'))->toMatchArray([
+        'label' => 'BOC Document Processing',
+        'count' => 1,
+    ]);
+
+    expect($importStageCounts->get('billing'))->toMatchArray([
+        'label' => 'Billing and Liquidation',
+        'count' => 1,
+    ]);
+
+    expect($exportStageCounts->get('cil'))->toMatchArray([
+        'label' => 'CIL',
+        'count' => 1,
+    ]);
+
+    expect($exportStageCounts->get('billing'))->toMatchArray([
+        'label' => 'Billing and Liquidation',
+        'count' => 1,
+    ]);
 });
 
 test('non encoders cannot access the encoder dashboard endpoint', function () {

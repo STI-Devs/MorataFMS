@@ -2,7 +2,7 @@
 
 namespace App\Queries\ReferenceData;
 
-use App\Http\Requests\LegalPartyIndexRequest;
+use App\Http\Requests\ReferenceData\LegalPartyIndexRequest;
 use App\Models\LegalParty;
 use Illuminate\Support\Collection;
 

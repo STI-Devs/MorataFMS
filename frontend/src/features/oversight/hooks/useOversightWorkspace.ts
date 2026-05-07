@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 
 import { useDebounce } from '../../../hooks/useDebounce';
 import { trackingKeys } from '../../tracking/utils/queryKeys';
@@ -17,7 +17,7 @@ export function useOversightWorkspace() {
     const qc = useQueryClient();
 
     const [page, setPage] = useState(1);
-    const [perPage, setPerPage] = useState(15);
+    const [perPage, setPerPage] = useState(50);
     const [searchTerm, setSearchTerm] = useState('');
     const debouncedSearch = useDebounce(searchTerm, 300);
     const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
@@ -48,23 +48,14 @@ export function useOversightWorkspace() {
 
     const groups = useMemo(() => buildOversightGroups(transactions), [transactions]);
     const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => new Set(groups.map((group) => group.vesselKey)));
+    const groupKeys = groups.map((group) => group.vesselKey);
+    const expansionScope = `${page}|${perPage}|${debouncedSearch}|${typeFilter}|${statusFilter}|${groupKeys.join('|')}`;
+    const expansionScopeRef = useRef(expansionScope);
 
-    const seenGroupsRef = useRef<Set<string>>(new Set(groups.map((g) => g.vesselKey)));
-
-    useEffect(() => {
-        setExpandedGroups((prev) => {
-            let hasNew = false;
-            const next = new Set(prev);
-            for (const g of groups) {
-                if (!seenGroupsRef.current.has(g.vesselKey)) {
-                    seenGroupsRef.current.add(g.vesselKey);
-                    next.add(g.vesselKey);
-                    hasNew = true;
-                }
-            }
-            return hasNew ? next : prev;
-        });
-    }, [groups]);
+    if (expansionScopeRef.current !== expansionScope) {
+        expansionScopeRef.current = expansionScope;
+        setExpandedGroups(new Set(groupKeys));
+    }
 
     const toggleGroup = (key: string) => {
         setExpandedGroups((prev) => {

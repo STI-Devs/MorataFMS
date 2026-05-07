@@ -120,7 +120,7 @@ class User extends Authenticatable
      */
     public function getDepartmentsArray(): array
     {
-        return UserAccess::departmentsForRole($this->role);
+        return once(fn (): array => UserAccess::departmentsForRole($this->role));
     }
 
     /**
@@ -165,6 +165,6 @@ class User extends Authenticatable
      */
     public function getPermissionMap(): array
     {
-        return UserAccess::permissionsFor($this->role, $this->getDepartmentsArray());
+        return once(fn (): array => UserAccess::permissionsFor($this->role, $this->getDepartmentsArray()));
     }
 }

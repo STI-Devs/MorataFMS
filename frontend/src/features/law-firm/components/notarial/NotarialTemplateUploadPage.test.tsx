@@ -7,23 +7,30 @@ import { NotarialTemplateUploadPage } from './NotarialTemplateUploadPage';
 const {
     mockUseAuth,
     mockUseLegalCatalog,
-    mockUseLegalBooks,
     mockUseNotarialTemplates,
-    mockUseNotarialTemplateRecords,
+    mockUseNotarialGeneratedDocuments,
     mockUseCreateNotarialTemplate,
     mockCreateTemplate,
+    mockToastError,
 } = vi.hoisted(() => ({
     mockUseAuth: vi.fn(),
     mockUseLegalCatalog: vi.fn(),
-    mockUseLegalBooks: vi.fn(),
     mockUseNotarialTemplates: vi.fn(),
-    mockUseNotarialTemplateRecords: vi.fn(),
+    mockUseNotarialGeneratedDocuments: vi.fn(),
     mockUseCreateNotarialTemplate: vi.fn(),
     mockCreateTemplate: vi.fn(),
+    mockToastError: vi.fn(),
 }));
 
 vi.mock('../../../../components/CurrentDateTime', () => ({
     CurrentDateTime: () => <div data-testid="current-date-time" />,
+}));
+
+vi.mock('sonner', () => ({
+    toast: {
+        error: mockToastError,
+        success: vi.fn(),
+    },
 }));
 
 vi.mock('../../../auth', () => ({
@@ -32,22 +39,24 @@ vi.mock('../../../auth', () => ({
 
 vi.mock('../../hooks/useLegalWorkspace', () => ({
     useLegalCatalog: mockUseLegalCatalog,
-    useLegalBooks: mockUseLegalBooks,
     useNotarialTemplates: mockUseNotarialTemplates,
-    useNotarialTemplateRecords: mockUseNotarialTemplateRecords,
+    useNotarialGeneratedDocuments: mockUseNotarialGeneratedDocuments,
     useCreateNotarialTemplate: mockUseCreateNotarialTemplate,
 }));
 
 describe('NotarialTemplateUploadPage', () => {
     beforeEach(() => {
         mockCreateTemplate.mockReset();
+        mockToastError.mockReset();
 
         mockUseAuth.mockReturnValue({
             user: {
                 id: 1,
                 role: 'admin',
                 permissions: {
+                    view_notarial_books: true,
                     manage_notarial_templates: true,
+                    manage_notarial_books: true,
                 },
             },
         });
@@ -57,11 +66,6 @@ describe('NotarialTemplateUploadPage', () => {
                 notarial_act_types: [
                     { code: 'jurat', label: 'Jurat' },
                     { code: 'acknowledgment', label: 'Acknowledgment' },
-                ],
-                template_field_types: [
-                    { code: 'text', label: 'Text' },
-                    { code: 'textarea', label: 'Long Text' },
-                    { code: 'select', label: 'Select' },
                 ],
                 categories: [],
                 document_types: [
@@ -79,12 +83,6 @@ describe('NotarialTemplateUploadPage', () => {
             },
         });
 
-        mockUseLegalBooks.mockReturnValue({
-            data: {
-                data: [],
-            },
-        });
-
         mockUseNotarialTemplates.mockReturnValue({
             data: {
                 data: [],
@@ -97,7 +95,7 @@ describe('NotarialTemplateUploadPage', () => {
             },
         });
 
-        mockUseNotarialTemplateRecords.mockReturnValue({
+        mockUseNotarialGeneratedDocuments.mockReturnValue({
             data: {
                 data: [],
                 meta: {
@@ -115,57 +113,51 @@ describe('NotarialTemplateUploadPage', () => {
         });
     });
 
-    it('keeps master Word upload on a separate admin page', async () => {
+    it('saves a docx document master for direct editing', async () => {
         renderWithProviders(<NotarialTemplateUploadPage />, {
-            route: appRoutes.paralegalTemplateUpload,
-            path: appRoutes.paralegalTemplateUpload,
+            route: appRoutes.paralegalMasterSetup,
+            path: appRoutes.paralegalMasterSetup,
         });
 
-        expect(screen.getByRole('heading', { name: 'Template Upload' })).toBeInTheDocument();
-        expect(screen.getByRole('heading', { name: 'Upload Word Template' })).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Document Masters' })).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: /add document master/i })).toBeInTheDocument();
+        expect(screen.queryByText('Optional Fill-Up Fields')).not.toBeInTheDocument();
+        expect(screen.queryByText('Narrative Clauses')).not.toBeInTheDocument();
+        expect(screen.queryByText('Act Override')).not.toBeInTheDocument();
 
-        fireEvent.change(document.getElementById('template-code') as HTMLInputElement, {
-            target: { value: 'affidavit-loss-standard' },
-        });
-        fireEvent.change(document.getElementById('template-label') as HTMLInputElement, {
-            target: { value: 'Affidavit of Loss' },
+        fireEvent.change(document.getElementById('template-variant-name') as HTMLInputElement, {
+            target: { value: 'Standard' },
         });
         fireEvent.change(document.getElementById('template-document-code') as HTMLSelectElement, {
             target: { value: 'AFFIDAVIT_LOSS' },
         });
-        fireEvent.change(document.getElementById('template-notarial-act') as HTMLSelectElement, {
-            target: { value: 'jurat' },
-        });
-        fireEvent.change(screen.getByPlaceholderText('party_name'), {
-            target: { value: 'affiant_name' },
-        });
-        fireEvent.change(screen.getByPlaceholderText('Party Name'), {
-            target: { value: 'Affiant Name' },
-        });
 
-        fireEvent.click(screen.getByRole('button', { name: 'Save Template' }));
+        fireEvent.click(screen.getByRole('button', { name: /save (document )?master/i }));
 
         await waitFor(() => {
             expect(mockCreateTemplate).toHaveBeenCalledWith({
-                code: 'affidavit-loss-standard',
-                label: 'Affidavit of Loss',
+                code: 'affidavit_loss-standard',
+                label: 'Affidavit of Loss - Standard',
                 document_code: 'AFFIDAVIT_LOSS',
-                default_notarial_act_type: 'jurat',
                 description: undefined,
-                field_schema: [
-                    {
-                        name: 'affiant_name',
-                        label: 'Affiant Name',
-                        type: 'text',
-                        required: true,
-                        placeholder: undefined,
-                        help_text: undefined,
-                        options: undefined,
-                    },
-                ],
                 is_active: true,
                 file: null,
             });
         });
+    });
+
+    it('blocks save when required master metadata is missing', async () => {
+        renderWithProviders(<NotarialTemplateUploadPage />, {
+            route: appRoutes.paralegalMasterSetup,
+            path: appRoutes.paralegalMasterSetup,
+        });
+
+        fireEvent.click(screen.getByRole('button', { name: /save (document )?master/i }));
+
+        await waitFor(() => {
+            expect(mockToastError).toHaveBeenCalledWith('Document type is required.');
+        });
+
+        expect(mockCreateTemplate).not.toHaveBeenCalled();
     });
 });
