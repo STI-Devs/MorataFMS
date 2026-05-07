@@ -65,7 +65,7 @@ return new class extends Migration
             static fn (object $row): string => (string) $row->constraint_name,
             DB::select(
                 <<<'SQL'
-                select constraint_name
+                select constraint_name as constraint_name
                 from information_schema.key_column_usage
                 where table_schema = database()
                   and table_name = ?
