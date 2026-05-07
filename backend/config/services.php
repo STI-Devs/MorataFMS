@@ -46,6 +46,23 @@ return [
         'internal_app_url' => env('ONLYOFFICE_INTERNAL_APP_URL', env('APP_URL')),
         'jwt_secret' => env('ONLYOFFICE_JWT_SECRET'),
         'url_ttl_minutes' => (int) env('ONLYOFFICE_URL_TTL_MINUTES', 720),
+        'callback_allowed_hosts' => array_values(array_filter(array_map(
+            'trim',
+            explode(',', (string) env('ONLYOFFICE_CALLBACK_ALLOWED_HOSTS', '')),
+        ))),
+        'callback_allowed_schemes' => array_values(array_filter(array_map(
+            'trim',
+            explode(',', (string) env('ONLYOFFICE_CALLBACK_ALLOWED_SCHEMES', 'https,http')),
+        ))),
+        'callback_allowed_mime_types' => array_values(array_filter(array_map(
+            'trim',
+            explode(',', (string) env(
+                'ONLYOFFICE_CALLBACK_ALLOWED_MIME_TYPES',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/octet-stream',
+            )),
+        ))),
+        'callback_timeout_seconds' => (int) env('ONLYOFFICE_CALLBACK_TIMEOUT_SECONDS', 30),
+        'callback_max_bytes' => (int) env('ONLYOFFICE_CALLBACK_MAX_BYTES', 52_428_800),
     ],
 
 ];

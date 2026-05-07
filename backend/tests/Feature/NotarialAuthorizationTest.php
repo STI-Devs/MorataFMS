@@ -432,8 +432,12 @@ test('legal users can get onlyoffice editor config for generated documents', fun
 
 test('onlyoffice callback saves the edited generated document file through a signed route', function () {
     Storage::fake(config('filesystems.default', 'local'));
+    config()->set('services.onlyoffice.document_server_url', 'http://onlyoffice.test');
+
     Http::fake([
-        'http://onlyoffice.test/edited.docx' => Http::response('edited body', 200),
+        'http://onlyoffice.test/edited.docx' => Http::response('edited body', 200, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        ]),
     ]);
 
     $paralegal = User::factory()->create(['role' => 'paralegal']);
@@ -455,6 +459,31 @@ test('onlyoffice callback saves the edited generated document file through a sig
     Storage::disk(config('filesystems.default', 'local'))->assertExists($record->path);
     expect(Storage::disk(config('filesystems.default', 'local'))->get($record->path))->toBe('edited body');
     expect($record->fresh()->size_bytes)->toBe(strlen('edited body'));
+});
+
+test('onlyoffice callback rejects edited file urls outside the configured document server', function () {
+    Storage::fake(config('filesystems.default', 'local'));
+    config()->set('services.onlyoffice.document_server_url', 'https://onlyoffice.test');
+    Http::fake();
+
+    $paralegal = User::factory()->create(['role' => 'paralegal']);
+    $record = makeGeneratedDocument($paralegal, 'original body');
+
+    $callbackUrl = URL::temporarySignedRoute(
+        'notarial.generated-documents.onlyoffice-callback',
+        now()->addHour(),
+        ['document' => $record],
+        false,
+    );
+
+    $this->postJson($callbackUrl, [
+        'status' => 6,
+        'url' => 'http://169.254.169.254/latest/meta-data',
+    ])->assertOk()
+        ->assertJsonPath('error', 1);
+
+    Http::assertNothingSent();
+    expect(Storage::disk(config('filesystems.default', 'local'))->get($record->path))->toBe('original body');
 });
 
 test('legal archive download returns 404 when the stored file is missing', function () {

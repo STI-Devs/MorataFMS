@@ -9,14 +9,15 @@ use App\Http\Requests\Notarial\StoreEditableNotarialGeneratedDocumentRequest;
 use App\Http\Resources\Notarial\NotarialGeneratedDocumentResource;
 use App\Models\NotarialGeneratedDocument;
 use App\Queries\Notarial\NotarialGeneratedDocumentIndexQuery;
+use App\Support\Legal\OnlyOfficeCallbackFileFetcher;
 use App\Support\Legal\OnlyOfficeDocumentEditor;
 use App\Support\Legal\StoredFileDownloader;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
-use Illuminate\Support\Facades\Http;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\HttpKernel\Exception\HttpException;
+use Throwable;
 
 class NotarialGeneratedDocumentController extends Controller
 {
@@ -25,6 +26,7 @@ class NotarialGeneratedDocumentController extends Controller
         private CreateEditableNotarialGeneratedDocument $createEditableNotarialGeneratedDocument,
         private StoredFileDownloader $storedFileDownloader,
         private OnlyOfficeDocumentEditor $onlyOfficeDocumentEditor,
+        private OnlyOfficeCallbackFileFetcher $onlyOfficeCallbackFileFetcher,
     ) {}
 
     public function index(NotarialGeneratedDocumentIndexRequest $request): AnonymousResourceCollection
@@ -104,21 +106,21 @@ class NotarialGeneratedDocumentController extends Controller
             return response()->json(['error' => 1]);
         }
 
-        $response = Http::connectTimeout(5)->timeout(30)->get($editedFileUrl);
-
-        if (! $response->successful()) {
+        try {
+            $editedFile = $this->onlyOfficeCallbackFileFetcher->fetch($editedFileUrl);
+        } catch (Throwable) {
             return response()->json(['error' => 1]);
         }
 
         $disk = $this->storedFileDownloader->disk((string) $document->disk);
 
-        if (! $disk->put($document->path, $response->body())) {
+        if (! $disk->put($document->path, $editedFile)) {
             return response()->json(['error' => 1]);
         }
 
         $document->forceFill([
             'mime_type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            'size_bytes' => strlen($response->body()),
+            'size_bytes' => strlen($editedFile),
             'generated_at' => now(),
         ])->save();
 
