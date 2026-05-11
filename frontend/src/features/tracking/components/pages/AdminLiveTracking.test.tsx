@@ -127,7 +127,10 @@ describe('AdminLiveTracking', () => {
         expect(screen.getByText('MV LADY ROSE V112')).toBeInTheDocument();
         expect(screen.getByText('IMP-LIVE-001')).toBeInTheDocument();
         expect(screen.getByText('EXP-LIVE-001')).toBeInTheDocument();
-        expect(screen.getAllByText('1 total')).toHaveLength(2);
+        expect(screen.getAllByText((_content, element) => (
+            element?.textContent === '1 total'
+            && element.className.includes('rounded-lg border')
+        ))).toHaveLength(2);
         expect(screen.queryByText('1 active')).not.toBeInTheDocument();
     });
 });

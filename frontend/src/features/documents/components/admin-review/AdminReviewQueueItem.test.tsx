@@ -32,7 +32,7 @@ describe('QueueItem', () => {
             />,
         );
 
-        expect(screen.getByText(/Global Tech Corp · IMP-0921 · Sarah Velasco/)).toBeInTheDocument();
+        expect(screen.getByText('Global Tech Corp').closest('p')).toHaveTextContent('Global Tech Corp · IMP-0921 · Sarah Velasco');
     });
 
     it('does not show generated export references when a bill of lading is present', () => {
@@ -53,7 +53,7 @@ describe('QueueItem', () => {
         );
 
         expect(screen.getByText('ONEYDVOG00498700')).toBeInTheDocument();
-        expect(screen.getByText(/Dole Philippines Inc. · Claire Ivy Florino/)).toBeInTheDocument();
+        expect(screen.getByText('Dole Philippines Inc.').closest('p')).toHaveTextContent('Dole Philippines Inc. · Claire Ivy Florino');
         expect(screen.queryByText(/EXP-0063/)).not.toBeInTheDocument();
     });
 });
