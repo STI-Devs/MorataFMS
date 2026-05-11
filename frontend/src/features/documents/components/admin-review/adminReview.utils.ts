@@ -90,14 +90,14 @@ export const formatDateTime = (dateString: string | null) => {
     });
 };
 
-export const extractErrorMessage = (error: unknown) => {
+export const extractErrorMessage = (error: unknown, fallback = 'Failed to archive transaction.') => {
     if (error && typeof error === 'object' && 'response' in error) {
         const response = error as { response?: { data?: { message?: string } } };
 
-        return response.response?.data?.message ?? 'Failed to archive transaction.';
+        return response.response?.data?.message ?? fallback;
     }
 
-    return 'Failed to archive transaction.';
+    return fallback;
 };
 
 export function buildReviewGroups(transactions: AdminReviewQueueItem[]): VesselGroup<AdminReviewQueueItem>[] {

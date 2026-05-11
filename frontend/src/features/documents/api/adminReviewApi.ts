@@ -1,6 +1,7 @@
 import api from '../../../lib/axios';
 import type {
     AdminReviewArchiveResponse,
+    AdminReviewBulkArchiveResponse,
     AdminReviewDetailResponse,
     AdminReviewQueueParams,
     AdminReviewQueueResponse,
@@ -35,6 +36,15 @@ export const adminReviewApi = {
 
     async archiveReviewedTransaction(type: TransactionType, id: number): Promise<AdminReviewArchiveResponse> {
         const response = await api.post(`/api/admin/document-review/${type}/${id}/archive`);
+        return response.data;
+    },
+
+    async archiveReviewedTransactions(
+        transactions: { type: TransactionType; id: number }[],
+    ): Promise<AdminReviewBulkArchiveResponse> {
+        const response = await api.post('/api/admin/document-review/bulk-archive', {
+            transactions,
+        });
         return response.data;
     },
 };

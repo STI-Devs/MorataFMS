@@ -273,6 +273,22 @@ export const AdminLiveTracking = () => {
 
     const [expandedImports, setExpandedImports] = useState<Set<string>>(() => new Set(importGroups.map((group) => group.vesselKey)));
     const [expandedExports, setExpandedExports] = useState<Set<string>>(() => new Set(exportGroups.map((group) => group.vesselKey)));
+    const importGroupKeys = importGroups.map((group) => group.vesselKey);
+    const exportGroupKeys = exportGroups.map((group) => group.vesselKey);
+    const importExpansionScope = importGroupKeys.join('|');
+    const exportExpansionScope = exportGroupKeys.join('|');
+    const [trackedImportExpansionScope, setTrackedImportExpansionScope] = useState(importExpansionScope);
+    const [trackedExportExpansionScope, setTrackedExportExpansionScope] = useState(exportExpansionScope);
+
+    if (trackedImportExpansionScope !== importExpansionScope) {
+        setTrackedImportExpansionScope(importExpansionScope);
+        setExpandedImports(new Set(importGroupKeys));
+    }
+
+    if (trackedExportExpansionScope !== exportExpansionScope) {
+        setTrackedExportExpansionScope(exportExpansionScope);
+        setExpandedExports(new Set(exportGroupKeys));
+    }
 
     const toggleImport = (key: string) => {
         setExpandedImports((prev) => {

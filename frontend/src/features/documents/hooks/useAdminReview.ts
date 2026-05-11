@@ -3,6 +3,7 @@ import { adminReviewApi } from '../api/adminReviewApi';
 import { archiveKeys } from '../../archives/utils/archiveQueryKeys';
 import type {
     AdminReviewArchiveResponse,
+    AdminReviewBulkArchiveResponse,
     AdminReviewDetailResponse,
     AdminReviewQueueParams,
     AdminReviewQueueResponse,
@@ -48,6 +49,23 @@ export const useArchiveReviewedTransaction = () => {
         { type: TransactionType; id: number }
     >({
         mutationFn: ({ type, id }) => adminReviewApi.archiveReviewedTransaction(type, id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: adminReviewKeys.all });
+            queryClient.invalidateQueries({ queryKey: archiveKeys.all });
+            queryClient.invalidateQueries({ queryKey: archiveKeys.mineAll });
+        },
+    });
+};
+
+export const useArchiveReviewedTransactions = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation<
+        AdminReviewBulkArchiveResponse,
+        Error,
+        { transactions: { type: TransactionType; id: number }[] }
+    >({
+        mutationFn: ({ transactions }) => adminReviewApi.archiveReviewedTransactions(transactions),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: adminReviewKeys.all });
             queryClient.invalidateQueries({ queryKey: archiveKeys.all });

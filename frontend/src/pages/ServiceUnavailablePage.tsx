@@ -9,9 +9,9 @@ export default function ServiceUnavailablePage({ onRetry }: ServiceUnavailablePa
         <ErrorLayout
             code="503"
             title="Service Unavailable"
-            message="MorataFMS can't reach the backend right now. This is a system issue, not a login issue. Please try again in a moment."
+            message="The service is temporarily unavailable. Please try again in a few moments."
             action={{
-                label: 'Retry Connection',
+                label: 'Try Again',
                 onClick: onRetry,
             }}
         />

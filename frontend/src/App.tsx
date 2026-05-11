@@ -72,7 +72,11 @@ function DocumentsIndexRoute() {
 }
 
 function AppContent() {
-  const { bootstrapError, retryBootstrap } = useAuth();
+  const { bootstrapError, isLoading, retryBootstrap } = useAuth();
+
+  if (isLoading) {
+    return <RootFallback />;
+  }
 
   if (bootstrapError === 'service-unavailable') {
     return <ServiceUnavailablePage onRetry={() => void retryBootstrap()} />;

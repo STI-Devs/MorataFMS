@@ -161,6 +161,7 @@ class AdminDocumentReviewIndexQuery
             ->with([
                 'importer:id,name',
                 'assignedUser:id,name',
+                'stages:id,import_transaction_id,billing_completed_at,bonds_not_applicable,ppa_not_applicable,port_charges_not_applicable',
             ])
             ->whereIn('id', $ids->all())
             ->get()
@@ -187,6 +188,7 @@ class AdminDocumentReviewIndexQuery
             ->with([
                 'shipper:id,name',
                 'assignedUser:id,name',
+                'stages:id,export_transaction_id,billing_completed_at,phytosanitary_not_applicable,co_not_applicable,dccci_not_applicable',
             ])
             ->whereIn('id', $ids->all())
             ->get()

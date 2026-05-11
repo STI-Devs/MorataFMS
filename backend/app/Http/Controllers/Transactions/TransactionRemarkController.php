@@ -2,24 +2,18 @@
 
 namespace App\Http\Controllers\Transactions;
 
-use App\Actions\Remarks\CreateTransactionRemark;
-use App\Actions\Remarks\ResolveTransactionRemark;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Transactions\StoreRemarkRequest;
 use App\Http\Resources\Transactions\TransactionRemarkResource;
 use App\Models\TransactionRemark;
-use App\Queries\Remarks\TransactionRemarkIndexQuery;
-use App\Support\Transactions\TransactionRouteResolver;
+use App\Orchestrators\Transactions\TransactionRemarkOrchestrator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class TransactionRemarkController extends Controller
 {
     public function __construct(
-        private CreateTransactionRemark $createTransactionRemark,
-        private ResolveTransactionRemark $resolveTransactionRemark,
-        private TransactionRemarkIndexQuery $transactionRemarkIndexQuery,
-        private TransactionRouteResolver $transactionRouteResolver,
+        private TransactionRemarkOrchestrator $remarks,
     ) {}
 
     /**
@@ -28,10 +22,10 @@ class TransactionRemarkController extends Controller
      */
     public function index(Request $request, string $type, string $id): JsonResponse
     {
-        $remarks = $this->transactionRemarkIndexQuery->handle($request->user(), $type, $id);
-
         return response()->json([
-            'data' => TransactionRemarkResource::collection($remarks),
+            'data' => TransactionRemarkResource::collection(
+                $this->remarks->index($request->user(), $type, $id)
+            ),
         ]);
     }
 
@@ -41,14 +35,14 @@ class TransactionRemarkController extends Controller
      */
     public function store(StoreRemarkRequest $request, string $type, string $id): JsonResponse
     {
-        $transaction = $this->transactionRouteResolver->resolve($type, $id);
-        $remark = $this->createTransactionRemark->handle(
-            $transaction,
-            $request->validated(),
-            $request->user(),
-        );
-
-        return TransactionRemarkResource::make($remark)
+        return TransactionRemarkResource::make(
+            $this->remarks->store(
+                $type,
+                $id,
+                $request->validated(),
+                $request->user(),
+            )
+        )
             ->response()
             ->setStatusCode(201);
     }
@@ -59,11 +53,11 @@ class TransactionRemarkController extends Controller
      */
     public function resolve(Request $request, TransactionRemark $remark): JsonResponse
     {
-        $remark = $this->resolveTransactionRemark->handle($remark, $request->user());
-
         return response()->json([
             'message' => 'Remark resolved.',
-            'data' => TransactionRemarkResource::make($remark),
+            'data' => TransactionRemarkResource::make(
+                $this->remarks->resolve($remark, $request->user())
+            ),
         ]);
     }
 }

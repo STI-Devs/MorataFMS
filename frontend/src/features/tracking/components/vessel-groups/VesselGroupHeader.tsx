@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+
 import type { VesselGroup } from '../../types';
 
 interface VesselGroupHeaderProps<T> {
@@ -5,6 +7,7 @@ interface VesselGroupHeaderProps<T> {
     isExpanded: boolean;
     onToggle: () => void;
     mode?: 'live' | 'review';
+    action?: ReactNode;
 }
 
 export function VesselGroupHeader<T>({
@@ -12,10 +15,11 @@ export function VesselGroupHeader<T>({
     isExpanded,
     onToggle,
     mode = 'live',
+    action,
 }: VesselGroupHeaderProps<T>) {
     const isReviewMode = mode === 'review';
     const etaLabel = group.type === 'import' ? 'ETA' : 'ETD';
-    const progressLabel = isReviewMode ? 'in review' : 'active';
+    const progressLabel = 'in review';
     const reviewLabel = isReviewMode
         ? 'flagged'
         : group.stats.blocked === 1
@@ -40,102 +44,103 @@ export function VesselGroupHeader<T>({
     const accentClass = hasBlocked
         ? 'border-l-red-500'
         : isDelayed
-          ? 'border-l-amber-400'
+          ? 'border-l-amber-500'
           : 'border-l-transparent';
 
     const bgClass = hasBlocked
-        ? 'bg-red-50/45 dark:bg-red-950/15 hover:bg-red-50/70 dark:hover:bg-red-950/25'
+        ? 'bg-red-50/30 dark:bg-red-950/15 hover:bg-red-50/50'
         : isDelayed
-          ? 'bg-amber-50/25 dark:bg-amber-950/10 hover:bg-amber-50/45 dark:hover:bg-amber-950/20'
+          ? 'bg-amber-50/20 dark:bg-amber-950/10 hover:bg-amber-50/40'
           : isReviewMode
-            ? 'bg-surface-secondary/25 hover:bg-surface-secondary/40 dark:bg-surface-secondary/15 dark:hover:bg-surface-secondary/30'
-            : 'bg-surface-secondary/40 hover:bg-surface-secondary/70 dark:bg-surface-secondary/20 dark:hover:bg-surface-secondary/40';
+            ? 'bg-surface hover:bg-surface-secondary/30'
+            : 'bg-surface hover:bg-surface-secondary/50';
 
     return (
-        <button
-            type="button"
-            onClick={onToggle}
+        <div
             className={`
-                w-full flex items-center gap-2.5 px-4 py-3 border-b border-border border-l-2
-                transition-colors duration-150 select-none text-left
+                w-full flex items-center gap-3 px-5 py-4 border-b border-border border-l-[3px]
+                transition-all duration-200 select-none
                 ${bgClass} ${accentClass}
             `}
         >
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl border border-border bg-surface shadow-sm">
-                <svg
-                    className={`h-3 w-3 text-text-muted transition-transform duration-150 ${isExpanded ? 'rotate-90' : ''}`}
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2.5}
-                >
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                </svg>
-            </span>
+            <button
+                type="button"
+                onClick={onToggle}
+                className="flex min-w-0 flex-1 items-center gap-3 text-left"
+            >
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl border border-border bg-surface shadow-sm">
+                    <svg
+                        className={`h-3 w-3 text-text-muted transition-transform duration-150 ${isExpanded ? 'rotate-90' : ''}`}
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2.5}
+                    >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                </span>
 
-            <div className="min-w-0 flex-1">
-                <div className="flex min-w-0 items-center gap-2">
-                    <span className="truncate text-sm font-semibold tracking-tight text-text-primary">
-                        {group.vesselName}
-                    </span>
-                    {group.voyage && (
-                        <span className="shrink-0 rounded-full border border-border bg-surface px-2 py-0.5 text-[10px] font-semibold text-text-muted">
-                            Voy. {group.voyage}
+                <div className="min-w-0 flex-1">
+                    <div className="flex min-w-0 items-center gap-2">
+                        <span className="truncate text-[15px] font-bold tracking-tight text-text-primary">
+                            {group.vesselName}
                         </span>
-                    )}
-                    <span className={`hidden shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide sm:inline-flex ${
-                        group.type === 'import'
-                            ? 'border border-blue-500/20 bg-blue-500/10 text-blue-600 dark:text-blue-300'
-                            : 'border border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300'
-                    }`}>
-                        {group.type}
-                    </span>
-                </div>
-                <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-text-muted">
-                    {isReviewMode ? (
-                        <span className="font-medium text-text-secondary">{reviewSubtitle}</span>
-                    ) : (
-                        <span>
-                            <span className="mr-1 font-semibold uppercase tracking-wide opacity-60">{etaLabel}</span>
-                            <span className="font-medium text-text-secondary">{formattedEta || '—'}</span>
+                        {group.voyage && (
+                            <span className="shrink-0 rounded-lg border border-border bg-surface px-2 py-0.5 text-[10px] font-semibold text-text-muted shadow-sm">
+                                Voy. {group.voyage}
+                            </span>
+                        )}
+                        <span className={`hidden shrink-0 rounded-lg px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide sm:inline-flex ${
+                            group.type === 'import'
+                                ? 'border border-blue-500/20 bg-blue-500/10 text-blue-600 dark:text-blue-300'
+                                : 'border border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300'
+                        }`}>
+                            {group.type}
                         </span>
-                    )}
-                    <span className="sm:hidden">
-                        <span className="font-semibold text-text-secondary">{group.stats.total}</span> total
-                    </span>
-                    {!isReviewMode && group.stats.in_progress > 0 && (
+                    </div>
+                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-text-muted">
+                        {isReviewMode ? (
+                            <span className="font-medium text-text-secondary">{reviewSubtitle}</span>
+                        ) : (
+                            <span>
+                                <span className="mr-1.5 font-bold uppercase tracking-wider opacity-70">{etaLabel}</span>
+                                <span className="font-medium text-text-secondary">{formattedEta || '—'}</span>
+                            </span>
+                        )}
                         <span className="sm:hidden">
-                            <span className="font-semibold text-amber-600 dark:text-amber-400">{group.stats.in_progress}</span> {progressLabel}
+                            <span className="font-semibold text-text-secondary">{group.stats.total}</span> total
+                        </span>
+                    </div>
+                </div>
+
+                <div className="hidden shrink-0 items-center gap-2 sm:flex">
+                    {isDelayed && (
+                        <span className="rounded-lg bg-amber-500/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">
+                            Late
+                        </span>
+                    )}
+                    <span className="rounded-lg border border-border bg-surface px-2.5 py-1 text-[11px] text-text-muted shadow-sm">
+                        <span className="font-bold text-text-primary">{group.stats.total}</span> total
+                    </span>
+                    {isReviewMode && group.stats.in_progress > 0 && (
+                        <span className="rounded-lg bg-amber-500/10 px-2.5 py-1 text-[11px] font-medium text-amber-600 dark:bg-amber-900/20 dark:text-amber-400">
+                            <span className="font-bold">{group.stats.in_progress}</span> {progressLabel}
+                        </span>
+                    )}
+                    {hasBlocked && (
+                        <span className="rounded-lg bg-red-500/10 px-2.5 py-1 text-[11px] font-medium text-red-600 dark:bg-red-900/20 dark:text-red-400">
+                            <span className="font-bold">{group.stats.blocked}</span> {reviewLabel}
+                        </span>
+                    )}
+                    {!isReviewMode && group.stats.completed > 0 && (
+                        <span className="rounded-lg bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400">
+                            <span className="font-bold">{group.stats.completed}</span> done
                         </span>
                     )}
                 </div>
-            </div>
+            </button>
 
-            <div className="hidden shrink-0 items-center gap-2 sm:flex">
-                {isDelayed && (
-                    <span className="rounded-full bg-amber-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
-                        Late
-                    </span>
-                )}
-                    <span className="rounded-lg border border-border bg-surface px-2.5 py-0.5 text-[11px] text-text-muted">
-                        <span className="font-semibold text-text-primary">{group.stats.total}</span> total
-                    </span>
-                {!isReviewMode && group.stats.in_progress > 0 && (
-                    <span className="rounded-lg border border-amber-100 bg-amber-50 px-2.5 py-1 text-[11px] text-amber-700 dark:border-amber-900/30 dark:bg-amber-900/20 dark:text-amber-300">
-                        <span className="font-semibold">{group.stats.in_progress}</span> {progressLabel}
-                    </span>
-                )}
-                {hasBlocked && (
-                    <span className="rounded-lg border border-red-100 bg-red-50 px-2.5 py-1 text-[11px] text-red-600 dark:border-red-900/30 dark:bg-red-900/20 dark:text-red-300">
-                        <span className="font-semibold">{group.stats.blocked}</span> {reviewLabel}
-                    </span>
-                )}
-                {!isReviewMode && group.stats.completed > 0 && (
-                    <span className="rounded-lg border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-[11px] text-emerald-700 dark:border-emerald-900/30 dark:bg-emerald-900/20 dark:text-emerald-300">
-                        <span className="font-semibold">{group.stats.completed}</span> done
-                    </span>
-                )}
-            </div>
-        </button>
+            {action ? <div className="shrink-0">{action}</div> : null}
+        </div>
     );
 }

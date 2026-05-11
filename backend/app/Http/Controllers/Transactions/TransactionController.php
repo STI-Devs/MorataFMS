@@ -2,22 +2,18 @@
 
 namespace App\Http\Controllers\Transactions;
 
-use App\Actions\Transactions\OverrideTransactionStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Transactions\OverrideStatusRequest;
 use App\Models\ExportTransaction;
 use App\Models\ImportTransaction;
-use App\Queries\Transactions\TrackingTransactionQuery;
-use App\Queries\Transactions\TransactionOversightIndexQuery;
+use App\Orchestrators\Transactions\TransactionOrchestrator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class TransactionController extends Controller
 {
     public function __construct(
-        private TransactionOversightIndexQuery $transactionOversightIndexQuery,
-        private TrackingTransactionQuery $trackingTransactionQuery,
-        private OverrideTransactionStatus $overrideTransactionStatus,
+        private TransactionOrchestrator $transactions,
     ) {}
 
     /**
@@ -28,7 +24,7 @@ class TransactionController extends Controller
     {
         $this->authorize('transactions.viewOversight');
 
-        return response()->json($this->transactionOversightIndexQuery->handle($request));
+        return response()->json($this->transactions->index($request));
     }
 
     /**
@@ -39,7 +35,7 @@ class TransactionController extends Controller
     {
         $this->authorize('viewAny', ImportTransaction::class);
 
-        return response()->json($this->trackingTransactionQuery->handle($request, $referenceId));
+        return response()->json($this->transactions->showTracking($request, $referenceId));
     }
 
     /**
@@ -50,7 +46,7 @@ class TransactionController extends Controller
         $this->authorize('transactions.overrideStatus');
 
         $validated = $request->validated();
-        $this->overrideTransactionStatus->handle(
+        $this->transactions->overrideStatus(
             $importTransaction,
             $request->user(),
             (string) $validated['status'],
@@ -71,7 +67,7 @@ class TransactionController extends Controller
         $this->authorize('transactions.overrideStatus');
 
         $validated = $request->validated();
-        $this->overrideTransactionStatus->handle(
+        $this->transactions->overrideStatus(
             $exportTransaction,
             $request->user(),
             (string) $validated['status'],

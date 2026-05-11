@@ -8,6 +8,7 @@ import { useDocumentPreview } from '../../../tracking/hooks/useDocumentPreview';
 import { useEncoders } from '../../../oversight/hooks/useTransactions';
 import {
     useArchiveReviewedTransaction,
+    useArchiveReviewedTransactions,
     useReviewDetail,
     useReviewQueue,
     useReviewStats,
@@ -45,8 +46,11 @@ export const AdminDocumentReview = () => {
     const debouncedSearch = useDebounce(deferredSearchQuery, 300);
     const { handlePreviewDoc } = useDocumentPreview();
     const archiveMutation = useArchiveReviewedTransaction();
+    const bulkArchiveMutation = useArchiveReviewedTransactions();
     const encodersQuery = useEncoders();
     const encoderOptions = encodersQuery.data ?? [];
+    const [bulkArchiveError, setBulkArchiveError] = useState<string | null>(null);
+    const [archivingGroupKey, setArchivingGroupKey] = useState<string | null>(null);
 
     const queueQuery = useReviewQueue({
         page,
@@ -77,6 +81,7 @@ export const AdminDocumentReview = () => {
 
     const resetArchiveState = () => {
         setArchiveError(null);
+        setBulkArchiveError(null);
     };
 
     const handleSearchChange = (value: string) => {
@@ -179,16 +184,58 @@ export const AdminDocumentReview = () => {
         );
     };
 
+    const handleArchiveGroup = (groupKey: string, transactions: AdminReviewQueueItem[]) => {
+        if (transactions.length === 0 || transactions.some((transaction) => !transaction.archive_ready)) {
+            setBulkArchiveError('All transactions in the vessel group must be ready before sending to records.');
+            return;
+        }
+
+        setArchiveError(null);
+        setBulkArchiveError(null);
+        setArchivingGroupKey(groupKey);
+        bulkArchiveMutation.mutate(
+            {
+                transactions: transactions.map((transaction) => ({
+                    id: transaction.id,
+                    type: transaction.type,
+                })),
+            },
+            {
+                onSuccess: () => {
+                    setSelectedReview(null);
+                    setBulkArchiveError(null);
+                },
+                onError: (error) => {
+                    setBulkArchiveError(extractErrorMessage(error, 'Failed to send vessel group to records.'));
+                    void queueQuery.refetch();
+                },
+                onSettled: () => {
+                    setArchivingGroupKey(null);
+                },
+            },
+        );
+    };
+
+    const isSplitView = selectedTransaction !== null;
+
     return (
-        <div className="absolute inset-0 flex flex-col overflow-hidden bg-background font-sans selection:bg-text-primary selection:text-background">
-            <div className="relative z-10 flex h-full flex-col">
-                <main className="min-h-0 flex-1 p-0 text-text-primary flex flex-col">
+        <div className={`${isSplitView ? 'absolute inset-0 flex flex-col overflow-hidden' : 'min-h-screen'} bg-background font-sans selection:bg-text-primary selection:text-background`}>
+            <div className={`relative z-10 ${isSplitView ? 'flex h-full flex-col' : ''}`}>
+                <main className={`${isSplitView ? 'min-h-0 flex flex-1 flex-col' : 'w-full space-y-3 pb-8 pt-1'} p-0 text-text-primary`}>
+                    {!isSplitView ? (
+                        <div>
+                            <h1 className="text-2xl font-black tracking-tight text-text-primary">Documents</h1>
+                            <p className="mt-0.5 max-w-3xl text-sm text-text-secondary">
+                                Review finalized brokerage transactions, check document readiness, and send complete records into the archive.
+                            </p>
+                        </div>
+                    ) : null}
                     <div
-                        className={`min-h-0 flex-1 grid ${
-                            selectedTransaction
+                        className={`grid ${
+                            isSplitView
                                 ? 'grid-cols-[minmax(28rem,0.82fr)_minmax(46rem,1.18fr)] xl:grid-cols-[minmax(26rem,0.9fr)_minmax(36rem,1.1fr)]'
                                 : 'grid-cols-1'
-                        }`}
+                        } ${isSplitView ? 'min-h-0 flex-1' : ''}`}
                     >
                         <AdminReviewQueuePane
                             summary={reviewStats}
@@ -216,6 +263,9 @@ export const AdminDocumentReview = () => {
                                 void queueQuery.refetch();
                             }}
                             onSelect={handleSelectTransaction}
+                            onArchiveGroup={handleArchiveGroup}
+                            archivingGroupKey={archivingGroupKey}
+                            bulkArchiveError={bulkArchiveError}
                             onResetFilters={handleResetFilters}
                             onPageChange={(nextPage) => {
                                 startTransition(() => {

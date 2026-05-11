@@ -229,6 +229,7 @@ Route::middleware(['auth:sanctum', 'active-session', 'throttle:api-general'])->g
                 ->middleware('throttle:api-search');
             Route::get('stats', [AdminDocumentReviewController::class, 'stats'])
                 ->middleware('throttle:api-search');
+            Route::post('bulk-archive', [AdminDocumentReviewController::class, 'bulkArchive']);
             Route::post('{type}/{id}/archive', [AdminDocumentReviewController::class, 'archive']);
             Route::get('{type}/{id}', [AdminDocumentReviewController::class, 'show'])
                 ->middleware('throttle:api-search');

@@ -138,6 +138,12 @@ describe('AdminDashboard', () => {
         expect(screen.getByText('Document Gaps')).toBeInTheDocument();
         expect(screen.getByText('Monthly Volume')).toBeInTheDocument();
         expect(screen.getByText('Transaction Distribution')).toBeInTheDocument();
+        expect(screen.getByText('Imports')).toBeInTheDocument();
+        expect(screen.getByText('Exports')).toBeInTheDocument();
+        expect(screen.getByText('18')).toBeInTheDocument();
+        expect(screen.getByText('11')).toBeInTheDocument();
+        expect(screen.queryByText('Transaction Split')).not.toBeInTheDocument();
+        expect(screen.queryByText('Import / Export Split')).not.toBeInTheDocument();
         expect(screen.getByText('Live Status Mix')).toBeInTheDocument();
         expect(screen.getByText('Overdue Transactions')).toBeInTheDocument();
         expect(screen.getByText('Overdue Queue Size')).toBeInTheDocument();

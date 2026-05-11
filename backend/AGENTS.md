@@ -296,6 +296,7 @@ Controllers should not own:
 
 - complex query building
 - multi-step business workflows
+- business-state guards, such as checking whether a transaction is in a deletable or cancellable state
 - file storage, file deletion, or streaming logic
 - cross-cutting side effects such as broadcasting, tagging, or sync coordination
 
@@ -308,6 +309,7 @@ Use `app/Actions` for a single business operation that changes state.
 Good fits:
 
 - create, update, cancel, archive, resolve, activate, deactivate
+- delete operations with domain-state validation, such as "only cancelled transactions can be deleted"
 - transaction lifecycle changes
 - document review/archive handoff
 - profile or account mutations
@@ -343,6 +345,22 @@ Good fits:
 - operational helpers that are not request entry points
 
 Prefer specific responsibilities over broad catch-all services.
+
+## Orchestrator Facades
+
+When a controller accumulates many constructor dependencies for one domain, a focused Orchestrator facade may group those dependencies behind one injected collaborator.
+
+Use this only as a composition layer:
+
+- define Orchestrator implementations under `app/Orchestrators/<Domain>`
+- use a concrete Orchestrator by default; add an interface under `app/Interfaces/<Domain>` only when the contract is genuinely swappable or externally meaningful
+- keep authorization and HTTP response shaping in the controller unless there is a deliberate reason to move them
+- delegate commands to `app/Actions`
+- delegate reads to `app/Queries`
+- delegate technical helpers to `app/Support`
+- do not move business rules, query building, file storage internals, or policy decisions into the Orchestrator just to hide dependencies
+
+Prefer names that describe coordination, such as `DocumentOrchestrator`, over broad names such as `DocumentService`.
 
 ## CQRS Pattern
 

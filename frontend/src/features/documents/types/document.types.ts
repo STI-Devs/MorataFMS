@@ -221,6 +221,14 @@ export interface AdminReviewArchiveResponse {
     };
 }
 
+export interface AdminReviewBulkArchiveResponse {
+    message: string;
+    data: AdminReviewArchiveResponse['data'][];
+    meta: {
+        archived_count: number;
+    };
+}
+
 
 /** Per-stage file attachment used in the legacy upload form */
 export interface StageUpload {

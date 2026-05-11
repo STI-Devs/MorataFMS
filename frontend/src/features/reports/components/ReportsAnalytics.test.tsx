@@ -38,19 +38,19 @@ describe('ReportsAnalytics', () => {
             data: {
                 months: Array.from({ length: 12 }, (_, index) => ({
                     month: index + 1,
-                    imports: year === 2026 && index === 0 ? 2 : 0,
-                    exports: 0,
-                    total: year === 2026 && index === 0 ? 2 : 0,
+                    imports: year === 2026 && index === 0 ? 2 : year === 2026 && index === 1 ? 3 : 0,
+                    exports: year === 2026 && index === 0 ? 1 : 0,
+                    total: year === 2026 && index === 0 ? 3 : year === 2026 && index === 1 ? 3 : 0,
                 })),
-                total_imports: year === 2026 ? 2 : 0,
-                total_exports: 0,
-                total: year === 2026 ? 2 : 0,
+                total_imports: year === 2026 ? 5 : 0,
+                total_exports: year === 2026 ? 1 : 0,
+                total: year === 2026 ? 6 : 0,
             },
             isLoading: false,
         }));
-        mockUseClientReport.mockImplementation((year: number) => ({
+        mockUseClientReport.mockImplementation((year: number, month?: number) => ({
             data: {
-                clients: year === 2026 ? [{
+                clients: year === 2026 && (month === undefined || month === 1) ? [{
                     client_id: 1,
                     client_name: 'Archive Client',
                     client_type: 'importer',
@@ -61,13 +61,13 @@ describe('ReportsAnalytics', () => {
             },
             isLoading: false,
         }));
-        mockUseTurnaroundReport.mockImplementation((year: number) => ({
+        mockUseTurnaroundReport.mockImplementation((year: number, month?: number) => ({
             data: {
                 imports: {
-                    completed_count: year === 2026 ? 2 : 0,
-                    avg_days: year === 2026 ? 4 : null,
-                    min_days: year === 2026 ? 3 : null,
-                    max_days: year === 2026 ? 5 : null,
+                    completed_count: year === 2026 && (month === undefined || month === 1) ? 2 : 0,
+                    avg_days: year === 2026 && (month === undefined || month === 1) ? 4 : null,
+                    min_days: year === 2026 && (month === undefined || month === 1) ? 3 : null,
+                    max_days: year === 2026 && (month === undefined || month === 1) ? 5 : null,
                 },
                 exports: {
                     completed_count: 0,
@@ -108,5 +108,26 @@ describe('ReportsAnalytics', () => {
         expect(mockUseTurnaroundReport).toHaveBeenLastCalledWith(2026, undefined);
         expect(screen.getAllByText('Archive Client')).toHaveLength(2);
         expect(screen.getByText(/2026 · Full Year/i)).toBeInTheDocument();
+    });
+
+    it('uses the selected month volume for transaction flow instead of annual totals', () => {
+        renderWithProviders(<ReportsAnalytics />);
+
+        const [yearSelect, monthSelect] = screen.getAllByRole('combobox');
+
+        fireEvent.change(yearSelect, { target: { value: '2026' } });
+        expect(screen.getByText('Total Transactions').parentElement).toHaveTextContent('6');
+
+        fireEvent.change(monthSelect, { target: { value: '1' } });
+
+        expect(mockUseClientReport).toHaveBeenLastCalledWith(2026, 1);
+        expect(mockUseTurnaroundReport).toHaveBeenLastCalledWith(2026, 1);
+        expect(screen.getByText(/2026 · January/i)).toBeInTheDocument();
+        expect(screen.getByText('Total Transactions').parentElement).toHaveTextContent('3');
+        expect(document.querySelector('[aria-current="true"]')).toHaveTextContent('Jan');
+        expect(screen.queryByText('txs')).not.toBeInTheDocument();
+        expect(screen.queryByText('Import %')).not.toBeInTheDocument();
+        expect(screen.getAllByText('Imports').some((node) => node.parentElement?.textContent?.includes('2'))).toBe(true);
+        expect(screen.getAllByText('Exports').some((node) => node.parentElement?.textContent?.includes('1'))).toBe(true);
     });
 });

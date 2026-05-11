@@ -2,26 +2,20 @@
 
 namespace App\Http\Controllers\ReferenceData;
 
-use App\Actions\Countries\CreateCountry;
-use App\Actions\Countries\ToggleCountryActive;
-use App\Actions\Countries\UpdateCountry;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ReferenceData\CountryIndexRequest;
 use App\Http\Requests\ReferenceData\StoreCountryRequest;
 use App\Http\Requests\ReferenceData\UpdateCountryRequest;
 use App\Http\Resources\ReferenceData\CountryResource;
 use App\Models\Country;
-use App\Queries\ReferenceData\CountryIndexQuery;
+use App\Orchestrators\ReferenceData\CountryOrchestrator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class CountryController extends Controller
 {
     public function __construct(
-        private CountryIndexQuery $countryIndexQuery,
-        private CreateCountry $createCountry,
-        private UpdateCountry $updateCountry,
-        private ToggleCountryActive $toggleCountryActive,
+        private CountryOrchestrator $countries,
     ) {}
 
     /**
@@ -32,16 +26,14 @@ class CountryController extends Controller
     {
         $this->authorize('viewAny', Country::class);
 
-        return CountryResource::collection($this->countryIndexQuery->handle($request));
+        return CountryResource::collection($this->countries->index($request));
     }
 
     public function store(StoreCountryRequest $request): JsonResponse
     {
         $this->authorize('create', Country::class);
 
-        $country = $this->createCountry->handle($request->validated());
-
-        return (new CountryResource($country))
+        return (new CountryResource($this->countries->store($request->validated())))
             ->response()
             ->setStatusCode(201);
     }
@@ -50,17 +42,13 @@ class CountryController extends Controller
     {
         $this->authorize('update', $country);
 
-        $country = $this->updateCountry->handle($country, $request->validated());
-
-        return new CountryResource($country);
+        return new CountryResource($this->countries->update($country, $request->validated()));
     }
 
     public function toggleActive(Country $country): CountryResource
     {
         $this->authorize('update', $country);
 
-        $country = $this->toggleCountryActive->handle($country);
-
-        return new CountryResource($country);
+        return new CountryResource($this->countries->toggleActive($country));
     }
 }

@@ -47,9 +47,12 @@ export const AdminReviewQueuePane = ({
     onAssignedUserFilterChange,
     onRetry,
     onSelect,
+    onArchiveGroup,
+    archivingGroupKey,
     onPageChange,
     onPerPageChange,
     onResetFilters,
+    bulkArchiveError,
 }: {
     summary: AdminReviewStats | undefined;
     isSummaryLoading: boolean;
@@ -74,9 +77,12 @@ export const AdminReviewQueuePane = ({
     onAssignedUserFilterChange: (value: number | 'all') => void;
     onRetry: () => void;
     onSelect: (transaction: Pick<AdminReviewQueueItem, 'id' | 'type'>) => void;
+    onArchiveGroup: (groupKey: string, transactions: AdminReviewQueueItem[]) => void;
+    archivingGroupKey: string | null;
     onPageChange: (page: number) => void;
     onPerPageChange: (perPage: number) => void;
     onResetFilters: () => void;
+    bulkArchiveError: string | null;
 }) => {
     const groups = useMemo(() => buildReviewGroups(transactions), [transactions]);
     const {
@@ -91,6 +97,10 @@ export const AdminReviewQueuePane = ({
         { label: 'Completed', value: summary?.completed_count ?? '—' },
         { label: 'Cancelled', value: summary?.cancelled_count ?? '—' },
         { label: 'Missing Docs', value: summary?.missing_docs_count ?? '—' },
+    ];
+    const expandedSummaryItems = [
+        ...summaryItems,
+        { label: 'Total', value: queueData?.meta?.total ?? '—' },
     ];
 
     const hasActiveFilters =
@@ -117,39 +127,73 @@ export const AdminReviewQueuePane = ({
 
     return (
         <div
-            className={`flex h-full w-full min-h-0 flex-col overflow-hidden bg-surface ${
-                expanded ? 'max-w-none' : 'border-r border-border xl:min-w-[26rem] xl:max-w-[38rem] 2xl:min-w-[30rem] 2xl:max-w-[42rem]'
+            className={`flex w-full flex-col ${
+                expanded
+                    ? 'max-w-none gap-3 bg-transparent'
+                    : 'h-full min-h-0 overflow-hidden border-r border-border bg-surface xl:min-w-[26rem] xl:max-w-[38rem] 2xl:min-w-[30rem] 2xl:max-w-[42rem]'
             }`}
             data-testid="admin-review-queue-pane"
         >
             {/* Header */}
-            <div className="flex-none border-b border-border bg-surface-subtle/80 px-6 py-4 backdrop-blur-sm">
-                <div className="mb-3 flex items-start justify-between gap-3">
+            <div className={`flex-none bg-surface px-5 ${
+                expanded
+                    ? 'rounded-xl border border-border py-4 shadow-sm'
+                    : 'border-b border-border py-4'
+            }`}>
+                <div className={`${expanded ? 'mb-3' : 'mb-3'} flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between`}>
                     <div>
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-text-muted">Completed Transaction Queue</p>
-                        <h2 className="mt-1 text-[16px] font-semibold tracking-tight text-text-primary">Review queue</h2>
+                        {expanded ? (
+                            <>
+                                <p className="text-[10px] font-black uppercase tracking-widest text-text-muted">Documents Control</p>
+                                <h2 className="mt-1 text-lg font-black tracking-tight text-text-primary">Review queue</h2>
+                            </>
+                        ) : (
+                            <>
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-text-muted">Completed Transaction Queue</p>
+                                <h2 className="mt-1 text-[16px] font-semibold tracking-tight text-text-primary">Review queue</h2>
+                            </>
+                        )}
                     </div>
-                    {queueData?.meta ? (
-                        <span className="inline-flex h-6 items-center justify-center rounded-full border border-border bg-surface-secondary px-2.5 text-[11px] font-semibold text-text-secondary">
-                            {queueData.meta.total} total
-                        </span>
-                    ) : null}
+                    {expanded ? (
+                        <div
+                            className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap lg:justify-end"
+                            data-testid="admin-review-kpi-strip"
+                        >
+                            {expandedSummaryItems.map((item) => (
+                                <span
+                                    key={item.label}
+                                    className="inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-surface-subtle px-3 text-[11px] font-black uppercase tracking-wider text-text-muted"
+                                >
+                                    {item.label}
+                                    <span className="text-[13px] font-black normal-case tracking-normal text-text-primary">
+                                        {isSummaryLoading && item.label !== 'Total' ? '—' : item.value}
+                                    </span>
+                                </span>
+                            ))}
+                        </div>
+                    ) : queueData?.meta ? (
+                            <span className="inline-flex h-6 items-center justify-center rounded-full border border-border bg-surface-secondary px-2.5 text-[11px] font-semibold text-text-secondary">
+                                {queueData.meta.total} total
+                            </span>
+                        ) : null}
                 </div>
 
                 {/* KPI strip */}
-                <div className="mb-4 flex flex-wrap items-center gap-2" data-testid="admin-review-kpi-strip">
-                    {summaryItems.map((item) => (
-                        <span
-                            key={item.label}
-                            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-2.5 py-1 text-[11px] font-medium text-text-secondary shadow-sm"
-                        >
-                            <span className="font-semibold text-text-primary">
-                                {isSummaryLoading ? '—' : item.value}
-                            </span>{' '}
-                            {item.label}
-                        </span>
-                    ))}
-                </div>
+                {!expanded ? (
+                    <div className="mb-4 flex flex-wrap items-center gap-2" data-testid="admin-review-kpi-strip">
+                        {summaryItems.map((item) => (
+                            <span
+                                key={item.label}
+                                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-2.5 py-1 text-[11px] font-medium text-text-secondary shadow-sm"
+                            >
+                                <span className="font-semibold text-text-primary">
+                                    {isSummaryLoading ? '—' : item.value}
+                                </span>{' '}
+                                {item.label}
+                            </span>
+                        ))}
+                    </div>
+                ) : null}
 
                 {/* Search + Filters trigger */}
                 <div className="flex items-center gap-2.5">
@@ -217,10 +261,14 @@ export const AdminReviewQueuePane = ({
                     onAssignedUserFilterChange={onAssignedUserFilterChange}
                     onResetAll={handleResetFilters}
                 />
+
+                {bulkArchiveError ? (
+                    <p className="mt-3 text-xs font-medium text-red-500">{bulkArchiveError}</p>
+                ) : null}
             </div>
 
             {/* Queue list */}
-            <div className="min-h-0 flex-1 overflow-y-auto bg-surface-secondary/20">
+            <div className={`${expanded ? 'overflow-hidden rounded-t-xl border-x border-t border-border' : 'min-h-0 flex-1 overflow-y-auto'} bg-surface-secondary/20`}>
                 {isLoading && !queueData ? (
                     <QueueSkeleton />
                 ) : isError ? (
@@ -251,6 +299,26 @@ export const AdminReviewQueuePane = ({
                                     isExpanded={expandedGroups.has(group.vesselKey)}
                                     onToggle={() => toggleGroup(group.vesselKey)}
                                     mode="review"
+                                    action={(
+                                        <button
+                                            type="button"
+                                            onClick={() => onArchiveGroup(group.vesselKey, group.transactions)}
+                                            disabled={group.stats.completed !== group.stats.total || archivingGroupKey === group.vesselKey}
+                                            className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                                                group.stats.completed === group.stats.total
+                                                    ? 'border-border bg-surface text-text-primary shadow-sm hover:bg-hover'
+                                                    : 'cursor-not-allowed border-border bg-surface-secondary/60 text-text-muted'
+                                            }`}
+                                            title={
+                                                group.stats.completed === group.stats.total
+                                                    ? 'Move this vessel group to records'
+                                                    : 'All transactions in this vessel group must be ready before moving to records'
+                                            }
+                                        >
+                                            <Icon name="archive" className="h-3.5 w-3.5" />
+                                            {archivingGroupKey === group.vesselKey ? 'Moving...' : 'Move to Records'}
+                                        </button>
+                                    )}
                                 />
                                 {expandedGroups.has(group.vesselKey) ? (
                                     <div
@@ -279,7 +347,7 @@ export const AdminReviewQueuePane = ({
 
             {/* Pagination */}
             {meta && !isLoading ? (
-                <div className="border-t border-border bg-surface-subtle/70 px-8 py-4">
+                <div className={`${expanded ? 'rounded-b-xl border-x border-b border-border' : ''} border-t border-border bg-surface-subtle/95 px-8 py-4`}>
                     <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                         <p className="text-[11px] font-medium uppercase tracking-wide text-text-muted">
                             {hasTransactions

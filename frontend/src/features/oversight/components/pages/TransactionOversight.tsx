@@ -92,7 +92,7 @@ export const TransactionOversight = () => {
                         {
                             label: 'Needs Attention',
                             value: visibleBlocked,
-                            detail: 'Visible rows with open remarks',
+                            detail: 'Transactions with open remarks',
                             color: '#ff453a',
                             icon: 'M12 9v4m0 4h.01M10.29 3.86l-7.47 13A1 1 0 003.68 18h16.64a1 1 0 00.86-1.5l-7.47-13a1 1 0 00-1.72 0z',
                         },

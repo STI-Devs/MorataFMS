@@ -2,12 +2,6 @@
 
 namespace App\Http\Controllers\LegacyBatches;
 
-use App\Actions\LegacyBatches\AppendLegacyBatchManifest;
-use App\Actions\LegacyBatches\CompleteLegacyBatchUploads;
-use App\Actions\LegacyBatches\CreateLegacyBatch;
-use App\Actions\LegacyBatches\DeleteLegacyBatch;
-use App\Actions\LegacyBatches\FinalizeLegacyBatch;
-use App\Actions\LegacyBatches\SignLegacyBatchUploads;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LegacyBatches\AppendLegacyBatchManifestRequest;
 use App\Http\Requests\LegacyBatches\CompleteLegacyBatchUploadsRequest;
@@ -18,10 +12,7 @@ use App\Http\Resources\LegacyBatches\LegacyBatchDetailResource;
 use App\Http\Resources\LegacyBatches\LegacyBatchResource;
 use App\Models\LegacyBatch;
 use App\Models\LegacyBatchFile;
-use App\Queries\LegacyBatches\LegacyBatchDetailQuery;
-use App\Queries\LegacyBatches\LegacyBatchIndexQuery;
-use App\Support\LegacyBatches\LegacyBatchAuthorizer;
-use App\Support\LegacyBatches\LegacyBatchFileDownloader;
+use App\Orchestrators\LegacyBatches\LegacyBatchOrchestrator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -30,23 +21,14 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class LegacyBatchController extends Controller
 {
     public function __construct(
-        private LegacyBatchAuthorizer $legacyBatchAuthorizer,
-        private LegacyBatchIndexQuery $legacyBatchIndexQuery,
-        private LegacyBatchDetailQuery $legacyBatchDetailQuery,
-        private CreateLegacyBatch $createLegacyBatch,
-        private AppendLegacyBatchManifest $appendLegacyBatchManifest,
-        private SignLegacyBatchUploads $signLegacyBatchUploads,
-        private CompleteLegacyBatchUploads $completeLegacyBatchUploads,
-        private FinalizeLegacyBatch $finalizeLegacyBatch,
-        private DeleteLegacyBatch $deleteLegacyBatch,
-        private LegacyBatchFileDownloader $legacyBatchFileDownloader,
+        private LegacyBatchOrchestrator $legacyBatches,
     ) {}
 
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
-        $this->legacyBatchAuthorizer->authorizeAccess($user);
-        $batches = $this->legacyBatchIndexQuery->handle($request, $user);
+        $this->legacyBatches->authorizeAccess($user);
+        $batches = $this->legacyBatches->index($request, $user);
 
         return response()->json([
             'data' => LegacyBatchResource::collection($batches->items())->resolve($request),
@@ -64,11 +46,11 @@ class LegacyBatchController extends Controller
     public function store(StoreLegacyBatchRequest $request): JsonResponse
     {
         $user = $request->user();
-        $this->legacyBatchAuthorizer->authorizeAccess($user);
-        $batch = $this->createLegacyBatch->handle($request->validated(), $user);
-        $batch = $this->legacyBatchDetailQuery->handle($batch);
+        $this->legacyBatches->authorizeAccess($user);
 
-        return (new LegacyBatchDetailResource($batch))
+        return (new LegacyBatchDetailResource(
+            $this->legacyBatches->store($request->validated(), $user)
+        ))
             ->response()
             ->setStatusCode(201);
     }
@@ -77,8 +59,8 @@ class LegacyBatchController extends Controller
         AppendLegacyBatchManifestRequest $request,
         LegacyBatch $legacyBatch,
     ): JsonResponse {
-        $this->legacyBatchAuthorizer->authorizeVisibility($request->user(), $legacyBatch);
-        $registeredFileCount = $this->appendLegacyBatchManifest->handle(
+        $this->legacyBatches->authorizeVisibility($request->user(), $legacyBatch);
+        $registeredFileCount = $this->legacyBatches->appendManifest(
             $legacyBatch,
             $request->validated()['files'],
         );
@@ -95,18 +77,17 @@ class LegacyBatchController extends Controller
 
     public function show(Request $request, LegacyBatch $legacyBatch): LegacyBatchDetailResource
     {
-        $this->legacyBatchAuthorizer->authorizeVisibility($request->user(), $legacyBatch);
-        $legacyBatch = $this->legacyBatchDetailQuery->handle($legacyBatch);
+        $this->legacyBatches->authorizeVisibility($request->user(), $legacyBatch);
 
-        return new LegacyBatchDetailResource($legacyBatch);
+        return new LegacyBatchDetailResource($this->legacyBatches->show($legacyBatch));
     }
 
     public function signUploads(
         SignLegacyBatchUploadsRequest $request,
         LegacyBatch $legacyBatch,
     ): JsonResponse {
-        $this->legacyBatchAuthorizer->authorizeVisibility($request->user(), $legacyBatch);
-        $uploads = $this->signLegacyBatchUploads->handle(
+        $this->legacyBatches->authorizeVisibility($request->user(), $legacyBatch);
+        $uploads = $this->legacyBatches->signUploads(
             $legacyBatch,
             $request->validated()['relative_paths'],
         );
@@ -124,29 +105,29 @@ class LegacyBatchController extends Controller
         CompleteLegacyBatchUploadsRequest $request,
         LegacyBatch $legacyBatch,
     ): LegacyBatchResource {
-        $this->legacyBatchAuthorizer->authorizeVisibility($request->user(), $legacyBatch);
-        $legacyBatch = $this->completeLegacyBatchUploads->handle(
-            $legacyBatch,
-            $request->validated()['relative_paths'],
-        );
+        $this->legacyBatches->authorizeVisibility($request->user(), $legacyBatch);
 
-        return new LegacyBatchResource($legacyBatch);
+        return new LegacyBatchResource(
+            $this->legacyBatches->completeUploads(
+                $legacyBatch,
+                $request->validated()['relative_paths'],
+            )
+        );
     }
 
     public function finalize(
         FinalizeLegacyBatchRequest $request,
         LegacyBatch $legacyBatch,
     ): LegacyBatchDetailResource {
-        $this->legacyBatchAuthorizer->authorizeVisibility($request->user(), $legacyBatch);
-        $legacyBatch = $this->finalizeLegacyBatch->handle($legacyBatch);
+        $this->legacyBatches->authorizeVisibility($request->user(), $legacyBatch);
 
-        return new LegacyBatchDetailResource($legacyBatch);
+        return new LegacyBatchDetailResource($this->legacyBatches->finalize($legacyBatch));
     }
 
     public function destroy(Request $request, LegacyBatch $legacyBatch): Response
     {
-        $this->legacyBatchAuthorizer->authorizeVisibility($request->user(), $legacyBatch);
-        $this->deleteLegacyBatch->handle($legacyBatch);
+        $this->legacyBatches->authorizeVisibility($request->user(), $legacyBatch);
+        $this->legacyBatches->delete($legacyBatch);
 
         return response()->noContent();
     }
@@ -156,8 +137,8 @@ class LegacyBatchController extends Controller
         LegacyBatch $legacyBatch,
         LegacyBatchFile $legacyBatchFile,
     ): StreamedResponse {
-        $this->legacyBatchAuthorizer->authorizeVisibility($request->user(), $legacyBatch);
+        $this->legacyBatches->authorizeVisibility($request->user(), $legacyBatch);
 
-        return $this->legacyBatchFileDownloader->download($legacyBatch, $legacyBatchFile);
+        return $this->legacyBatches->downloadFile($legacyBatch, $legacyBatchFile);
     }
 }

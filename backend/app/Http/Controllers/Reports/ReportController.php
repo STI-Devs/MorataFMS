@@ -6,17 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Reports\ReportClientRequest;
 use App\Http\Requests\Reports\ReportMonthlyRequest;
 use App\Http\Requests\Reports\ReportTurnaroundRequest;
-use App\Queries\Reports\ClientReportQuery;
-use App\Queries\Reports\MonthlyReportQuery;
-use App\Queries\Reports\TurnaroundReportQuery;
+use App\Orchestrators\Reports\ReportOrchestrator;
 use Illuminate\Http\JsonResponse;
 
 class ReportController extends Controller
 {
     public function __construct(
-        private MonthlyReportQuery $monthlyReportQuery,
-        private ClientReportQuery $clientReportQuery,
-        private TurnaroundReportQuery $turnaroundReportQuery,
+        private ReportOrchestrator $reports,
     ) {}
 
     /**
@@ -25,7 +21,7 @@ class ReportController extends Controller
      */
     public function monthly(ReportMonthlyRequest $request): JsonResponse
     {
-        return response()->json($this->monthlyReportQuery->handle($request->yearValue()));
+        return response()->json($this->reports->monthly($request->yearValue()));
     }
 
     /**
@@ -34,7 +30,7 @@ class ReportController extends Controller
      */
     public function clients(ReportClientRequest $request): JsonResponse
     {
-        return response()->json($this->clientReportQuery->handle($request->yearValue(), $request->monthValue()));
+        return response()->json($this->reports->clients($request->yearValue(), $request->monthValue()));
     }
 
     /**
@@ -43,6 +39,6 @@ class ReportController extends Controller
      */
     public function turnaround(ReportTurnaroundRequest $request): JsonResponse
     {
-        return response()->json($this->turnaroundReportQuery->handle($request->yearValue(), $request->monthValue()));
+        return response()->json($this->reports->turnaround($request->yearValue(), $request->monthValue()));
     }
 }

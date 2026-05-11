@@ -203,6 +203,8 @@ describe('EncoderDashboard', () => {
         expect(screen.getByText('Transactions Completed')).toBeInTheDocument();
         expect(screen.getByText('Documents Added')).toBeInTheDocument();
         expect(screen.getByText('Volume Processed')).toBeInTheDocument();
+        expect(screen.getByTitle('Imports: 8')).toBeInTheDocument();
+        expect(screen.getByTitle('Exports: 5')).toBeInTheDocument();
         expect(screen.getByText('Top Clients Handled')).toBeInTheDocument();
         expect(screen.getByText('Atlas Imports')).toBeInTheDocument();
         expect(screen.getByText('IMP-ENC-001')).toBeInTheDocument();

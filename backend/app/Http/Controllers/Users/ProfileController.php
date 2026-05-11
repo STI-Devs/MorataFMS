@@ -28,12 +28,12 @@ class ProfileController extends Controller
      */
     public function update(UpdateProfileRequest $request): UserResource
     {
-        $user = $this->updateProfile->handle(
-            $request->user(),
-            $request->validated(),
-            $request->hasSession() ? $request->session()->getId() : null,
+        return new UserResource(
+            $this->updateProfile->handle(
+                $request->user(),
+                $request->validated(),
+                $request->hasSession() ? $request->session()->getId() : null,
+            )
         );
-
-        return new UserResource($user);
     }
 }

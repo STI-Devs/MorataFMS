@@ -2,21 +2,13 @@
 
 namespace App\Http\Controllers\Documents;
 
-use App\Actions\Documents\DeleteTransactionDocument;
-use App\Actions\Documents\ReplaceTransactionDocument;
-use App\Actions\Documents\UploadTransactionDocument;
-use App\Actions\Documents\UploadVesselBillingDocuments;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Documents\ReplaceDocumentRequest;
 use App\Http\Requests\Documents\StoreDocumentRequest;
 use App\Http\Requests\Documents\StoreVesselBillingDocumentsRequest;
 use App\Http\Resources\Documents\DocumentResource;
 use App\Models\Document;
-use App\Models\ExportTransaction;
-use App\Models\ImportTransaction;
-use App\Queries\Documents\DocumentIndexQuery;
-use App\Queries\Documents\DocumentTransactionIndexQuery;
-use App\Support\Documents\DocumentFileStreamer;
+use App\Orchestrators\Documents\DocumentOrchestrator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -26,159 +18,88 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class DocumentController extends Controller
 {
     public function __construct(
-        private UploadTransactionDocument $uploadTransactionDocument,
-        private UploadVesselBillingDocuments $uploadVesselBillingDocuments,
-        private DeleteTransactionDocument $deleteTransactionDocument,
-        private ReplaceTransactionDocument $replaceTransactionDocument,
-        private DocumentIndexQuery $documentIndexQuery,
-        private DocumentTransactionIndexQuery $documentTransactionIndexQuery,
-        private DocumentFileStreamer $documentFileStreamer,
+        private DocumentOrchestrator $documents,
     ) {}
 
-    /**
-     * GET /api/documents
-     * List all documents, optionally filtered by transaction.
-     */
     public function index(Request $request): AnonymousResourceCollection
     {
         $this->authorize('viewAny', Document::class);
 
-        return DocumentResource::collection($this->documentIndexQuery->handle($request));
+        return DocumentResource::collection($this->documents->index($request));
     }
 
-    /**
-     * GET /api/documents/transactions
-     * Combined paginated list of finalized import/export transactions for the documents page.
-     */
     public function transactions(Request $request): JsonResponse
     {
         $this->authorize('viewAny', Document::class);
 
-        return response()->json($this->documentTransactionIndexQuery->handle($request));
+        return response()->json($this->documents->transactions($request));
     }
 
-    /**
-     * POST /api/documents
-     * Upload a file to S3 and create a document record.
-     */
     public function store(StoreDocumentRequest $request): JsonResponse
     {
-        $validated = $request->validated();
-        $transaction = $this->resolveDocumentable($validated['documentable_type'], $validated['documentable_id']);
-        $this->authorize('create', [Document::class, $transaction]);
-        $document = $this->uploadTransactionDocument->handle(
-            $transaction,
-            $request->file('file'),
-            $validated['type'],
-            $request->user(),
-        );
+        $transaction = $this->documents->documentableFor($request);
 
-        return (new DocumentResource($document))
+        $this->authorize('create', [Document::class, $transaction]);
+
+        return (new DocumentResource($this->documents->store($request, $transaction)))
             ->response()
             ->setStatusCode(201);
     }
 
     public function storeVesselBilling(StoreVesselBillingDocumentsRequest $request): JsonResponse
     {
-        $validated = $request->validated();
-        $transaction = $this->resolveDocumentable($validated['documentable_type'], $validated['documentable_id']);
+        $transaction = $this->documents->documentableFor($request);
 
         $this->authorize('create', [Document::class, $transaction]);
 
         return response()->json([
-            'data' => $this->uploadVesselBillingDocuments->handle(
-                $transaction,
-                $request->file('files', []),
-                $request->user(),
-            ),
+            'data' => $this->documents->storeVesselBilling($request, $transaction),
         ], 201);
     }
 
-    /**
-     * GET /api/documents/{document}
-     * Get document metadata.
-     */
     public function show(Document $document): DocumentResource
     {
         $this->authorize('view', $document);
 
-        $document->load('uploadedBy');
-
-        return new DocumentResource($document);
+        return new DocumentResource($this->documents->show($document));
     }
 
-    /**
-     * GET /api/documents/{document}/preview
-     *
-     * Streams the file inline for an authenticated, authorized browser session.
-     */
     public function preview(Document $document): StreamedResponse
     {
         $this->authorize('view', $document);
 
-        return $this->documentFileStreamer->inline($document);
+        return $this->documents->preview($document);
     }
 
-    /**
-     * GET /api/documents/{document}/stream
-     *
-     * Securely streams a file inline for authenticated users.
-     */
     public function stream(Document $document): StreamedResponse
     {
         $this->authorize('view', $document);
 
-        return $this->documentFileStreamer->inline($document);
+        return $this->documents->stream($document);
     }
 
-    /**
-     * GET /api/documents/{document}/download
-     * Stream the file from S3 with proper headers.
-     */
     public function download(Document $document): StreamedResponse
     {
         $this->authorize('view', $document);
 
-        return $this->documentFileStreamer->download($document);
+        return $this->documents->download($document);
     }
 
-    /**
-     * DELETE /api/documents/{document}
-     * Delete the file from S3 and the database record.
-     */
     public function destroy(Request $request, Document $document): Response
     {
         $this->authorize('delete', $document);
 
-        $this->deleteTransactionDocument->handle($document, $request->user());
+        $this->documents->delete($document, $request->user());
 
         return response()->noContent();
     }
 
-    /**
-     * POST /api/documents/{document}/replace
-     * Replace an existing document with a new file.
-     */
     public function replace(ReplaceDocumentRequest $request, Document $document): JsonResponse
     {
         $this->authorize('replace', $document);
 
-        $newDocument = $this->replaceTransactionDocument->handle(
-            $document,
-            $request->file('file'),
-            $request->user(),
-        );
-
-        return (new DocumentResource($newDocument))
+        return (new DocumentResource($this->documents->replace($request, $document)))
             ->response()
             ->setStatusCode(201);
-    }
-
-    private function resolveDocumentable(string $documentableType, int $documentableId): ImportTransaction|ExportTransaction
-    {
-        return match ($documentableType) {
-            ImportTransaction::class => ImportTransaction::findOrFail($documentableId),
-            ExportTransaction::class => ExportTransaction::findOrFail($documentableId),
-        };
     }
 }

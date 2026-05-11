@@ -5,6 +5,7 @@ use App\Enums\ImportStatus;
 use App\Models\AuditLog;
 use App\Models\ExportTransaction;
 use App\Models\ImportTransaction;
+use App\Models\TransactionRemark;
 use App\Models\User;
 
 test('admin can access the transaction oversight dashboard', function () {
@@ -74,6 +75,39 @@ test('admin can see and search import vessel names in transaction oversight', fu
         ->assertJsonPath('data.0.type', 'import')
         ->assertJsonPath('data.0.reference_no', 'IMP-VESSEL-001')
         ->assertJsonPath('data.0.vessel', 'MV Shared Ledger');
+});
+
+test('admin oversight includes row and scope counts for open transaction remarks', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $flaggedImport = ImportTransaction::factory()->create([
+        'customs_ref_no' => 'IMP-FLAG-001',
+        'is_archive' => false,
+    ]);
+    $clearImport = ImportTransaction::factory()->create([
+        'customs_ref_no' => 'IMP-CLEAR-001',
+        'is_archive' => false,
+    ]);
+
+    TransactionRemark::factory()->create([
+        'remarkble_type' => ImportTransaction::class,
+        'remarkble_id' => $flaggedImport->id,
+        'is_resolved' => false,
+    ]);
+    TransactionRemark::factory()->create([
+        'remarkble_type' => ImportTransaction::class,
+        'remarkble_id' => $flaggedImport->id,
+        'is_resolved' => true,
+    ]);
+
+    $response = $this->actingAs($admin)
+        ->getJson('/api/transactions?type=import&per_page=10')
+        ->assertOk()
+        ->assertJsonPath('needs_attention_count', 1);
+
+    $rows = collect($response->json('data'))->keyBy('id');
+
+    expect($rows[$flaggedImport->id]['open_remarks_count'])->toBe(1);
+    expect($rows[$clearImport->id]['open_remarks_count'])->toBe(0);
 });
 
 test('non admins cannot access the transaction oversight dashboard', function () {

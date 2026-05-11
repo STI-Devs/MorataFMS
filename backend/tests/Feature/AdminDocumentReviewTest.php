@@ -103,6 +103,41 @@ test('admin can list the paginated admin document review queue', function () {
         ->assertJsonPath('data.0.readiness', 'flagged');
 });
 
+test('admin document review queue eager loads export stage applicability', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $encoder = User::factory()->create([
+        'role' => 'encoder',
+        'name' => 'Loren Villanueva',
+    ]);
+    $shipper = Client::factory()->create(['name' => 'Dole Philippines Inc.']);
+    $finalizedAt = Carbon::parse('2026-05-06 14:00:00', 'UTC');
+
+    $exportTransaction = ExportTransaction::factory()->create([
+        'bl_no' => '269767928',
+        'vessel' => 'AS SOPHIA 617N',
+        'shipper_id' => $shipper->id,
+        'assigned_user_id' => $encoder->id,
+        'status' => ExportStatus::Completed,
+        'is_archive' => false,
+        'export_date' => '2026-05-06',
+        'updated_at' => $finalizedAt,
+    ]);
+    $exportTransaction->stages()->update([
+        'billing_completed_at' => $finalizedAt,
+        'phytosanitary_not_applicable' => true,
+    ]);
+
+    $this->actingAs($admin)
+        ->getJson('/api/admin/document-review?type=export&status=completed&per_page=1')
+        ->assertOk()
+        ->assertJsonPath('meta.total', 1)
+        ->assertJsonPath('data.0.id', $exportTransaction->id)
+        ->assertJsonPath('data.0.type', 'export')
+        ->assertJsonPath('data.0.bl_number', '269767928')
+        ->assertJsonPath('data.0.vessel', 'AS SOPHIA 617N')
+        ->assertJsonPath('data.0.client', 'Dole Philippines Inc.');
+});
+
 test('admin can inspect the review detail for a finalized transaction', function () {
     $admin = User::factory()->create([
         'role' => 'admin',
@@ -360,6 +395,85 @@ test('admin can archive a review-ready transaction', function () {
     expect($transaction->archived_at)->not->toBeNull();
     expect($transaction->archived_by)->toBe($admin->id);
     expect($transaction->archive_origin)->toBe(ArchiveOrigin::ArchivedFromLive);
+});
+
+test('admin can archive a vessel group in one request', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $uploader = User::factory()->create(['role' => 'encoder']);
+
+    $firstTransaction = ExportTransaction::factory()->create([
+        'status' => ExportStatus::Completed,
+        'is_archive' => false,
+        'assigned_user_id' => $uploader->id,
+        'vessel' => 'KOTA HALUS 0681W',
+    ]);
+    $secondTransaction = ExportTransaction::factory()->create([
+        'status' => ExportStatus::Completed,
+        'is_archive' => false,
+        'assigned_user_id' => $uploader->id,
+        'vessel' => 'KOTA HALUS 0681W',
+    ]);
+
+    attachReviewDocuments($firstTransaction, requiredReviewTypes('export'), $uploader);
+    attachReviewDocuments($secondTransaction, requiredReviewTypes('export'), $uploader);
+
+    $this->actingAs($admin)
+        ->postJson('/api/admin/document-review/bulk-archive', [
+            'transactions' => [
+                ['type' => 'export', 'id' => $firstTransaction->id],
+                ['type' => 'export', 'id' => $secondTransaction->id],
+            ],
+        ])
+        ->assertOk()
+        ->assertJsonPath('meta.archived_count', 2)
+        ->assertJsonPath('data.0.id', $firstTransaction->id)
+        ->assertJsonPath('data.0.type', 'export')
+        ->assertJsonPath('data.0.is_archive', true)
+        ->assertJsonPath('data.1.id', $secondTransaction->id)
+        ->assertJsonPath('data.1.type', 'export')
+        ->assertJsonPath('data.1.is_archive', true);
+
+    expect($firstTransaction->fresh()?->is_archive)->toBeTrue();
+    expect($secondTransaction->fresh()?->is_archive)->toBeTrue();
+});
+
+test('bulk archive rejects the whole vessel group when one transaction is not ready', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $uploader = User::factory()->create(['role' => 'encoder']);
+
+    $readyTransaction = ImportTransaction::factory()->create([
+        'status' => ImportStatus::Completed,
+        'is_archive' => false,
+        'assigned_user_id' => $uploader->id,
+        'vessel_name' => 'MV GLOBAL STAR',
+    ]);
+    $notReadyTransaction = ImportTransaction::factory()->create([
+        'status' => ImportStatus::Completed,
+        'is_archive' => false,
+        'assigned_user_id' => $uploader->id,
+        'vessel_name' => 'MV GLOBAL STAR',
+    ]);
+
+    attachReviewDocuments($readyTransaction, requiredReviewTypes('import'), $uploader);
+    Document::factory()->create([
+        'documentable_type' => ImportTransaction::class,
+        'documentable_id' => $notReadyTransaction->id,
+        'type' => 'boc',
+        'uploaded_by' => $uploader->id,
+    ]);
+
+    $this->actingAs($admin)
+        ->postJson('/api/admin/document-review/bulk-archive', [
+            'transactions' => [
+                ['type' => 'import', 'id' => $readyTransaction->id],
+                ['type' => 'import', 'id' => $notReadyTransaction->id],
+            ],
+        ])
+        ->assertUnprocessable()
+        ->assertJsonPath('message', 'This transaction is not ready for archive.');
+
+    expect($readyTransaction->fresh()?->is_archive)->toBeFalse();
+    expect($notReadyTransaction->fresh()?->is_archive)->toBeFalse();
 });
 
 test('admin cannot archive a transaction that is not review-ready', function () {

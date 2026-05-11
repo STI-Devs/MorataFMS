@@ -102,7 +102,7 @@ describe('TransactionOversight', () => {
                 status: 'pending',
                 assigned_to: 'Encoder Two',
                 assigned_user_id: 6,
-                open_remarks_count: 0,
+                open_remarks_count: 2,
                 created_at: '2026-04-02T00:00:00Z',
                 stages: null,
             },
@@ -119,6 +119,7 @@ describe('TransactionOversight', () => {
                     total: visibleTransactions.length,
                     imports_count: allTransactions.filter((transaction) => transaction.type === 'import').length,
                     exports_count: allTransactions.filter((transaction) => transaction.type === 'export').length,
+                    needs_attention_count: allTransactions.filter((transaction) => transaction.open_remarks_count > 0).length,
                     meta: {
                         current_page: 1,
                         last_page: 2,
@@ -175,5 +176,13 @@ describe('TransactionOversight', () => {
         expect(sharedVesselHeader).toHaveTextContent('export');
         expect(sharedVesselHeader).not.toHaveTextContent('import');
         expect(screen.getByText('BL-EXP-022')).toBeInTheDocument();
+    });
+
+    it('shows scope-wide attention totals and row remark badges for flagged transactions', () => {
+        renderWithProviders(<TransactionOversight />);
+
+        expect(screen.getByText('Needs Attention').parentElement).toHaveTextContent('1');
+        expect(screen.getByText('Transactions with open remarks')).toBeInTheDocument();
+        expect(screen.getByTitle('2 open remark(s)')).toBeInTheDocument();
     });
 });

@@ -15,7 +15,7 @@ function SectionColumnHeader({ children, align = 'left' }: { children: React.Rea
     const alignClass = align === 'center' ? 'text-center' : align === 'right' ? 'text-right' : 'text-left';
 
     return (
-        <span className={`text-[9px] font-bold uppercase tracking-[0.1em] text-text-muted ${alignClass}`}>
+        <span className={`text-[10px] font-bold uppercase tracking-wider text-text-secondary ${alignClass}`}>
             {children}
         </span>
     );
@@ -44,15 +44,17 @@ function TrackingPanelHeader({
     vesselCount: number;
 }) {
     return (
-        <div className="flex items-center justify-between border-b border-border px-5 py-4">
-            <div className="flex items-center gap-2.5">
-                <span className={`h-2.5 w-2.5 rounded-full ${badgeTone === 'green' ? 'bg-emerald-500' : 'bg-blue-500'}`} />
+        <div className="flex items-center justify-between px-5 py-4">
+            <div className="flex items-center gap-3">
+                <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${badgeTone === 'green' ? 'bg-emerald-500/10' : 'bg-blue-500/10'}`}>
+                    <span className={`h-2.5 w-2.5 rounded-full ${badgeTone === 'green' ? 'bg-emerald-500' : 'bg-blue-500'}`} />
+                </div>
                 <div>
-                    <h2 className="text-sm font-bold text-text-primary">{title}</h2>
-                    <p className="text-xs text-text-muted">Expanded vessel view · assigned active transactions</p>
+                    <h2 className="text-sm font-bold tracking-tight text-text-primary">{title}</h2>
+                    <p className="text-[11px] font-medium text-text-muted">Expanded view · Active transactions</p>
                 </div>
             </div>
-            <span className="rounded-full border border-border bg-surface-secondary px-2.5 py-1 text-[10px] font-semibold text-text-muted">
+            <span className="rounded-lg border border-border bg-surface-secondary/50 px-3 py-1 text-[11px] font-bold text-text-secondary shadow-sm">
                 {vesselCount} vessels
             </span>
         </div>
@@ -73,27 +75,29 @@ function ImportGroupsPanel({
     const navigate = useNavigate();
 
     return (
-        <div className="flex min-h-[520px] flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
-            <TrackingPanelHeader title="Import Workload" badgeTone="green" vesselCount={groups.length} />
+        <div className="flex min-h-[520px] flex-col">
+            <div className="mb-4 rounded-xl border border-border bg-surface shadow-sm">
+                <TrackingPanelHeader title="Import Workload" badgeTone="green" vesselCount={groups.length} />
+            </div>
 
-            <div className="flex-1">
+            <div className="flex-1 flex flex-col gap-4">
                 {isLoading ? (
-                    <div className="divide-y divide-border/40">
+                    <div className="flex flex-col gap-4">
                         {Array.from({ length: 5 }).map((_, index) => (
-                            <div key={index} className="flex items-center gap-3 px-4 py-4">
-                                <div className="h-4 w-32 rounded skeleton-shimmer" />
+                            <div key={index} className="flex items-center gap-3 rounded-xl border border-border bg-surface px-5 py-5 shadow-sm">
+                                <div className="h-5 w-32 rounded skeleton-shimmer" />
                                 <div className="h-4 w-24 rounded skeleton-shimmer" />
-                                <div className="ml-auto h-4 w-20 rounded skeleton-shimmer" />
+                                <div className="ml-auto h-5 w-20 rounded skeleton-shimmer" />
                             </div>
                         ))}
                     </div>
                 ) : groups.length === 0 ? (
-                    <div className="flex h-full items-center justify-center">
+                    <div className="flex h-full items-center justify-center rounded-xl border border-border bg-surface shadow-sm">
                         <EmptyState label="imports" />
                     </div>
                 ) : (
                     groups.map((group) => (
-                        <div key={group.vesselKey} className="border-b border-border last:border-0">
+                        <div key={group.vesselKey} className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm transition-shadow hover:shadow-md">
                             <VesselGroupHeader
                                 group={group}
                                 isExpanded={expandedGroups.has(group.vesselKey)}
@@ -102,7 +106,7 @@ function ImportGroupsPanel({
 
                             {expandedGroups.has(group.vesselKey) && (
                                 <div>
-                                    <div className="hidden border-b border-border bg-surface-secondary/35 px-4 py-2 lg:grid lg:grid-cols-[1.35fr_1.1fr_108px_1.2fr_110px] lg:gap-x-3">
+                                    <div className="hidden border-b border-border bg-surface-secondary/40 px-5 py-2.5 lg:grid lg:grid-cols-[1.35fr_1.1fr_108px_1.2fr_110px] lg:gap-x-3">
                                         <SectionColumnHeader>Customs Ref</SectionColumnHeader>
                                         <SectionColumnHeader>Bill of Lading</SectionColumnHeader>
                                         <SectionColumnHeader align="center">Status</SectionColumnHeader>
@@ -114,28 +118,28 @@ function ImportGroupsPanel({
                                             key={transaction.id}
                                             type="button"
                                             onClick={() => navigate(appRoutes.trackingDetail.replace(':referenceId', encodeURIComponent(transaction.customs_ref_no)))}
-                                            className={`grid w-full gap-3 border-b border-border/40 px-4 py-4 text-left transition-colors hover:bg-hover/60 last:border-0 lg:grid-cols-[1.35fr_1.1fr_108px_1.2fr_110px] lg:items-center lg:py-3 ${
-                                                index % 2 !== 0 ? 'bg-surface-secondary/15' : ''
-                                            } ${transaction.open_remarks_count > 0 ? 'border-l-4 border-red-500 bg-red-50/20 dark:bg-red-950/10' : 'border-l-4 border-transparent'}`}
+                                            className={`grid w-full gap-3 border-b border-border/40 px-5 py-4 text-left transition-all hover:bg-hover/80 last:border-0 lg:grid-cols-[1.35fr_1.1fr_108px_1.2fr_110px] lg:items-center lg:py-3.5 ${
+                                                index % 2 !== 0 ? 'bg-surface/30' : 'bg-surface'
+                                            } ${transaction.open_remarks_count > 0 ? 'border-l-[3px] border-l-red-500 bg-red-50/10 dark:bg-red-950/10' : 'border-l-[3px] border-l-transparent'}`}
                                         >
-                                            <div className="min-w-0">
+                                            <div className="min-w-0 pl-1">
                                                 <span className="mb-1 block text-[10px] font-bold uppercase text-text-muted lg:hidden">Customs Ref</span>
-                                                <p className="truncate text-sm font-semibold text-text-primary lg:text-xs">{transaction.customs_ref_no}</p>
+                                                <p className="truncate font-mono text-[13px] font-bold text-text-primary">{transaction.customs_ref_no}</p>
                                             </div>
                                             <div className="min-w-0">
                                                 <span className="mb-1 block text-[10px] font-bold uppercase text-text-muted lg:hidden">BL No.</span>
-                                                <p className="truncate font-mono text-sm text-text-secondary lg:text-[11px]">{transaction.bl_no || '—'}</p>
+                                                <p className="truncate font-mono text-xs font-semibold text-text-secondary">{transaction.bl_no || '—'}</p>
                                             </div>
                                             <div className="flex lg:justify-center">
                                                 <StatusBadge status={transaction.status ?? ''} />
                                             </div>
                                             <div className="min-w-0">
                                                 <span className="mb-1 block text-[10px] font-bold uppercase text-text-muted lg:hidden">Importer</span>
-                                                <p className="truncate text-sm text-text-secondary lg:text-xs">{transaction.importer?.name ?? '—'}</p>
+                                                <p className="truncate text-[13px] text-text-secondary">{transaction.importer?.name ?? '—'}</p>
                                             </div>
                                             <div className="min-w-0 lg:text-right">
                                                 <span className="mb-1 block text-[10px] font-bold uppercase text-text-muted lg:hidden">Arrival</span>
-                                                <p className="truncate text-sm text-text-muted lg:text-[11px]">{formatDateLabel(transaction.arrival_date)}</p>
+                                                <p className="truncate text-[12px] font-medium text-text-muted">{formatDateLabel(transaction.arrival_date)}</p>
                                             </div>
                                         </button>
                                     ))}
@@ -163,27 +167,29 @@ function ExportGroupsPanel({
     const navigate = useNavigate();
 
     return (
-        <div className="flex min-h-[520px] flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
-            <TrackingPanelHeader title="Export Workload" badgeTone="blue" vesselCount={groups.length} />
+        <div className="flex min-h-[520px] flex-col">
+            <div className="mb-4 rounded-xl border border-border bg-surface shadow-sm">
+                <TrackingPanelHeader title="Export Workload" badgeTone="blue" vesselCount={groups.length} />
+            </div>
 
-            <div className="flex-1">
+            <div className="flex-1 flex flex-col gap-4">
                 {isLoading ? (
-                    <div className="divide-y divide-border/40">
+                    <div className="flex flex-col gap-4">
                         {Array.from({ length: 5 }).map((_, index) => (
-                            <div key={index} className="flex items-center gap-3 px-4 py-4">
-                                <div className="h-4 w-28 rounded skeleton-shimmer" />
+                            <div key={index} className="flex items-center gap-3 rounded-xl border border-border bg-surface px-5 py-5 shadow-sm">
+                                <div className="h-5 w-28 rounded skeleton-shimmer" />
                                 <div className="h-4 w-32 rounded skeleton-shimmer" />
-                                <div className="ml-auto h-4 w-20 rounded skeleton-shimmer" />
+                                <div className="ml-auto h-5 w-20 rounded skeleton-shimmer" />
                             </div>
                         ))}
                     </div>
                 ) : groups.length === 0 ? (
-                    <div className="flex h-full items-center justify-center">
+                    <div className="flex h-full items-center justify-center rounded-xl border border-border bg-surface shadow-sm">
                         <EmptyState label="exports" />
                     </div>
                 ) : (
                     groups.map((group) => (
-                        <div key={group.vesselKey} className="border-b border-border last:border-0">
+                        <div key={group.vesselKey} className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm transition-shadow hover:shadow-md">
                             <VesselGroupHeader
                                 group={group}
                                 isExpanded={expandedGroups.has(group.vesselKey)}
@@ -192,7 +198,7 @@ function ExportGroupsPanel({
 
                             {expandedGroups.has(group.vesselKey) && (
                                 <div>
-                                    <div className="hidden border-b border-border bg-surface-secondary/35 px-4 py-2 lg:grid lg:grid-cols-[1.15fr_1.25fr_108px_1fr_120px] lg:gap-x-3">
+                                    <div className="hidden border-b border-border bg-surface-secondary/40 px-5 py-2.5 lg:grid lg:grid-cols-[1.15fr_1.25fr_108px_1fr_120px] lg:gap-x-3">
                                         <SectionColumnHeader>BL No.</SectionColumnHeader>
                                         <SectionColumnHeader>Shipper</SectionColumnHeader>
                                         <SectionColumnHeader align="center">Status</SectionColumnHeader>
@@ -207,28 +213,28 @@ function ExportGroupsPanel({
                                                 key={transaction.id}
                                                 type="button"
                                                 onClick={() => navigate(appRoutes.trackingDetail.replace(':referenceId', encodeURIComponent(reference)))}
-                                                className={`grid w-full gap-3 border-b border-border/40 px-4 py-4 text-left transition-colors hover:bg-hover/60 last:border-0 lg:grid-cols-[1.15fr_1.25fr_108px_1fr_120px] lg:items-center lg:py-3 ${
-                                                    index % 2 !== 0 ? 'bg-surface-secondary/15' : ''
-                                                } ${transaction.open_remarks_count > 0 ? 'border-l-4 border-red-500 bg-red-50/20 dark:bg-red-950/10' : 'border-l-4 border-transparent'}`}
+                                                className={`grid w-full gap-3 border-b border-border/40 px-5 py-4 text-left transition-all hover:bg-hover/80 last:border-0 lg:grid-cols-[1.15fr_1.25fr_108px_1fr_120px] lg:items-center lg:py-3.5 ${
+                                                    index % 2 !== 0 ? 'bg-surface/30' : 'bg-surface'
+                                                } ${transaction.open_remarks_count > 0 ? 'border-l-[3px] border-l-red-500 bg-red-50/10 dark:bg-red-950/10' : 'border-l-[3px] border-l-transparent'}`}
                                             >
-                                                <div className="min-w-0">
+                                                <div className="min-w-0 pl-1">
                                                     <span className="mb-1 block text-[10px] font-bold uppercase text-text-muted lg:hidden">BL No.</span>
-                                                    <p className="truncate font-mono text-sm font-semibold text-text-primary lg:text-[11px]">{reference}</p>
+                                                    <p className="truncate font-mono text-[13px] font-bold text-text-primary">{reference}</p>
                                                 </div>
                                                 <div className="min-w-0">
                                                     <span className="mb-1 block text-[10px] font-bold uppercase text-text-muted lg:hidden">Shipper</span>
-                                                    <p className="truncate text-sm text-text-secondary lg:text-xs">{transaction.shipper?.name ?? '—'}</p>
+                                                    <p className="truncate text-[13px] text-text-secondary">{transaction.shipper?.name ?? '—'}</p>
                                                 </div>
                                                 <div className="flex lg:justify-center">
                                                     <StatusBadge status={transaction.status ?? ''} />
                                                 </div>
                                                 <div className="min-w-0">
                                                     <span className="mb-1 block text-[10px] font-bold uppercase text-text-muted lg:hidden">Destination</span>
-                                                    <p className="truncate text-sm text-text-secondary lg:text-xs">{transaction.destination_country?.name ?? '—'}</p>
+                                                    <p className="truncate text-[13px] text-text-secondary">{transaction.destination_country?.name ?? '—'}</p>
                                                 </div>
                                                 <div className="min-w-0 lg:text-right">
                                                     <span className="mb-1 block text-[10px] font-bold uppercase text-text-muted lg:hidden">Departure</span>
-                                                    <p className="truncate text-sm text-text-muted lg:text-[11px]">{formatDateLabel(transaction.export_date)}</p>
+                                                    <p className="truncate text-[12px] font-medium text-text-muted">{formatDateLabel(transaction.export_date)}</p>
                                                 </div>
                                             </button>
                                         );

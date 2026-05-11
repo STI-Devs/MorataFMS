@@ -8,6 +8,7 @@ use App\Models\ImportTransaction;
 use App\Models\User;
 use App\Support\Transactions\ExportStatusWorkflow;
 use App\Support\Transactions\ImportStatusWorkflow;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -75,6 +76,8 @@ class TransactionOversightIndexQuery
 
         $importsCount = $type === 'export' ? 0 : (clone $importQuery)->count();
         $exportsCount = $type === 'import' ? 0 : (clone $exportQuery)->count();
+        $needsAttentionCount = ($type === 'export' ? 0 : $this->countTransactionsWithOpenRemarks(clone $importQuery))
+            + ($type === 'import' ? 0 : $this->countTransactionsWithOpenRemarks(clone $exportQuery));
 
         $unionQuery = match ($type) {
             'import' => $importQuery->toBase(),
@@ -163,6 +166,7 @@ class TransactionOversightIndexQuery
             'total' => $importsCount + $exportsCount,
             'imports_count' => $importsCount,
             'exports_count' => $exportsCount,
+            'needs_attention_count' => $needsAttentionCount,
             'meta' => [
                 'current_page' => $paginator->currentPage(),
                 'last_page' => $paginator->lastPage(),
@@ -170,5 +174,12 @@ class TransactionOversightIndexQuery
                 'total_records' => $paginator->total(),
             ],
         ];
+    }
+
+    private function countTransactionsWithOpenRemarks(Builder $query): int
+    {
+        return $query
+            ->whereHas('remarks', fn ($query) => $query->where('is_resolved', false))
+            ->count();
     }
 }

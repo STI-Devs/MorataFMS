@@ -2,29 +2,19 @@
 
 namespace App\Http\Controllers\Users;
 
-use App\Actions\Users\ActivateUser;
-use App\Actions\Users\CreateUser;
-use App\Actions\Users\DeactivateUser;
-use App\Actions\Users\DeleteUser;
-use App\Actions\Users\UpdateUser;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Users\StoreUserRequest;
 use App\Http\Requests\Users\UpdateUserRequest;
 use App\Http\Resources\Users\UserResource;
 use App\Models\User;
-use App\Queries\Users\UserIndexQuery;
+use App\Orchestrators\Users\UserOrchestrator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class UserController extends Controller
 {
     public function __construct(
-        private UserIndexQuery $userIndexQuery,
-        private CreateUser $createUser,
-        private UpdateUser $updateUser,
-        private DeleteUser $deleteUser,
-        private DeactivateUser $deactivateUser,
-        private ActivateUser $activateUser,
+        private UserOrchestrator $users,
     ) {}
 
     /**
@@ -34,7 +24,7 @@ class UserController extends Controller
     {
         $this->authorize('viewAny', User::class);
 
-        return UserResource::collection($this->userIndexQuery->handle());
+        return UserResource::collection($this->users->index());
     }
 
     /**
@@ -44,9 +34,7 @@ class UserController extends Controller
     {
         $this->authorize('create', User::class);
 
-        $user = $this->createUser->handle($request->validated());
-
-        return (new UserResource($user))
+        return (new UserResource($this->users->store($request->validated())))
             ->response()
             ->setStatusCode(201);
     }
@@ -68,9 +56,7 @@ class UserController extends Controller
     {
         $this->authorize('update', $user);
 
-        $user = $this->updateUser->handle($user, $request->validated());
-
-        return new UserResource($user);
+        return new UserResource($this->users->update($user, $request->validated()));
     }
 
     /**
@@ -80,7 +66,7 @@ class UserController extends Controller
     {
         $this->authorize('delete', $user);
 
-        $this->deleteUser->handle($user);
+        $this->users->delete($user);
 
         return response()->json(['message' => 'User deleted successfully.']);
     }
@@ -94,9 +80,7 @@ class UserController extends Controller
     {
         $this->authorize('update', $user);
 
-        $user = $this->deactivateUser->handle($user);
-
-        return new UserResource($user);
+        return new UserResource($this->users->deactivate($user));
     }
 
     /**
@@ -107,8 +91,6 @@ class UserController extends Controller
     {
         $this->authorize('update', $user);
 
-        $user = $this->activateUser->handle($user);
-
-        return new UserResource($user);
+        return new UserResource($this->users->activate($user));
     }
 }

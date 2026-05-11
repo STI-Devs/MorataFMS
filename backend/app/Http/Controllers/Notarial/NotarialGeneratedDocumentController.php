@@ -2,47 +2,38 @@
 
 namespace App\Http\Controllers\Notarial;
 
-use App\Actions\Notarial\CreateEditableNotarialGeneratedDocument;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Notarial\NotarialGeneratedDocumentIndexRequest;
 use App\Http\Requests\Notarial\StoreEditableNotarialGeneratedDocumentRequest;
 use App\Http\Resources\Notarial\NotarialGeneratedDocumentResource;
 use App\Models\NotarialGeneratedDocument;
-use App\Queries\Notarial\NotarialGeneratedDocumentIndexQuery;
-use App\Support\Legal\OnlyOfficeCallbackFileFetcher;
-use App\Support\Legal\OnlyOfficeDocumentEditor;
-use App\Support\Legal\StoredFileDownloader;
+use App\Orchestrators\Notarial\NotarialGeneratedDocumentOrchestrator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\HttpKernel\Exception\HttpException;
-use Throwable;
 
 class NotarialGeneratedDocumentController extends Controller
 {
     public function __construct(
-        private NotarialGeneratedDocumentIndexQuery $notarialGeneratedDocumentIndexQuery,
-        private CreateEditableNotarialGeneratedDocument $createEditableNotarialGeneratedDocument,
-        private StoredFileDownloader $storedFileDownloader,
-        private OnlyOfficeDocumentEditor $onlyOfficeDocumentEditor,
-        private OnlyOfficeCallbackFileFetcher $onlyOfficeCallbackFileFetcher,
+        private NotarialGeneratedDocumentOrchestrator $generatedDocuments,
     ) {}
 
     public function index(NotarialGeneratedDocumentIndexRequest $request): AnonymousResourceCollection
     {
         $this->authorize('viewAny', NotarialGeneratedDocument::class);
 
-        return NotarialGeneratedDocumentResource::collection($this->notarialGeneratedDocumentIndexQuery->handle($request));
+        return NotarialGeneratedDocumentResource::collection($this->generatedDocuments->index($request));
     }
 
     public function storeEditableCopy(StoreEditableNotarialGeneratedDocumentRequest $request): JsonResponse
     {
         $this->authorize('create', NotarialGeneratedDocument::class);
 
-        $document = $this->createEditableNotarialGeneratedDocument->handle($request->validated(), $request->user());
-
-        return (new NotarialGeneratedDocumentResource($document))
+        return (new NotarialGeneratedDocumentResource(
+            $this->generatedDocuments->storeEditableCopy($request->validated(), $request->user())
+        ))
             ->response()
             ->setStatusCode(201);
     }
@@ -51,21 +42,14 @@ class NotarialGeneratedDocumentController extends Controller
     {
         $this->authorize('view', $document);
 
-        return $this->storedFileDownloader->download(
-            (string) $document->disk,
-            $document->path,
-            'Generated Word file not found on storage.',
-            'Generated Word file not found on storage.',
-            $document->filename,
-            'Unable to read the generated Word file.',
-        );
+        return $this->generatedDocuments->download($document);
     }
 
     public function editorConfig(Request $request, NotarialGeneratedDocument $document): JsonResponse
     {
         $this->authorize('view', $document);
 
-        return response()->json($this->onlyOfficeDocumentEditor->configForDocument($document, $request->user()));
+        return response()->json($this->generatedDocuments->editorConfig($document, $request->user()));
     }
 
     public function onlyOfficeFile(Request $request, NotarialGeneratedDocument $document): StreamedResponse
@@ -74,14 +58,7 @@ class NotarialGeneratedDocumentController extends Controller
             throw new HttpException(403, 'Invalid document editor link.');
         }
 
-        return $this->storedFileDownloader->download(
-            (string) $document->disk,
-            $document->path,
-            'Generated Word file not found on storage.',
-            'Generated Word file not found on storage.',
-            $document->filename,
-            'Unable to read the generated Word file.',
-        );
+        return $this->generatedDocuments->download($document);
     }
 
     public function onlyOfficeCallback(Request $request, NotarialGeneratedDocument $document): JsonResponse
@@ -92,38 +69,14 @@ class NotarialGeneratedDocumentController extends Controller
 
         $status = (int) $request->integer('status');
 
-        if (! in_array($status, [2, 6], true)) {
+        if (! $this->generatedDocuments->shouldHandleOnlyOfficeStatus($status)) {
             return response()->json(['error' => 0]);
         }
 
         $editedFileUrl = (string) $request->input('url', '');
 
-        if ($editedFileUrl === '') {
-            return response()->json(['error' => 1]);
-        }
-
-        if ($document->path === null || $document->path === '') {
-            return response()->json(['error' => 1]);
-        }
-
-        try {
-            $editedFile = $this->onlyOfficeCallbackFileFetcher->fetch($editedFileUrl);
-        } catch (Throwable) {
-            return response()->json(['error' => 1]);
-        }
-
-        $disk = $this->storedFileDownloader->disk((string) $document->disk);
-
-        if (! $disk->put($document->path, $editedFile)) {
-            return response()->json(['error' => 1]);
-        }
-
-        $document->forceFill([
-            'mime_type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            'size_bytes' => strlen($editedFile),
-            'generated_at' => now(),
-        ])->save();
-
-        return response()->json(['error' => 0]);
+        return response()->json([
+            'error' => $this->generatedDocuments->storeOnlyOfficeCallbackFile($document, $editedFileUrl) ? 0 : 1,
+        ]);
     }
 }

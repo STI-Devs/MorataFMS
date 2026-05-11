@@ -1,4 +1,5 @@
 import { fireEvent, screen } from '@testing-library/react';
+import { useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { appRoutes } from '../../../../lib/appRoutes';
 import { makeApiExportTransaction, makeApiImportTransaction } from '../../../../test/fixtures/tracking';
@@ -70,5 +71,63 @@ describe('AdminLiveTracking', () => {
         fireEvent.click(screen.getByText('IMP/2026 001'));
 
         expect(screen.getByText('Tracking detail route')).toBeInTheDocument();
+    });
+
+    it('opens vessel groups when live data arrives after loading', () => {
+        let importsQuery = { data: [] as ReturnType<typeof makeApiImportTransaction>[], isLoading: true };
+        let exportsQuery = { data: [] as ReturnType<typeof makeApiExportTransaction>[], isLoading: true };
+
+        mockUseAllImportsData.mockImplementation(() => importsQuery);
+        mockUseAllExportsData.mockImplementation(() => exportsQuery);
+
+        function Harness() {
+            const [, forceRender] = useState(0);
+
+            return (
+                <>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            importsQuery = {
+                                data: [makeApiImportTransaction({
+                                    customs_ref_no: 'IMP-LIVE-001',
+                                    vessel_name: 'EVER COMPOSE S101',
+                                    open_remarks_count: 0,
+                                })],
+                                isLoading: false,
+                            };
+                            exportsQuery = {
+                                data: [makeApiExportTransaction({
+                                    bl_no: 'EXP-LIVE-001',
+                                    vessel: 'MV LADY ROSE V112',
+                                    open_remarks_count: 0,
+                                })],
+                                isLoading: false,
+                            };
+                            forceRender((value) => value + 1);
+                        }}
+                    >
+                        Load live data
+                    </button>
+                    <AdminLiveTracking />
+                </>
+            );
+        }
+
+        renderWithProviders(<Harness />, {
+            route: appRoutes.liveTracking,
+            path: appRoutes.liveTracking,
+        });
+
+        expect(screen.queryByText('IMP-LIVE-001')).not.toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole('button', { name: 'Load live data' }));
+
+        expect(screen.getByText('EVER COMPOSE S101')).toBeInTheDocument();
+        expect(screen.getByText('MV LADY ROSE V112')).toBeInTheDocument();
+        expect(screen.getByText('IMP-LIVE-001')).toBeInTheDocument();
+        expect(screen.getByText('EXP-LIVE-001')).toBeInTheDocument();
+        expect(screen.getAllByText('1 total')).toHaveLength(2);
+        expect(screen.queryByText('1 active')).not.toBeInTheDocument();
     });
 });

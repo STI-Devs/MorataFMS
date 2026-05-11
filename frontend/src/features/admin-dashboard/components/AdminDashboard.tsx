@@ -264,13 +264,20 @@ export const AdminDashboard = () => {
                         <div className="mt-auto space-y-5">
                             <div>
                                 <div className="mb-1.5 flex justify-between text-[11px] font-medium">
-                                    <span className="text-text-secondary">Import / Export Split</span>
-                                    <span className="text-text-primary">
-                                        {Math.round(importsPercentage)}% / {Math.round(exportsPercentage)}%
-                                    </span>
+                                    <span className="text-text-secondary">Imports</span>
+                                    <span className="text-text-primary">{analytics?.transaction_flow.imports ?? '—'}</span>
                                 </div>
                                 <div className="flex h-2 w-full overflow-hidden rounded-full bg-surface">
                                     <div className="bg-blue-500/80 transition-all" style={{ width: `${importsPercentage}%` }} />
+                                </div>
+                            </div>
+
+                            <div>
+                                <div className="mb-1.5 flex justify-between text-[11px] font-medium">
+                                    <span className="text-text-secondary">Exports</span>
+                                    <span className="text-text-primary">{analytics?.transaction_flow.exports ?? '—'}</span>
+                                </div>
+                                <div className="flex h-2 w-full overflow-hidden rounded-full bg-surface">
                                     <div className="bg-emerald-500/80 transition-all" style={{ width: `${exportsPercentage}%` }} />
                                 </div>
                             </div>

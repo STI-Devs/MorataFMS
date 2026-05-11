@@ -2,11 +2,6 @@
 
 namespace App\Http\Controllers\Transactions;
 
-use App\Actions\Transactions\CancelExportTransaction;
-use App\Actions\Transactions\CreateExportTransaction;
-use App\Actions\Transactions\UpdateExportStageApplicability;
-use App\Actions\Transactions\UpdateExportTransaction;
-use App\Enums\ExportStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Transactions\CancelTransactionRequest;
 use App\Http\Requests\Transactions\StoreExportTransactionRequest;
@@ -14,8 +9,7 @@ use App\Http\Requests\Transactions\UpdateExportStageApplicabilityRequest;
 use App\Http\Requests\Transactions\UpdateExportTransactionRequest;
 use App\Http\Resources\Transactions\ExportTransactionResource;
 use App\Models\ExportTransaction;
-use App\Queries\Transactions\ExportTransactionIndexQuery;
-use App\Queries\Transactions\ExportTransactionStatsQuery;
+use App\Orchestrators\Transactions\ExportTransactionOrchestrator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -24,12 +18,7 @@ use Symfony\Component\HttpFoundation\Response;
 class ExportTransactionController extends Controller
 {
     public function __construct(
-        private ExportTransactionIndexQuery $indexQuery,
-        private ExportTransactionStatsQuery $statsQuery,
-        private CreateExportTransaction $createExportTransaction,
-        private UpdateExportTransaction $updateExportTransaction,
-        private CancelExportTransaction $cancelExportTransaction,
-        private UpdateExportStageApplicability $updateExportStageApplicability,
+        private ExportTransactionOrchestrator $exports,
     ) {}
 
     /**
@@ -40,7 +29,7 @@ class ExportTransactionController extends Controller
     {
         $this->authorize('viewAny', ExportTransaction::class);
 
-        return ExportTransactionResource::collection($this->indexQuery->handle($request));
+        return ExportTransactionResource::collection($this->exports->index($request));
     }
 
     /**
@@ -51,9 +40,9 @@ class ExportTransactionController extends Controller
     {
         $this->authorize('create', ExportTransaction::class);
 
-        $transaction = $this->createExportTransaction->handle($request->validated(), $request->user());
-
-        return (new ExportTransactionResource($transaction))
+        return (new ExportTransactionResource(
+            $this->exports->store($request->validated(), $request->user())
+        ))
             ->response()
             ->setStatusCode(201);
     }
@@ -66,13 +55,13 @@ class ExportTransactionController extends Controller
     {
         $this->authorize('update', $export_transaction);
 
-        $export_transaction = $this->updateExportTransaction->handle(
-            $export_transaction,
-            $request->validated(),
-            $request->user(),
+        return new ExportTransactionResource(
+            $this->exports->update(
+                $export_transaction,
+                $request->validated(),
+                $request->user(),
+            )
         );
-
-        return new ExportTransactionResource($export_transaction);
     }
 
     /**
@@ -83,7 +72,7 @@ class ExportTransactionController extends Controller
     {
         $this->authorize('viewAny', ExportTransaction::class);
 
-        return response()->json(['data' => $this->statsQuery->handle(request()->user())]);
+        return response()->json(['data' => $this->exports->stats(request()->user())]);
     }
 
     /**
@@ -94,13 +83,13 @@ class ExportTransactionController extends Controller
     {
         $this->authorize('update', $export_transaction);
 
-        $export_transaction = $this->cancelExportTransaction->handle(
-            $export_transaction,
-            $request->validated()['reason'],
-            $request->user(),
+        return new ExportTransactionResource(
+            $this->exports->cancel(
+                $export_transaction,
+                $request->validated()['reason'],
+                $request->user(),
+            )
         );
-
-        return new ExportTransactionResource($export_transaction);
     }
 
     public function updateStageApplicability(
@@ -113,14 +102,14 @@ class ExportTransactionController extends Controller
         $stage = $validated['stage'];
         $notApplicable = (bool) $validated['not_applicable'];
 
-        $export_transaction = $this->updateExportStageApplicability->handle(
-            $export_transaction,
-            $stage,
-            $notApplicable,
-            $request->user(),
+        return new ExportTransactionResource(
+            $this->exports->updateStageApplicability(
+                $export_transaction,
+                $stage,
+                $notApplicable,
+                $request->user(),
+            )
         );
-
-        return new ExportTransactionResource($export_transaction);
     }
 
     /**
@@ -131,13 +120,7 @@ class ExportTransactionController extends Controller
     {
         $this->authorize('delete', $export_transaction);
 
-        if ($export_transaction->status !== ExportStatus::Cancelled) {
-            return response()->json([
-                'message' => 'Only cancelled transactions can be deleted.',
-            ], 422);
-        }
-
-        $export_transaction->delete();
+        $this->exports->delete($export_transaction);
 
         return response()->noContent();
     }

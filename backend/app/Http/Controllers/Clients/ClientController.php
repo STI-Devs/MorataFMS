@@ -2,18 +2,13 @@
 
 namespace App\Http\Controllers\Clients;
 
-use App\Actions\Clients\CreateClient;
-use App\Actions\Clients\DeleteClient;
-use App\Actions\Clients\ToggleClientActive;
-use App\Actions\Clients\UpdateClient;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Clients\ClientIndexRequest;
 use App\Http\Requests\Clients\StoreClientRequest;
 use App\Http\Requests\Clients\UpdateClientRequest;
 use App\Http\Resources\Clients\ClientResource;
 use App\Models\Client;
-use App\Queries\Clients\ClientIndexQuery;
-use App\Queries\Clients\ClientTransactionsQuery;
+use App\Orchestrators\Clients\ClientOrchestrator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Symfony\Component\HttpFoundation\Response;
@@ -21,97 +16,61 @@ use Symfony\Component\HttpFoundation\Response;
 class ClientController extends Controller
 {
     public function __construct(
-        private ClientIndexQuery $clientIndexQuery,
-        private ClientTransactionsQuery $clientTransactionsQuery,
-        private CreateClient $createClient,
-        private UpdateClient $updateClient,
-        private DeleteClient $deleteClient,
-        private ToggleClientActive $toggleClientActive,
+        private ClientOrchestrator $clients,
     ) {}
 
-    /**
-     * GET /api/clients
-     * List clients. Admins see all; others see only active.
-     */
     public function index(ClientIndexRequest $request): AnonymousResourceCollection
     {
         $this->authorize('viewAny', Client::class);
 
-        return ClientResource::collection($this->clientIndexQuery->handle($request));
+        return ClientResource::collection($this->clients->index($request));
     }
 
-    /**
-     * POST /api/clients
-     */
     public function store(StoreClientRequest $request): JsonResponse
     {
         $this->authorize('create', Client::class);
 
-        $client = $this->createClient->handle($request->validated());
-
-        return (new ClientResource($client))
+        return (new ClientResource($this->clients->store($request->validated())))
             ->response()
             ->setStatusCode(201);
     }
 
-    /**
-     * GET /api/clients/{client}
-     */
     public function show(Client $client): ClientResource
     {
         $this->authorize('viewAny', Client::class);
 
-        return new ClientResource($client->load('country'));
+        return new ClientResource($this->clients->show($client));
     }
 
-    /**
-     * PUT /api/clients/{client}
-     */
     public function update(UpdateClientRequest $request, Client $client): ClientResource
     {
         $this->authorize('update', $client);
 
-        $client = $this->updateClient->handle($client, $request->validated());
-
-        return new ClientResource($client);
+        return new ClientResource($this->clients->update($client, $request->validated()));
     }
 
-    /**
-     * DELETE /api/clients/{client}
-     */
     public function destroy(Client $client): Response
     {
         $this->authorize('delete', $client);
 
-        $this->deleteClient->handle($client);
+        $this->clients->delete($client);
 
         return response()->noContent();
     }
 
-    /**
-     * POST /api/clients/{client}/toggle-active
-     * Toggle client active status (admin only).
-     */
     public function toggleActive(Client $client): ClientResource
     {
         $this->authorize('update', $client);
 
-        $client = $this->toggleClientActive->handle($client);
-
-        return new ClientResource($client);
+        return new ClientResource($this->clients->toggleActive($client));
     }
 
-    /**
-     * GET /api/clients/{client}/transactions
-     * Returns all import and export transactions for a given client.
-     * Admin-only: cross-encoder transaction visibility is an oversight feature.
-     */
     public function transactions(Client $client): JsonResponse
     {
         $this->authorize('viewTransactions', $client);
 
         return response()->json([
-            'transactions' => $this->clientTransactionsQuery->handle($client),
+            'transactions' => $this->clients->transactions($client),
         ]);
     }
 }

@@ -69,6 +69,41 @@ const ReviewSummaryChip = ({ label, value }: { label: string; value: string | nu
     </div>
 );
 
+const BackToQueueButton = ({ onClearSelection }: { onClearSelection: () => void }) => (
+    <button
+        type="button"
+        onClick={onClearSelection}
+        className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-text-secondary transition-colors hover:bg-hover hover:text-text-primary"
+    >
+        <Icon name="chevron-left" className="h-3.5 w-3.5" />
+        Back to Queue
+    </button>
+);
+
+const SendToRecordsButton = ({
+    isArchiveReady,
+    isArchiving,
+    onArchive,
+}: {
+    isArchiveReady: boolean;
+    isArchiving: boolean;
+    onArchive: () => void;
+}) => (
+    <button
+        type="button"
+        onClick={onArchive}
+        disabled={!isArchiveReady || isArchiving}
+        className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+            isArchiveReady
+                ? 'border border-border bg-surface text-text-primary hover:bg-hover'
+                : 'cursor-not-allowed border border-border bg-surface text-text-muted'
+        }`}
+    >
+        <Icon name="archive" className="h-3.5 w-3.5" />
+        {isArchiving ? 'Sending...' : 'Send to Records'}
+    </button>
+);
+
 const formatTransactionDate = (date: string | null) => {
     if (!date) {
         return null;
@@ -381,8 +416,8 @@ export const AdminReviewDetailPane = ({
                 className="flex-none border-b border-border bg-gradient-to-b from-surface-secondary/45 to-surface px-5 py-4 xl:px-6"
                 data-testid="admin-review-detail-header"
             >
-                <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="min-w-0">
                         <h2 className="truncate text-xl font-bold tracking-tight text-text-primary">
                             {detailData.transaction.vessel ?? 'Unknown Vessel'}
                         </h2>
@@ -406,31 +441,8 @@ export const AdminReviewDetailPane = ({
                             </span>
                         </div>
                     </div>
-
-                    <div className="flex shrink-0 flex-col items-end gap-2">
-                        <div className="flex items-center gap-2">
-                            <button
-                                type="button"
-                                onClick={onClearSelection}
-                                className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-text-secondary transition-colors hover:bg-hover hover:text-text-primary"
-                            >
-                                <Icon name="chevron-left" className="h-3.5 w-3.5" />
-                                Back to Queue
-                            </button>
-                            <button
-                                type="button"
-                                onClick={onArchive}
-                                disabled={!isArchiveReady || isArchiving}
-                                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
-                                    isArchiveReady
-                                        ? 'border border-border bg-surface text-text-primary hover:bg-hover'
-                                        : 'cursor-not-allowed border border-border bg-surface text-text-muted'
-                                }`}
-                            >
-                                <Icon name="archive" className="h-3.5 w-3.5" />
-                                {isArchiving ? 'Sending…' : 'Send to Records'}
-                            </button>
-                        </div>
+                    <div className="shrink-0">
+                        <BackToQueueButton onClearSelection={onClearSelection} />
                     </div>
                 </div>
 
@@ -440,10 +452,19 @@ export const AdminReviewDetailPane = ({
             </div>
 
             <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 xl:px-6 xl:py-5">
-                <div className="mb-4 flex flex-wrap items-center gap-2.5" data-testid="admin-review-summary-strip">
-                    <ReviewSummaryChip label="Open Remarks" value={openRemarksCount} />
-                    <ReviewSummaryChip label="Uploads" value={summary.total_uploaded} />
-                    <ReviewSummaryChip label="Marked N/A" value={notApplicableCount} />
+                <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex flex-wrap items-center gap-2.5" data-testid="admin-review-summary-strip">
+                        <ReviewSummaryChip label="Open Remarks" value={openRemarksCount} />
+                        <ReviewSummaryChip label="Uploads" value={summary.total_uploaded} />
+                        <ReviewSummaryChip label="Marked N/A" value={notApplicableCount} />
+                    </div>
+                    <div className="flex justify-start lg:justify-end">
+                        <SendToRecordsButton
+                        isArchiveReady={isArchiveReady}
+                        isArchiving={isArchiving}
+                        onArchive={onArchive}
+                        />
+                    </div>
                 </div>
 
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start">

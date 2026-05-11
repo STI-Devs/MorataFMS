@@ -2,15 +2,12 @@
 
 namespace App\Http\Controllers\Notarial;
 
-use App\Actions\Notarial\DeleteNotarialLegacyFile;
-use App\Actions\Notarial\StoreNotarialLegacyFiles;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Notarial\StoreNotarialLegacyFileRequest;
 use App\Http\Resources\Notarial\NotarialLegacyFileResource;
 use App\Models\NotarialBook;
 use App\Models\NotarialLegacyFile;
-use App\Queries\Notarial\NotarialLegacyFileIndexQuery;
-use App\Support\Legal\NotarialLegacyFileManager;
+use App\Orchestrators\Notarial\NotarialLegacyFileOrchestrator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -18,30 +15,27 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class NotarialLegacyFileController extends Controller
 {
     public function __construct(
-        private NotarialLegacyFileIndexQuery $notarialLegacyFileIndexQuery,
-        private StoreNotarialLegacyFiles $storeNotarialLegacyFiles,
-        private DeleteNotarialLegacyFile $deleteNotarialLegacyFile,
-        private NotarialLegacyFileManager $fileManager,
+        private NotarialLegacyFileOrchestrator $legacyFiles,
     ) {}
 
     public function index(NotarialBook $book): AnonymousResourceCollection
     {
         $this->authorize('viewAny', NotarialLegacyFile::class);
 
-        return NotarialLegacyFileResource::collection($this->notarialLegacyFileIndexQuery->handle($book));
+        return NotarialLegacyFileResource::collection($this->legacyFiles->index($book));
     }
 
     public function store(StoreNotarialLegacyFileRequest $request, NotarialBook $book): JsonResponse
     {
         $this->authorize('create', NotarialLegacyFile::class);
 
-        $storedFiles = $this->storeNotarialLegacyFiles->handle(
-            $book,
-            $request->file('files', []),
-            $request->user(),
-        );
-
-        return NotarialLegacyFileResource::collection($storedFiles)
+        return NotarialLegacyFileResource::collection(
+            $this->legacyFiles->store(
+                $book,
+                $request->file('files', []),
+                $request->user(),
+            )
+        )
             ->response()
             ->setStatusCode(201);
     }
@@ -50,7 +44,7 @@ class NotarialLegacyFileController extends Controller
     {
         $this->authorize('delete', $legacyFile);
 
-        $this->deleteNotarialLegacyFile->handle($legacyFile);
+        $this->legacyFiles->delete($legacyFile);
 
         return response()->json(['message' => 'Legacy scanned file deleted.']);
     }
@@ -59,6 +53,6 @@ class NotarialLegacyFileController extends Controller
     {
         $this->authorize('view', $legacyFile);
 
-        return $this->fileManager->download($legacyFile);
+        return $this->legacyFiles->download($legacyFile);
     }
 }

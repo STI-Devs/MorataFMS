@@ -43,6 +43,7 @@ export interface OversightListResponse {
     total: number;
     imports_count: number;
     exports_count: number;
+    needs_attention_count: number;
     meta: {
         current_page: number;
         last_page: number;

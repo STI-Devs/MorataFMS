@@ -36,15 +36,16 @@ export function useOversightWorkspace() {
         type: typeFilter !== 'all' ? typeFilter : undefined,
     });
 
+    const transactions = useMemo<OversightTransaction[]>(() => data?.data ?? [], [data?.data]);
+    const meta = data?.meta;
+    const visibleBlocked = transactions.filter((transaction) => transaction.open_remarks_count > 0).length;
+
     const stats = {
         total: data?.total ?? 0,
         imports: data?.imports_count ?? 0,
         exports: data?.exports_count ?? 0,
+        needsAttention: data?.needs_attention_count ?? visibleBlocked,
     };
-
-    const transactions = useMemo<OversightTransaction[]>(() => data?.data ?? [], [data?.data]);
-    const meta = data?.meta;
-    const visibleBlocked = transactions.filter((transaction) => transaction.open_remarks_count > 0).length;
 
     const groups = useMemo(() => buildOversightGroups(transactions), [transactions]);
     const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => new Set(groups.map((group) => group.vesselKey)));
@@ -148,7 +149,7 @@ export function useOversightWorkspace() {
         transactions,
         groups,
         stats,
-        visibleBlocked,
+        visibleBlocked: stats.needsAttention,
         // group expansion
         expandedGroups,
         toggleGroup,

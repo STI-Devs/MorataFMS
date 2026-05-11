@@ -16,23 +16,13 @@ class AuditLogController extends Controller
         private AuditLogIndexQuery $auditLogIndexQuery,
     ) {}
 
-    /**
-     * GET /api/audit-logs
-     * Paginated list of audit logs with optional filters.
-     */
     public function index(Request $request): AnonymousResourceCollection
     {
         $this->authorize('viewAny', AuditLog::class);
 
-        $logs = $this->auditLogIndexQuery->handle($request);
-
-        return AuditLogResource::collection($logs);
+        return AuditLogResource::collection($this->auditLogIndexQuery->handle($request));
     }
 
-    /**
-     * GET /api/audit-logs/actions
-     * Returns distinct event types for use in filter dropdowns.
-     */
     public function actions(Request $request): JsonResponse
     {
         $this->authorize('viewAny', AuditLog::class);

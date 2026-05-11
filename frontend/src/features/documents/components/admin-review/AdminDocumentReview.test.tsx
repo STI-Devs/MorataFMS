@@ -9,6 +9,7 @@ const {
     mockUseReviewDetail,
     mockUseReviewStats,
     mockUseArchiveReviewedTransaction,
+    mockUseArchiveReviewedTransactions,
     mockUseEncoders,
     mockHandlePreviewDoc,
 } = vi.hoisted(() => ({
@@ -17,6 +18,7 @@ const {
     mockUseReviewDetail: vi.fn(),
     mockUseReviewStats: vi.fn(),
     mockUseArchiveReviewedTransaction: vi.fn(),
+    mockUseArchiveReviewedTransactions: vi.fn(),
     mockUseEncoders: vi.fn(),
     mockHandlePreviewDoc: vi.fn(),
 }));
@@ -30,6 +32,7 @@ vi.mock('../../hooks/useAdminReview', () => ({
     useReviewDetail: mockUseReviewDetail,
     useReviewStats: mockUseReviewStats,
     useArchiveReviewedTransaction: mockUseArchiveReviewedTransaction,
+    useArchiveReviewedTransactions: mockUseArchiveReviewedTransactions,
 }));
 
 vi.mock('../../../oversight/hooks/useTransactions', () => ({
@@ -181,6 +184,7 @@ describe('AdminDocumentReview', () => {
         mockUseReviewDetail.mockReset();
         mockUseReviewStats.mockReset();
         mockUseArchiveReviewedTransaction.mockReset();
+        mockUseArchiveReviewedTransactions.mockReset();
         mockUseEncoders.mockReset();
         mockHandlePreviewDoc.mockReset();
 
@@ -211,6 +215,10 @@ describe('AdminDocumentReview', () => {
             mutate: vi.fn(),
             isPending: false,
         });
+        mockUseArchiveReviewedTransactions.mockReturnValue({
+            mutate: vi.fn(),
+            isPending: false,
+        });
         mockUseEncoders.mockReturnValue({
             data: [
                 { id: 7, name: 'Sarah Velasco', email: 'sarah@example.com', role: 'encoder' },
@@ -223,7 +231,8 @@ describe('AdminDocumentReview', () => {
     it('renders queue data and loads detail when a transaction is selected', async () => {
         renderWithProviders(<AdminDocumentReview />);
 
-        expect(screen.getByText('Completed Transaction Queue')).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Documents' })).toBeInTheDocument();
+        expect(screen.getByText('Review finalized brokerage transactions, check document readiness, and send complete records into the archive.')).toBeInTheDocument();
         expect(screen.getByText('24')).toBeInTheDocument();
         expect(screen.getByTestId('admin-review-kpi-strip')).toBeInTheDocument();
         expect(screen.getByText('Show')).toBeInTheDocument();
@@ -275,7 +284,8 @@ describe('AdminDocumentReview', () => {
 
         // Queue pane is in expanded (full-width) mode before a transaction is selected
         expect(screen.getByTestId('admin-review-queue-pane')).toHaveClass('max-w-none');
-        expect(screen.getByTestId('admin-review-queue-pane')).toHaveClass('bg-surface');
+        expect(screen.getByTestId('admin-review-queue-pane')).toHaveClass('gap-3');
+        expect(screen.getByTestId('admin-review-queue-pane')).toHaveClass('bg-transparent');
 
         fireEvent.click(screen.getByRole('button', { name: /BL-98210344/i }));
 
@@ -285,6 +295,9 @@ describe('AdminDocumentReview', () => {
 
         // After selection the pane switches to constrained sidebar widths
         expect(screen.getByTestId('admin-review-queue-pane')).toHaveClass(
+            'h-full',
+            'min-h-0',
+            'overflow-hidden',
             'xl:min-w-[26rem]',
             'xl:max-w-[38rem]',
         );
@@ -390,6 +403,75 @@ describe('AdminDocumentReview', () => {
             expect.objectContaining({
                 onSuccess: expect.any(Function),
                 onError: expect.any(Function),
+            }),
+        );
+    });
+
+    it('archives a ready vessel group in one request', () => {
+        const bulkMutate = vi.fn();
+
+        mockUseArchiveReviewedTransactions.mockReturnValue({
+            mutate: bulkMutate,
+            isPending: false,
+        });
+        mockUseReviewQueue.mockReturnValue({
+            data: {
+                data: [
+                    {
+                        ...queueResponse.data[0],
+                        id: 1,
+                        ref: 'EXP-0001',
+                        type: 'export' as const,
+                        vessel: 'KOTA HALUS 0681W',
+                        bl_number: 'ONEYDVOG00442301',
+                        docs_count: 8,
+                        docs_total: 8,
+                        has_exceptions: false,
+                        archive_ready: true,
+                        readiness: 'ready' as const,
+                    },
+                    {
+                        ...queueResponse.data[0],
+                        id: 2,
+                        ref: 'EXP-0002',
+                        type: 'export' as const,
+                        vessel: 'KOTA HALUS 0681W',
+                        bl_number: 'ONEYDVOG00442300',
+                        docs_count: 8,
+                        docs_total: 8,
+                        has_exceptions: false,
+                        archive_ready: true,
+                        readiness: 'ready' as const,
+                    },
+                ],
+                meta: {
+                    current_page: 1,
+                    last_page: 1,
+                    per_page: 10,
+                    total: 2,
+                },
+            },
+            isLoading: false,
+            isError: false,
+            isFetching: false,
+            refetch: vi.fn(),
+        });
+
+        renderWithProviders(<AdminDocumentReview />);
+
+        fireEvent.click(screen.getByRole('button', { name: /move to records/i }));
+
+        expect(bulkMutate).toHaveBeenCalledWith(
+            {
+                transactions: [
+                    { id: 1, type: 'export' },
+                    { id: 2, type: 'export' },
+                ],
+            },
+            expect.objectContaining({
+                onSuccess: expect.any(Function),
+                onError: expect.any(Function),
+                onSettled: expect.any(Function),
             }),
         );
     });

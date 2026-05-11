@@ -90,6 +90,12 @@ const MonthlyVolumePreview = ({ data }: { data: EncoderDashboardMonthlyVolumePoi
     );
 };
 
+const previewMonthlyVolume = (data: EncoderDashboardMonthlyVolumePoint[], month: number) => {
+    const currentMonthIndex = Math.min(Math.max(month, 1), 12);
+
+    return data.slice(Math.max(currentMonthIndex - 6, 0), currentMonthIndex);
+};
+
 export const EncoderDashboard = () => {
     const navigate = useNavigate();
     const dashboardQuery = useEncoderDashboard();
@@ -101,6 +107,7 @@ export const EncoderDashboard = () => {
     const reports = dashboard?.reports;
     const previewClients = reports?.client_volume.clients ?? [];
     const previewClientMax = Math.max(...previewClients.map((client) => client.total), 1);
+    const previewVolume = reports ? previewMonthlyVolume(reports.monthly_volume.months, reports.month) : [];
 
     const kpiCards: KpiCard[] = [
         {
@@ -312,8 +319,8 @@ export const EncoderDashboard = () => {
                                         </span>
                                     </div>
                                 </div>
-                                {reports?.monthly_volume.months ? (
-                                    <MonthlyVolumePreview data={reports.monthly_volume.months.slice(-6)} />
+                                {reports ? (
+                                    <MonthlyVolumePreview data={previewVolume} />
                                 ) : (
                                     <div className="flex flex-1 items-center justify-center text-sm text-text-muted">No data</div>
                                 )}

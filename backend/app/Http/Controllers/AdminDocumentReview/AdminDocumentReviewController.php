@@ -2,63 +2,64 @@
 
 namespace App\Http\Controllers\AdminDocumentReview;
 
-use App\Actions\AdminDocumentReview\ArchiveReviewedTransaction;
 use App\Http\Controllers\Controller;
-use App\Queries\AdminDocumentReview\AdminDocumentReviewDetailQuery;
-use App\Queries\AdminDocumentReview\AdminDocumentReviewIndexQuery;
-use App\Queries\AdminDocumentReview\AdminDocumentReviewStatsQuery;
+use App\Http\Requests\AdminDocumentReview\ArchiveReviewedTransactionsRequest;
+use App\Orchestrators\AdminDocumentReview\AdminDocumentReviewOrchestrator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class AdminDocumentReviewController extends Controller
 {
     public function __construct(
-        private AdminDocumentReviewIndexQuery $indexQuery,
-        private AdminDocumentReviewDetailQuery $detailQuery,
-        private AdminDocumentReviewStatsQuery $statsQuery,
-        private ArchiveReviewedTransaction $archiveReviewedTransaction,
+        private AdminDocumentReviewOrchestrator $adminDocumentReview,
     ) {}
 
-    /**
-     * GET /api/admin/document-review
-     */
     public function index(Request $request): JsonResponse
     {
         $this->authorize('transactions.viewOversight');
 
-        return response()->json($this->indexQuery->handle($request));
+        return response()->json($this->adminDocumentReview->index($request));
     }
 
-    /**
-     * GET /api/admin/document-review/{type}/{id}
-     */
     public function show(Request $request, string $type, int $id): JsonResponse
     {
         $this->authorize('transactions.viewOversight');
 
-        return response()->json($this->detailQuery->handle($type, $id));
+        return response()->json($this->adminDocumentReview->show($type, $id));
     }
 
-    /**
-     * GET /api/admin/document-review/stats
-     */
     public function stats(Request $request): JsonResponse
     {
         $this->authorize('transactions.viewOversight');
 
-        return response()->json($this->statsQuery->handle());
+        return response()->json($this->adminDocumentReview->stats());
     }
 
-    /**
-     * POST /api/admin/document-review/{type}/{id}/archive
-     */
     public function archive(Request $request, string $type, int $id): JsonResponse
     {
         $this->authorize('transactions.viewOversight');
 
         return response()->json([
             'message' => 'Transaction archived successfully.',
-            'data' => $this->archiveReviewedTransaction->handle($type, $id, $request->user()),
+            'data' => $this->adminDocumentReview->archive($type, $id, $request->user()),
+        ]);
+    }
+
+    public function bulkArchive(ArchiveReviewedTransactionsRequest $request): JsonResponse
+    {
+        $this->authorize('transactions.viewOversight');
+
+        $archivedTransactions = $this->adminDocumentReview->bulkArchive(
+            $request->validated()['transactions'],
+            $request->user(),
+        );
+
+        return response()->json([
+            'message' => count($archivedTransactions).' transactions archived successfully.',
+            'data' => $archivedTransactions,
+            'meta' => [
+                'archived_count' => count($archivedTransactions),
+            ],
         ]);
     }
 }

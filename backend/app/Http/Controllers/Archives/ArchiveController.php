@@ -2,14 +2,6 @@
 
 namespace App\Http\Controllers\Archives;
 
-use App\Actions\Archives\CreateArchiveExport;
-use App\Actions\Archives\CreateArchiveImport;
-use App\Actions\Archives\RollbackArchiveExport;
-use App\Actions\Archives\RollbackArchiveImport;
-use App\Actions\Archives\UpdateArchiveExport;
-use App\Actions\Archives\UpdateArchiveImport;
-use App\Actions\Transactions\UpdateExportStageApplicability;
-use App\Actions\Transactions\UpdateImportStageApplicability;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Archives\StoreArchiveExportRequest;
 use App\Http\Requests\Archives\StoreArchiveImportRequest;
@@ -21,88 +13,60 @@ use App\Http\Resources\Transactions\ExportTransactionResource;
 use App\Http\Resources\Transactions\ImportTransactionResource;
 use App\Models\ExportTransaction;
 use App\Models\ImportTransaction;
-use App\Queries\Archives\ArchiveIndexQuery;
-use App\Queries\Archives\ArchiveOperationalQueueQuery;
-use App\Support\Archives\ArchiveAuthorizer;
-use App\Support\Transactions\TransactionSyncBroadcaster;
+use App\Orchestrators\Archives\ArchiveOrchestrator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
-/**
- * Handles legacy archive uploads and listing.
- *
- * This controller is intentionally separate from ImportTransactionController
- * and ExportTransactionController so archive-specific validation (e.g. past-only
- * file_date) is enforced at the API level, not just the frontend.
- *
- * Routes:
- *   GET  /api/archives         → list archive years + documents
- *   POST /api/archives/import  → create archive import
- *   POST /api/archives/export  → create archive export
- */
 class ArchiveController extends Controller
 {
     public function __construct(
-        private ArchiveAuthorizer $archiveAuthorizer,
-        private ArchiveIndexQuery $archiveIndexQuery,
-        private ArchiveOperationalQueueQuery $archiveOperationalQueueQuery,
-        private CreateArchiveImport $createArchiveImport,
-        private CreateArchiveExport $createArchiveExport,
-        private UpdateArchiveImport $updateArchiveImport,
-        private UpdateArchiveExport $updateArchiveExport,
-        private UpdateImportStageApplicability $updateImportStageApplicability,
-        private UpdateExportStageApplicability $updateExportStageApplicability,
-        private RollbackArchiveImport $rollbackArchiveImport,
-        private RollbackArchiveExport $rollbackArchiveExport,
-        private TransactionSyncBroadcaster $transactionSyncBroadcaster,
+        private ArchiveOrchestrator $archives,
     ) {}
 
     public function index(Request $request): JsonResponse
     {
         $mine = $request->boolean('mine');
-        $this->archiveAuthorizer->assertCanIndex($request->user(), $mine);
+        $this->archives->assertCanIndex($request->user(), $mine);
 
         return response()->json([
-            'data' => $this->archiveIndexQuery->handle($request->user(), $mine),
+            'data' => $this->archives->index($request->user(), $mine),
         ]);
     }
 
     public function operationalQueue(Request $request): JsonResponse
     {
-        $this->archiveAuthorizer->assertCanAccessOperationalQueue($request->user());
+        $this->archives->assertCanAccessOperationalQueue($request->user());
 
         return response()->json(
-            $this->archiveOperationalQueueQuery->handle($request->user()),
+            $this->archives->operationalQueue($request->user()),
         );
     }
 
     public function storeImport(StoreArchiveImportRequest $request): JsonResponse
     {
-        $this->archiveAuthorizer->assertCanCreate($request->user());
+        $this->archives->assertCanCreate($request->user());
 
-        $transaction = $this->createArchiveImport->handle(
-            $request->validated(),
-            $request->user(),
-        );
-        $this->transactionSyncBroadcaster->transactionChanged($transaction, $request->user(), 'archive_created');
-
-        return (new ImportTransactionResource($transaction))
+        return (new ImportTransactionResource(
+            $this->archives->storeImport(
+                $request->validated(),
+                $request->user(),
+            )
+        ))
             ->response()
             ->setStatusCode(201);
     }
 
     public function storeExport(StoreArchiveExportRequest $request): JsonResponse
     {
-        $this->archiveAuthorizer->assertCanCreate($request->user());
+        $this->archives->assertCanCreate($request->user());
 
-        $transaction = $this->createArchiveExport->handle(
-            $request->validated(),
-            $request->user(),
-        );
-        $this->transactionSyncBroadcaster->transactionChanged($transaction, $request->user(), 'archive_created');
-
-        return (new ExportTransactionResource($transaction))
+        return (new ExportTransactionResource(
+            $this->archives->storeExport(
+                $request->validated(),
+                $request->user(),
+            )
+        ))
             ->response()
             ->setStatusCode(201);
     }
@@ -111,30 +75,30 @@ class ArchiveController extends Controller
         UpdateArchiveImportRequest $request,
         ImportTransaction $importTransaction,
     ): ImportTransactionResource {
-        $this->archiveAuthorizer->assertCanUpdate($request->user(), $importTransaction);
+        $this->archives->assertCanUpdate($request->user(), $importTransaction);
 
-        $importTransaction = $this->updateArchiveImport->handle(
-            $importTransaction,
-            $request->validated(),
-            $request->user(),
+        return new ImportTransactionResource(
+            $this->archives->updateImport(
+                $importTransaction,
+                $request->validated(),
+                $request->user(),
+            )
         );
-
-        return new ImportTransactionResource($importTransaction);
     }
 
     public function updateExport(
         UpdateArchiveExportRequest $request,
         ExportTransaction $exportTransaction,
     ): ExportTransactionResource {
-        $this->archiveAuthorizer->assertCanUpdate($request->user(), $exportTransaction);
+        $this->archives->assertCanUpdate($request->user(), $exportTransaction);
 
-        $exportTransaction = $this->updateArchiveExport->handle(
-            $exportTransaction,
-            $request->validated(),
-            $request->user(),
+        return new ExportTransactionResource(
+            $this->archives->updateExport(
+                $exportTransaction,
+                $request->validated(),
+                $request->user(),
+            )
         );
-
-        return new ExportTransactionResource($exportTransaction);
     }
 
     public function updateImportStageApplicability(
@@ -145,21 +109,20 @@ class ArchiveController extends Controller
         $stage = $validated['stage'];
         $notApplicable = (bool) $validated['not_applicable'];
 
-        $this->archiveAuthorizer->assertCanUpdateStageApplicability(
+        $this->archives->assertCanUpdateStageApplicability(
             $request->user(),
             $importTransaction,
             $stage,
         );
 
-        $importTransaction = $this->updateImportStageApplicability->handle(
-            $importTransaction,
-            $stage,
-            $notApplicable,
-            $request->user(),
-            'archive_stage_applicability_updated',
+        return new ImportTransactionResource(
+            $this->archives->updateImportStageApplicability(
+                $importTransaction,
+                $stage,
+                $notApplicable,
+                $request->user(),
+            )
         );
-
-        return new ImportTransactionResource($importTransaction);
     }
 
     public function updateExportStageApplicability(
@@ -170,35 +133,34 @@ class ArchiveController extends Controller
         $stage = $validated['stage'];
         $notApplicable = (bool) $validated['not_applicable'];
 
-        $this->archiveAuthorizer->assertCanUpdateStageApplicability(
+        $this->archives->assertCanUpdateStageApplicability(
             $request->user(),
             $exportTransaction,
             $stage,
         );
 
-        $exportTransaction = $this->updateExportStageApplicability->handle(
-            $exportTransaction,
-            $stage,
-            $notApplicable,
-            $request->user(),
-            'archive_stage_applicability_updated',
+        return new ExportTransactionResource(
+            $this->archives->updateExportStageApplicability(
+                $exportTransaction,
+                $stage,
+                $notApplicable,
+                $request->user(),
+            )
         );
-
-        return new ExportTransactionResource($exportTransaction);
     }
 
     public function rollbackImport(Request $request, ImportTransaction $importTransaction): Response
     {
-        $this->archiveAuthorizer->assertCanRollback($request->user(), $importTransaction);
-        $this->rollbackArchiveImport->handle($importTransaction, $request->user());
+        $this->archives->assertCanRollback($request->user(), $importTransaction);
+        $this->archives->rollbackImport($importTransaction, $request->user());
 
         return response()->noContent();
     }
 
     public function rollbackExport(Request $request, ExportTransaction $exportTransaction): Response
     {
-        $this->archiveAuthorizer->assertCanRollback($request->user(), $exportTransaction);
-        $this->rollbackArchiveExport->handle($exportTransaction, $request->user());
+        $this->archives->assertCanRollback($request->user(), $exportTransaction);
+        $this->archives->rollbackExport($exportTransaction, $request->user());
 
         return response()->noContent();
     }

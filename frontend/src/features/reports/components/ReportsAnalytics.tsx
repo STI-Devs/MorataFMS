@@ -101,30 +101,75 @@ const MiniBarChart = ({ data }: { data: { label: string; value: number; color: s
     );
 };
 
-const MonthlyBars = ({ data }: { data: { month: number; imports: number; exports: number; total: number }[] }) => {
+const MonthlyBars = ({
+    data,
+    selectedMonth,
+}: {
+    data: { month: number; imports: number; exports: number; total: number }[];
+    selectedMonth: number;
+}) => {
     const max = Math.max(...data.map(d => d.total), 1);
+    const hasSelectedMonth = selectedMonth > 0;
+
     return (
         <div className="flex items-end gap-1.5 h-48 w-full">
             {data.map((d, i) => {
                 const impH = (d.imports / max) * 100;
                 const expH = (d.exports / max) * 100;
+                const isSelected = selectedMonth === d.month;
+                const segmentOpacity = !hasSelectedMonth || isSelected ? 0.85 : 0.25;
+
                 return (
-                    <div key={i} className="flex-1 flex flex-col items-center gap-1 group">
+                    <div
+                        key={i}
+                        aria-current={isSelected ? 'true' : undefined}
+                        className={`flex-1 flex flex-col items-center gap-1 group transition-opacity duration-300 ${
+                            hasSelectedMonth && !isSelected ? 'opacity-60' : 'opacity-100'
+                        }`}
+                    >
                         <div className="w-full flex flex-col items-center gap-px h-44">
-                            <div className="w-full flex flex-col justify-end h-full gap-0.5">
+                            <div
+                                className={`w-full flex flex-col justify-end h-full gap-0.5 rounded-sm transition-all duration-300 ${
+                                    isSelected ? 'ring-2 ring-blue-500/25 ring-offset-2 ring-offset-white dark:ring-offset-[#1c1c1e]' : ''
+                                }`}
+                            >
                                 <div className="w-full rounded-t-sm transition-all duration-500"
-                                    style={{ height: `${impH}%`, backgroundColor: '#38bdf8', opacity: 0.75 }} title={`Imports: ${d.imports}`} />
+                                    style={{ height: `${impH}%`, backgroundColor: '#38bdf8', opacity: segmentOpacity }} title={`Imports: ${d.imports}`} />
                                 <div className="w-full"
-                                    style={{ height: `${expH}%`, backgroundColor: '#a78bfa', opacity: 0.75 }} title={`Exports: ${d.exports}`} />
+                                    style={{ height: `${expH}%`, backgroundColor: '#a78bfa', opacity: segmentOpacity }} title={`Exports: ${d.exports}`} />
                             </div>
                         </div>
-                        <span className="text-[9px] text-gray-400 dark:text-gray-500 font-medium">{MONTH_SHORT[d.month - 1]}</span>
+                        <span className={`text-[9px] font-medium ${isSelected ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}`}>
+                            {MONTH_SHORT[d.month - 1]}
+                        </span>
                     </div>
                 );
             })}
         </div>
     );
 };
+
+function reportVolumeForPeriod(monthly: MonthlyReportResponse | undefined, month: number): { imports: number; exports: number; total: number } {
+    if (!monthly) {
+        return { imports: 0, exports: 0, total: 0 };
+    }
+
+    if (month) {
+        const selectedMonth = monthly.months.find((item) => item.month === month);
+
+        return {
+            imports: selectedMonth?.imports ?? 0,
+            exports: selectedMonth?.exports ?? 0,
+            total: selectedMonth?.total ?? 0,
+        };
+    }
+
+    return {
+        imports: monthly.total_imports,
+        exports: monthly.total_exports,
+        total: monthly.total,
+    };
+}
 
 // KPI Stat card
 const StatCard = ({ label, value, unit, icon, accent }: { label: string; value: string | number; unit?: string; icon: React.ReactNode; accent: string }) => (
@@ -156,9 +201,10 @@ export const ReportsAnalytics = () => {
     const isLoading = loadingMonthly || loadingClients || loadingTurnaround;
 
     const sortedClients = [...(clients?.clients ?? [])].sort((a, b) => b.total - a.total).slice(0, 5);
-    const impVol = monthly?.total_imports || 0;
-    const expVol = monthly?.total_exports || 0;
-    const totalVol = monthly?.total || 0;
+    const periodVolume = reportVolumeForPeriod(monthly, month);
+    const impVol = periodVolume.imports;
+    const expVol = periodVolume.exports;
+    const totalVol = periodVolume.total;
     const monthlyData = monthly?.months || [];
 
     const completedCount = (turnaround?.imports.completed_count || 0) + (turnaround?.exports.completed_count || 0);
@@ -262,13 +308,13 @@ export const ReportsAnalytics = () => {
                             </div>
 
                             {monthlyData.length > 0 ? (
-                                <MonthlyBars data={monthlyData} />
+                                <MonthlyBars data={monthlyData} selectedMonth={month} />
                             ) : (
                                 <div className="h-24 flex items-center justify-center text-sm text-gray-400">No data for this period</div>
                             )}
 
                             {/* Summary row below bars */}
-                            <div className="flex items-center justify-between mt-5 pt-4 border-t border-gray-100 dark:border-white/5">
+                            <div className="grid grid-cols-3 items-center gap-4 mt-5 pt-4 border-t border-gray-100 dark:border-white/5">
                                 <div className="text-center">
                                     <p className="text-xs text-gray-400 mb-0.5">Imports</p>
                                     <p className="text-base font-bold" style={{ color: '#38bdf8' }}>{impVol}</p>
@@ -280,12 +326,6 @@ export const ReportsAnalytics = () => {
                                 <div className="text-center">
                                     <p className="text-xs text-gray-400 mb-0.5">Total</p>
                                     <p className="text-base font-bold text-gray-800 dark:text-gray-100">{totalVol}</p>
-                                </div>
-                                <div className="text-center">
-                                    <p className="text-xs text-gray-400 mb-0.5">Import %</p>
-                                    <p className="text-base font-bold text-gray-800 dark:text-gray-100">
-                                        {totalVol ? Math.round((impVol / totalVol) * 100) : 0}%
-                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -311,7 +351,7 @@ export const ReportsAnalytics = () => {
                                             <span className="text-xs font-medium text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
                                                 <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: '#38bdf8' }} />Imports
                                             </span>
-                                            <span className="text-xs font-bold text-gray-700 dark:text-gray-200">{impVol} <span className="text-gray-400 font-normal">txs</span></span>
+                                            <span className="text-xs font-bold text-gray-700 dark:text-gray-200">{impVol}</span>
                                         </div>
                                         <div className="h-5 bg-gray-100 dark:bg-white/5 rounded-full">
                                             <div className="h-full rounded-full transition-all duration-700" style={{ width: `${totalVol ? (impVol / totalVol) * 100 : 0}%`, backgroundColor: '#38bdf8' }} />
@@ -323,7 +363,7 @@ export const ReportsAnalytics = () => {
                                             <span className="text-xs font-medium text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
                                                 <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: '#a78bfa' }} />Exports
                                             </span>
-                                            <span className="text-xs font-bold text-gray-700 dark:text-gray-200">{expVol} <span className="text-gray-400 font-normal">txs</span></span>
+                                            <span className="text-xs font-bold text-gray-700 dark:text-gray-200">{expVol}</span>
                                         </div>
                                         <div className="h-5 bg-gray-100 dark:bg-white/5 rounded-full">
                                             <div className="h-full rounded-full transition-all duration-700" style={{ width: `${totalVol ? (expVol / totalVol) * 100 : 0}%`, backgroundColor: '#a78bfa' }} />

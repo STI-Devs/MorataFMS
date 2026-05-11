@@ -11,6 +11,12 @@ export const QueueItem = ({
     isSelected: boolean;
     onSelect: (transaction: Pick<AdminReviewQueueItemType, 'id' | 'type'>) => void;
 }) => {
+    const subtitleParts = [
+        transaction.client ?? 'Unknown client',
+        transaction.type === 'import' ? transaction.ref : null,
+        transaction.assigned_user,
+    ].filter((part): part is string => Boolean(part));
+
     return (
         <button
             onClick={() => onSelect(transaction)}
@@ -31,8 +37,8 @@ export const QueueItem = ({
                 </div>
 
                 <p className="mt-0.5 truncate text-xs text-text-muted">
-                    <span className="font-medium text-text-secondary">{transaction.client ?? 'Unknown client'}</span>
-                    {' · '}{transaction.ref}{transaction.assigned_user ? ` · ${transaction.assigned_user}` : ''}
+                    <span className="font-medium text-text-secondary">{subtitleParts[0]}</span>
+                    {subtitleParts.slice(1).map((part) => ` · ${part}`).join('')}
                 </p>
 
                 {transaction.has_exceptions ? (
