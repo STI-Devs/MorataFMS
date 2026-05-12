@@ -10,7 +10,7 @@ use App\Http\Requests\Clients\ClientIndexRequest;
 use App\Models\Client;
 use App\Queries\Clients\ClientIndexQuery;
 use App\Queries\Clients\ClientTransactionsQuery;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 
 class ClientOrchestrator
 {
@@ -23,7 +23,7 @@ class ClientOrchestrator
         private ToggleClientActive $toggleClientActive,
     ) {}
 
-    public function index(ClientIndexRequest $request): LengthAwarePaginator
+    public function index(ClientIndexRequest $request): Collection
     {
         return $this->clientIndexQuery->handle($request);
     }

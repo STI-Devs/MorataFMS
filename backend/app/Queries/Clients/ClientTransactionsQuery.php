@@ -18,12 +18,18 @@ class ClientTransactionsQuery
     public function handle(Client $client): array
     {
         $imports = $client->importTransactions()
-            ->with('assignedUser:id,name')
+            ->with([
+                'assignedUser:id,name',
+                'importer:id,name',
+            ])
             ->latest()
             ->get();
 
         $exports = $client->exportTransactions()
-            ->with('assignedUser:id,name')
+            ->with([
+                'assignedUser:id,name',
+                'shipper:id,name',
+            ])
             ->latest()
             ->get();
 

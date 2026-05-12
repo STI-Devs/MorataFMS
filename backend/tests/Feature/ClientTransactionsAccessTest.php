@@ -4,6 +4,7 @@ use App\Models\Client;
 use App\Models\ExportTransaction;
 use App\Models\ImportTransaction;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Model;
 
 test('unauthenticated requests cannot list a client\'s transactions', function () {
     $client = Client::factory()->create();
@@ -13,8 +14,10 @@ test('unauthenticated requests cannot list a client\'s transactions', function (
 });
 
 test('admin can list a client\'s import and export transactions', function () {
+    Model::preventLazyLoading();
+
     $admin = User::factory()->create(['role' => 'admin']);
-    $client = Client::factory()->create();
+    $client = Client::factory()->create(['name' => 'Smoke Client']);
 
     $import = ImportTransaction::factory()->create(['importer_id' => $client->id]);
     $export = ExportTransaction::factory()->create(['shipper_id' => $client->id]);
@@ -27,6 +30,9 @@ test('admin can list a client\'s import and export transactions', function () {
         ->toContain($import->id);
     expect(collect($response->json('transactions.exports'))->pluck('id')->all())
         ->toContain($export->id);
+
+    expect($response->json('transactions.imports.0.importer.name'))->toBe('Smoke Client');
+    expect($response->json('transactions.exports.0.shipper.name'))->toBe('Smoke Client');
 });
 
 test('encoder cannot list a client\'s transactions even when one is assigned to them', function () {

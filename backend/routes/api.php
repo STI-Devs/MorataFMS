@@ -179,7 +179,9 @@ Route::middleware(['auth:sanctum', 'active-session', 'throttle:api-general'])->g
         Route::post('users/{user}/activate', [UserController::class, 'activate']);
 
         // Client management (write operations)
-        Route::apiResource('brokerage-clients', ClientController::class)->except(['index']);
+        Route::apiResource('brokerage-clients', ClientController::class)
+            ->parameters(['brokerage-clients' => 'client'])
+            ->except(['index']);
         Route::post('brokerage-clients/{client}/toggle-active', [ClientController::class, 'toggleActive']);
         Route::get('brokerage-clients/{client}/transactions', [ClientController::class, 'transactions'])
             ->middleware('throttle:api-search');
