@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { DeleteConfirmModal } from '../shared/DeleteConfirmModal';
+import { Icon } from '../../../../components/Icon';
 import { toast } from 'sonner';
 import { useAuth } from '../../../auth';
 import { isAdmin } from '../../../auth/utils/access';
@@ -9,6 +10,7 @@ import {
     useLegalCatalog,
     useNotarialGeneratedDocuments,
     useNotarialTemplates,
+    useUpdateNotarialTemplate,
 } from '../../hooks/useLegalWorkspace';
 import type { LegalDocumentType, NotarialTemplate } from '../../types/legalRecords.types';
 
@@ -32,6 +34,10 @@ const getErrorMessage = (error: unknown): string => {
 const getDeleteErrorMessage = (error: unknown): string =>
     (error as { response?: { data?: { message?: string } } })?.response?.data?.message
         ?? 'Unable to delete the document master.';
+
+const getArchiveErrorMessage = (error: unknown): string =>
+    (error as { response?: { data?: { message?: string } } })?.response?.data?.message
+        ?? 'Unable to archive the document master.';
 
 const slugify = (value: string): string =>
     value
@@ -83,11 +89,12 @@ export const NotarialTemplateUploadPage = () => {
     const [pendingDeleteTemplate, setPendingDeleteTemplate] = useState<NotarialTemplate | null>(null);
 
     const catalogQuery = useLegalCatalog();
-    const templatesQuery = useNotarialTemplates({ per_page: 100 });
-    const readyTemplatesQuery = useNotarialTemplates({ template_status: 'ready', page: 1, per_page: 1 });
-    const missingTemplatesQuery = useNotarialTemplates({ template_status: 'missing_file', page: 1, per_page: 1 });
+    const templatesQuery = useNotarialTemplates({ per_page: 100, is_active: true });
+    const readyTemplatesQuery = useNotarialTemplates({ template_status: 'ready', is_active: true, page: 1, per_page: 1 });
+    const missingTemplatesQuery = useNotarialTemplates({ template_status: 'missing_file', is_active: true, page: 1, per_page: 1 });
     const generatedDocumentsQuery = useNotarialGeneratedDocuments({ page: 1, per_page: 1 });
     const createTemplate = useCreateNotarialTemplate();
+    const updateTemplate = useUpdateNotarialTemplate();
     const deleteTemplate = useDeleteNotarialTemplate();
 
     const templates = useMemo(
@@ -106,6 +113,7 @@ export const NotarialTemplateUploadPage = () => {
         () => documentTypes.find((documentType) => documentType.code === draftDocumentCode),
         [documentTypes, draftDocumentCode],
     );
+    const canArchiveTemplates = canManageTemplates;
     const canDeleteTemplates = isAdmin(user);
     const draftTemplate = useMemo(
         () => buildTemplateDraft(selectedDocumentType, draftVariantName),
@@ -158,6 +166,18 @@ export const NotarialTemplateUploadPage = () => {
         setPendingDeleteTemplate(template);
     };
 
+    const handleArchiveTemplate = async (template: NotarialTemplate) => {
+        try {
+            await updateTemplate.mutateAsync({
+                templateId: template.id,
+                data: { is_active: false },
+            });
+            toast.success('Document master archived. Existing generated documents remain available.');
+        } catch (error) {
+            toast.error(getArchiveErrorMessage(error));
+        }
+    };
+
     const handleConfirmDeleteTemplate = async () => {
         if (!pendingDeleteTemplate) return;
 
@@ -191,7 +211,7 @@ export const NotarialTemplateUploadPage = () => {
             <DeleteConfirmModal
                 isOpen={pendingDeleteTemplate !== null}
                 title={`Delete "${pendingDeleteTemplate?.label ?? ''}"`}
-                description="This will permanently remove the source DOCX master from storage. Any generated documents that used this master will not be affected."
+                description="This permanently removes an unused source DOCX master from storage. If generated records already use this master, archive it instead so existing document history stays intact."
                 confirmLabel="Delete Master"
                 isPending={deleteTemplate.isPending}
                 onConfirm={() => void handleConfirmDeleteTemplate()}
@@ -425,18 +445,31 @@ export const NotarialTemplateUploadPage = () => {
                                                     </span>
                                                 )}
                                             </div>
-                                            {canDeleteTemplates ? (
-                                                <button
-                                                    type="button"
-                                                    title="Delete"
-                                                    onClick={() => void handleDeleteTemplate(template)}
-                                                    disabled={deleteTemplate.isPending}
-                                                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-red-100 bg-surface-elevated text-red-400 shadow-sm transition-all hover:bg-red-50 hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-red-500/10 disabled:cursor-not-allowed disabled:opacity-50 dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-300 dark:hover:bg-red-500/20 dark:hover:text-red-200 dark:shadow-none"
-                                                >
-                                                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                    </svg>
-                                                </button>
+                                            {canArchiveTemplates || canDeleteTemplates ? (
+                                                <>
+                                                    {canArchiveTemplates ? (
+                                                        <button
+                                                            type="button"
+                                                            title="Archive"
+                                                            onClick={() => void handleArchiveTemplate(template)}
+                                                            disabled={updateTemplate.isPending}
+                                                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-amber-100 bg-surface-elevated text-amber-500 shadow-sm transition-all hover:bg-amber-50 hover:text-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500/10 disabled:cursor-not-allowed disabled:opacity-50 dark:border-amber-400/20 dark:bg-amber-500/10 dark:text-amber-300 dark:hover:bg-amber-500/20 dark:hover:text-amber-200 dark:shadow-none"
+                                                        >
+                                                            <Icon name="archive" className="h-3.5 w-3.5" aria-hidden="true" />
+                                                        </button>
+                                                    ) : null}
+                                                    {canDeleteTemplates ? (
+                                                        <button
+                                                            type="button"
+                                                            title="Delete"
+                                                            onClick={() => void handleDeleteTemplate(template)}
+                                                            disabled={deleteTemplate.isPending}
+                                                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-red-100 bg-surface-elevated text-red-400 shadow-sm transition-all hover:bg-red-50 hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-red-500/10 disabled:cursor-not-allowed disabled:opacity-50 dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-300 dark:hover:bg-red-500/20 dark:hover:text-red-200 dark:shadow-none"
+                                                        >
+                                                            <Icon name="trash" className="h-3.5 w-3.5" aria-hidden="true" />
+                                                        </button>
+                                                    ) : null}
+                                                </>
                                             ) : null}
                                         </div>
                                     </div>

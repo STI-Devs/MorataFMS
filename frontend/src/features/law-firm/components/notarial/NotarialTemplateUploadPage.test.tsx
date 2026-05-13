@@ -10,8 +10,10 @@ const {
     mockUseNotarialTemplates,
     mockUseNotarialGeneratedDocuments,
     mockUseCreateNotarialTemplate,
+    mockUseUpdateNotarialTemplate,
     mockUseDeleteNotarialTemplate,
     mockCreateTemplate,
+    mockUpdateTemplate,
     mockDeleteTemplate,
     mockToastError,
     mockToastSuccess,
@@ -21,8 +23,10 @@ const {
     mockUseNotarialTemplates: vi.fn(),
     mockUseNotarialGeneratedDocuments: vi.fn(),
     mockUseCreateNotarialTemplate: vi.fn(),
+    mockUseUpdateNotarialTemplate: vi.fn(),
     mockUseDeleteNotarialTemplate: vi.fn(),
     mockCreateTemplate: vi.fn(),
+    mockUpdateTemplate: vi.fn(),
     mockDeleteTemplate: vi.fn(),
     mockToastError: vi.fn(),
     mockToastSuccess: vi.fn(),
@@ -44,12 +48,14 @@ vi.mock('../../hooks/useLegalWorkspace', () => ({
     useNotarialTemplates: mockUseNotarialTemplates,
     useNotarialGeneratedDocuments: mockUseNotarialGeneratedDocuments,
     useCreateNotarialTemplate: mockUseCreateNotarialTemplate,
+    useUpdateNotarialTemplate: mockUseUpdateNotarialTemplate,
     useDeleteNotarialTemplate: mockUseDeleteNotarialTemplate,
 }));
 
 describe('NotarialTemplateUploadPage', () => {
     beforeEach(() => {
         mockCreateTemplate.mockReset();
+        mockUpdateTemplate.mockReset();
         mockDeleteTemplate.mockReset();
         mockToastError.mockReset();
         mockToastSuccess.mockReset();
@@ -139,6 +145,11 @@ describe('NotarialTemplateUploadPage', () => {
             isPending: false,
         });
 
+        mockUseUpdateNotarialTemplate.mockReturnValue({
+            mutateAsync: mockUpdateTemplate.mockResolvedValue({ id: 44 }),
+            isPending: false,
+        });
+
         mockUseDeleteNotarialTemplate.mockReturnValue({
             mutateAsync: mockDeleteTemplate.mockResolvedValue(undefined),
             isPending: false,
@@ -202,6 +213,7 @@ describe('NotarialTemplateUploadPage', () => {
 
         fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
         expect(screen.getByRole('heading', { name: 'Delete "Affidavit of Loss - Standard"' })).toBeInTheDocument();
+        expect(screen.getByText(/If generated records already use this master/i)).toBeInTheDocument();
         expect(screen.getByText('This action cannot be undone.')).toBeInTheDocument();
 
         fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete Master' }));
@@ -211,5 +223,23 @@ describe('NotarialTemplateUploadPage', () => {
         });
 
         expect(mockToastSuccess).toHaveBeenCalledWith('Document master deleted.');
+    });
+
+    it('archives an active document master so generated records can keep their history', async () => {
+        renderWithProviders(<NotarialTemplateUploadPage />, {
+            route: appRoutes.paralegalMasterSetup,
+            path: appRoutes.paralegalMasterSetup,
+        });
+
+        fireEvent.click(screen.getByRole('button', { name: 'Archive' }));
+
+        await waitFor(() => {
+            expect(mockUpdateTemplate).toHaveBeenCalledWith({
+                templateId: 44,
+                data: { is_active: false },
+            });
+        });
+
+        expect(mockToastSuccess).toHaveBeenCalledWith('Document master archived. Existing generated documents remain available.');
     });
 });

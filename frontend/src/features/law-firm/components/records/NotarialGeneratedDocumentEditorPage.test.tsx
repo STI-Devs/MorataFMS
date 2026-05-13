@@ -75,4 +75,33 @@ describe('NotarialGeneratedDocumentEditorPage', () => {
             });
         });
     });
+
+    it('shows a clear error when the onlyoffice url points back to this app', async () => {
+        window.DocsAPI = undefined;
+        mockUseNotarialGeneratedDocumentEditorConfig.mockReturnValue({
+            data: {
+                document_server_url: window.location.origin,
+                config: {
+                    documentType: 'word',
+                    document: {
+                        title: 'maria-affidavit.docx',
+                    },
+                },
+            },
+            isLoading: false,
+            isError: false,
+        });
+
+        renderWithProviders(<NotarialGeneratedDocumentEditorPage />, {
+            route: '/paralegal/notarial/generated-documents/1/edit',
+            path: appRoutes.paralegalGeneratedDocumentEditor,
+        });
+
+        await waitFor(() => {
+            expect(screen.getByText('Unable to open the editor.')).toBeInTheDocument();
+        });
+
+        expect(screen.getByText(/ONLYOFFICE_DOCUMENT_SERVER_URL points to this app/i)).toBeInTheDocument();
+        expect(mockDocEditor).not.toHaveBeenCalled();
+    });
 });

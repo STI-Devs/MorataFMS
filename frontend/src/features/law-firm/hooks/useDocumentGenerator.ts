@@ -34,9 +34,9 @@ export const useDocumentGenerator = () => {
     const deferredPartySearch = useDeferredValue(partySearch);
 
     const catalogQuery = useLegalCatalog();
-    const templatesQuery = useNotarialTemplates({ per_page: 100, search: deferredSearch.trim() || undefined });
-    const readyTemplatesQuery = useNotarialTemplates({ template_status: 'ready', page: 1, per_page: 1 });
-    const libraryTemplatesQuery = useNotarialTemplates({ page: 1, per_page: 1 });
+    const templatesQuery = useNotarialTemplates({ per_page: 100, search: deferredSearch.trim() || undefined, is_active: true });
+    const readyTemplatesQuery = useNotarialTemplates({ template_status: 'ready', is_active: true, page: 1, per_page: 1 });
+    const libraryTemplatesQuery = useNotarialTemplates({ is_active: true, page: 1, per_page: 1 });
     const generatedDocumentsQuery = useNotarialGeneratedDocuments({ page: 1, per_page: 1 });
     const partiesQuery = useLegalParties(deferredPartySearch.trim());
     const createEditableRecord = useCreateEditableNotarialGeneratedDocument();
@@ -125,6 +125,7 @@ export const useDocumentGenerator = () => {
 
     const canGenerate =
         !!selectedTemplate &&
+        selectedTemplate.is_active &&
         selectedTemplate.template_status === 'ready' &&
         !createEditableRecord.isPending;
 
