@@ -50,6 +50,7 @@ lib_root="/var/lib/${COMPANY_NAME}"
 mkdir -p \
   "${data_root}/certs" \
   "${data_root}/.private" \
+  /run/nginx \
   /var/log/nginx \
   "${log_root}/documentserver/adminpanel" \
   "${log_root}/documentserver/converter" \
@@ -89,6 +90,9 @@ fi
 if [ -f /etc/nginx/includes/ds-example.conf ]; then
   : > /etc/nginx/includes/ds-example.conf
 fi
+
+rm -f /etc/nginx/sites-enabled/default
+rm -f /etc/nginx/sites-available/default
 
 if [ ! -x /app/ds/run-document-server.sh ]; then
   echo "Missing upstream ONLYOFFICE entrypoint: /app/ds/run-document-server.sh" >&2

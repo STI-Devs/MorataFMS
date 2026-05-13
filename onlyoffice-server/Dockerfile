@@ -16,6 +16,8 @@ RUN set -eux; \
     rm -f /etc/supervisor/conf.d/ds-example.conf; \
     mkdir -p /etc/nginx/includes; \
     : > /etc/nginx/includes/ds-example.conf; \
+    rm -f /etc/nginx/sites-enabled/default; \
+    rm -f /etc/nginx/sites-available/default; \
     rm -rf /var/www/onlyoffice/documentserver-example; \
     rm -rf /etc/onlyoffice/documentserver-example; \
     chmod 755 /usr/local/bin/morata-onlyoffice-entrypoint.sh
