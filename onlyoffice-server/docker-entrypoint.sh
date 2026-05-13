@@ -27,6 +27,49 @@ export JWT_ENABLED="${JWT_ENABLED:-true}"
 export ADMINPANEL_ENABLED=false
 export EXAMPLE_ENABLED=false
 
+patch_upstream_entrypoint() {
+  local entrypoint="/app/ds/run-document-server.sh"
+
+  if [ ! -f "${entrypoint}" ]; then
+    return
+  fi
+
+  if ! grep -q "morata nginx diagnostics" "${entrypoint}"; then
+    ENTRYPOINT_PATH="${entrypoint}" python - <<'PY'
+from pathlib import Path
+import os
+
+path = Path(os.environ["ENTRYPOINT_PATH"])
+content = path.read_text()
+
+content = content.replace(
+    'DOCKER_CONTAINER_ID=$(basename $(cat /proc/1/cpuset))',
+    'DOCKER_CONTAINER_ID=$(hostname)',
+)
+
+content = content.replace(
+    'service nginx start',
+    """# morata nginx diagnostics
+if ! service nginx start; then
+  echo "nginx start failed; running diagnostics" >&2
+  nginx -t >&2 || true
+  echo "--- nginx.conf ---" >&2
+  sed -n '1,240p' /etc/nginx/nginx.conf >&2 || true
+  echo "--- nginx files ---" >&2
+  find /etc/nginx -maxdepth 4 -type f | sort >&2 || true
+  echo "--- nginx error log ---" >&2
+  cat /var/log/nginx/error.log >&2 || true
+  exit 1
+fi""",
+)
+
+path.write_text(content)
+PY
+  fi
+}
+
+patch_upstream_entrypoint
+
 app_root="/var/www/${COMPANY_NAME}"
 data_root="${app_root}/Data"
 log_root="/var/log/${COMPANY_NAME}"
