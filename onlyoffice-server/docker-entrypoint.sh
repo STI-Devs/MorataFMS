@@ -35,36 +35,8 @@ patch_upstream_entrypoint() {
   fi
 
   if ! grep -q "morata nginx diagnostics" "${entrypoint}"; then
-    ENTRYPOINT_PATH="${entrypoint}" python - <<'PY'
-from pathlib import Path
-import os
-
-path = Path(os.environ["ENTRYPOINT_PATH"])
-content = path.read_text()
-
-content = content.replace(
-    'DOCKER_CONTAINER_ID=$(basename $(cat /proc/1/cpuset))',
-    'DOCKER_CONTAINER_ID=$(hostname)',
-)
-
-content = content.replace(
-    'service nginx start',
-    """# morata nginx diagnostics
-if ! service nginx start; then
-  echo "nginx start failed; running diagnostics" >&2
-  nginx -t >&2 || true
-  echo "--- nginx.conf ---" >&2
-  sed -n '1,240p' /etc/nginx/nginx.conf >&2 || true
-  echo "--- nginx files ---" >&2
-  find /etc/nginx -maxdepth 4 -type f | sort >&2 || true
-  echo "--- nginx error log ---" >&2
-  cat /var/log/nginx/error.log >&2 || true
-  exit 1
-fi""",
-)
-
-path.write_text(content)
-PY
+    perl -0pi -e 's/DOCKER_CONTAINER_ID=\$\(basename \$\(cat \/proc\/1\/cpuset\)\)/DOCKER_CONTAINER_ID=\$\(hostname\)/g' "${entrypoint}"
+    perl -0pi -e 's/service nginx start/# morata nginx diagnostics\nif ! service nginx start; then\n  echo "nginx start failed; running diagnostics" \>\&2\n  nginx -t \>\&2 \|\| true\n  echo "--- nginx.conf ---" \>\&2\n  sed -n '\''1,240p'\'' \/etc\/nginx\/nginx.conf \>\&2 \|\| true\n  echo "--- nginx files ---" \>\&2\n  find \/etc\/nginx -maxdepth 4 -type f \| sort \>\&2 \|\| true\n  echo "--- nginx error log ---" \>\&2\n  cat \/var\/log\/nginx\/error.log \>\&2 \|\| true\n  exit 1\nfi/g' "${entrypoint}"
   fi
 }
 
