@@ -93,10 +93,10 @@ describe('ArchivesFolderView', () => {
         const subfolderRow = screen.getByTestId('archive-subfolder-row-1|import');
 
         expect(yearPanel).toBeInTheDocument();
-        expect(yearPanel).toHaveClass('rounded-xl');
-        expect(within(yearPanel).getByText('Folders in FY 2025')).toBeInTheDocument();
+        expect(yearPanel).toHaveClass('pb-3', 'pt-2');
+        expect(within(yearPanel).queryByText('Folders in FY 2025')).not.toBeInTheDocument();
         expect(subfolderRow).toBeInTheDocument();
-        expect(subfolderRow).toHaveClass('px-4', 'py-2.5');
+        expect(subfolderRow).toHaveClass('px-5', 'py-3');
         expect(within(subfolderRow).getByRole('button', { name: 'JAN 2025 IMPORTS' })).toBeInTheDocument();
     });
 });

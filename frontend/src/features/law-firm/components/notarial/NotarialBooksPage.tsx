@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { CurrentDateTime } from '../../../../components/CurrentDateTime';
 import { useAuth } from '../../../auth';
 import {
     useCreateNotarialBook,
@@ -31,22 +30,18 @@ const getErrorMessage = (error: unknown): string => {
     return firstValidationMessage ?? responseData?.message ?? 'Unable to save the notarial book.';
 };
 
-const SummaryCard = ({ label, value, description, accentColor }: { label: string; value: string; description: string, accentColor?: string }) => (
-    <div className="group relative overflow-hidden rounded-3xl border border-neutral-200/60 bg-white p-6 shadow-[0_2px_10px_rgb(0,0,0,0.02)] transition-shadow hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
-        <p className="text-[13px] font-medium text-neutral-500">{label}</p>
-        <p className="mt-2 text-3xl font-semibold tracking-tight text-neutral-900">{value}</p>
-        <p className="mt-2 text-[12px] text-neutral-400">{description}</p>
-        {accentColor && (
-            <div className={`absolute -right-4 -top-4 h-24 w-24 rounded-full ${accentColor} transition-transform group-hover:scale-110`} />
-        )}
+const SummaryCard = ({ label, value }: { label: string; value: string }) => (
+    <div className="rounded-xl border border-border bg-surface-elevated px-4 py-3 shadow-sm dark:shadow-none">
+        <p className="text-[11px] font-medium uppercase tracking-wide text-text-muted">{label}</p>
+        <p className="mt-1 text-2xl font-semibold tracking-tight text-text-primary">{value}</p>
     </div>
 );
 
 const StatusBadge = ({ status }: { status: LegalBookStatus }) => {
     const styles = {
-        active: { bg: 'bg-emerald-50', border: 'border-emerald-200/50', text: 'text-emerald-700', dot: 'bg-emerald-500' },
-        full: { bg: 'bg-amber-50', border: 'border-amber-200/50', text: 'text-amber-700', dot: 'bg-amber-500' },
-        archived: { bg: 'bg-neutral-50', border: 'border-neutral-200/60', text: 'text-neutral-600', dot: 'bg-neutral-400' },
+        active: { bg: 'bg-emerald-50 dark:bg-emerald-500/10', border: 'border-emerald-200/50 dark:border-emerald-400/20', text: 'text-emerald-700 dark:text-emerald-300', dot: 'bg-emerald-500' },
+        full: { bg: 'bg-amber-50 dark:bg-amber-500/10', border: 'border-amber-200/50 dark:border-amber-400/20', text: 'text-amber-700 dark:text-amber-300', dot: 'bg-amber-500' },
+        archived: { bg: 'bg-surface-secondary', border: 'border-border', text: 'text-text-secondary', dot: 'bg-text-muted' },
     }[status];
 
     return (
@@ -141,77 +136,41 @@ export const NotarialBooksPage = () => {
     };
 
     return (
-        <div className="relative min-h-full w-full bg-[#FAFAFA] font-sans selection:bg-neutral-900 selection:text-white">
-            {/* Subtle Top Gradient background */}
-            <div className="absolute inset-x-0 top-0 h-[500px] bg-gradient-to-b from-neutral-100 to-transparent pointer-events-none" />
-            
-            <div className="relative z-10 mx-auto w-full max-w-7xl space-y-10 p-8 pb-16">
-                {/* 21st.dev Style Header */}
-                <header className="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
-                    <div className="max-w-2xl space-y-3">
-                        <div className="inline-flex items-center gap-2 rounded-full border border-neutral-200/60 bg-white px-3 py-1 shadow-sm">
-                            <span className="flex h-2 w-2 rounded-full bg-amber-500" />
-                            <p className="text-[11px] font-medium tracking-wide text-neutral-600">Archival & Scans</p>
-                        </div>
-                        <h1 className="text-4xl font-semibold tracking-tight text-neutral-900 md:text-5xl">
-                            Book Register
-                        </h1>
-                        <p className="text-[15px] leading-relaxed text-neutral-500">
-                            Keep each physical legal book in the register, then add scans, page-indexed scans, and folder-based files under the matching book record.
-                        </p>
-                    </div>
-                    
-                    <div className="flex shrink-0 items-center justify-end">
-                        <CurrentDateTime
-                            className="text-right"
-                            timeClassName="text-2xl font-semibold tracking-tight text-neutral-900 tabular-nums"
-                            dateClassName="text-[13px] font-medium text-neutral-500"
-                        />
-                    </div>
+        <div className="relative min-h-full w-full bg-surface-secondary font-sans selection:bg-text-primary selection:text-surface">
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-48 bg-gradient-to-b from-surface-elevated to-transparent" />
+
+            <div className="relative z-10 mx-auto w-full max-w-7xl space-y-5 p-6 pb-12">
+
+                <header className="space-y-0.5">
+                    <h1 className="text-2xl font-semibold tracking-tight text-text-primary">
+                        Book Register
+                    </h1>
+                    <p className="text-[13px] text-text-secondary">
+                        Keep each physical legal book in the register, then attach scans and page-indexed files.
+                    </p>
                 </header>
 
-                {/* Metrics Bento Grid */}
-                <div className="grid gap-4 lg:grid-cols-4">
-                    <SummaryCard
-                        label="Registered Books"
-                        value={String(books.length)}
-                        description="Physical books already saved."
-                        accentColor="bg-blue-500/5"
-                    />
-                    <SummaryCard
-                        label="Current Book"
-                        value={activeBook ? `Book ${activeBook.book_number}` : 'None'}
-                        description={activeBook ? `Active book for ${activeBook.year}.` : 'No book active.'}
-                        accentColor="bg-emerald-500/5"
-                    />
-                    <SummaryCard
-                        label="Closed Books"
-                        value={String(archivedBooks)}
-                        description="Books kept for reference."
-                        accentColor="bg-neutral-500/5"
-                    />
-                    <SummaryCard
-                        label="Books With Files"
-                        value={String(scannedBooks)}
-                        description="Books containing uploads."
-                        accentColor="bg-amber-500/5"
-                    />
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    <SummaryCard label="Registered Books" value={String(books.length)} />
+                    <SummaryCard label="Current Book" value={activeBook ? `Book ${activeBook.book_number}` : 'None'} />
+                    <SummaryCard label="Closed Books" value={String(archivedBooks)} />
+                    <SummaryCard label="Books With Files" value={String(scannedBooks)} />
                 </div>
 
                 <div className="grid gap-6 xl:grid-cols-[420px_minmax(0,1fr)] items-start">
                     {/* INTAKE FORM - Sleek Card */}
-                    <section className="relative overflow-hidden rounded-[2rem] border border-neutral-200/60 bg-white shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
-                        <div className="border-b border-neutral-100 bg-white/50 px-8 py-6 backdrop-blur-sm">
-                            <h2 className="text-[17px] font-semibold tracking-tight text-neutral-900">
+                    <section className="relative overflow-hidden rounded-[2rem] border border-border bg-surface-elevated shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none">
+                        <div className="border-b border-border bg-surface-elevated/70 px-8 py-6 backdrop-blur-sm">
+                            <h2 className="text-[17px] font-semibold tracking-tight text-text-primary">
                                 {canManageBooks ? 'Register a Physical Book' : 'Book Setup Overview'}
                             </h2>
-                            <p className="mt-1 text-[13px] text-neutral-500">Save the book header first, then attach scans.</p>
+                            <p className="mt-1 text-[13px] text-text-secondary">Save the book header first, then attach scans.</p>
                         </div>
 
                         <div className="p-8 space-y-8">
                             <div className="grid gap-6 md:grid-cols-2">
                                 <div className="space-y-2">
-                                    <label htmlFor="notarial-book-number" className="text-[13px] font-medium text-neutral-700">Book No.</label>
+                                    <label htmlFor="notarial-book-number" className="text-[13px] font-medium text-text-secondary">Book No.</label>
                                     <input
                                         id="notarial-book-number"
                                         type="number"
@@ -220,12 +179,12 @@ export const NotarialBooksPage = () => {
                                         onChange={(event) => setBookNumber(event.target.value)}
                                         placeholder="Enter number"
                                         disabled={!canManageBooks}
-                                        className="w-full rounded-xl border border-neutral-200 bg-neutral-50/50 px-4 py-3 text-[14px] font-medium text-neutral-900 placeholder:font-normal placeholder:text-neutral-400 transition-colors hover:bg-neutral-50 focus:border-neutral-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-neutral-900 disabled:cursor-not-allowed disabled:opacity-60"
+                                        className="w-full rounded-xl border border-border bg-input-bg px-4 py-3 text-[14px] font-medium text-text-primary placeholder:font-normal placeholder:text-text-muted transition-colors hover:bg-hover focus:border-text-primary focus:bg-surface-elevated focus:outline-none focus:ring-1 focus:ring-text-primary disabled:cursor-not-allowed disabled:opacity-60"
                                     />
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label htmlFor="notarial-book-year" className="text-[13px] font-medium text-neutral-700">Year</label>
+                                    <label htmlFor="notarial-book-year" className="text-[13px] font-medium text-text-secondary">Year</label>
                                     <input
                                         id="notarial-book-year"
                                         type="number"
@@ -234,27 +193,27 @@ export const NotarialBooksPage = () => {
                                         value={year}
                                         onChange={(event) => setYear(event.target.value)}
                                         disabled={!canManageBooks}
-                                        className="w-full rounded-xl border border-neutral-200 bg-neutral-50/50 px-4 py-3 text-[14px] font-medium text-neutral-900 transition-colors hover:bg-neutral-50 focus:border-neutral-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-neutral-900 disabled:cursor-not-allowed disabled:opacity-60"
+                                        className="w-full rounded-xl border border-border bg-input-bg px-4 py-3 text-[14px] font-medium text-text-primary transition-colors hover:bg-hover focus:border-text-primary focus:bg-surface-elevated focus:outline-none focus:ring-1 focus:ring-text-primary disabled:cursor-not-allowed disabled:opacity-60"
                                     />
                                 </div>
                             </div>
 
                             <div className="space-y-2">
-                                <label htmlFor="notarial-book-status" className="text-[13px] font-medium text-neutral-700">Status</label>
+                                <label htmlFor="notarial-book-status" className="text-[13px] font-medium text-text-secondary">Status</label>
                                 <div className="relative">
                                     <select
                                         id="notarial-book-status"
                                         value={status}
                                         onChange={(event) => setStatus(event.target.value as LegalBookStatus)}
                                         disabled={!canManageBooks}
-                                        className="w-full appearance-none rounded-xl border border-neutral-200 bg-neutral-50/50 px-4 py-3 text-[14px] font-medium text-neutral-900 transition-colors hover:bg-neutral-50 focus:border-neutral-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-neutral-900 disabled:cursor-not-allowed disabled:opacity-60"
+                                        className="w-full appearance-none rounded-xl border border-border bg-input-bg px-4 py-3 text-[14px] font-medium text-text-primary transition-colors hover:bg-hover focus:border-text-primary focus:bg-surface-elevated focus:outline-none focus:ring-1 focus:ring-text-primary disabled:cursor-not-allowed disabled:opacity-60"
                                     >
                                         <option value="active">Active</option>
                                         <option value="full">Full</option>
                                         <option value="archived">Archived</option>
                                     </select>
                                     <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center">
-                                        <svg className="h-4 w-4 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <svg className="h-4 w-4 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                                         </svg>
                                     </div>
@@ -262,7 +221,7 @@ export const NotarialBooksPage = () => {
                             </div>
 
                             <div className="space-y-2">
-                                <label htmlFor="notarial-book-notes" className="text-[13px] font-medium text-neutral-700">Notes</label>
+                                <label htmlFor="notarial-book-notes" className="text-[13px] font-medium text-text-secondary">Notes</label>
                                 <textarea
                                     id="notarial-book-notes"
                                     value={notes}
@@ -270,22 +229,22 @@ export const NotarialBooksPage = () => {
                                     rows={3}
                                     disabled={!canManageBooks}
                                     placeholder="Optional archive note..."
-                                    className="w-full resize-y rounded-xl border border-neutral-200 bg-neutral-50/50 px-4 py-3 text-[14px] font-medium text-neutral-900 placeholder:font-normal placeholder:text-neutral-400 transition-colors hover:bg-neutral-50 focus:border-neutral-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-neutral-900 disabled:cursor-not-allowed disabled:opacity-60"
+                                    className="w-full resize-y rounded-xl border border-border bg-input-bg px-4 py-3 text-[14px] font-medium text-text-primary placeholder:font-normal placeholder:text-text-muted transition-colors hover:bg-hover focus:border-text-primary focus:bg-surface-elevated focus:outline-none focus:ring-1 focus:ring-text-primary disabled:cursor-not-allowed disabled:opacity-60"
                                 />
                             </div>
 
                             {/* UPLOAD ZONE */}
                             <div className="space-y-2">
-                                <label className="text-[13px] font-medium text-neutral-700">Primary Scan</label>
-                                <div className={`relative overflow-hidden rounded-2xl border border-dashed ${!canManageBooks ? 'border-neutral-200 bg-neutral-50/30' : 'border-neutral-300 bg-neutral-50/50 hover:border-neutral-400 hover:bg-neutral-50'} p-1 transition-all`}>
+                                <label className="text-[13px] font-medium text-text-secondary">Primary Scan</label>
+                                <div className={`relative overflow-hidden rounded-2xl border border-dashed ${!canManageBooks ? 'border-border bg-surface-secondary' : 'border-border-strong bg-surface-secondary hover:border-text-muted hover:bg-hover'} p-1 transition-all`}>
                                     <label className="flex cursor-pointer flex-col items-center justify-center px-6 py-8 text-center">
-                                        <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm border border-neutral-200/60">
-                                            <svg className="h-4 w-4 text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full border border-border bg-surface-elevated shadow-sm dark:shadow-none">
+                                            <svg className="h-4 w-4 text-text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                                             </svg>
                                         </div>
-                                        <p className="text-[13px] font-medium text-neutral-900">Attach Primary Scan</p>
-                                        <p className="mt-1 text-[12px] text-neutral-500">Optional. You can add files later.</p>
+                                        <p className="text-[13px] font-medium text-text-primary">Attach Primary Scan</p>
+                                        <p className="mt-1 text-[12px] text-text-secondary">Optional. You can add files later.</p>
                                         
                                         <input
                                             id="notarial-book-file"
@@ -297,16 +256,16 @@ export const NotarialBooksPage = () => {
                                         />
                                         
                                         {selectedFile && (
-                                            <div className="mt-4 flex items-center gap-3 rounded-full border border-neutral-200 bg-white py-1.5 pl-3 pr-1.5 shadow-sm">
+                                            <div className="mt-4 flex items-center gap-3 rounded-full border border-border bg-surface-elevated py-1.5 pl-3 pr-1.5 shadow-sm dark:shadow-none">
                                                 <svg className="h-3.5 w-3.5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                                 </svg>
-                                                <span className="max-w-[150px] truncate text-[12px] font-medium text-neutral-900">{selectedFile.name}</span>
+                                                <span className="max-w-[150px] truncate text-[12px] font-medium text-text-primary">{selectedFile.name}</span>
                                                 {canManageBooks && (
                                                     <button 
                                                         type="button" 
                                                         onClick={(e) => { e.preventDefault(); setSelectedFile(null); }}
-                                                        className="ml-1 rounded-full p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-900 focus:outline-none"
+                                                        className="ml-1 rounded-full p-1 text-text-muted hover:bg-hover hover:text-text-primary focus:outline-none"
                                                     >
                                                         <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -325,7 +284,7 @@ export const NotarialBooksPage = () => {
                                     id="notarial-book-save"
                                     onClick={() => void handleCreateBook()}
                                     disabled={createBook.isPending}
-                                    className="group relative w-full overflow-hidden rounded-xl bg-neutral-900 px-6 py-3.5 text-[14px] font-medium text-white shadow-sm transition-all hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-neutral-900/20 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                    className="group relative w-full overflow-hidden rounded-xl bg-neutral-900 px-6 py-3.5 text-[14px] font-medium text-white shadow-sm transition-all hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-neutral-900/20 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-neutral-950 dark:hover:bg-neutral-200 dark:focus:ring-white/20 dark:focus:ring-offset-surface-elevated"
                                 >
                                     <div className="absolute inset-0 bg-white/20 translate-y-full transition-transform group-hover:translate-y-0" />
                                     <span className="relative z-10 flex items-center justify-center gap-2">
@@ -345,41 +304,41 @@ export const NotarialBooksPage = () => {
                     </section>
 
                     {/* LIBRARY LIST - Vercel / Linear Style Stack */}
-                    <section className="flex flex-col overflow-hidden rounded-[2rem] border border-neutral-200/60 bg-white shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
-                        <div className="flex shrink-0 items-center justify-between border-b border-neutral-100 bg-white/50 px-8 py-6 backdrop-blur-sm">
+                    <section className="flex flex-col overflow-hidden rounded-[2rem] border border-border bg-surface-elevated shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none">
+                        <div className="flex shrink-0 items-center justify-between border-b border-border bg-surface-elevated/70 px-8 py-6 backdrop-blur-sm">
                             <div>
-                                <h2 className="text-[17px] font-semibold tracking-tight text-neutral-900">Saved Books</h2>
-                                <p className="mt-1 text-[13px] text-neutral-500">Open a book to manage its files and scans.</p>
+                                <h2 className="text-[17px] font-semibold tracking-tight text-text-primary">Saved Books</h2>
+                                <p className="mt-1 text-[13px] text-text-secondary">Open a book to manage its files and scans.</p>
                             </div>
-                            <div className="flex h-7 min-w-[28px] items-center justify-center rounded-full bg-neutral-100 px-2 text-[12px] font-semibold text-neutral-600">
+                            <div className="flex h-7 min-w-[28px] items-center justify-center rounded-full bg-surface-secondary px-2 text-[12px] font-semibold text-text-secondary">
                                 {books.length}
                             </div>
                         </div>
                         
-                        <div className="flex-1 p-6 space-y-6 bg-[#FAFAFA]/30">
+                        <div className="flex-1 space-y-6 bg-surface-secondary p-6">
                             {books.length > 0 ? (
                                 books.map((book) => (
                                     <div 
                                         key={book.id} 
-                                        className="group relative flex flex-col gap-5 rounded-3xl border border-neutral-200/60 bg-white p-6 shadow-[0_2px_10px_rgb(0,0,0,0.02)] transition-all hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)]"
+                                        className="group relative flex flex-col gap-5 rounded-3xl border border-border bg-surface-elevated p-6 shadow-[0_2px_10px_rgb(0,0,0,0.02)] transition-all hover:bg-hover hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none"
                                     >
                                         {/* Book Header Row */}
                                         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                                             <div>
                                                 <div className="flex items-center gap-3">
-                                                    <h3 className="text-[18px] font-bold tracking-tight text-neutral-900">
+                                                    <h3 className="text-[18px] font-bold tracking-tight text-text-primary">
                                                         Book {book.book_number}
                                                     </h3>
                                                     <StatusBadge status={book.status} />
                                                 </div>
-                                                <p className="mt-1.5 flex items-center gap-2 text-[13px] font-medium text-neutral-500">
-                                                    <svg className="h-4 w-4 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <p className="mt-1.5 flex items-center gap-2 text-[13px] font-medium text-text-secondary">
+                                                    <svg className="h-4 w-4 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                                     </svg>
                                                     {book.year}
                                                 </p>
                                                 {book.notes && (
-                                                    <p className="mt-3 text-[13px] leading-relaxed text-neutral-500 italic border-l-2 border-neutral-200 pl-3">
+                                                    <p className="mt-3 border-l-2 border-border pl-3 text-[13px] leading-relaxed text-text-secondary italic">
                                                         "{book.notes}"
                                                     </p>
                                                 )}
@@ -388,37 +347,37 @@ export const NotarialBooksPage = () => {
                                             {book.scan_file ? (
                                                 <a
                                                     href={book.scan_file.download_url}
-                                                    className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 py-2 text-[13px] font-medium text-neutral-700 shadow-sm transition-all hover:bg-neutral-50 hover:text-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-900/10"
+                                                    className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-border bg-surface-elevated px-4 py-2 text-[13px] font-medium text-text-secondary shadow-sm transition-all hover:bg-hover hover:text-text-primary focus:outline-none focus:ring-2 focus:ring-text-primary/10 dark:shadow-none"
                                                 >
-                                                    <svg className="h-4 w-4 text-neutral-400 group-hover:text-neutral-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <svg className="h-4 w-4 text-text-muted group-hover:text-text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                                                     </svg>
                                                     Download Scan
                                                 </a>
                                             ) : (
-                                                <span className="shrink-0 text-[13px] font-medium text-neutral-400">No primary scan</span>
+                                                <span className="shrink-0 text-[13px] font-medium text-text-muted">No primary scan</span>
                                             )}
                                         </div>
 
                                         {/* Meta Stats row */}
-                                        <div className="flex flex-wrap items-center gap-4 text-[12px] font-medium text-neutral-500">
+                                        <div className="flex flex-wrap items-center gap-4 text-[12px] font-medium text-text-secondary">
                                             {book.scan_file && (
                                                 <span className="flex items-center gap-1.5">
-                                                    <svg className="h-3.5 w-3.5 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <svg className="h-3.5 w-3.5 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                                     </svg>
                                                     {book.scan_file.filename} • {book.scan_file.formatted_size}
                                                 </span>
                                             )}
-                                            <span className="flex items-center gap-1.5 bg-neutral-100/80 px-2 py-0.5 rounded-md text-neutral-600">
+                                            <span className="flex items-center gap-1.5 rounded-md bg-surface-secondary px-2 py-0.5 text-text-secondary">
                                                 {book.page_scan_count ?? 0} page scan{book.page_scan_count === 1 ? '' : 's'}
                                             </span>
-                                            <span className="flex items-center gap-1.5 bg-neutral-100/80 px-2 py-0.5 rounded-md text-neutral-600">
+                                            <span className="flex items-center gap-1.5 rounded-md bg-surface-secondary px-2 py-0.5 text-text-secondary">
                                                 {book.legacy_file_count ?? 0} archive file{book.legacy_file_count === 1 ? '' : 's'}
                                             </span>
                                             {book.closed_at && (
                                                 <span className="flex items-center gap-1.5">
-                                                    <svg className="h-3.5 w-3.5 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <svg className="h-3.5 w-3.5 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                                     </svg>
                                                     Closed: {new Date(book.closed_at).toLocaleDateString('en-PH')}
@@ -433,7 +392,7 @@ export const NotarialBooksPage = () => {
                                                     <button
                                                         type="button"
                                                         onClick={() => void handleStatusChange(book, 'active')}
-                                                        className="inline-flex items-center justify-center rounded-xl border border-neutral-200 bg-white px-4 py-2 text-[12px] font-medium text-neutral-700 shadow-sm transition-all hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 focus:outline-none"
+                                                        className="inline-flex items-center justify-center rounded-xl border border-border bg-surface-elevated px-4 py-2 text-[12px] font-medium text-text-secondary shadow-sm transition-all hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 focus:outline-none dark:shadow-none dark:hover:border-emerald-400/20 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-300"
                                                     >
                                                         Set Active
                                                     </button>
@@ -442,7 +401,7 @@ export const NotarialBooksPage = () => {
                                                     <button
                                                         type="button"
                                                         onClick={() => void handleStatusChange(book, 'full')}
-                                                        className="inline-flex items-center justify-center rounded-xl border border-neutral-200 bg-white px-4 py-2 text-[12px] font-medium text-neutral-700 shadow-sm transition-all hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200 focus:outline-none"
+                                                        className="inline-flex items-center justify-center rounded-xl border border-border bg-surface-elevated px-4 py-2 text-[12px] font-medium text-text-secondary shadow-sm transition-all hover:border-amber-200 hover:bg-amber-50 hover:text-amber-700 focus:outline-none dark:shadow-none dark:hover:border-amber-400/20 dark:hover:bg-amber-500/10 dark:hover:text-amber-300"
                                                     >
                                                         Mark Full
                                                     </button>
@@ -451,7 +410,7 @@ export const NotarialBooksPage = () => {
                                                     <button
                                                         type="button"
                                                         onClick={() => void handleStatusChange(book, 'archived')}
-                                                        className="inline-flex items-center justify-center rounded-xl border border-neutral-200 bg-white px-4 py-2 text-[12px] font-medium text-neutral-700 shadow-sm transition-all hover:bg-neutral-100 hover:text-neutral-900 focus:outline-none"
+                                                        className="inline-flex items-center justify-center rounded-xl border border-border bg-surface-elevated px-4 py-2 text-[12px] font-medium text-text-secondary shadow-sm transition-all hover:bg-hover hover:text-text-primary focus:outline-none dark:shadow-none"
                                                     >
                                                         Archive
                                                     </button>
@@ -467,14 +426,14 @@ export const NotarialBooksPage = () => {
                                     </div>
                                 ))
                             ) : (
-                                <div className="flex min-h-[300px] flex-col items-center justify-center rounded-3xl border border-dashed border-neutral-200 bg-neutral-50/50 p-8 text-center">
-                                    <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-sm border border-neutral-200/60">
-                                        <svg className="h-6 w-6 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <div className="flex min-h-[300px] flex-col items-center justify-center rounded-3xl border border-dashed border-border bg-surface-secondary p-8 text-center">
+                                    <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full border border-border bg-surface-elevated shadow-sm dark:shadow-none">
+                                        <svg className="h-6 w-6 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                                         </svg>
                                     </div>
-                                    <p className="text-[15px] font-medium text-neutral-900">No books registered yet</p>
-                                    <p className="mt-1 text-[13px] text-neutral-500">Register your first physical book to start tracking.</p>
+                                    <p className="text-[15px] font-medium text-text-primary">No books registered yet</p>
+                                    <p className="mt-1 text-[13px] text-text-secondary">Register your first physical book to start tracking.</p>
                                 </div>
                             )}
                         </div>

@@ -130,12 +130,18 @@ Route::middleware(['auth:sanctum', 'active-session', 'throttle:api-general'])->g
             ->middleware('throttle:api-search');
         Route::post('generated-documents', [NotarialGeneratedDocumentController::class, 'storeEditableCopy'])
             ->middleware('throttle:api-documents');
+        Route::get('generated-documents/{document}', [NotarialGeneratedDocumentController::class, 'show'])
+            ->middleware('throttle:api-documents');
         Route::get('generated-documents/{document}/onlyoffice/config', [NotarialGeneratedDocumentController::class, 'editorConfig'])
             ->name('notarial.generated-documents.onlyoffice-config')
             ->middleware('throttle:api-documents');
         Route::get('generated-documents/{document}/download', [NotarialGeneratedDocumentController::class, 'download'])
             ->name('notarial.generated-documents.download')
             ->middleware('throttle:api-documents');
+        Route::get('generated-documents/{document}/preview', [NotarialGeneratedDocumentController::class, 'preview'])
+            ->name('notarial.generated-documents.preview')
+            ->middleware('throttle:api-documents');
+        Route::delete('generated-documents/{document}', [NotarialGeneratedDocumentController::class, 'destroy']);
         Route::apiResource('books', NotarialBookController::class);
         Route::get('books/{book}/scan/download', [NotarialBookController::class, 'downloadScan'])
             ->name('notarial.books.scan.download')

@@ -48,6 +48,14 @@ export const useNotarialGeneratedDocuments = (params?: NotarialGeneratedDocument
         queryFn: () => lawFirmApi.getGeneratedDocuments(params),
     });
 
+export const useNotarialGeneratedDocument = (documentId: number | null) =>
+    useQuery({
+        queryKey: lawFirmKeys.generatedDocument(documentId ?? 0),
+        queryFn: () => lawFirmApi.getGeneratedDocument(documentId!),
+        enabled: documentId !== null && documentId > 0,
+        refetchInterval: 8000,
+    });
+
 export const useNotarialGeneratedDocumentEditorConfig = (documentId: number | null) =>
     useQuery({
         queryKey: lawFirmKeys.generatedDocumentEditor(documentId ?? 0),
@@ -84,6 +92,17 @@ export const useUpdateNotarialTemplate = () => {
     });
 };
 
+export const useDeleteNotarialTemplate = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (templateId: number) => lawFirmApi.deleteTemplate(templateId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['law-firm', 'templates'] });
+        },
+    });
+};
+
 export const useCreateEditableNotarialGeneratedDocument = () => {
     const queryClient = useQueryClient();
 
@@ -93,6 +112,18 @@ export const useCreateEditableNotarialGeneratedDocument = () => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['law-firm', 'generated-documents'] });
             queryClient.invalidateQueries({ queryKey: ['law-firm', 'legal-parties'] });
+        },
+    });
+};
+
+export const useDeleteNotarialGeneratedDocument = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (documentId: number) => lawFirmApi.deleteGeneratedDocument(documentId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['law-firm', 'generated-documents'] });
+            queryClient.invalidateQueries({ queryKey: ['law-firm', 'templates'] });
         },
     });
 };

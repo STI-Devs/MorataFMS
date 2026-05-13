@@ -32,10 +32,6 @@ const {
     mockCreateBook: vi.fn(),
 }));
 
-vi.mock('../../../../components/CurrentDateTime', () => ({
-    CurrentDateTime: () => <div data-testid="current-date-time" />,
-}));
-
 vi.mock('../../../auth', () => ({
     useAuth: mockUseAuth,
 }));

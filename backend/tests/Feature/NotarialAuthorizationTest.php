@@ -254,6 +254,89 @@ test('generated documents can be filtered by category and document master', func
         ->assertJsonMissingPath('data.0.notarial_act_type');
 });
 
+test('admin can delete a generated document record and its stored docx file', function () {
+    Storage::fake(config('filesystems.default', 'local'));
+
+    $admin = User::factory()->create(['role' => 'admin']);
+    $record = makeGeneratedDocument($admin, 'generated body');
+
+    $this->actingAs($admin)
+        ->deleteJson("/api/notarial/generated-documents/{$record->id}")
+        ->assertOk()
+        ->assertJsonPath('message', 'Generated document deleted.');
+
+    Storage::disk(config('filesystems.default', 'local'))->assertMissing($record->path);
+    expect($record->fresh())->toBeNull();
+});
+
+test('paralegal cannot delete generated document records', function () {
+    Storage::fake(config('filesystems.default', 'local'));
+
+    $admin = User::factory()->create(['role' => 'admin']);
+    $paralegal = User::factory()->create(['role' => 'paralegal']);
+    $record = makeGeneratedDocument($admin, 'generated body');
+
+    $this->actingAs($paralegal)
+        ->deleteJson("/api/notarial/generated-documents/{$record->id}")
+        ->assertForbidden();
+
+    Storage::disk(config('filesystems.default', 'local'))->assertExists($record->path);
+    expect($record->fresh())->not->toBeNull();
+});
+
+test('admin can delete a document master when no generated documents use it', function () {
+    Storage::fake(config('filesystems.default', 'local'));
+
+    $admin = User::factory()->create(['role' => 'admin']);
+    $path = 'notarial-templates/affidavit_general/deletable-master.docx';
+    Storage::disk(config('filesystems.default', 'local'))->put($path, 'template body');
+
+    $template = NotarialTemplate::query()->forceCreate([
+        'code' => 'deletable-master',
+        'label' => 'Deletable Master',
+        'document_code' => 'AFFIDAVIT_GENERAL',
+        'document_category' => 'affidavit_oath',
+        'default_notarial_act_type' => 'jurat',
+        'is_active' => true,
+        'filename' => 'deletable-master.docx',
+        'path' => $path,
+        'disk' => config('filesystems.default', 'local'),
+        'mime_type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'size_bytes' => strlen('template body'),
+        'created_by' => $admin->id,
+    ]);
+
+    $this->actingAs($admin)
+        ->deleteJson("/api/notarial/templates/{$template->id}")
+        ->assertOk()
+        ->assertJsonPath('message', 'Template deleted.');
+
+    Storage::disk(config('filesystems.default', 'local'))->assertMissing($path);
+    expect($template->fresh())->toBeNull();
+});
+
+test('admin cannot delete a document master that already has generated records', function () {
+    Storage::fake(config('filesystems.default', 'local'));
+
+    $admin = User::factory()->create(['role' => 'admin']);
+    $record = makeGeneratedDocument($admin, 'generated body');
+    $template = $record->template;
+    $templatePath = 'notarial-templates/affidavit_general/in-use-master.docx';
+    Storage::disk(config('filesystems.default', 'local'))->put($templatePath, 'template body');
+    $template->forceFill([
+        'path' => $templatePath,
+        'disk' => config('filesystems.default', 'local'),
+    ])->save();
+
+    $this->actingAs($admin)
+        ->deleteJson("/api/notarial/templates/{$template->id}")
+        ->assertStatus(409)
+        ->assertJsonPath('message', 'Generated records already exist for this template. Archive it instead of deleting.');
+
+    Storage::disk(config('filesystems.default', 'local'))->assertExists($templatePath);
+    expect($template->fresh())->not->toBeNull();
+});
+
 test('paralegal can upload page-indexed scans for any archived book', function () {
     Storage::fake(config('filesystems.default', 'local'));
 
@@ -428,6 +511,40 @@ test('legal users can get onlyoffice editor config for generated documents', fun
                 'token',
             ],
         ]);
+});
+
+test('legal users can view a generated document storage status record', function () {
+    Storage::fake(config('filesystems.default', 'local'));
+
+    $paralegal = User::factory()->create(['role' => 'paralegal']);
+    $record = makeGeneratedDocument($paralegal, 'original body');
+
+    $this->actingAs($paralegal)
+        ->getJson("/api/notarial/generated-documents/{$record->id}")
+        ->assertOk()
+        ->assertJsonPath('data.id', $record->id)
+        ->assertJsonPath('data.party_name', 'Maria Santos')
+        ->assertJsonPath('data.generated_file.filename', 'maria-affidavit.docx')
+        ->assertJsonPath('data.generated_file.formatted_size', '13 B');
+});
+
+test('legal users can preview generated document files from storage', function () {
+    Storage::fake(config('filesystems.default', 'local'));
+
+    $paralegal = User::factory()->create(['role' => 'paralegal']);
+    $docxUpload = fakeDocxUpload('maria-affidavit.docx', [
+        'AFFIDAVIT OF LOSS',
+        'Maria Santos stored preview text.',
+    ]);
+    $docxContents = file_get_contents($docxUpload->getRealPath());
+
+    $record = makeGeneratedDocument($paralegal, (string) $docxContents);
+
+    $this->actingAs($paralegal)
+        ->get("/api/notarial/generated-documents/{$record->id}/preview")
+        ->assertOk()
+        ->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+        ->assertHeader('content-disposition', 'inline; filename="maria-affidavit.docx"');
 });
 
 test('onlyoffice callback saves the edited generated document file through a signed route', function () {

@@ -27,6 +27,7 @@ class NotarialGeneratedDocumentResource extends JsonResource
                 'size_bytes' => $this->size_bytes,
                 'formatted_size' => $this->formatted_size,
                 'download_url' => route('notarial.generated-documents.download', $this->resource),
+                'preview_url' => route('notarial.generated-documents.preview', $this->resource),
             ],
             'template' => $this->whenLoaded('template', fn () => [
                 'id' => $this->template->id,

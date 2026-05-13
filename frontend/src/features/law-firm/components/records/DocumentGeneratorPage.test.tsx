@@ -7,10 +7,6 @@ const { mockUseDocumentGenerator } = vi.hoisted(() => ({
     mockUseDocumentGenerator: vi.fn(),
 }));
 
-vi.mock('../../../../components/CurrentDateTime', () => ({
-    CurrentDateTime: () => <div data-testid="current-date-time" />,
-}));
-
 vi.mock('../../hooks/useDocumentGenerator', () => ({
     useDocumentGenerator: mockUseDocumentGenerator,
 }));

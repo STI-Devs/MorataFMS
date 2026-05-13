@@ -3,6 +3,7 @@
 namespace App\Orchestrators\Notarial;
 
 use App\Actions\Notarial\CreateEditableNotarialGeneratedDocument;
+use App\Actions\Notarial\DeleteNotarialGeneratedDocument;
 use App\Http\Requests\Notarial\NotarialGeneratedDocumentIndexRequest;
 use App\Models\NotarialGeneratedDocument;
 use App\Models\User;
@@ -19,6 +20,7 @@ class NotarialGeneratedDocumentOrchestrator
     public function __construct(
         private NotarialGeneratedDocumentIndexQuery $notarialGeneratedDocumentIndexQuery,
         private CreateEditableNotarialGeneratedDocument $createEditableNotarialGeneratedDocument,
+        private DeleteNotarialGeneratedDocument $deleteNotarialGeneratedDocument,
         private StoredFileDownloader $storedFileDownloader,
         private OnlyOfficeDocumentEditor $onlyOfficeDocumentEditor,
         private OnlyOfficeCallbackFileFetcher $onlyOfficeCallbackFileFetcher,
@@ -34,6 +36,11 @@ class NotarialGeneratedDocumentOrchestrator
         return $this->createEditableNotarialGeneratedDocument->handle($validated, $user);
     }
 
+    public function show(NotarialGeneratedDocument $document): NotarialGeneratedDocument
+    {
+        return $document->load(['createdBy', 'legalParty', 'template']);
+    }
+
     public function download(NotarialGeneratedDocument $document): StreamedResponse
     {
         return $this->storedFileDownloader->download(
@@ -44,6 +51,23 @@ class NotarialGeneratedDocumentOrchestrator
             $document->filename,
             'Unable to read the generated Word file.',
         );
+    }
+
+    public function preview(NotarialGeneratedDocument $document): StreamedResponse
+    {
+        return $this->storedFileDownloader->inline(
+            (string) $document->disk,
+            $document->path,
+            'Generated Word file not found on storage.',
+            'Generated Word file not found on storage.',
+            $document->filename,
+            'Unable to read the generated Word file.',
+        );
+    }
+
+    public function delete(NotarialGeneratedDocument $document): void
+    {
+        $this->deleteNotarialGeneratedDocument->handle($document);
     }
 
     public function editorConfig(NotarialGeneratedDocument $document, User $user): array

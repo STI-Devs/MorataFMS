@@ -213,7 +213,7 @@ export const BookPageScansPanel = ({ book, canManage }: BookPageScansPanelProps)
                                                     type="button"
                                                     onClick={() => void handleDelete(scan)}
                                                     disabled={deleteScan.isPending}
-                                                    className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-60"
+                                                    className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-60 dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-300 dark:hover:bg-red-500/20"
                                                 >
                                                     Delete
                                                 </button>

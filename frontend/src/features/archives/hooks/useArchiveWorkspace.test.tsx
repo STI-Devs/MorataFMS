@@ -107,4 +107,28 @@ describe('useArchiveWorkspace', () => {
         expect(result.current.globalResults.map((record) => record.blNo)).toEqual(['BL-IMP-001']);
         expect(result.current.flatDocumentList.map((record) => record.blNo)).toEqual(['BL-IMP-001']);
     });
+
+    it('clears the import/export filter when returning to the folder root', () => {
+        const { result } = renderHook(
+            () => useArchiveWorkspace({ archiveData, queryKey: ['archives'] }),
+            { wrapper: createWrapper() },
+        );
+
+        act(() => {
+            result.current.nav({ level: 'bls', year: archiveData[0], type: 'export', month: 2 });
+        });
+
+        act(() => {
+            result.current.setFilterType('import');
+        });
+
+        expect(result.current.filterType).toBe('import');
+
+        act(() => {
+            result.current.nav({ level: 'years' });
+        });
+
+        expect(result.current.drill).toEqual({ level: 'years' });
+        expect(result.current.filterType).toBe('all');
+    });
 });

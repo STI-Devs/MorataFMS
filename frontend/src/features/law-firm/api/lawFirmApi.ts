@@ -129,6 +129,10 @@ export const lawFirmApi = {
         return response.data.data;
     },
 
+    async deleteTemplate(templateId: number): Promise<void> {
+        await api.delete(`/api/notarial/templates/${templateId}`);
+    },
+
     async createBook(payload: CreateNotarialBookPayload): Promise<LegalBook> {
         const formData = new FormData();
         formData.append('book_number', String(payload.book_number));
@@ -194,6 +198,12 @@ export const lawFirmApi = {
         return response.data;
     },
 
+    async getGeneratedDocument(documentId: number): Promise<NotarialGeneratedDocument> {
+        const response = await api.get(`/api/notarial/generated-documents/${documentId}`);
+
+        return response.data.data;
+    },
+
     async createEditableGeneratedDocument(payload: CreateEditableNotarialGeneratedDocumentPayload): Promise<NotarialGeneratedDocument> {
         const response = await api.post('/api/notarial/generated-documents', payload);
 
@@ -204,6 +214,20 @@ export const lawFirmApi = {
         const response = await api.get(`/api/notarial/generated-documents/${documentId}/onlyoffice/config`);
 
         return response.data;
+    },
+
+    async previewGeneratedDocument(documentId: number): Promise<Blob> {
+        const response = await api.get(`/api/notarial/generated-documents/${documentId}/preview`, {
+            responseType: 'blob',
+        });
+
+        return new Blob([response.data], {
+            type: response.headers['content-type'] || response.data.type || 'application/octet-stream',
+        });
+    },
+
+    async deleteGeneratedDocument(documentId: number): Promise<void> {
+        await api.delete(`/api/notarial/generated-documents/${documentId}`);
     },
 
     async getLegacyBookFiles(bookId: number): Promise<{ data: LegalLegacyBookFile[] }> {

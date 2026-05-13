@@ -150,7 +150,6 @@ function AppContent() {
               <Route path={appRoutes.paralegalLegalFiles} element={<LegalArchivePage />} />
               <Route path={appRoutes.paralegalLegalFileRecords} element={<LegalArchiveRecordsPage />} />
               <Route path={appRoutes.paralegalGeneratedDocuments} element={<NotarialGeneratedDocumentsPage />} />
-              <Route path={appRoutes.paralegalGeneratedDocumentEditor} element={<NotarialGeneratedDocumentEditorPage />} />
             </Route>
 
             {/* Processor module */}
@@ -172,6 +171,11 @@ function AppContent() {
           {/* Standalone admin: no sidebar */}
           <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
             <Route path={appRoutes.liveTracking} element={<AdminLiveTracking />} />
+          </Route>
+
+          {/* Standalone legal editor: no sidebar */}
+          <Route element={<ProtectedRoute allowedRoles={['admin', 'paralegal']} />}>
+            <Route path={appRoutes.paralegalGeneratedDocumentEditor} element={<NotarialGeneratedDocumentEditorPage />} />
           </Route>
         </Route>
 

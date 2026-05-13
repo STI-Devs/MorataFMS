@@ -5,14 +5,17 @@ import { renderWithProviders } from '../../../../test/renderWithProviders';
 import { NotarialGeneratedDocumentEditorPage } from './NotarialGeneratedDocumentEditorPage';
 
 const {
+    mockUseNotarialGeneratedDocument,
     mockUseNotarialGeneratedDocumentEditorConfig,
     mockDocEditor,
 } = vi.hoisted(() => ({
+    mockUseNotarialGeneratedDocument: vi.fn(),
     mockUseNotarialGeneratedDocumentEditorConfig: vi.fn(),
     mockDocEditor: vi.fn(),
 }));
 
 vi.mock('../../hooks/useLegalWorkspace', () => ({
+    useNotarialGeneratedDocument: mockUseNotarialGeneratedDocument,
     useNotarialGeneratedDocumentEditorConfig: mockUseNotarialGeneratedDocumentEditorConfig,
 }));
 
@@ -22,6 +25,20 @@ describe('NotarialGeneratedDocumentEditorPage', () => {
         window.DocsAPI = {
             DocEditor: mockDocEditor,
         };
+
+        mockUseNotarialGeneratedDocument.mockReturnValue({
+            data: {
+                id: 1,
+                generated_at: '2026-05-13T14:15:30.000Z',
+                updated_at: '2026-05-13T14:15:30.000Z',
+                generated_file: {
+                    filename: 'maria-affidavit.docx',
+                    formatted_size: '15 KB',
+                },
+            },
+            isError: false,
+            isFetching: false,
+        });
 
         mockUseNotarialGeneratedDocumentEditorConfig.mockReturnValue({
             data: {
@@ -45,6 +62,9 @@ describe('NotarialGeneratedDocumentEditorPage', () => {
         });
 
         expect(screen.getByRole('heading', { name: 'Draft #1' })).toBeInTheDocument();
+        expect(screen.getByText(/App storage saved/i)).toBeInTheDocument();
+        expect(screen.getByText('15 KB stored copy')).toBeInTheDocument();
+        expect(mockUseNotarialGeneratedDocument).toHaveBeenCalledWith(1);
 
         await waitFor(() => {
             expect(mockDocEditor).toHaveBeenCalledWith('onlyoffice-generated-document-editor', {

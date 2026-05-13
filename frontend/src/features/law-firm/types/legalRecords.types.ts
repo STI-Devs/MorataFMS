@@ -83,6 +83,7 @@ export type LegalArchiveFile = {
     size_bytes: number;
     formatted_size: string;
     download_url: string;
+    preview_url?: string;
 };
 
 export type LegalBook = {

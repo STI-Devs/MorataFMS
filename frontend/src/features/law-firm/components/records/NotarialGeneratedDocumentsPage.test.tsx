@@ -1,32 +1,51 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { appRoutes } from '../../../../lib/appRoutes';
 import { renderWithProviders } from '../../../../test/renderWithProviders';
 import { NotarialGeneratedDocumentsPage } from './NotarialGeneratedDocumentsPage';
 
 const {
+    mockUseAuth,
     mockUseLegalCatalog,
     mockUseNotarialGeneratedDocuments,
     mockUseNotarialTemplates,
+    mockUseDeleteNotarialGeneratedDocument,
     mockDownloadFile,
+    mockPreviewGeneratedDocument,
+    mockDeleteGeneratedDocument,
+    mockToastSuccess,
 } = vi.hoisted(() => ({
+    mockUseAuth: vi.fn(),
     mockUseLegalCatalog: vi.fn(),
     mockUseNotarialGeneratedDocuments: vi.fn(),
     mockUseNotarialTemplates: vi.fn(),
+    mockUseDeleteNotarialGeneratedDocument: vi.fn(),
     mockDownloadFile: vi.fn(),
+    mockPreviewGeneratedDocument: vi.fn(),
+    mockDeleteGeneratedDocument: vi.fn(),
+    mockToastSuccess: vi.fn(),
 }));
 
-vi.mock('../../../../components/CurrentDateTime', () => ({
-    CurrentDateTime: () => <div data-testid="current-date-time" />,
+vi.mock('sonner', () => ({
+    toast: {
+        error: vi.fn(),
+        success: mockToastSuccess,
+    },
+}));
+
+vi.mock('../../../auth', () => ({
+    useAuth: mockUseAuth,
 }));
 
 vi.mock('../../api/lawFirmApi', () => ({
     lawFirmApi: {
         downloadFile: mockDownloadFile,
+        previewGeneratedDocument: mockPreviewGeneratedDocument,
     },
 }));
 
 vi.mock('../../hooks/useLegalWorkspace', () => ({
+    useDeleteNotarialGeneratedDocument: mockUseDeleteNotarialGeneratedDocument,
     useLegalCatalog: mockUseLegalCatalog,
     useNotarialGeneratedDocuments: mockUseNotarialGeneratedDocuments,
     useNotarialTemplates: mockUseNotarialTemplates,
@@ -35,6 +54,37 @@ vi.mock('../../hooks/useLegalWorkspace', () => ({
 describe('NotarialGeneratedDocumentsPage', () => {
     beforeEach(() => {
         mockDownloadFile.mockReset();
+        mockPreviewGeneratedDocument.mockReset();
+        mockDeleteGeneratedDocument.mockReset();
+        mockToastSuccess.mockReset();
+        vi.spyOn(window, 'open').mockReturnValue({
+            opener: null,
+            document: {
+                title: '',
+            },
+            location: {
+                replace: vi.fn(),
+            },
+            close: vi.fn(),
+        } as unknown as Window);
+        vi.spyOn(window.URL, 'createObjectURL').mockReturnValue('blob:generated-document-preview');
+        vi.spyOn(window.URL, 'revokeObjectURL').mockImplementation(() => undefined);
+
+        mockUseAuth.mockReturnValue({
+            user: {
+                id: 1,
+                role: 'admin',
+            },
+        });
+
+        mockUseDeleteNotarialGeneratedDocument.mockReturnValue({
+            mutateAsync: mockDeleteGeneratedDocument.mockResolvedValue(undefined),
+            isPending: false,
+        });
+
+        mockPreviewGeneratedDocument.mockResolvedValue(new Blob(['stored docx body'], {
+            type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        }));
 
         mockUseLegalCatalog.mockReturnValue({
             data: {
@@ -136,23 +186,54 @@ describe('NotarialGeneratedDocumentsPage', () => {
         expect(categoryFilter).toHaveValue('affidavit_oath');
         expect(perPageFilter).toHaveValue('50');
         expect(screen.getByRole('heading', { name: 'Generated Documents' })).toBeInTheDocument();
+        expect(screen.getAllByText('Document').length).toBeGreaterThan(0);
+        expect(screen.getAllByText('Client / Party').length).toBeGreaterThan(0);
+        expect(screen.getAllByText('File / Last Saved').length).toBeGreaterThan(0);
+        expect(screen.getByText('Actions')).toBeInTheDocument();
         expect(screen.getAllByText('Affidavit of Loss').length).toBeGreaterThan(0);
         expect(screen.getAllByText('Affidavits / Oaths').length).toBeGreaterThan(0);
         expect(screen.getByText('Maria Santos')).toBeInTheDocument();
         expect(screen.getByText('maria-affidavit.docx')).toBeInTheDocument();
         expect(screen.queryByText(/pending upload/i)).not.toBeInTheDocument();
         expect(screen.queryByText(/no linked book/i)).not.toBeInTheDocument();
+        const actionsButton = screen.getByRole('button', { name: 'Actions for Maria Santos' });
+        fireEvent.click(actionsButton);
+
         expect(screen.getByRole('link', { name: 'Edit' })).toHaveAttribute(
             'href',
             '/paralegal/notarial/generated-documents/1/edit',
         );
 
+        const previewTab = window.open('', '_blank') as Window;
+        fireEvent.click(screen.getByRole('button', { name: 'Preview' }));
+
+        await waitFor(() => {
+            expect(mockPreviewGeneratedDocument).toHaveBeenCalledWith(1);
+        });
+
+        expect(window.URL.createObjectURL).toHaveBeenCalledWith(expect.any(Blob));
+        expect(previewTab.location.replace).toHaveBeenCalledWith('blob:generated-document-preview');
+
+        fireEvent.click(actionsButton);
         fireEvent.click(screen.getByRole('button', { name: 'Download' }));
 
         expect(mockDownloadFile).toHaveBeenCalledWith(
             'https://example.test/maria-affidavit.docx',
             'maria-affidavit.docx',
         );
+
+        fireEvent.click(actionsButton);
+        fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+        expect(screen.getByRole('heading', { name: 'Delete Generated Document' })).toBeInTheDocument();
+        expect(screen.getByText('This action cannot be undone.')).toBeInTheDocument();
+
+        fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete Document' }));
+
+        await waitFor(() => {
+            expect(mockDeleteGeneratedDocument).toHaveBeenCalledWith(1);
+        });
+
+        expect(mockToastSuccess).toHaveBeenCalledWith('Generated document deleted.');
 
         await waitFor(() => {
             expect(mockUseNotarialGeneratedDocuments).toHaveBeenCalledWith(expect.objectContaining({

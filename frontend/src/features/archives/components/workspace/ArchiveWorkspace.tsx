@@ -82,6 +82,7 @@ export const ArchiveWorkspace = ({
 
     const totalImports = archiveData.reduce((sum, year) => sum + year.imports, 0);
     const totalExports = archiveData.reduce((sum, year) => sum + year.exports, 0);
+    const totalBLRecords = totalImports + totalExports;
     const totalDocs = archiveData.reduce((sum, year) => sum + year.documents.length, 0);
     const availableYears = archiveData.map((y) => y.year);
 
@@ -148,6 +149,7 @@ export const ArchiveWorkspace = ({
                     currentDrill={workspace.currentDrill}
                     archiveData={archiveData}
                     totalDocs={totalDocs}
+                    totalBLRecords={totalBLRecords}
                     totalImports={totalImports}
                     totalExports={totalExports}
                     breadcrumbParts={breadcrumbParts}

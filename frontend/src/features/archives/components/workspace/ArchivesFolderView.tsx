@@ -141,7 +141,7 @@ export const SubFolderRow = ({ groupKey, docs, yr, filterStatus, nav, openMenuKe
         <div
             key={groupKey}
             data-testid={`archive-subfolder-row-${groupKey}`}
-            className="border-b border-border/80 bg-surface/90 px-4 py-2.5 transition-colors last:border-b-0 hover:bg-hover"
+            className="border-b border-border/70 bg-surface/90 px-5 py-3 transition-colors last:border-b-0 hover:bg-hover"
         >
             <div className="flex items-center gap-4">
                 <FolderSVG color={iconColor} />
@@ -293,20 +293,12 @@ const YearRow = ({ yr, isOpen, toggleYear, filterType, filterStatus, nav, openMe
             </div>
 
             {isOpen && (
-                <div className="rounded-xl bg-surface-secondary/20 px-5 py-3" data-testid={`archive-year-panel-${yr.year}`}>
-                    <div className="overflow-hidden rounded-xl border border-border/80 bg-surface/70 shadow-sm">
-                        <div className="flex items-center justify-between border-b border-border/80 bg-surface-secondary/55 px-4 py-1.5">
-                            <span className="text-[10px] font-black uppercase tracking-widest text-text-muted">
-                                Folders in FY {yr.year}
-                            </span>
-                            <span className="text-[11px] font-bold text-text-muted">
-                                {visibleGroups.length.toLocaleString()} visible
-                            </span>
-                        </div>
+                <div className="bg-surface-secondary/15 px-5 pb-3 pt-2" data-testid={`archive-year-panel-${yr.year}`}>
+                    <div className="overflow-hidden rounded-lg border border-border/70 bg-surface/75 shadow-sm">
                         {visibleGroups.length === 0 ? (
                             <div className="py-8 text-center text-xs text-text-muted">No folders match the current filter.</div>
                         ) : (
-                            <div className="ml-4 border-l border-border/70">
+                            <div>
                                 {visibleGroups.map(([key, docs]) => (
                                     <SubFolderRow key={key} groupKey={key} docs={docs} yr={yr}
                                         filterStatus={filterStatus} nav={nav}

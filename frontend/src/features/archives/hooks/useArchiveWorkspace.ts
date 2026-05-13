@@ -164,6 +164,9 @@ export function useArchiveWorkspace({ archiveData, queryKey }: UseArchiveWorkspa
         setDrill(next);
         setSearch('');
         setGlobalSearch('');
+        if (next.level === 'years') {
+            setFilterType('all');
+        }
         setIncompleteFilterActive(false);
     };
 

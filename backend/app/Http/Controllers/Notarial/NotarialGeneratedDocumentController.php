@@ -38,11 +38,34 @@ class NotarialGeneratedDocumentController extends Controller
             ->setStatusCode(201);
     }
 
+    public function show(NotarialGeneratedDocument $document): NotarialGeneratedDocumentResource
+    {
+        $this->authorize('view', $document);
+
+        return new NotarialGeneratedDocumentResource($this->generatedDocuments->show($document));
+    }
+
     public function download(NotarialGeneratedDocument $document): StreamedResponse
     {
         $this->authorize('view', $document);
 
         return $this->generatedDocuments->download($document);
+    }
+
+    public function preview(NotarialGeneratedDocument $document): StreamedResponse
+    {
+        $this->authorize('view', $document);
+
+        return $this->generatedDocuments->preview($document);
+    }
+
+    public function destroy(NotarialGeneratedDocument $document): JsonResponse
+    {
+        $this->authorize('delete', $document);
+
+        $this->generatedDocuments->delete($document);
+
+        return response()->json(['message' => 'Generated document deleted.']);
     }
 
     public function editorConfig(Request $request, NotarialGeneratedDocument $document): JsonResponse

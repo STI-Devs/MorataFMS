@@ -14,7 +14,7 @@ class DeleteNotarialTemplate
 
     public function handle(NotarialTemplate $template): void
     {
-        if ($template->records()->exists()) {
+        if ($template->generatedDocuments()->exists()) {
             throw new HttpException(409, 'Generated records already exist for this template. Archive it instead of deleting.');
         }
 

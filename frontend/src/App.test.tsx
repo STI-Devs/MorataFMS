@@ -7,10 +7,12 @@ import { resetAuthProviderStateForTests } from './features/auth/context/authProv
 import { appRoutes } from './lib/appRoutes';
 import { createTestQueryClient } from './test/renderWithProviders';
 
-const { mockGetCurrentUser, mockLogin, mockLogout } = vi.hoisted(() => ({
+const { mockGetCurrentUser, mockLogin, mockLogout, mockGetGeneratedDocumentEditorConfig, mockDocEditor } = vi.hoisted(() => ({
     mockGetCurrentUser: vi.fn(),
     mockLogin: vi.fn(),
     mockLogout: vi.fn(),
+    mockGetGeneratedDocumentEditorConfig: vi.fn(),
+    mockDocEditor: vi.fn(),
 }));
 
 vi.mock('./features/auth/api/authApi', () => ({
@@ -27,7 +29,37 @@ vi.mock('./features/auth/api/authApi', () => ({
     },
 }));
 
-function renderApp(route = appRoutes.landing) {
+vi.mock('./features/law-firm/api/lawFirmApi', () => ({
+    lawFirmApi: {
+        getGeneratedDocumentEditorConfig: mockGetGeneratedDocumentEditorConfig,
+    },
+}));
+
+const authenticatedParalegal = {
+    id: 7,
+    email: 'paralegal@example.test',
+    name: 'Paralegal User',
+    job_title: 'Paralegal',
+    role: 'paralegal',
+    role_label: 'Paralegal',
+    departments: ['legal'],
+    multi_department: false,
+    permissions: {
+        access_brokerage_module: false,
+        access_legal_module: true,
+        manage_users: false,
+        manage_clients: false,
+        view_reports: false,
+        view_audit_logs: false,
+        manage_transaction_oversight: false,
+        upload_archives: true,
+        view_notarial_books: true,
+        manage_notarial_books: false,
+        manage_notarial_templates: true,
+    },
+} as const;
+
+function renderApp(route: string = appRoutes.landing) {
     return render(
         <QueryClientProvider client={createTestQueryClient()}>
             <MemoryRouter initialEntries={[route]}>
@@ -42,6 +74,11 @@ describe('App bootstrap routing', () => {
         mockGetCurrentUser.mockReset();
         mockLogin.mockReset();
         mockLogout.mockReset();
+        mockGetGeneratedDocumentEditorConfig.mockReset();
+        mockDocEditor.mockReset();
+        window.DocsAPI = {
+            DocEditor: mockDocEditor,
+        };
         resetAuthProviderStateForTests();
     });
 
@@ -66,5 +103,33 @@ describe('App bootstrap routing', () => {
         });
 
         expect(screen.queryByText('Sign In')).not.toBeInTheDocument();
+    });
+
+    it('opens the generated document editor as a standalone full-screen route', async () => {
+        mockGetCurrentUser.mockResolvedValue(authenticatedParalegal);
+        mockGetGeneratedDocumentEditorConfig.mockResolvedValue({
+            document_server_url: 'http://onlyoffice.test',
+            config: {
+                documentType: 'word',
+                document: {
+                    title: 'ichihara-affidavit.docx',
+                },
+            },
+        });
+
+        renderApp('/paralegal/notarial/generated-documents/1/edit');
+
+        await waitFor(() => {
+            expect(mockDocEditor).toHaveBeenCalledWith('onlyoffice-generated-document-editor', {
+                documentType: 'word',
+                document: {
+                    title: 'ichihara-affidavit.docx',
+                },
+            });
+        });
+
+        expect(screen.getByRole('link', { name: 'Back to Generated Documents' })).toBeInTheDocument();
+        expect(screen.queryByText('F.M Morata')).not.toBeInTheDocument();
+        expect(screen.queryByText('Main Menu')).not.toBeInTheDocument();
     });
 });

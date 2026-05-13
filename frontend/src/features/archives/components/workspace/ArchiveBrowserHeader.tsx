@@ -12,6 +12,7 @@ type Props = {
     currentDrill: DrillState;
     archiveData: ArchiveYear[];
     totalDocs: number;
+    totalBLRecords: number;
     totalImports: number;
     totalExports: number;
     breadcrumbParts: BreadcrumbPart[];
@@ -29,6 +30,7 @@ export const ArchiveBrowserHeader = ({
     currentDrill,
     archiveData,
     totalDocs,
+    totalBLRecords,
     totalImports,
     totalExports,
     breadcrumbParts,
@@ -54,7 +56,7 @@ export const ArchiveBrowserHeader = ({
                     <div className="min-w-0">
                         <p className="truncate text-sm font-black text-text-primary">Folder View</p>
                         <p className="text-xs font-semibold text-text-muted">
-                            {archiveData.length.toLocaleString()} filing years · {totalDocs.toLocaleString()} files · {totalImports.toLocaleString()} imports · {totalExports.toLocaleString()} exports
+                            {archiveData.length.toLocaleString()} filing years · {totalDocs.toLocaleString()} files · {totalBLRecords.toLocaleString()} BL Records · {totalImports.toLocaleString()} imports · {totalExports.toLocaleString()} exports
                         </p>
                     </div>
                 )}
