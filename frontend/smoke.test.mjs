@@ -62,7 +62,7 @@ test('global csp allows the production ONLYOFFICE document server', () => {
     const vercelConfig = JSON.parse(read('vercel.json'));
     const globalHeaders = vercelConfig.headers.find(({ source }) => source === '/(.*)');
     const globalCsp = globalHeaders.headers.find(({ key }) => key === 'Content-Security-Policy').value;
-    const onlyOfficeOrigin = 'https://morata-onlyoffice-production.up.railway.app';
+    const onlyOfficeOrigin = 'https://moratafms-production.up.railway.app';
 
     assert.match(globalCsp, new RegExp(`script-src[^;]*${onlyOfficeOrigin.replaceAll('.', '\\.')}`));
     assert.match(globalCsp, new RegExp(`frame-src[^;]*${onlyOfficeOrigin.replaceAll('.', '\\.')}`));
