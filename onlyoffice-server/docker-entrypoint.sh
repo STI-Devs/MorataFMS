@@ -35,6 +35,7 @@ lib_root="/var/lib/${COMPANY_NAME}"
 mkdir -p \
   "${data_root}/certs" \
   "${data_root}/.private" \
+  /var/log/nginx \
   "${log_root}/documentserver/adminpanel" \
   "${log_root}/documentserver/converter" \
   "${log_root}/documentserver/docservice" \
@@ -46,6 +47,8 @@ mkdir -p \
   "${lib_root}/documentserver-example/files"
 
 touch \
+  /var/log/nginx/access.log \
+  /var/log/nginx/error.log \
   "${log_root}/documentserver/adminpanel/out.log" \
   "${log_root}/documentserver/adminpanel/err.log" \
   "${log_root}/documentserver/converter/out.log" \
@@ -69,7 +72,7 @@ if [ -d /etc/supervisor/conf.d ]; then
 fi
 
 if [ -f /etc/nginx/includes/ds-example.conf ]; then
-  rm -f /etc/nginx/includes/ds-example.conf
+  : > /etc/nginx/includes/ds-example.conf
 fi
 
 if [ ! -x /app/ds/run-document-server.sh ]; then
