@@ -63,6 +63,9 @@ if [ -d /etc/supervisor/conf.d ]; then
   find /etc/supervisor/conf.d -maxdepth 1 -type f -name '*.conf' -exec sed -i "s/COMPANY_NAME/${COMPANY_NAME}/g" {} +
   rm -f /etc/supervisor/conf.d/ds-adminpanel.conf
   rm -f /etc/supervisor/conf.d/ds-example.conf
+  if [ -f /etc/supervisor/conf.d/ds.conf ]; then
+    sed -i 's/,example//g; s/,adminpanel//g' /etc/supervisor/conf.d/ds.conf
+  fi
 fi
 
 if [ -f /etc/nginx/includes/ds-example.conf ]; then

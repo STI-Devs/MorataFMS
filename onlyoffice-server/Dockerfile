@@ -11,7 +11,7 @@ COPY docker-entrypoint.sh /usr/local/bin/morata-onlyoffice-entrypoint.sh
 RUN set -eux; \
     rm -f /etc/supervisor/conf.d/ds-adminpanel.conf; \
     if [ -f /etc/supervisor/conf.d/ds.conf ]; then \
-        sed -i 's/,adminpanel//g' /etc/supervisor/conf.d/ds.conf; \
+        sed -i 's/,example//g; s/,adminpanel//g' /etc/supervisor/conf.d/ds.conf; \
     fi; \
     rm -f /etc/supervisor/conf.d/ds-example.conf; \
     rm -f /etc/nginx/includes/ds-example.conf; \
