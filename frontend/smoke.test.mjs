@@ -58,6 +58,16 @@ test('login route csp allows Turnstile inline challenge scripts without loosenin
     assert.match(globalCsp, /script-src-attr 'none'/);
 });
 
+test('global csp allows the production ONLYOFFICE document server', () => {
+    const vercelConfig = JSON.parse(read('vercel.json'));
+    const globalHeaders = vercelConfig.headers.find(({ source }) => source === '/(.*)');
+    const globalCsp = globalHeaders.headers.find(({ key }) => key === 'Content-Security-Policy').value;
+    const onlyOfficeOrigin = 'https://morata-onlyoffice-production.up.railway.app';
+
+    assert.match(globalCsp, new RegExp(`script-src[^;]*${onlyOfficeOrigin.replaceAll('.', '\\.')}`));
+    assert.match(globalCsp, new RegExp(`frame-src[^;]*${onlyOfficeOrigin.replaceAll('.', '\\.')}`));
+});
+
 test('document preview does not leak signed URLs to Google Docs Viewer', () => {
     const previewHook = read('src/features/tracking/hooks/useDocumentPreview.ts');
     assert.doesNotMatch(previewHook, /docs\.google/);
