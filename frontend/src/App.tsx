@@ -36,7 +36,6 @@ import {
   NotarialGeneratedDocumentsPage,
   LocationOfGoodsManagement,
   LawFirmPage,
-  NotarialBooksPage,
   NotarialGeneratedDocumentEditorPage,
   ParalegalDashboard,
   Profile,
@@ -149,7 +148,6 @@ function AppContent() {
               <Route path={appRoutes.paralegalDocuments} element={<Navigate to={appRoutes.paralegalGenerator} replace />} />
               <Route path={appRoutes.paralegalNotarialIndex} element={<Navigate to={appRoutes.paralegalGenerator} replace />} />
               <Route path={appRoutes.paralegalLegalFilesIndex} element={<Navigate to={appRoutes.paralegalLegalFiles} replace />} />
-              <Route path={appRoutes.paralegalBooks} element={<NotarialBooksPage />} />
               <Route path={appRoutes.paralegalGenerator} element={<DocumentGeneratorPage />} />
               <Route path={appRoutes.paralegalMasterSetup} element={<LegalMasterSetupPage />} />
               <Route path={appRoutes.paralegalNotarialLegacyFolderUpload} element={<Navigate to={appRoutes.paralegalLegacyFolderUpload} replace />} />

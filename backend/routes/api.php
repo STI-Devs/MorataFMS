@@ -12,9 +12,6 @@ use App\Http\Controllers\LawFirmDocuments\LawFirmDocumentTemplateController;
 use App\Http\Controllers\LawFirmDocuments\LawFirmGeneratedDocumentController;
 use App\Http\Controllers\LegacyBatches\LegacyBatchController;
 use App\Http\Controllers\LegalArchive\LegalArchiveRecordController;
-use App\Http\Controllers\Notarial\NotarialBookController;
-use App\Http\Controllers\Notarial\NotarialLegacyFileController;
-use App\Http\Controllers\Notarial\NotarialPageScanController;
 use App\Http\Controllers\ReferenceData\CountryController;
 use App\Http\Controllers\ReferenceData\LegalPartyController;
 use App\Http\Controllers\ReferenceData\LocationOfGoodsController;
@@ -143,28 +140,6 @@ Route::middleware(['auth:sanctum', 'active-session', 'throttle:api-general'])->g
             ->name('notarial.generated-documents.preview')
             ->middleware('throttle:api-documents');
         Route::delete('generated-documents/{document}', [LawFirmGeneratedDocumentController::class, 'destroy']);
-        Route::apiResource('books', NotarialBookController::class);
-        Route::get('books/{book}/scan/download', [NotarialBookController::class, 'downloadScan'])
-            ->name('notarial.books.scan.download')
-            ->middleware('throttle:api-documents');
-        Route::get('books/{book}/legacy-files', [NotarialLegacyFileController::class, 'index'])
-            ->middleware('throttle:api-search');
-        Route::post('books/{book}/legacy-files', [NotarialLegacyFileController::class, 'store'])
-            ->middleware('throttle:api-documents');
-        Route::delete('legacy-files/{legacyFile}', [NotarialLegacyFileController::class, 'destroy']);
-        Route::get('legacy-files/{legacyFile}/download', [NotarialLegacyFileController::class, 'download'])
-            ->name('notarial.legacy-files.download')
-            ->middleware('throttle:api-documents');
-        Route::get('books/{book}/page-scans', [NotarialPageScanController::class, 'index'])
-            ->middleware('throttle:api-search');
-        Route::post('books/{book}/page-scans', [NotarialPageScanController::class, 'store'])
-            ->middleware('throttle:api-documents');
-        Route::post('page-scans/{scan}', [NotarialPageScanController::class, 'update'])
-            ->middleware('throttle:api-documents');
-        Route::delete('page-scans/{scan}', [NotarialPageScanController::class, 'destroy']);
-        Route::get('page-scans/{scan}/download', [NotarialPageScanController::class, 'download'])
-            ->name('notarial.page-scans.download')
-            ->middleware('throttle:api-documents');
     });
 
     Route::prefix('legal')->group(function () {

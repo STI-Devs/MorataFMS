@@ -30,8 +30,6 @@ test('creating a paralegal user returns normalized departments and permissions',
     $response->assertJsonPath('data.departments', ['legal']);
     $response->assertJsonPath('data.permissions.access_legal_module', true);
     $response->assertJsonPath('data.permissions.access_brokerage_module', false);
-    $response->assertJsonPath('data.permissions.view_notarial_books', true);
-    $response->assertJsonPath('data.permissions.manage_notarial_books', false);
     $response->assertJsonPath('data.permissions.manage_notarial_templates', true);
 });
 

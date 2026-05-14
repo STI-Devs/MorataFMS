@@ -53,8 +53,6 @@ const authenticatedParalegal = {
         view_audit_logs: false,
         manage_transaction_oversight: false,
         upload_archives: true,
-        view_notarial_books: true,
-        manage_notarial_books: false,
         manage_notarial_templates: true,
     },
 } as const;

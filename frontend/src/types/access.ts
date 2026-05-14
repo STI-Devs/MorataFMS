@@ -9,7 +9,5 @@ export interface PermissionMap {
   view_audit_logs: boolean;
   manage_transaction_oversight: boolean;
   upload_archives: boolean;
-  view_notarial_books: boolean;
-  manage_notarial_books: boolean;
   manage_notarial_templates: boolean;
 }

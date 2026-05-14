@@ -65,9 +65,7 @@ describe('NotarialTemplateUploadPage', () => {
                 id: 1,
                 role: 'admin',
                 permissions: {
-                    view_notarial_books: true,
                     manage_notarial_templates: true,
-                    manage_notarial_books: true,
                 },
             },
         });

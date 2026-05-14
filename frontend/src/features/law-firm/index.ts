@@ -4,6 +4,5 @@ export * from './components/archive/LegalArchiveRecordsPage';
 export * from './components/records/DocumentGeneratorPage';
 export * from './components/records/NotarialGeneratedDocumentsPage';
 export * from './components/records/NotarialGeneratedDocumentEditorPage';
-export * from './components/notarial/NotarialBooksPage';
 export * from './components/notarial/LegalMasterSetupPage';
 export * from './components/pages/ParalegalDashboard';

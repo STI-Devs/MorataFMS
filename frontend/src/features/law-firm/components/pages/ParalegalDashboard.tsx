@@ -1,9 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { CurrentDateTime } from '../../../../components/CurrentDateTime';
 import { appRoutes } from '../../../../lib/appRoutes';
-import { useAuth } from '../../../auth';
 import {
-    useLegalBooks,
     useNotarialGeneratedDocuments,
     useNotarialTemplates,
 } from '../../hooks/useLegalWorkspace';
@@ -30,13 +28,6 @@ const baseModuleCards: ModuleCard[] = [
         path: appRoutes.paralegalGeneratedDocuments,
         accent: '#30d158',
         icon: 'M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4',
-    },
-    {
-        label: 'Book Register',
-        description: 'Register physical legal books and maintain scanned page archives for historical reference.',
-        path: appRoutes.paralegalBooks,
-        accent: '#636366',
-        icon: 'M4 6h16M4 10h16M6 14h12a2 2 0 012 2v3a1 1 0 01-1 1H5a1 1 0 01-1-1v-3a2 2 0 012-2z',
     },
     {
         label: 'Legal Create Draft',
@@ -78,22 +69,16 @@ const OverviewCard = ({ label, value, description }: { label: string; value: str
 
 export const ParalegalDashboard = () => {
     const navigate = useNavigate();
-    const { user } = useAuth();
-    const canViewBooks = Boolean(user?.permissions.view_notarial_books);
 
-    const booksQuery = useLegalBooks({ per_page: 100 });
     const templatesQuery = useNotarialTemplates({ page: 1, per_page: 1 });
     const readyTemplatesQuery = useNotarialTemplates({ template_status: 'ready', page: 1, per_page: 1 });
     const generatedDocumentsQuery = useNotarialGeneratedDocuments({ page: 1, per_page: 1 });
     const legalGeneratedDocumentsQuery = useNotarialGeneratedDocuments({ module: 'legal', page: 1, per_page: 1 });
 
-    const books = booksQuery.data?.data ?? [];
-    const activeBook = books.find((book) => book.status === 'active') ?? null;
     const templateCount = templatesQuery.data?.meta.total ?? 0;
     const readyTemplateCount = readyTemplatesQuery.data?.meta.total ?? 0;
     const generatedDocumentCount = generatedDocumentsQuery.data?.meta.total ?? 0;
     const legalGeneratedDocumentCount = legalGeneratedDocumentsQuery.data?.meta.total ?? 0;
-    const moduleCards = canViewBooks ? baseModuleCards : baseModuleCards.filter((card) => card.label !== 'Book Register');
 
     return (
         <div className="space-y-8 px-6 py-6">
@@ -116,12 +101,7 @@ export const ParalegalDashboard = () => {
                     <div className="h-5 w-1 rounded-full bg-blue-500" />
                     <h2 className="text-sm font-bold uppercase tracking-[0.22em] text-text-secondary">Overview</h2>
                 </div>
-                <div className="grid gap-4 lg:grid-cols-5">
-                    <OverviewCard
-                        label="Current Book"
-                        value={activeBook ? `Book ${activeBook.book_number}` : 'None'}
-                        description={activeBook ? `${activeBook.year} is the current book in the register.` : 'No physical book marked active.'}
-                    />
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                     <OverviewCard
                         label="Document Masters"
                         value={String(templateCount)}
@@ -150,8 +130,8 @@ export const ParalegalDashboard = () => {
                     <div className="h-5 w-1 rounded-full bg-blue-500" />
                     <h2 className="text-sm font-bold uppercase tracking-[0.22em] text-text-secondary">Workflows</h2>
                 </div>
-                <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
-                    {moduleCards.map((card) => (
+                <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
+                    {baseModuleCards.map((card) => (
                         <button
                             key={card.label}
                             id={`paralegal-module-${card.label.toLowerCase().replace(/\s+/g, '-')}`}

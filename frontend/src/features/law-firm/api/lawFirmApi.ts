@@ -2,18 +2,11 @@ import api from '../../../lib/axios';
 import type {
     CreateLegalArchiveRecordPayload,
     CreateEditableNotarialGeneratedDocumentPayload,
-    CreateNotarialBookPayload,
-    CreateNotarialLegacyFilesPayload,
-    CreateNotarialPageScanPayload,
     CreateNotarialTemplatePayload,
     LegalArchiveQuery,
     LegalArchiveRecord,
-    LegalBook,
-    LegalBooksQuery,
     LegalCatalogResponse,
     LawFirmDocumentModule,
-    LegalLegacyBookFile,
-    LegalPageScan,
     LegalParty,
     NotarialTemplate,
     NotarialTemplateQuery,
@@ -21,9 +14,7 @@ import type {
     NotarialGeneratedDocumentQuery,
     OnlyOfficeEditorConfigResponse,
     PaginatedResponse,
-    UpdateNotarialBookPayload,
     UpdateNotarialTemplatePayload,
-    UpdateNotarialPageScanPayload,
 } from '../types/legalRecords.types';
 
 const documentWorkflowPrefix = (module?: LawFirmDocumentModule): string =>
@@ -53,12 +44,6 @@ export const lawFirmApi = {
 
     async getLegalParties(params?: { search?: string; limit?: number }): Promise<{ data: LegalParty[] }> {
         const response = await api.get('/api/notarial/legal-parties', { params });
-
-        return response.data;
-    },
-
-    async getBooks(params?: LegalBooksQuery): Promise<PaginatedResponse<LegalBook>> {
-        const response = await api.get('/api/notarial/books', { params });
 
         return response.data;
     },
@@ -143,65 +128,6 @@ export const lawFirmApi = {
         await api.delete(`${documentWorkflowPrefix(module)}/templates/${templateId}`);
     },
 
-    async createBook(payload: CreateNotarialBookPayload): Promise<LegalBook> {
-        const formData = new FormData();
-        formData.append('book_number', String(payload.book_number));
-        formData.append('year', String(payload.year));
-
-        if (payload.status) {
-            formData.append('status', payload.status);
-        }
-
-        if (payload.notes) {
-            formData.append('notes', payload.notes);
-        }
-
-        if (payload.file) {
-            formData.append('file', payload.file);
-        }
-
-        const response = await api.post('/api/notarial/books', formData, {
-            headers: {
-                'Content-Type': 'multipart/form-data',
-            },
-        });
-
-        return response.data.data;
-    },
-
-    async updateBook(bookId: number, payload: UpdateNotarialBookPayload): Promise<LegalBook> {
-        const formData = new FormData();
-        formData.append('_method', 'PUT');
-
-        if (payload.book_number !== undefined) {
-            formData.append('book_number', String(payload.book_number));
-        }
-
-        if (payload.year !== undefined) {
-            formData.append('year', String(payload.year));
-        }
-
-        if (payload.status) {
-            formData.append('status', payload.status);
-        }
-
-        if (payload.notes !== undefined) {
-            formData.append('notes', payload.notes);
-        }
-
-        if (payload.file) {
-            formData.append('file', payload.file);
-        }
-
-        const response = await api.post(`/api/notarial/books/${bookId}`, formData, {
-            headers: {
-                'Content-Type': 'multipart/form-data',
-            },
-        });
-
-        return response.data.data;
-    },
-
     async getGeneratedDocuments(params?: NotarialGeneratedDocumentQuery): Promise<PaginatedResponse<NotarialGeneratedDocument>> {
         const response = await api.get(`${documentWorkflowPrefix(params?.module)}/generated-documents`, { params });
 
@@ -238,75 +164,6 @@ export const lawFirmApi = {
 
     async deleteGeneratedDocument(documentId: number, module?: LawFirmDocumentModule): Promise<void> {
         await api.delete(`${documentWorkflowPrefix(module)}/generated-documents/${documentId}`);
-    },
-
-    async getLegacyBookFiles(bookId: number): Promise<{ data: LegalLegacyBookFile[] }> {
-        const response = await api.get(`/api/notarial/books/${bookId}/legacy-files`);
-
-        return response.data;
-    },
-
-    async createLegacyBookFiles(bookId: number, payload: CreateNotarialLegacyFilesPayload): Promise<LegalLegacyBookFile[]> {
-        const formData = new FormData();
-
-        payload.files.forEach((file, index) => {
-            formData.append(`files[${index}]`, file);
-        });
-
-        const response = await api.post(`/api/notarial/books/${bookId}/legacy-files`, formData, {
-            headers: {
-                'Content-Type': 'multipart/form-data',
-            },
-        });
-
-        return response.data.data;
-    },
-
-    async deleteLegacyBookFile(fileId: number): Promise<void> {
-        await api.delete(`/api/notarial/legacy-files/${fileId}`);
-    },
-
-    async getBookPageScans(bookId: number): Promise<{ data: LegalPageScan[] }> {
-        const response = await api.get(`/api/notarial/books/${bookId}/page-scans`);
-
-        return response.data;
-    },
-
-    async createBookPageScan(bookId: number, payload: CreateNotarialPageScanPayload): Promise<LegalPageScan> {
-        const formData = new FormData();
-        formData.append('page_start', String(payload.page_start));
-        formData.append('page_end', String(payload.page_end));
-        formData.append('file', payload.file);
-
-        const response = await api.post(`/api/notarial/books/${bookId}/page-scans`, formData, {
-            headers: {
-                'Content-Type': 'multipart/form-data',
-            },
-        });
-
-        return response.data.data;
-    },
-
-    async updateBookPageScan(scanId: number, payload: UpdateNotarialPageScanPayload): Promise<LegalPageScan> {
-        const formData = new FormData();
-        formData.append('page_start', String(payload.page_start));
-        formData.append('page_end', String(payload.page_end));
-
-        if (payload.file) {
-            formData.append('file', payload.file);
-        }
-
-        const response = await api.post(`/api/notarial/page-scans/${scanId}`, formData, {
-            headers: {
-                'Content-Type': 'multipart/form-data',
-            },
-        });
-
-        return response.data.data;
-    },
-
-    async deleteBookPageScan(scanId: number): Promise<void> {
-        await api.delete(`/api/notarial/page-scans/${scanId}`);
     },
 
     async getArchive(params?: LegalArchiveQuery): Promise<PaginatedResponse<LegalArchiveRecord>> {

@@ -3,13 +3,9 @@
 namespace Database\Seeders;
 
 use App\Models\LegalParty;
-use App\Models\NotarialBook;
 use App\Models\NotarialGeneratedDocument;
-use App\Models\NotarialLegacyFile;
-use App\Models\NotarialPageScan;
 use App\Models\NotarialTemplate;
 use App\Models\User;
-use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpWord\IOFactory;
@@ -27,104 +23,9 @@ class NotarialModuleSeeder extends Seeder
             return;
         }
 
-        $legacyBook = NotarialBook::withoutAuditing(function () use ($admin): NotarialBook {
-            return NotarialBook::query()->firstOrCreate(
-                ['book_number' => 1, 'year' => 2025],
-                [
-                    'status' => 'archived',
-                    'notes' => 'Historical Book 1 archive for scanned pages and imported files.',
-                    'opened_at' => Carbon::create(2025, 1, 1, 8, 0, 0),
-                    'closed_at' => Carbon::create(2025, 12, 31, 17, 0, 0),
-                    'created_by' => $admin->id,
-                ],
-            );
-        });
-
-        $currentBook = NotarialBook::withoutAuditing(function () use ($admin): NotarialBook {
-            return NotarialBook::query()->firstOrCreate(
-                ['book_number' => 2, 'year' => 2026],
-                [
-                    'status' => 'active',
-                    'notes' => 'Current physical book used for scanned page archives.',
-                    'opened_at' => Carbon::create(2026, 1, 2, 8, 0, 0),
-                    'closed_at' => null,
-                    'created_by' => $admin->id,
-                ],
-            );
-        });
-
-        $this->seedLegacyFiles($legacyBook, $paralegal);
-        $this->seedBookPageScans($currentBook, $paralegal);
-
         $readyTemplate = $this->seedReadyTemplate($admin);
         $this->seedPendingTemplate($admin);
         $this->seedGeneratedRecords($readyTemplate, $paralegal);
-    }
-
-    private function seedLegacyFiles(NotarialBook $book, User $paralegal): void
-    {
-        foreach ([
-            ['filename' => 'book-1-pages-001-050.pdf', 'title' => 'Book 1 scanned pages 1 to 50'],
-            ['filename' => 'book-1-pages-051-100.pdf', 'title' => 'Book 1 scanned pages 51 to 100'],
-        ] as $legacyFile) {
-            $path = 'notarial-legacy-files/2025/book-001/'.$legacyFile['filename'];
-            $contents = $this->storeSamplePdf($path, $legacyFile['title']);
-
-            NotarialLegacyFile::withoutAuditing(function () use ($book, $paralegal, $legacyFile, $path, $contents): void {
-                NotarialLegacyFile::query()->firstOrCreate(
-                    [
-                        'notarial_book_id' => $book->id,
-                        'path' => $path,
-                    ],
-                    [
-                        'filename' => $legacyFile['filename'],
-                        'disk' => $this->diskName(),
-                        'mime_type' => 'application/pdf',
-                        'size_bytes' => strlen($contents),
-                        'uploaded_by' => $paralegal->id,
-                    ],
-                );
-            });
-        }
-    }
-
-    private function seedBookPageScans(NotarialBook $book, User $paralegal): void
-    {
-        foreach ([
-            [
-                'page_start' => 1,
-                'page_end' => 10,
-                'filename' => 'book-2-pages-001-010.pdf',
-                'title' => 'Book 2 page-indexed scan 1 to 10',
-            ],
-            [
-                'page_start' => 11,
-                'page_end' => 20,
-                'filename' => 'book-2-pages-011-020.pdf',
-                'title' => 'Book 2 page-indexed scan 11 to 20',
-            ],
-        ] as $scan) {
-            $path = 'notarial-page-scans/2026/book-002/'.$scan['filename'];
-            $contents = $this->storeSamplePdf($path, $scan['title']);
-
-            NotarialPageScan::withoutAuditing(function () use ($book, $paralegal, $scan, $path, $contents): void {
-                NotarialPageScan::query()->firstOrCreate(
-                    [
-                        'notarial_book_id' => $book->id,
-                        'page_start' => $scan['page_start'],
-                        'page_end' => $scan['page_end'],
-                    ],
-                    [
-                        'filename' => $scan['filename'],
-                        'path' => $path,
-                        'disk' => $this->diskName(),
-                        'mime_type' => 'application/pdf',
-                        'size_bytes' => strlen($contents),
-                        'uploaded_by' => $paralegal->id,
-                    ],
-                );
-            });
-        }
     }
 
     private function seedReadyTemplate(User $admin): NotarialTemplate
@@ -296,36 +197,6 @@ class NotarialModuleSeeder extends Seeder
         @unlink($targetPath);
 
         return $contents;
-    }
-
-    private function storeSamplePdf(string $path, string $title): string
-    {
-        $contents = $this->samplePdfContents($title);
-
-        Storage::disk($this->diskName())->put($path, $contents);
-
-        return $contents;
-    }
-
-    private function samplePdfContents(string $title): string
-    {
-        $safeTitle = preg_replace('/[^A-Za-z0-9 .\\-]/', '', $title) ?: 'Morata FMS Sample PDF';
-        $streamText = "BT /F1 18 Tf 72 720 Td ({$safeTitle}) Tj ET";
-        $length = strlen($streamText);
-
-        return "%PDF-1.4\n"
-            ."1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n"
-            ."2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj\n"
-            ."3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >> endobj\n"
-            ."4 0 obj << /Length {$length} >> stream\n{$streamText}\nendstream endobj\n"
-            ."5 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj\n"
-            ."xref\n0 6\n0000000000 65535 f \n"
-            ."0000000010 00000 n \n"
-            ."0000000063 00000 n \n"
-            ."0000000122 00000 n \n"
-            ."0000000248 00000 n \n"
-            ."0000000344 00000 n \n"
-            ."trailer << /Size 6 /Root 1 0 R >>\nstartxref\n414\n%%EOF";
     }
 
     private function diskName(): string

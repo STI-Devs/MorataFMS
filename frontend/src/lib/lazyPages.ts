@@ -81,10 +81,6 @@ export const LegalMasterSetupPage = lazy(() =>
     import('../features/law-firm/components/notarial/LegalMasterSetupPage').then((module) => ({ default: module.LegalMasterSetupPage })),
 );
 
-export const NotarialBooksPage = lazy(() =>
-    import('../features/law-firm/components/notarial/NotarialBooksPage').then((module) => ({ default: module.NotarialBooksPage })),
-);
-
 export const LegalArchivePage = lazy(() =>
     import('../features/law-firm/components/archive/LegalArchivePage').then((module) => ({ default: module.LegalArchivePage })),
 );

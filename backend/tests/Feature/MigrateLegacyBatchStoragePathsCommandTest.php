@@ -157,7 +157,14 @@ test('ops migrate legacy batch storage paths maps operator connections to the in
 });
 
 test('ops migrate legacy batch storage paths raises low cli memory limits for s3 inspection', function () {
-    ini_set('memory_limit', '128M');
+    $currentUsageMegabytes = (int) ceil(memory_get_usage(true) / 1024 / 1024);
+    $testLimitMegabytes = max(256, $currentUsageMegabytes + 32);
+
+    if ($testLimitMegabytes >= 512) {
+        $this->markTestSkipped('Current test process memory is too high to lower the memory limit below the migration floor.');
+    }
+
+    ini_set('memory_limit', $testLimitMegabytes.'M');
 
     $command = app(MigrateLegacyBatchStoragePaths::class);
     $method = new ReflectionMethod($command, 'ensureMemoryLimit');

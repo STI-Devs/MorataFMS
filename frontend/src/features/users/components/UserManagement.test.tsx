@@ -57,8 +57,6 @@ const targetUser: User = {
         view_audit_logs: false,
         manage_transaction_oversight: false,
         upload_archives: false,
-        view_notarial_books: false,
-        manage_notarial_books: false,
         manage_notarial_templates: false,
     },
     created_at: '2026-05-14T00:00:00.000Z',

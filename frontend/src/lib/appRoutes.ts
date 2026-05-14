@@ -44,7 +44,6 @@ export const appRoutes = {
     paralegalLegacyNotarialBatches: '/paralegal/legacy-records/notarial-batches',
     paralegalLegacyLegalBatches: '/paralegal/legacy-records/legal-batches',
     paralegalNotarialIndex: '/paralegal/notarial',
-    paralegalBooks: '/paralegal/notarial/books',
     paralegalGenerator: '/paralegal/notarial/generator',
     paralegalMasterSetup: '/paralegal/notarial/master-setup',
     paralegalNotarialLegacyFolderUpload: '/paralegal/notarial/legacy-folder-upload',
@@ -192,7 +191,6 @@ export const legalGuardPaths = [
     appRoutes.paralegalLegacyNotarialBatches,
     appRoutes.paralegalLegacyLegalBatches,
     appRoutes.paralegalNotarialIndex,
-    appRoutes.paralegalBooks,
     appRoutes.paralegalGenerator,
     appRoutes.paralegalMasterSetup,
     appRoutes.paralegalNotarialLegacyFolderUpload,
@@ -218,7 +216,6 @@ export const legalNavigationGroups: LegalNavigationGroup[] = [
             { label: 'Create Draft', path: appRoutes.paralegalGenerator, icon: 'M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2' },
             { label: 'Document Masters', path: appRoutes.paralegalMasterSetup, icon: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1M12 4v12m0-12l-4 4m4-4l4 4', requiredPermission: 'manage_notarial_templates' },
             { label: 'Generated Documents', path: appRoutes.paralegalGeneratedDocuments, icon: 'M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4' },
-            { label: 'Book Register', path: appRoutes.paralegalBooks, icon: 'M4 6h16M4 10h16M6 14h12a2 2 0 012 2v3a1 1 0 01-1 1H5a1 1 0 01-1-1v-3a2 2 0 012-2z', requiredPermission: 'view_notarial_books' },
         ],
     },
     {

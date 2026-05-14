@@ -2,10 +2,7 @@
 
 use App\Models\LegalArchiveRecord;
 use App\Models\LegalParty;
-use App\Models\NotarialBook;
 use App\Models\NotarialGeneratedDocument;
-use App\Models\NotarialLegacyFile;
-use App\Models\NotarialPageScan;
 use App\Models\NotarialTemplate;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
@@ -14,55 +11,6 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use PhpOffice\PhpWord\IOFactory;
 use PhpOffice\PhpWord\PhpWord;
-
-test('admin can create a book archive without sending workflow mode', function () {
-    $user = User::factory()->create([
-        'role' => 'admin',
-    ]);
-
-    $this->actingAs($user)
-        ->postJson('/api/notarial/books', [
-            'book_number' => 1,
-            'year' => 2026,
-            'status' => 'active',
-        ])
-        ->assertCreated()
-        ->assertJsonPath('data.book_number', 1);
-});
-
-test('paralegal cannot create a book archive', function () {
-    $paralegal = User::factory()->create([
-        'role' => 'paralegal',
-    ]);
-
-    $this->actingAs($paralegal)
-        ->postJson('/api/notarial/books', [
-            'book_number' => 2,
-            'year' => 2026,
-        ])
-        ->assertForbidden();
-});
-
-test('admin cannot create a second active book archive', function () {
-    $admin = User::factory()->create(['role' => 'admin']);
-
-    makeBook([
-        'book_number' => 1,
-        'year' => 2026,
-        'status' => 'active',
-        'opened_at' => now(),
-        'created_by' => $admin->id,
-    ]);
-
-    $this->actingAs($admin)
-        ->postJson('/api/notarial/books', [
-            'book_number' => 2,
-            'year' => 2026,
-            'status' => 'active',
-        ])
-        ->assertStatus(422)
-        ->assertJsonPath('message', 'There is already an active book (Book 1, 2026). Archive or close it first.');
-});
 
 test('legal users can browse the notarial catalog', function () {
     $paralegal = User::factory()->create([
@@ -74,6 +22,16 @@ test('legal users can browse the notarial catalog', function () {
         ->assertOk()
         ->assertJsonPath('categories.0.code', 'affidavit_oath')
         ->assertJsonPath('document_types.0.code', 'AFFIDAVIT_GENERAL');
+});
+
+test('retired notarial register routes return not found', function () {
+    $paralegal = User::factory()->create([
+        'role' => 'paralegal',
+    ]);
+
+    $this->actingAs($paralegal)
+        ->getJson('/api/notarial/books')
+        ->assertNotFound();
 });
 
 test('legal users can browse the legal document workflow catalog', function () {
@@ -441,65 +399,6 @@ test('admin cannot delete a document master that already has generated records',
     expect($template->fresh())->not->toBeNull();
 });
 
-test('paralegal can upload page-indexed scans for any archived book', function () {
-    Storage::fake(config('filesystems.default', 'local'));
-
-    $admin = User::factory()->create(['role' => 'admin']);
-    $paralegal = User::factory()->create(['role' => 'paralegal']);
-
-    $book = makeBook([
-        'book_number' => 8,
-        'year' => 2026,
-        'status' => 'archived',
-        'opened_at' => now(),
-        'closed_at' => now(),
-        'created_by' => $admin->id,
-    ]);
-
-    $this->actingAs($paralegal)->post(
-        "/api/notarial/books/{$book->id}/page-scans",
-        [
-            'page_start' => 1,
-            'page_end' => 50,
-            'file' => UploadedFile::fake()->create('book8-pages-1-50.pdf', 1024, 'application/pdf'),
-        ],
-    )
-        ->assertCreated()
-        ->assertJsonPath('data.page_range_label', 'Pages 1–50');
-
-    expect(NotarialPageScan::query()->count())->toBe(1);
-});
-
-test('paralegal can upload legacy book files for any archived book', function () {
-    Storage::fake(config('filesystems.default', 'local'));
-
-    $admin = User::factory()->create(['role' => 'admin']);
-    $paralegal = User::factory()->create(['role' => 'paralegal']);
-
-    $book = makeBook([
-        'book_number' => 10,
-        'year' => 2025,
-        'status' => 'archived',
-        'opened_at' => now(),
-        'closed_at' => now(),
-        'created_by' => $admin->id,
-    ]);
-
-    $this->actingAs($paralegal)->post(
-        "/api/notarial/books/{$book->id}/legacy-files",
-        [
-            'files' => [
-                UploadedFile::fake()->create('book10-scan-1.pdf', 1024, 'application/pdf'),
-                UploadedFile::fake()->create('book10-scan-2.pdf', 1024, 'application/pdf'),
-            ],
-        ],
-    )
-        ->assertCreated()
-        ->assertJsonCount(2, 'data');
-
-    expect(NotarialLegacyFile::query()->count())->toBe(2);
-});
-
 test('notarial template downloads preserve the stored filename', function () {
     Storage::fake(config('filesystems.default', 'local'));
 
@@ -779,21 +678,6 @@ function fakeDocxUpload(string $filename, array $lines): UploadedFile
         null,
         true,
     );
-}
-
-/**
- * @param  array<string, mixed>  $attributes
- */
-function makeBook(array $attributes): NotarialBook
-{
-    $book = (new NotarialBook)->forceFill($attributes);
-    $book->status = (string) ($attributes['status'] ?? 'archived');
-    $book->opened_at = $attributes['opened_at'] ?? null;
-    $book->closed_at = $attributes['closed_at'] ?? null;
-    $book->created_by = (int) $attributes['created_by'];
-    $book->save();
-
-    return $book;
 }
 
 function makeGeneratedDocument(User $user, string $contents): NotarialGeneratedDocument

@@ -12,8 +12,6 @@ export type LegalFileCategoryCode =
 
 export type LegalDigitalStatus = 'missing_upload' | 'uploaded';
 
-export type LegalBookStatus = 'active' | 'full' | 'archived';
-
 export type NotarialActTypeCode = 'jurat' | 'acknowledgment' | 'oath_affirmation';
 export type NotarialTemplateStatus = 'ready' | 'missing_file';
 export type LawFirmDocumentModule = 'notarial' | 'legal';
@@ -86,56 +84,6 @@ export type LegalArchiveFile = {
     formatted_size: string;
     download_url: string;
     preview_url?: string;
-};
-
-export type LegalBook = {
-    id: number;
-    book_number: number;
-    year: number;
-    status: LegalBookStatus;
-    page_scan_count?: number;
-    legacy_file_count?: number;
-    opened_at: string | null;
-    closed_at: string | null;
-    notes: string | null;
-    scan_file: LegalArchiveFile | null;
-    created_at: string | null;
-    updated_at: string | null;
-};
-
-export type LegalPageScan = {
-    id: number;
-    notarial_book_id: number;
-    page_start: number;
-    page_end: number;
-    page_range_label: string;
-    filename: string;
-    mime_type: string | null;
-    size_bytes: number;
-    formatted_size: string;
-    download_url: string;
-    uploaded_by?: {
-        id: number;
-        name: string;
-    } | null;
-    created_at: string | null;
-    updated_at: string | null;
-};
-
-export type LegalLegacyBookFile = {
-    id: number;
-    notarial_book_id: number;
-    filename: string;
-    mime_type: string | null;
-    size_bytes: number;
-    formatted_size: string;
-    download_url: string;
-    uploaded_by?: {
-        id: number;
-        name: string;
-    } | null;
-    created_at: string | null;
-    updated_at: string | null;
 };
 
 export type LegalParty = {
@@ -251,38 +199,6 @@ export type OnlyOfficeEditorConfigResponse = {
     config: Record<string, unknown>;
 };
 
-export type CreateNotarialPageScanPayload = {
-    page_start: number;
-    page_end: number;
-    file: File;
-};
-
-export type CreateNotarialLegacyFilesPayload = {
-    files: File[];
-};
-
-export type UpdateNotarialPageScanPayload = {
-    page_start: number;
-    page_end: number;
-    file?: File | null;
-};
-
-export type CreateNotarialBookPayload = {
-    book_number: number;
-    year: number;
-    status?: LegalBookStatus;
-    notes?: string;
-    file?: File | null;
-};
-
-export type UpdateNotarialBookPayload = {
-    book_number?: number;
-    year?: number;
-    status?: LegalBookStatus;
-    notes?: string;
-    file?: File | null;
-};
-
 export type CreateLegalArchiveRecordPayload = {
     file_category: LegalFileCategoryCode;
     file_code: string;
@@ -291,13 +207,6 @@ export type CreateLegalArchiveRecordPayload = {
     document_date?: string;
     notes?: string;
     file?: File | null;
-};
-
-export type LegalBooksQuery = {
-    status?: LegalBookStatus;
-    year?: number;
-    per_page?: number;
-    page?: number;
 };
 
 export type NotarialTemplateQuery = {
