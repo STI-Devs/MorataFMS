@@ -22,6 +22,8 @@ class LegacyBatchResource extends JsonResource
             'id' => $this->uuid,
             'batch_name' => $this->batch_name,
             'root_folder' => $this->root_folder,
+            'module' => $this->module?->value,
+            'module_label' => $this->module?->label(),
             'upload_date' => $this->created_at?->toIso8601String(),
             'status' => $this->status?->value,
             'status_label' => $this->status?->label(),

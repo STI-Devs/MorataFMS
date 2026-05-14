@@ -144,6 +144,7 @@ describe('useDocumentGenerator', () => {
         });
 
         expect(mockMutateAsync).toHaveBeenCalledWith({
+            module: 'notarial',
             notarial_template_id: 12,
             notes: undefined,
             party_id: undefined,

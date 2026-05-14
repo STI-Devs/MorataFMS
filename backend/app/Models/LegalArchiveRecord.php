@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Support\Legal\LegalDocumentCatalog;
+use App\Support\LawFirmDocuments\LawFirmDocumentCatalog;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -31,7 +31,7 @@ class LegalArchiveRecord extends Model
      */
     public static function categoryCodes(): array
     {
-        return array_column(LegalDocumentCatalog::legalFileCategories(), 'code');
+        return array_column(LawFirmDocumentCatalog::legalFileCategories(), 'code');
     }
 
     /**
@@ -39,7 +39,7 @@ class LegalArchiveRecord extends Model
      */
     public static function fileCodes(): array
     {
-        return LegalDocumentCatalog::legalFileCodes();
+        return LawFirmDocumentCatalog::legalFileCodes();
     }
 
     public function createdBy(): BelongsTo

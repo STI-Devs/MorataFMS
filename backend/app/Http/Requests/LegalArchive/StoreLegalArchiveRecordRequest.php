@@ -3,7 +3,7 @@
 namespace App\Http\Requests\LegalArchive;
 
 use App\Models\LegalArchiveRecord;
-use App\Support\Legal\LegalDocumentCatalog;
+use App\Support\LawFirmDocuments\LawFirmDocumentCatalog;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -27,7 +27,7 @@ class StoreLegalArchiveRecordRequest extends FormRequest
                         return;
                     }
 
-                    $expectedCategory = LegalDocumentCatalog::legalFileCategoryForCode($value);
+                    $expectedCategory = LawFirmDocumentCatalog::legalFileCategoryForCode($value);
                     if ($expectedCategory !== null && $expectedCategory !== $this->string('file_category')->value()) {
                         $fail('The selected legal file does not belong to the chosen archive category.');
                     }

@@ -7,14 +7,14 @@ use App\Http\Controllers\Clients\ClientController;
 use App\Http\Controllers\Dashboard\AdminDashboardController;
 use App\Http\Controllers\Dashboard\EncoderDashboardController;
 use App\Http\Controllers\Documents\DocumentController;
+use App\Http\Controllers\LawFirmDocuments\LawFirmDocumentCatalogController;
+use App\Http\Controllers\LawFirmDocuments\LawFirmDocumentTemplateController;
+use App\Http\Controllers\LawFirmDocuments\LawFirmGeneratedDocumentController;
 use App\Http\Controllers\LegacyBatches\LegacyBatchController;
 use App\Http\Controllers\LegalArchive\LegalArchiveRecordController;
 use App\Http\Controllers\Notarial\NotarialBookController;
-use App\Http\Controllers\Notarial\NotarialCatalogController;
-use App\Http\Controllers\Notarial\NotarialGeneratedDocumentController;
 use App\Http\Controllers\Notarial\NotarialLegacyFileController;
 use App\Http\Controllers\Notarial\NotarialPageScanController;
-use App\Http\Controllers\Notarial\NotarialTemplateController;
 use App\Http\Controllers\ReferenceData\CountryController;
 use App\Http\Controllers\ReferenceData\LegalPartyController;
 use App\Http\Controllers\ReferenceData\LocationOfGoodsController;
@@ -32,10 +32,10 @@ Route::prefix('auth')->group(function () {
 });
 
 Route::prefix('notarial')->group(function () {
-    Route::get('generated-documents/{document}/onlyoffice/file', [NotarialGeneratedDocumentController::class, 'onlyOfficeFile'])
+    Route::get('generated-documents/{document}/onlyoffice/file', [LawFirmGeneratedDocumentController::class, 'onlyOfficeFile'])
         ->name('notarial.generated-documents.onlyoffice-file')
         ->middleware('throttle:api-documents');
-    Route::post('generated-documents/{document}/onlyoffice/callback', [NotarialGeneratedDocumentController::class, 'onlyOfficeCallback'])
+    Route::post('generated-documents/{document}/onlyoffice/callback', [LawFirmGeneratedDocumentController::class, 'onlyOfficeCallback'])
         ->name('notarial.generated-documents.onlyoffice-callback')
         ->middleware('throttle:api-documents');
 });
@@ -119,29 +119,30 @@ Route::middleware(['auth:sanctum', 'active-session', 'throttle:api-general'])->g
 
     // Notarial (Law Firm) module
     Route::prefix('notarial')->group(function () {
-        Route::get('document-types', NotarialCatalogController::class);
+        Route::get('document-types', LawFirmDocumentCatalogController::class);
         Route::get('legal-parties', [LegalPartyController::class, 'index'])
             ->middleware('throttle:api-search');
-        Route::get('templates/{template}/download', [NotarialTemplateController::class, 'download'])
+        Route::get('templates/{template}/download', [LawFirmDocumentTemplateController::class, 'download'])
             ->name('notarial.templates.download')
             ->middleware('throttle:api-documents');
-        Route::apiResource('templates', NotarialTemplateController::class);
-        Route::get('generated-documents', [NotarialGeneratedDocumentController::class, 'index'])
+        Route::apiResource('templates', LawFirmDocumentTemplateController::class)
+            ->names('notarial.templates');
+        Route::get('generated-documents', [LawFirmGeneratedDocumentController::class, 'index'])
             ->middleware('throttle:api-search');
-        Route::post('generated-documents', [NotarialGeneratedDocumentController::class, 'storeEditableCopy'])
+        Route::post('generated-documents', [LawFirmGeneratedDocumentController::class, 'storeEditableCopy'])
             ->middleware('throttle:api-documents');
-        Route::get('generated-documents/{document}', [NotarialGeneratedDocumentController::class, 'show'])
+        Route::get('generated-documents/{document}', [LawFirmGeneratedDocumentController::class, 'show'])
             ->middleware('throttle:api-documents');
-        Route::get('generated-documents/{document}/onlyoffice/config', [NotarialGeneratedDocumentController::class, 'editorConfig'])
+        Route::get('generated-documents/{document}/onlyoffice/config', [LawFirmGeneratedDocumentController::class, 'editorConfig'])
             ->name('notarial.generated-documents.onlyoffice-config')
             ->middleware('throttle:api-documents');
-        Route::get('generated-documents/{document}/download', [NotarialGeneratedDocumentController::class, 'download'])
+        Route::get('generated-documents/{document}/download', [LawFirmGeneratedDocumentController::class, 'download'])
             ->name('notarial.generated-documents.download')
             ->middleware('throttle:api-documents');
-        Route::get('generated-documents/{document}/preview', [NotarialGeneratedDocumentController::class, 'preview'])
+        Route::get('generated-documents/{document}/preview', [LawFirmGeneratedDocumentController::class, 'preview'])
             ->name('notarial.generated-documents.preview')
             ->middleware('throttle:api-documents');
-        Route::delete('generated-documents/{document}', [NotarialGeneratedDocumentController::class, 'destroy']);
+        Route::delete('generated-documents/{document}', [LawFirmGeneratedDocumentController::class, 'destroy']);
         Route::apiResource('books', NotarialBookController::class);
         Route::get('books/{book}/scan/download', [NotarialBookController::class, 'downloadScan'])
             ->name('notarial.books.scan.download')
@@ -164,6 +165,32 @@ Route::middleware(['auth:sanctum', 'active-session', 'throttle:api-general'])->g
         Route::get('page-scans/{scan}/download', [NotarialPageScanController::class, 'download'])
             ->name('notarial.page-scans.download')
             ->middleware('throttle:api-documents');
+    });
+
+    Route::prefix('legal')->group(function () {
+        Route::get('document-types', LawFirmDocumentCatalogController::class);
+        Route::get('legal-parties', [LegalPartyController::class, 'index'])
+            ->middleware('throttle:api-search');
+        Route::get('templates/{template}/download', [LawFirmDocumentTemplateController::class, 'download'])
+            ->name('legal.templates.download')
+            ->middleware('throttle:api-documents');
+        Route::apiResource('templates', LawFirmDocumentTemplateController::class)
+            ->names('legal.templates');
+        Route::get('generated-documents', [LawFirmGeneratedDocumentController::class, 'index'])
+            ->middleware('throttle:api-search');
+        Route::post('generated-documents', [LawFirmGeneratedDocumentController::class, 'storeEditableCopy'])
+            ->middleware('throttle:api-documents');
+        Route::get('generated-documents/{document}', [LawFirmGeneratedDocumentController::class, 'show'])
+            ->middleware('throttle:api-documents');
+        Route::get('generated-documents/{document}/onlyoffice/config', [LawFirmGeneratedDocumentController::class, 'editorConfig'])
+            ->middleware('throttle:api-documents');
+        Route::get('generated-documents/{document}/download', [LawFirmGeneratedDocumentController::class, 'download'])
+            ->name('legal.generated-documents.download')
+            ->middleware('throttle:api-documents');
+        Route::get('generated-documents/{document}/preview', [LawFirmGeneratedDocumentController::class, 'preview'])
+            ->name('legal.generated-documents.preview')
+            ->middleware('throttle:api-documents');
+        Route::delete('generated-documents/{document}', [LawFirmGeneratedDocumentController::class, 'destroy']);
     });
 
     Route::prefix('legal-archive')->group(function () {

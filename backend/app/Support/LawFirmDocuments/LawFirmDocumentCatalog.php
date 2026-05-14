@@ -1,10 +1,11 @@
 <?php
 
-namespace App\Support\Legal;
+namespace App\Support\LawFirmDocuments;
 
+use App\Enums\LawFirmDocumentModule;
 use Illuminate\Support\Str;
 
-class LegalDocumentCatalog
+class LawFirmDocumentCatalog
 {
     /**
      * @return list<array{code: string, label: string}>
@@ -69,17 +70,17 @@ class LegalDocumentCatalog
             [
                 'code' => 'intern_records',
                 'label' => 'Intern Records',
-                'description' => 'Completion and intern-related files kept for archive purposes only.',
+                'description' => 'Internship certificates, completion letters, and related legal office documents.',
             ],
             [
                 'code' => 'case_documents',
                 'label' => 'Case Documents',
-                'description' => 'Case or correspondence files stored in the legal archive outside the notarial template flow.',
+                'description' => 'Position papers, demand letters, and legal correspondence generated from DOCX masters.',
             ],
             [
                 'code' => 'other_legal_files',
                 'label' => 'Other Legal Files',
-                'description' => 'Fallback archive-only records that do not belong in the notarial template workspace.',
+                'description' => 'Fallback legal document masters when the exact legal title is not yet cataloged.',
             ],
         ];
     }
@@ -172,6 +173,45 @@ class LegalDocumentCatalog
     }
 
     /**
+     * @return list<string>
+     */
+    public static function documentCodesForModule(LawFirmDocumentModule|string|null $module): array
+    {
+        $module = $module instanceof LawFirmDocumentModule ? $module : LawFirmDocumentModule::fromNullable($module);
+
+        return $module === LawFirmDocumentModule::Legal
+            ? self::legalFileCodes()
+            : self::documentCodes();
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public static function categoriesForModule(LawFirmDocumentModule|string|null $module): array
+    {
+        $module = $module instanceof LawFirmDocumentModule ? $module : LawFirmDocumentModule::fromNullable($module);
+
+        return $module === LawFirmDocumentModule::Legal
+            ? self::legalFileCategories()
+            : self::notarialCategories();
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public static function documentTypesForModule(LawFirmDocumentModule|string|null $module): array
+    {
+        $module = $module instanceof LawFirmDocumentModule ? $module : LawFirmDocumentModule::fromNullable($module);
+
+        return $module === LawFirmDocumentModule::Legal
+            ? array_map(
+                static fn (array $fileType): array => $fileType + ['default_notarial_act_type' => 'acknowledgment'],
+                self::legalFileTypes(),
+            )
+            : self::notarialDocumentTypes();
+    }
+
+    /**
      * @return array<string, mixed>|null
      */
     public static function findDocumentType(string $code): ?array
@@ -208,6 +248,15 @@ class LegalDocumentCatalog
         return self::findDocumentType($code)['label'] ?? null;
     }
 
+    public static function labelForCodeInModule(?string $code, LawFirmDocumentModule|string|null $module): ?string
+    {
+        $module = $module instanceof LawFirmDocumentModule ? $module : LawFirmDocumentModule::fromNullable($module);
+
+        return $module === LawFirmDocumentModule::Legal
+            ? self::labelForLegalFileCode($code)
+            : self::labelForCode($code);
+    }
+
     public static function labelForLegalFileCode(?string $code): ?string
     {
         if (! is_string($code) || $code === '') {
@@ -230,6 +279,15 @@ class LegalDocumentCatalog
         }
 
         return null;
+    }
+
+    public static function labelForCategoryInModule(?string $category, LawFirmDocumentModule|string|null $module): ?string
+    {
+        $module = $module instanceof LawFirmDocumentModule ? $module : LawFirmDocumentModule::fromNullable($module);
+
+        return $module === LawFirmDocumentModule::Legal
+            ? self::labelForLegalFileCategory($category)
+            : self::labelForCategory($category);
     }
 
     public static function labelForLegalFileCategory(?string $category): ?string
@@ -269,6 +327,15 @@ class LegalDocumentCatalog
         }
 
         return self::findDocumentType($code)['category'] ?? null;
+    }
+
+    public static function categoryForCodeInModule(?string $code, LawFirmDocumentModule|string|null $module): ?string
+    {
+        $module = $module instanceof LawFirmDocumentModule ? $module : LawFirmDocumentModule::fromNullable($module);
+
+        return $module === LawFirmDocumentModule::Legal
+            ? self::legalFileCategoryForCode($code)
+            : self::categoryForCode($code);
     }
 
     public static function legalFileCategoryForCode(?string $code): ?string

@@ -1,15 +1,15 @@
 <?php
 
-namespace App\Actions\Notarial;
+namespace App\Actions\LawFirmDocuments;
 
 use App\Models\NotarialTemplate;
-use App\Support\Legal\NotarialTemplateFileManager;
+use App\Support\LawFirmDocuments\LawFirmDocumentTemplateFileManager;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
-class DeleteNotarialTemplate
+class DeleteLawFirmDocumentTemplate
 {
     public function __construct(
-        private NotarialTemplateFileManager $fileManager,
+        private LawFirmDocumentTemplateFileManager $fileManager,
     ) {}
 
     public function handle(NotarialTemplate $template): void

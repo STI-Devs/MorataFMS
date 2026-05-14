@@ -1,8 +1,10 @@
 import { useDeferredValue, useState } from 'react';
 import { ConfirmationModal } from '../../../../components/ConfirmationModal';
+import { Pagination } from '../../../../components/Pagination';
 import { useLegacyBatch } from '../../hooks/useLegacyBatch';
 import { useLegacyBatches } from '../../hooks/useLegacyBatches';
 import { useLegacyBatchMutations } from '../../hooks/useLegacyBatchMutations';
+import type { LegacyBatchModule } from '../../types/legacyBatch.types';
 import { LegacyFolderBrowserPanel } from '../legacy-upload/LegacyFolderBrowserPanel';
 
 const StatusChip = ({ status }: { status: string }) => {
@@ -22,16 +24,28 @@ const StatusChip = ({ status }: { status: string }) => {
 };
 
 export const LegacyBatchesPage = ({
+    module,
+    eyebrow = 'Legacy Batches',
+    title = 'Uploaded legacy batches',
+    description = 'Browse uploaded legacy batches and open the preserved folder hierarchy for retrieval.',
+    searchPlaceholder = 'Search batch, root folder, or uploader...',
+    deleteTitle = 'Delete Incomplete Legacy Batch',
     onResumeBatch,
 }: {
+    module?: LegacyBatchModule;
+    eyebrow?: string;
+    title?: string;
+    description?: string;
+    searchPlaceholder?: string;
+    deleteTitle?: string;
     onResumeBatch?: (batchId: string) => void;
 }) => {
     const [page, setPage] = useState(1);
-    const [perPage, setPerPage] = useState(20);
+    const [perPage, setPerPage] = useState(25);
     const [search, setSearch] = useState('');
     const deferredSearch = useDeferredValue(search);
     const trimmedSearch = deferredSearch.trim();
-    const { data, isLoading, isError } = useLegacyBatches({ page, perPage, search: trimmedSearch });
+    const { data, isLoading, isError } = useLegacyBatches({ page, perPage, search: trimmedSearch, module });
     const [viewingBatchId, setViewingBatchId] = useState<string | null>(null);
     const [deletingBatchId, setDeletingBatchId] = useState<string | null>(null);
     const { data: viewingBatch } = useLegacyBatch(viewingBatchId, Boolean(viewingBatchId));
@@ -55,10 +69,10 @@ export const LegacyBatchesPage = ({
             <div className="space-y-6">
                 <div className="rounded-2xl border border-border bg-surface">
                     <div className="border-b border-border px-5 py-4">
-                        <p className="text-[11px] font-black uppercase tracking-widest text-text-muted">Legacy Batches</p>
-                        <h2 className="mt-2 text-xl font-black tracking-tight text-text-primary">Uploaded legacy batches</h2>
+                        <p className="text-[11px] font-black uppercase tracking-widest text-text-muted">{eyebrow}</p>
+                        <h2 className="mt-2 text-xl font-black tracking-tight text-text-primary">{title}</h2>
                         <p className="mt-2 text-sm text-text-muted">
-                            Browse uploaded legacy batches and open the preserved folder hierarchy for retrieval.
+                            {description}
                         </p>
                     </div>
 
@@ -81,7 +95,7 @@ export const LegacyBatchesPage = ({
                                             setPage(1);
                                         }
                                     }}
-                                    placeholder="Search batch, root folder, or uploader..."
+                                    placeholder={searchPlaceholder}
                                     aria-label="Search legacy batches"
                                     className="h-10 w-full rounded-lg border border-border-strong bg-input-bg pl-10 pr-10 text-sm text-text-primary shadow-sm transition-all placeholder:text-text-muted focus:border-blue-500/60 focus:outline-none focus:ring-2 focus:ring-blue-500/25"
                                 />
@@ -209,53 +223,24 @@ export const LegacyBatchesPage = ({
                                 })}
                             </div>
 
-                            <div className="flex flex-col gap-4 border-t border-border px-5 py-4 md:flex-row md:items-center md:justify-between">
+                            <div className="border-t border-border px-5 py-4">
                                 <div className="text-xs text-text-muted">
                                     {trimmedSearch
                                         ? `Showing ${pagination.from ?? 0}-${pagination.to ?? 0} of ${pagination.total.toLocaleString()} matching batch${pagination.total === 1 ? '' : 'es'}`
                                         : `Showing ${pagination.from ?? 0}-${pagination.to ?? 0} of ${pagination.total.toLocaleString()} legacy batches`}
                                 </div>
-
-                                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                                    <label className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-text-muted">
-                                        Page Size
-                                        <select
-                                            value={perPage}
-                                            onChange={(event) => {
-                                                const nextPerPage = Number(event.target.value);
-                                                setPerPage(nextPerPage);
-                                                setPage(1);
-                                            }}
-                                            className="rounded-lg border border-border-strong bg-input-bg px-3 py-2 text-xs font-semibold text-text-primary outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
-                                        >
-                                            {[20, 50, 100].map((size) => (
-                                                <option key={size} value={size}>{size}</option>
-                                            ))}
-                                        </select>
-                                    </label>
-
-                                    <div className="flex items-center gap-2">
-                                        <button
-                                            type="button"
-                                            onClick={() => setPage((current) => Math.max(current - 1, 1))}
-                                            disabled={pagination.currentPage <= 1}
-                                            className="rounded-lg border border-border px-3 py-2 text-xs font-bold text-text-secondary transition-colors hover:bg-surface-secondary disabled:cursor-not-allowed disabled:opacity-50"
-                                        >
-                                            Previous
-                                        </button>
-                                        <div className="min-w-[92px] text-center text-xs font-bold text-text-primary">
-                                            Page {pagination.currentPage} of {pagination.lastPage}
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => setPage((current) => Math.min(current + 1, pagination.lastPage))}
-                                            disabled={pagination.currentPage >= pagination.lastPage}
-                                            className="rounded-lg border border-border px-3 py-2 text-xs font-bold text-text-secondary transition-colors hover:bg-surface-secondary disabled:cursor-not-allowed disabled:opacity-50"
-                                        >
-                                            Next
-                                        </button>
-                                    </div>
-                                </div>
+                                <Pagination
+                                    currentPage={pagination.currentPage}
+                                    totalPages={pagination.lastPage}
+                                    perPage={perPage}
+                                    perPageOptions={[25, 50, 100]}
+                                    compact
+                                    onPageChange={setPage}
+                                    onPerPageChange={(nextPerPage) => {
+                                        setPerPage(nextPerPage);
+                                        setPage(1);
+                                    }}
+                                />
                             </div>
                         </>
                     )}
@@ -295,7 +280,7 @@ export const LegacyBatchesPage = ({
                         setPage((current) => Math.max(current - 1, 1));
                     }
                 }}
-                title="Delete Incomplete Legacy Batch"
+                title={deleteTitle}
                 message={deletingBatch
                     ? `This will remove ${deletingBatch.batchName} from the legacy batches list and delete any stored orphaned files for this interrupted or failed batch.`
                     : ''}

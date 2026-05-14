@@ -1,25 +1,29 @@
 <?php
 
-namespace App\Actions\Notarial;
+namespace App\Actions\LawFirmDocuments;
 
+use App\Enums\LawFirmDocumentModule;
 use App\Models\NotarialTemplate;
 use App\Models\User;
-use App\Support\Legal\LegalDocumentCatalog;
-use App\Support\Legal\NotarialTemplateFileManager;
+use App\Support\LawFirmDocuments\LawFirmDocumentCatalog;
+use App\Support\LawFirmDocuments\LawFirmDocumentTemplateFileManager;
 use Illuminate\Http\UploadedFile;
 
-class CreateNotarialTemplate
+class CreateLawFirmDocumentTemplate
 {
     public function __construct(
-        private NotarialTemplateFileManager $fileManager,
+        private LawFirmDocumentTemplateFileManager $fileManager,
     ) {}
 
     public function handle(array $validated, User $user, ?UploadedFile $file): NotarialTemplate
     {
+        $module = LawFirmDocumentModule::fromNullable($validated['module'] ?? null);
         $template = new NotarialTemplate($validated);
-        $template->document_category = LegalDocumentCatalog::categoryForCode($template->document_code) ?? 'other';
+        $template->module = $module->value;
+        $template->document_category = LawFirmDocumentCatalog::categoryForCodeInModule($template->document_code, $module)
+            ?? ($module === LawFirmDocumentModule::Legal ? 'other_legal_files' : 'other');
         $template->default_notarial_act_type = $template->default_notarial_act_type
-            ?: (LegalDocumentCatalog::defaultNotarialActTypeForCode($template->document_code) ?? 'acknowledgment');
+            ?: (LawFirmDocumentCatalog::defaultNotarialActTypeForCode($template->document_code) ?? 'acknowledgment');
         $template->is_active = (bool) ($validated['is_active'] ?? true);
         $template->created_by = $user->id;
 
@@ -28,6 +32,7 @@ class CreateNotarialTemplate
                 $template,
                 $file,
                 (string) ($validated['document_code'] ?? $template->document_code ?? 'general'),
+                $module,
             );
         }
 

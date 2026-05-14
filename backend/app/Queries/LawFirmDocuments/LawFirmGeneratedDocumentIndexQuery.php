@@ -1,17 +1,18 @@
 <?php
 
-namespace App\Queries\Notarial;
+namespace App\Queries\LawFirmDocuments;
 
-use App\Http\Requests\Notarial\NotarialGeneratedDocumentIndexRequest;
+use App\Http\Requests\LawFirmDocuments\LawFirmGeneratedDocumentIndexRequest;
 use App\Models\NotarialGeneratedDocument;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
-class NotarialGeneratedDocumentIndexQuery
+class LawFirmGeneratedDocumentIndexQuery
 {
-    public function handle(NotarialGeneratedDocumentIndexRequest $request): LengthAwarePaginator
+    public function handle(LawFirmGeneratedDocumentIndexRequest $request): LengthAwarePaginator
     {
         $query = NotarialGeneratedDocument::query()
             ->with(['template', 'createdBy', 'legalParty'])
+            ->where('module', $request->module()->value)
             ->latest('generated_at')
             ->latest('created_at');
 

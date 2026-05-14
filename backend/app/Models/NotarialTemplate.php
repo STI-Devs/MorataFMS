@@ -13,6 +13,7 @@ class NotarialTemplate extends Model
     use Auditable, HasFactory;
 
     protected $fillable = [
+        'module',
         'code',
         'label',
         'document_code',
@@ -43,6 +44,11 @@ class NotarialTemplate extends Model
     public function generatedDocuments(): HasMany
     {
         return $this->hasMany(NotarialGeneratedDocument::class);
+    }
+
+    public function isLegalModule(): bool
+    {
+        return $this->module === 'legal';
     }
 
     public function hasSourceFile(): bool

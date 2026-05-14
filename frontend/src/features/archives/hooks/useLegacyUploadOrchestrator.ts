@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 // hydrating from the resume query during render with an identity guard,
 // per https://react.dev/learn/you-might-not-need-an-effect.
 
-import type { LegacyBatch } from '../types/legacyBatch.types';
+import type { LegacyBatch, LegacyBatchModule } from '../types/legacyBatch.types';
 import {
     DEFAULT_META,
     LEGACY_LARGE_BATCH_WARNING_FILE_COUNT,
@@ -28,6 +28,9 @@ import { useLegacyBatch } from './useLegacyBatch';
 import { useLegacyBatchMutations } from './useLegacyBatchMutations';
 
 export interface UseLegacyUploadOrchestratorArgs {
+    module?: LegacyBatchModule;
+    resolveModuleFromMeta?: (meta: BatchMeta) => LegacyBatchModule;
+    defaultMeta?: Partial<BatchMeta>;
     resumeBatchId?: string | null;
     onResumeCleared?: () => void;
 }
@@ -64,15 +67,22 @@ export interface UseLegacyUploadOrchestratorResult {
 }
 
 export function useLegacyUploadOrchestrator({
+    module = 'brokerage',
+    resolveModuleFromMeta,
+    defaultMeta,
     resumeBatchId,
     onResumeCleared,
 }: UseLegacyUploadOrchestratorArgs): UseLegacyUploadOrchestratorResult {
+    const initialMeta = useMemo(() => ({
+        ...DEFAULT_META,
+        ...defaultMeta,
+    }), [defaultMeta]);
     const [phase, setPhase] = useState<UploadPhase>('empty');
     const [isDragging, setIsDragging] = useState(false);
     const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
     const [rejectedFiles, setRejectedFiles] = useState<RejectedLegacyFile[]>([]);
     const [folderSummary, setFolderSummary] = useState<FolderSummary | null>(null);
-    const [meta, setMeta] = useState<BatchMeta>(DEFAULT_META);
+    const [meta, setMeta] = useState<BatchMeta>(initialMeta);
     const [progress, setProgress] = useState<ProgressState>({
         total: 0,
         done: 0,
@@ -128,10 +138,11 @@ export function useLegacyUploadOrchestrator({
 
         return buildTreeFromFiles(selectedFiles, folderSummary.rootName);
     }, [folderSummary, selectedFiles]);
+    const effectiveModule = activeBatch?.module ?? resolveModuleFromMeta?.(meta) ?? module;
 
     const previewBatch = useMemo<LegacyBatch | null>(
-        () => buildPreviewBatch({ activeBatch, folderSummary, localTree, meta, selectedFiles }),
-        [activeBatch, folderSummary, localTree, meta, selectedFiles],
+        () => buildPreviewBatch({ activeBatch, module: effectiveModule, folderSummary, localTree, meta, selectedFiles }),
+        [activeBatch, effectiveModule, folderSummary, localTree, meta, selectedFiles],
     );
 
     const preflight = useMemo(() => {
@@ -184,7 +195,7 @@ export function useLegacyUploadOrchestrator({
         setSelectedFiles([]);
         setRejectedFiles([]);
         setFolderSummary(null);
-        setMeta(DEFAULT_META);
+        setMeta(initialMeta);
         setProgress({
             total: 0,
             done: 0,
@@ -214,6 +225,7 @@ export function useLegacyUploadOrchestrator({
 
         await runLegacyUploadPipeline({
             activeBatch,
+            module: effectiveModule,
             folderSummary,
             selectedFiles,
             meta,

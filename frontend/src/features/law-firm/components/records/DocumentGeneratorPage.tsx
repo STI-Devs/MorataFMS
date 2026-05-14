@@ -1,7 +1,25 @@
 import { useDocumentGenerator } from '../../hooks/useDocumentGenerator';
 import { DocumentTypeRail } from '../generator/DocumentTypeRail';
 import { PartyCombobox } from '../generator/PartyCombobox';
-import type { NotarialTemplate } from '../../types/legalRecords.types';
+import type { LawFirmDocumentModule, NotarialTemplate } from '../../types/legalRecords.types';
+
+type Props = {
+    module?: LawFirmDocumentModule;
+};
+
+const moduleCopy: Record<LawFirmDocumentModule, {
+    description: string;
+    missingMasterText: string;
+}> = {
+    notarial: {
+        description: 'Select a DOCX master, assign the party, then open the working copy in the editor.',
+        missingMasterText: 'Master DOCX not uploaded - contact admin.',
+    },
+    legal: {
+        description: 'Select a legal DOCX master, assign the party, then open the working copy in the editor.',
+        missingMasterText: 'Legal master DOCX not uploaded - contact admin.',
+    },
+};
 
 const extractTemplateVariant = (template: NotarialTemplate): string | null => {
     const documentLabel = template.document_code_label ?? template.document_code;
@@ -21,9 +39,10 @@ const SummaryCard = ({ label, value }: { label: string; value: string | number }
     </div>
 );
 
-export const DocumentGeneratorPage = () => {
-    const gen = useDocumentGenerator();
+export const DocumentGeneratorPage = ({ module = 'notarial' }: Props) => {
+    const gen = useDocumentGenerator(module);
     const selectedTemplateVariant = gen.selectedTemplate ? extractTemplateVariant(gen.selectedTemplate) : null;
+    const copy = moduleCopy[module];
 
     return (
         <div className="relative min-h-full w-full bg-surface-secondary font-sans selection:bg-text-primary selection:text-surface">
@@ -36,7 +55,7 @@ export const DocumentGeneratorPage = () => {
                         Create Draft
                     </h1>
                     <p className="text-[13px] text-text-secondary">
-                        Select a DOCX master, assign the party, then open the working copy in the editor.
+                        {copy.description}
                     </p>
                 </header>
 
@@ -194,7 +213,7 @@ export const DocumentGeneratorPage = () => {
                                 {gen.selectedTemplate?.source_file
                                     ? 'Copy will be saved under Generated Documents.'
                                     : gen.selectedTemplate
-                                    ? 'Master DOCX not uploaded - contact admin.'
+                                    ? copy.missingMasterText
                                     : ''}
                             </p>
                             <button

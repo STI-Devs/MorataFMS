@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\LegacyBatches;
 
+use App\Enums\LegacyBatchModule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
 class StoreLegacyBatchRequest extends FormRequest
@@ -60,6 +62,10 @@ class StoreLegacyBatchRequest extends FormRequest
             'year_from' => ['required', 'integer', 'min:2000', 'max:'.now()->year],
             'year_to' => ['required', 'integer', 'min:2000', 'max:'.now()->year, 'gte:year_from'],
             'department' => ['required', 'string', 'max:60'],
+            'module' => ['nullable', 'string', Rule::in(array_map(
+                fn (LegacyBatchModule $module): string => $module->value,
+                LegacyBatchModule::cases(),
+            ))],
             'notes' => ['nullable', 'string', 'max:2000'],
             'expected_file_count' => ['nullable', 'integer', 'min:1'],
             'total_size_bytes' => ['nullable', 'integer', 'min:0'],

@@ -51,4 +51,20 @@ export default function () {
             'POST /sanctum/csrf-cookie returns 403 or 405': (response) => response.status === 403 || response.status === 405,
         });
     });
+
+    group('signed storage upload preflight', () => {
+        const storagePreflightResponse = http.options(url('/storage/legacy-batches/cors-probe.txt?upload=1'), null, {
+            headers: {
+                Origin: 'http://localhost:3000',
+                'Access-Control-Request-Method': 'PUT',
+                'Access-Control-Request-Headers': 'content-type',
+            },
+        });
+
+        check(storagePreflightResponse, {
+            'OPTIONS /storage legacy upload returns 204': (response) => response.status === 204,
+            'OPTIONS /storage legacy upload includes CORS origin': (response) =>
+                response.headers['Access-Control-Allow-Origin'] === 'http://localhost:3000',
+        });
+    });
 }

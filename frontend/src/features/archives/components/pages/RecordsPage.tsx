@@ -43,6 +43,7 @@ export const RecordsPage = () => {
 
             <div hidden={activeWorkspace !== 'legacyUpload'}>
                 <LegacyFolderUploadView
+                    module="brokerage"
                     onOpenBatches={() => {
                         setResumeBatchId(null);
                         setIsLegacyBatchesMounted(true);
@@ -56,6 +57,7 @@ export const RecordsPage = () => {
             {shouldMountLegacyBatches && (
                 <div hidden={activeWorkspace !== 'legacyBatches'}>
                     <LegacyBatchesPage
+                        module="brokerage"
                         onResumeBatch={(batchId) => {
                             setResumeBatchId(batchId);
                             navigate(appRoutes.legacyFolderUpload);

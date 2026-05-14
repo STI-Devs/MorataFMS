@@ -1,30 +1,37 @@
 <?php
 
-namespace App\Support\Legal;
+namespace App\Support\LawFirmDocuments;
 
+use App\Enums\LawFirmDocumentModule;
 use App\Models\NotarialTemplate;
+use App\Support\Legal\StoredFileDownloader;
 use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
-class NotarialTemplateFileManager
+class LawFirmDocumentTemplateFileManager
 {
     public function __construct(
         private StoredFileDownloader $storedFileDownloader,
     ) {}
 
-    public function store(NotarialTemplate $template, UploadedFile $file, string $documentCode): void
-    {
+    public function store(
+        NotarialTemplate $template,
+        UploadedFile $file,
+        string $documentCode,
+        LawFirmDocumentModule|string|null $module = null,
+    ): void {
         $this->delete($template);
+        $module = $module instanceof LawFirmDocumentModule ? $module : LawFirmDocumentModule::fromNullable($module ?? $template->module);
 
         $safeName = Str::of(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME))
             ->slug('_')
             ->value();
         $extension = strtolower((string) $file->getClientOriginalExtension());
         $fileName = now()->format('YmdHis')."_{$safeName}_".Str::lower(Str::random(8)).".{$extension}";
-        $directory = 'notarial-templates/'.Str::slug($documentCode);
+        $directory = $module->storagePrefix().'-templates/'.Str::slug($documentCode);
 
         $this->disk()->putFileAs($directory, $file, $fileName);
 

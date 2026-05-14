@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\LegacyBatchFileStatus;
+use App\Enums\LegacyBatchModule;
 use App\Enums\LegacyBatchStatus;
 use App\Traits\Auditable;
 use Database\Factories\LegacyBatchFactory;
@@ -24,6 +25,7 @@ class LegacyBatch extends Model
         'year_from',
         'year_to',
         'department',
+        'module',
         'notes',
         'status',
         'expected_file_count',
@@ -47,6 +49,7 @@ class LegacyBatch extends Model
             'uploaded_file_count' => 'integer',
             'failed_file_count' => 'integer',
             'total_size_bytes' => 'integer',
+            'module' => LegacyBatchModule::class,
             'status' => LegacyBatchStatus::class,
             'started_at' => 'datetime',
             'completed_at' => 'datetime',
@@ -76,7 +79,16 @@ class LegacyBatch extends Model
         }
 
         if ($user->role?->value === 'encoder') {
-            return $query->where('uploaded_by', $user->id);
+            return $query
+                ->where('uploaded_by', $user->id)
+                ->where('module', LegacyBatchModule::Brokerage->value);
+        }
+
+        if ($user->hasLegalAccess()) {
+            return $query->whereIn('module', [
+                LegacyBatchModule::Legal->value,
+                LegacyBatchModule::Notarial->value,
+            ]);
         }
 
         return $query->whereRaw('1 = 0');

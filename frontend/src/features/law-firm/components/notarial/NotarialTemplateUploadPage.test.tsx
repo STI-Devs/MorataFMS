@@ -182,6 +182,7 @@ describe('NotarialTemplateUploadPage', () => {
             expect(mockCreateTemplate).toHaveBeenCalledWith({
                 code: 'affidavit_loss-standard',
                 label: 'Affidavit of Loss - Standard',
+                module: 'notarial',
                 document_code: 'AFFIDAVIT_LOSS',
                 description: undefined,
                 is_active: true,
@@ -236,7 +237,7 @@ describe('NotarialTemplateUploadPage', () => {
         await waitFor(() => {
             expect(mockUpdateTemplate).toHaveBeenCalledWith({
                 templateId: 44,
-                data: { is_active: false },
+                data: { module: 'notarial', is_active: false },
             });
         });
 

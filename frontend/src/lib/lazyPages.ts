@@ -93,6 +93,14 @@ export const LegalArchiveRecordsPage = lazy(() =>
     import('../features/law-firm/components/archive/LegalArchiveRecordsPage').then((module) => ({ default: module.LegalArchiveRecordsPage })),
 );
 
+export const LegalFileMasterSetupPage = lazy(() =>
+    import('../features/law-firm/components/archive/LegalFileMasterSetupPage').then((module) => ({ default: module.LegalFileMasterSetupPage })),
+);
+
+export const LegacyRecordsPage = lazy(() =>
+    import('../features/law-firm/components/archive/LegacyRecordsPage').then((module) => ({ default: module.LegacyRecordsPage })),
+);
+
 export const NotarialGeneratedDocumentsPage = lazy(() =>
     import('../features/law-firm/components/records/NotarialGeneratedDocumentsPage').then((module) => ({ default: module.NotarialGeneratedDocumentsPage })),
 );

@@ -2,7 +2,7 @@
 
 namespace App\Http\Resources\LegalArchive;
 
-use App\Support\Legal\LegalDocumentCatalog;
+use App\Support\LawFirmDocuments\LawFirmDocumentCatalog;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -13,9 +13,9 @@ class LegalArchiveRecordResource extends JsonResource
         return [
             'id' => $this->id,
             'file_category' => $this->file_category,
-            'file_category_label' => LegalDocumentCatalog::labelForLegalFileCategory($this->file_category),
+            'file_category_label' => LawFirmDocumentCatalog::labelForLegalFileCategory($this->file_category),
             'file_code' => $this->file_code,
-            'file_code_label' => LegalDocumentCatalog::labelForLegalFileCode($this->file_code),
+            'file_code_label' => LawFirmDocumentCatalog::labelForLegalFileCode($this->file_code),
             'title' => $this->title,
             'related_name' => $this->related_name,
             'document_date' => $this->document_date?->toDateString(),

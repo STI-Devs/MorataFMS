@@ -29,6 +29,8 @@ import {
   ImportList,
   LegalArchivePage,
   LegalArchiveRecordsPage,
+  LegalFileMasterSetupPage,
+  LegacyRecordsPage,
   LandingPage,
   LegalMasterSetupPage,
   NotarialGeneratedDocumentsPage,
@@ -139,6 +141,9 @@ function AppContent() {
             {/* Legal module - admin + paralegal */}
             <Route element={<ProtectedRoute allowedRoles={['admin', 'paralegal']} />}>
               <Route path={appRoutes.paralegalDashboard} element={<ParalegalDashboard />} />
+              <Route path={appRoutes.paralegalLegacyRecords} element={<Navigate to={appRoutes.paralegalLegacyFolderUpload} replace />} />
+              <Route path={appRoutes.paralegalLegacyBatches} element={<Navigate to={appRoutes.paralegalLegacyNotarialBatches} replace />} />
+              <Route path={appRoutes.paralegalLegacyRecordsWildcard} element={<LegacyRecordsPage />} />
               <Route path={appRoutes.lawFirm} element={<LawFirmPage />} />
               <Route path={appRoutes.forms} element={<Navigate to={appRoutes.paralegalGenerator} replace />} />
               <Route path={appRoutes.paralegalDocuments} element={<Navigate to={appRoutes.paralegalGenerator} replace />} />
@@ -147,8 +152,13 @@ function AppContent() {
               <Route path={appRoutes.paralegalBooks} element={<NotarialBooksPage />} />
               <Route path={appRoutes.paralegalGenerator} element={<DocumentGeneratorPage />} />
               <Route path={appRoutes.paralegalMasterSetup} element={<LegalMasterSetupPage />} />
+              <Route path={appRoutes.paralegalNotarialLegacyFolderUpload} element={<Navigate to={appRoutes.paralegalLegacyFolderUpload} replace />} />
+              <Route path={appRoutes.paralegalNotarialLegacyBatches} element={<Navigate to={appRoutes.paralegalLegacyNotarialBatches} replace />} />
               <Route path={appRoutes.paralegalLegalFiles} element={<LegalArchivePage />} />
+              <Route path={appRoutes.paralegalLegalFileMasters} element={<LegalFileMasterSetupPage />} />
               <Route path={appRoutes.paralegalLegalFileRecords} element={<LegalArchiveRecordsPage />} />
+              <Route path={appRoutes.paralegalLegalLegacyFolderUpload} element={<Navigate to={appRoutes.paralegalLegacyFolderUpload} replace />} />
+              <Route path={appRoutes.paralegalLegalLegacyBatches} element={<Navigate to={appRoutes.paralegalLegacyLegalBatches} replace />} />
               <Route path={appRoutes.paralegalGeneratedDocuments} element={<NotarialGeneratedDocumentsPage />} />
             </Route>
 
@@ -176,6 +186,7 @@ function AppContent() {
           {/* Standalone legal editor: no sidebar */}
           <Route element={<ProtectedRoute allowedRoles={['admin', 'paralegal']} />}>
             <Route path={appRoutes.paralegalGeneratedDocumentEditor} element={<NotarialGeneratedDocumentEditorPage />} />
+            <Route path={appRoutes.paralegalLegalGeneratedDocumentEditor} element={<NotarialGeneratedDocumentEditorPage />} />
           </Route>
         </Route>
 

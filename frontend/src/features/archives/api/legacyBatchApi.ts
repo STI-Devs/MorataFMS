@@ -4,12 +4,15 @@ import type {
     FileNode,
     LegacyBatch,
     LegacyBatchListResponse,
+    LegacyBatchModule,
     LegacyBatchSummary,
     SignLegacyBatchUploadsResponse,
 } from '../types/legacyBatch.types';
 
 type LegacyBatchApiResource = {
     id: string;
+    module: LegacyBatchModule | null;
+    module_label: string | null;
     batch_name: string;
     root_folder: string;
     upload_date: string | null;
@@ -88,6 +91,8 @@ const formatDisplayDate = (isoDate: string | null): string => {
 
 const mapSummary = (resource: LegacyBatchApiResource): LegacyBatchSummary => ({
     id: resource.id,
+    module: resource.module ?? 'brokerage',
+    moduleLabel: resource.module_label ?? 'Brokerage',
     batchName: resource.batch_name,
     rootFolder: resource.root_folder,
     uploadedBy: resource.uploaded_by?.name ?? 'Unknown user',
@@ -126,18 +131,21 @@ const mapDetail = (resource: LegacyBatchDetailApiResource): LegacyBatch => ({
 export const legacyBatchApi = {
     getLegacyBatches: async ({
         page = 1,
-        perPage = 20,
+        perPage = 25,
         search = '',
+        module,
     }: {
         page?: number;
         perPage?: number;
         search?: string;
+        module?: LegacyBatchModule;
     } = {}): Promise<LegacyBatchListResponse> => {
         const response = await api.get<LegacyBatchListApiResponse>('/api/legacy-batches', {
             params: {
                 page,
                 per_page: perPage,
                 search: search.trim() || undefined,
+                module,
             },
         });
 
@@ -166,6 +174,7 @@ export const legacyBatchApi = {
             year_from: Number(payload.yearFrom),
             year_to: Number(payload.yearTo),
             department: payload.department,
+            module: payload.module,
             notes: payload.notes || null,
             expected_file_count: payload.expectedFileCount,
             total_size_bytes: payload.totalSizeBytes,

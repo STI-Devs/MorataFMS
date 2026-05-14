@@ -2,6 +2,7 @@
 
 namespace App\Support\LegacyBatches;
 
+use App\Enums\LegacyBatchModule;
 use App\Models\LegacyBatch;
 use App\Models\LegacyBatchFile;
 use Illuminate\Support\Facades\Storage;
@@ -19,7 +20,23 @@ class LegacyBatchUploadUrlFactory
 
     public function prefixFor(LegacyBatch $batch): string
     {
+        return sprintf('%s/%s/%s', self::STORAGE_ROOT, $this->moduleValue($batch), $batch->uuid);
+    }
+
+    public function legacyPrefixFor(LegacyBatch $batch): string
+    {
         return sprintf('%s/%s', self::STORAGE_ROOT, $batch->uuid);
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function inspectablePrefixesFor(LegacyBatch $batch): array
+    {
+        return array_values(array_unique([
+            $this->prefixFor($batch),
+            $this->legacyPrefixFor($batch),
+        ]));
     }
 
     /**
@@ -39,5 +56,15 @@ class LegacyBatchUploadUrlFactory
         $normalized = preg_replace('#/+#', '/', $normalized) ?: '';
 
         return trim($normalized, '/');
+    }
+
+    private function moduleValue(LegacyBatch $batch): string
+    {
+        if ($batch->module instanceof LegacyBatchModule) {
+            return $batch->module->value;
+        }
+
+        return LegacyBatchModule::tryFrom((string) $batch->module)?->value
+            ?? LegacyBatchModule::Brokerage->value;
     }
 }

@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\LegacyBatchModule;
 use App\Enums\LegacyBatchStatus;
 use App\Models\LegacyBatch;
 use App\Models\User;
@@ -31,6 +32,7 @@ class LegacyBatchFactory extends Factory
             'year_from' => $yearFrom,
             'year_to' => $yearTo,
             'department' => 'Brokerage',
+            'module' => LegacyBatchModule::Brokerage,
             'notes' => fake()->sentence(),
             'status' => LegacyBatchStatus::Draft,
             'expected_file_count' => 3,

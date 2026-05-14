@@ -2,6 +2,7 @@
 
 namespace App\Actions\LegacyBatches;
 
+use App\Enums\LegacyBatchModule;
 use App\Enums\LegacyBatchStatus;
 use App\Models\LegacyBatch;
 use App\Models\User;
@@ -28,6 +29,7 @@ class CreateLegacyBatch
                 'year_from' => (int) $data['year_from'],
                 'year_to' => (int) $data['year_to'],
                 'department' => $data['department'],
+                'module' => $data['module'] ?? LegacyBatchModule::Brokerage->value,
                 'notes' => $data['notes'] ?? null,
                 'status' => LegacyBatchStatus::Draft,
                 'expected_file_count' => $expectedFileCount,

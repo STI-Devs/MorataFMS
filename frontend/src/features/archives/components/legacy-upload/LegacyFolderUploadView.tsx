@@ -1,4 +1,6 @@
 import { useLegacyUploadOrchestrator } from '../../hooks/useLegacyUploadOrchestrator';
+import type { LegacyBatchModule } from '../../types/legacyBatch.types';
+import type { BatchMeta } from '../../utils/legacyUpload.utils';
 import {
     LEGACY_ALLOWED_FILE_ACCEPT,
     LEGACY_ALLOWED_FILE_LABEL,
@@ -16,12 +18,30 @@ import { WorkflowSteps } from './sections/WorkflowSteps';
 import { semanticToneClasses } from './sections/legacyUploadStyles';
 
 interface Props {
-    onOpenBatches?: () => void;
+    module?: LegacyBatchModule;
+    resolveModuleFromMeta?: (meta: BatchMeta) => LegacyBatchModule;
+    defaultMeta?: Partial<BatchMeta>;
+    departmentOptions?: Array<{ label: string; value: string }>;
+    lockDepartment?: boolean;
+    startButtonLabel?: string;
+    resumeButtonLabel?: string;
+    onOpenBatches?: (module?: LegacyBatchModule) => void;
     resumeBatchId?: string | null;
     onResumeCleared?: () => void;
 }
 
-export const LegacyFolderUploadView = ({ onOpenBatches, resumeBatchId, onResumeCleared }: Props) => {
+export const LegacyFolderUploadView = ({
+    module = 'brokerage',
+    resolveModuleFromMeta,
+    defaultMeta,
+    departmentOptions,
+    lockDepartment = false,
+    startButtonLabel = 'Start Legacy Ingestion',
+    resumeButtonLabel = 'Resume Legacy Ingestion',
+    onOpenBatches,
+    resumeBatchId,
+    onResumeCleared,
+}: Props) => {
     const {
         phase,
         isDragging,
@@ -50,7 +70,7 @@ export const LegacyFolderUploadView = ({ onOpenBatches, resumeBatchId, onResumeC
         performUpload,
         handleCancelUpload,
         showBrowser,
-    } = useLegacyUploadOrchestrator({ resumeBatchId, onResumeCleared });
+    } = useLegacyUploadOrchestrator({ module, resolveModuleFromMeta, defaultMeta, resumeBatchId, onResumeCleared });
 
     return (
         <>
@@ -133,7 +153,7 @@ export const LegacyFolderUploadView = ({ onOpenBatches, resumeBatchId, onResumeC
                                                 : 'cursor-not-allowed bg-surface-secondary text-text-muted'
                                         }`}
                                     >
-                                        {activeBatch?.canResume ? 'Resume Legacy Ingestion' : 'Start Legacy Ingestion'}
+                                        {activeBatch?.canResume ? resumeButtonLabel : startButtonLabel}
                                     </button>
                                 </div>
                             )}
@@ -150,7 +170,14 @@ export const LegacyFolderUploadView = ({ onOpenBatches, resumeBatchId, onResumeC
                             />
                         </div>
 
-                        {phase !== 'uploading' && <MetadataPanel meta={meta} onChange={setMeta} />}
+                        {phase !== 'uploading' && (
+                            <MetadataPanel
+                                meta={meta}
+                                onChange={setMeta}
+                                departmentOptions={departmentOptions}
+                                lockDepartment={lockDepartment}
+                            />
+                        )}
                     </div>
                 )}
 
@@ -160,7 +187,7 @@ export const LegacyFolderUploadView = ({ onOpenBatches, resumeBatchId, onResumeC
                         onViewFolder={showBrowser}
                         onOpenBatches={() => {
                             onResumeCleared?.();
-                            onOpenBatches?.();
+                            onOpenBatches?.(activeBatch.module);
                         }}
                         onUploadAnother={handleReset}
                     />

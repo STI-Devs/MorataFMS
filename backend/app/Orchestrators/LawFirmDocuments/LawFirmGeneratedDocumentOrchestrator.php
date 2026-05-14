@@ -1,39 +1,39 @@
 <?php
 
-namespace App\Orchestrators\Notarial;
+namespace App\Orchestrators\LawFirmDocuments;
 
-use App\Actions\Notarial\CreateEditableNotarialGeneratedDocument;
-use App\Actions\Notarial\DeleteNotarialGeneratedDocument;
-use App\Http\Requests\Notarial\NotarialGeneratedDocumentIndexRequest;
+use App\Actions\LawFirmDocuments\CreateEditableLawFirmGeneratedDocument;
+use App\Actions\LawFirmDocuments\DeleteLawFirmGeneratedDocument;
+use App\Http\Requests\LawFirmDocuments\LawFirmGeneratedDocumentIndexRequest;
 use App\Models\NotarialGeneratedDocument;
 use App\Models\User;
-use App\Queries\Notarial\NotarialGeneratedDocumentIndexQuery;
+use App\Queries\LawFirmDocuments\LawFirmGeneratedDocumentIndexQuery;
+use App\Support\LawFirmDocuments\OnlyOfficeDocumentEditor;
 use App\Support\Legal\OnlyOfficeCallbackFileFetcher;
-use App\Support\Legal\OnlyOfficeDocumentEditor;
 use App\Support\Legal\StoredFileDownloader;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Throwable;
 
-class NotarialGeneratedDocumentOrchestrator
+class LawFirmGeneratedDocumentOrchestrator
 {
     public function __construct(
-        private NotarialGeneratedDocumentIndexQuery $notarialGeneratedDocumentIndexQuery,
-        private CreateEditableNotarialGeneratedDocument $createEditableNotarialGeneratedDocument,
-        private DeleteNotarialGeneratedDocument $deleteNotarialGeneratedDocument,
+        private LawFirmGeneratedDocumentIndexQuery $lawFirmGeneratedDocumentIndexQuery,
+        private CreateEditableLawFirmGeneratedDocument $createEditableLawFirmGeneratedDocument,
+        private DeleteLawFirmGeneratedDocument $deleteLawFirmGeneratedDocument,
         private StoredFileDownloader $storedFileDownloader,
         private OnlyOfficeDocumentEditor $onlyOfficeDocumentEditor,
         private OnlyOfficeCallbackFileFetcher $onlyOfficeCallbackFileFetcher,
     ) {}
 
-    public function index(NotarialGeneratedDocumentIndexRequest $request): LengthAwarePaginator
+    public function index(LawFirmGeneratedDocumentIndexRequest $request): LengthAwarePaginator
     {
-        return $this->notarialGeneratedDocumentIndexQuery->handle($request);
+        return $this->lawFirmGeneratedDocumentIndexQuery->handle($request);
     }
 
     public function storeEditableCopy(array $validated, User $user): NotarialGeneratedDocument
     {
-        return $this->createEditableNotarialGeneratedDocument->handle($validated, $user);
+        return $this->createEditableLawFirmGeneratedDocument->handle($validated, $user);
     }
 
     public function show(NotarialGeneratedDocument $document): NotarialGeneratedDocument
@@ -67,7 +67,7 @@ class NotarialGeneratedDocumentOrchestrator
 
     public function delete(NotarialGeneratedDocument $document): void
     {
-        $this->deleteNotarialGeneratedDocument->handle($document);
+        $this->deleteLawFirmGeneratedDocument->handle($document);
     }
 
     public function editorConfig(NotarialGeneratedDocument $document, User $user): array

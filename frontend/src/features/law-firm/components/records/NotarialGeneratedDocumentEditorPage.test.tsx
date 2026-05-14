@@ -22,6 +22,8 @@ vi.mock('../../hooks/useLegalWorkspace', () => ({
 describe('NotarialGeneratedDocumentEditorPage', () => {
     beforeEach(() => {
         mockDocEditor.mockReset();
+        mockUseNotarialGeneratedDocument.mockReset();
+        mockUseNotarialGeneratedDocumentEditorConfig.mockReset();
         window.DocsAPI = {
             DocEditor: mockDocEditor,
         };
@@ -66,7 +68,8 @@ describe('NotarialGeneratedDocumentEditorPage', () => {
         expect(screen.getByText('15 KB stored copy')).toBeInTheDocument();
         expect(screen.queryByRole('link', { name: /Back to Generated Documents/i })).not.toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Drag save status badge' })).toBeInTheDocument();
-        expect(mockUseNotarialGeneratedDocument).toHaveBeenCalledWith(1);
+        expect(mockUseNotarialGeneratedDocument).toHaveBeenCalledWith(1, 'notarial');
+        expect(mockUseNotarialGeneratedDocumentEditorConfig).toHaveBeenCalledWith(1, 'notarial');
 
         await waitFor(() => {
             expect(mockDocEditor).toHaveBeenCalledWith('onlyoffice-generated-document-editor', {
@@ -76,6 +79,16 @@ describe('NotarialGeneratedDocumentEditorPage', () => {
                 },
             });
         });
+    });
+
+    it('uses legal document endpoints on the legal editor route', () => {
+        renderWithProviders(<NotarialGeneratedDocumentEditorPage />, {
+            route: '/paralegal/legal-files/generated-documents/2/edit',
+            path: appRoutes.paralegalLegalGeneratedDocumentEditor,
+        });
+
+        expect(mockUseNotarialGeneratedDocument).toHaveBeenCalledWith(2, 'legal');
+        expect(mockUseNotarialGeneratedDocumentEditorConfig).toHaveBeenCalledWith(2, 'legal');
     });
 
     it('shows a clear error when the onlyoffice url points back to this app', async () => {

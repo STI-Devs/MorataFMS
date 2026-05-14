@@ -12,7 +12,25 @@ import {
     useNotarialTemplates,
     useUpdateNotarialTemplate,
 } from '../../hooks/useLegalWorkspace';
-import type { LegalDocumentType, NotarialTemplate } from '../../types/legalRecords.types';
+import type { LawFirmDocumentModule, LegalDocumentType, NotarialTemplate } from '../../types/legalRecords.types';
+
+type Props = {
+    module?: LawFirmDocumentModule;
+};
+
+const moduleCopy: Record<LawFirmDocumentModule, {
+    description: string;
+    accessDescription: string;
+}> = {
+    notarial: {
+        description: 'Configure root templates and DOCX variants for the drafting engine.',
+        accessDescription: "You don't have permission to manage document masters. Please contact an administrator.",
+    },
+    legal: {
+        description: 'Configure legal DOCX masters and variants for the drafting engine.',
+        accessDescription: "You don't have permission to manage legal document masters. Please contact an administrator.",
+    },
+};
 
 const getErrorMessage = (error: unknown): string => {
     const responseData = (error as {
@@ -78,7 +96,7 @@ const extractTemplateVariant = (template: NotarialTemplate): string | null => {
     return template.label !== documentLabel ? template.label : null;
 };
 
-export const NotarialTemplateUploadPage = () => {
+export const NotarialTemplateUploadPage = ({ module = 'notarial' }: Props) => {
     const { user } = useAuth();
     const canManageTemplates = Boolean(user?.permissions.manage_notarial_templates);
 
@@ -88,14 +106,15 @@ export const NotarialTemplateUploadPage = () => {
     const [draftFile, setDraftFile] = useState<File | null>(null);
     const [pendingDeleteTemplate, setPendingDeleteTemplate] = useState<NotarialTemplate | null>(null);
 
-    const catalogQuery = useLegalCatalog();
-    const templatesQuery = useNotarialTemplates({ per_page: 100, is_active: true });
-    const readyTemplatesQuery = useNotarialTemplates({ template_status: 'ready', is_active: true, page: 1, per_page: 1 });
-    const missingTemplatesQuery = useNotarialTemplates({ template_status: 'missing_file', is_active: true, page: 1, per_page: 1 });
-    const generatedDocumentsQuery = useNotarialGeneratedDocuments({ page: 1, per_page: 1 });
+    const catalogQuery = useLegalCatalog(module);
+    const templatesQuery = useNotarialTemplates({ module, per_page: 100, is_active: true });
+    const readyTemplatesQuery = useNotarialTemplates({ module, template_status: 'ready', is_active: true, page: 1, per_page: 1 });
+    const missingTemplatesQuery = useNotarialTemplates({ module, template_status: 'missing_file', is_active: true, page: 1, per_page: 1 });
+    const generatedDocumentsQuery = useNotarialGeneratedDocuments({ module, page: 1, per_page: 1 });
     const createTemplate = useCreateNotarialTemplate();
     const updateTemplate = useUpdateNotarialTemplate();
-    const deleteTemplate = useDeleteNotarialTemplate();
+    const deleteTemplate = useDeleteNotarialTemplate(module);
+    const copy = moduleCopy[module];
 
     const templates = useMemo(
         () => templatesQuery.data?.data ?? [],
@@ -146,6 +165,7 @@ export const NotarialTemplateUploadPage = () => {
             await createTemplate.mutateAsync({
                 code: draftTemplate.code,
                 label: draftTemplate.label,
+                module,
                 document_code: draftDocumentCode,
                 description: draftDescription.trim() || undefined,
                 is_active: true,
@@ -170,7 +190,7 @@ export const NotarialTemplateUploadPage = () => {
         try {
             await updateTemplate.mutateAsync({
                 templateId: template.id,
-                data: { is_active: false },
+                data: { module, is_active: false },
             });
             toast.success('Document master archived. Existing generated documents remain available.');
         } catch (error) {
@@ -200,7 +220,7 @@ export const NotarialTemplateUploadPage = () => {
                         </svg>
                     </div>
                     <p className="text-lg font-semibold tracking-tight text-text-primary">Access Restricted</p>
-                    <p className="mt-2 text-sm text-text-secondary">You don't have permission to manage document masters. Please contact an administrator.</p>
+                    <p className="mt-2 text-sm text-text-secondary">{copy.accessDescription}</p>
                 </div>
             </div>
         );
@@ -226,7 +246,7 @@ export const NotarialTemplateUploadPage = () => {
                         Document Masters
                     </h1>
                     <p className="text-[13px] text-text-secondary">
-                        Configure root templates and DOCX variants for the drafting engine.
+                        {copy.description}
                     </p>
                 </header>
 

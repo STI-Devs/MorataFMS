@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Actions\Notarial;
+namespace App\Actions\LawFirmDocuments;
 
 use App\Models\NotarialGeneratedDocument;
 use Illuminate\Support\Facades\Storage;
 
-class DeleteNotarialGeneratedDocument
+class DeleteLawFirmGeneratedDocument
 {
     public function handle(NotarialGeneratedDocument $document): void
     {

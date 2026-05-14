@@ -5,9 +5,21 @@ import { RequiredLabel, SectionTitle } from './legacyUploadPrimitives';
 interface Props {
     meta: BatchMeta;
     onChange: React.Dispatch<React.SetStateAction<BatchMeta>>;
+    departmentOptions?: Array<{ label: string; value: string }>;
+    lockDepartment?: boolean;
 }
 
-export const MetadataPanel = ({ meta, onChange }: Props) => (
+const DEFAULT_DEPARTMENT_OPTIONS = [
+    { label: 'Brokerage', value: 'Brokerage' },
+    { label: 'Legal', value: 'Legal' },
+];
+
+export const MetadataPanel = ({
+    meta,
+    onChange,
+    departmentOptions = DEFAULT_DEPARTMENT_OPTIONS,
+    lockDepartment = false,
+}: Props) => (
     <div className="rounded-2xl border border-border bg-surface">
         <div className="border-b border-border px-5 py-4">
             <SectionTitle>Batch Details</SectionTitle>
@@ -108,12 +120,14 @@ export const MetadataPanel = ({ meta, onChange }: Props) => (
                     <select
                         aria-label="Department"
                         value={meta.department}
+                        disabled={lockDepartment}
                         onChange={(event) => onChange((current) => ({ ...current, department: event.target.value }))}
-                        className="w-full rounded-xl border border-border-strong bg-input-bg px-4 py-3 text-sm text-text-primary outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
+                        className="w-full rounded-xl border border-border-strong bg-input-bg px-4 py-3 text-sm text-text-primary outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 disabled:cursor-not-allowed disabled:opacity-75"
                     >
-                        <option value="">Select department</option>
-                        <option value="Brokerage">Brokerage</option>
-                        <option value="Legal">Legal</option>
+                        {!lockDepartment && <option value="">Select department</option>}
+                        {departmentOptions.map((option) => (
+                            <option key={option.value} value={option.value}>{option.label}</option>
+                        ))}
                     </select>
                 </label>
             </div>

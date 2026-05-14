@@ -18,6 +18,8 @@ export interface LegacyBatchMetadata {
     legacyReferenceOnly: boolean;
 }
 
+export type LegacyBatchModule = 'brokerage' | 'notarial' | 'legal';
+
 export interface LegacyBatchUploadSummary {
     expected: number;
     uploaded: number;
@@ -36,6 +38,8 @@ export interface LegacyBatchPagination {
 
 export interface LegacyBatchSummary {
     id: string;
+    module: LegacyBatchModule;
+    moduleLabel: string;
     batchName: string;
     rootFolder: string;
     uploadedBy: string;
@@ -75,6 +79,7 @@ export interface LegacyBatchManifestFile {
 }
 
 export interface CreateLegacyBatchPayload {
+    module?: LegacyBatchModule;
     batchName: string;
     rootFolder: string;
     yearFrom: string;

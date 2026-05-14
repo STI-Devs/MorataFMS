@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\LegacyBatchFileStatus;
+use App\Enums\LegacyBatchModule;
 use App\Enums\LegacyBatchStatus;
 use App\Models\AuditLog;
 use App\Models\LegacyBatch;
@@ -48,6 +49,7 @@ test('admin can create a legacy batch manifest and preserved storage paths', fun
     $response->assertCreated()
         ->assertJsonPath('data.batch_name', 'VESSEL 1 — Historical Archive')
         ->assertJsonPath('data.root_folder', 'VESSEL 1')
+        ->assertJsonPath('data.module', LegacyBatchModule::Brokerage->value)
         ->assertJsonPath('data.status', LegacyBatchStatus::Draft->value)
         ->assertJsonPath('data.metadata.year', '2023 - 2026')
         ->assertJsonPath('data.metadata.year_from', 2023)
@@ -215,6 +217,106 @@ test('encoder only sees their own legacy batches', function () {
     $response->assertOk()
         ->assertJsonCount(1, 'data')
         ->assertJsonPath('data.0.batch_name', 'My Legacy Batch');
+});
+
+test('paralegal can create and list legal legacy batches without brokerage batches', function () {
+    $paralegal = User::factory()->create(['role' => 'paralegal']);
+    $encoder = User::factory()->create(['role' => 'encoder']);
+
+    LegacyBatch::factory()->create([
+        'uploaded_by' => $encoder->id,
+        'batch_name' => 'Brokerage Historical Batch',
+        'module' => LegacyBatchModule::Brokerage,
+    ]);
+
+    $createResponse = $this->actingAs($paralegal)->postJson('/api/legacy-batches', [
+        'batch_name' => 'Legal Intern Archive',
+        'root_folder' => 'Legal Intern Files',
+        'year_from' => 2024,
+        'year_to' => 2026,
+        'department' => 'Legal',
+        'module' => LegacyBatchModule::Legal->value,
+        'notes' => 'Old legal department files.',
+        'files' => [
+            [
+                'relative_path' => 'Legal Intern Files/Intern A/CLEARANCE.pdf',
+                'size_bytes' => 120000,
+                'mime_type' => 'application/pdf',
+                'modified_at' => now()->subYear()->toIso8601String(),
+            ],
+        ],
+    ]);
+
+    $createResponse->assertCreated()
+        ->assertJsonPath('data.batch_name', 'Legal Intern Archive')
+        ->assertJsonPath('data.module', LegacyBatchModule::Legal->value)
+        ->assertJsonPath('data.metadata.department', 'Legal');
+
+    $this->actingAs($paralegal)
+        ->getJson('/api/legacy-batches?module=legal')
+        ->assertOk()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.batch_name', 'Legal Intern Archive')
+        ->assertJsonPath('data.0.module', LegacyBatchModule::Legal->value);
+
+    $this->actingAs($paralegal)
+        ->getJson('/api/legacy-batches?module=brokerage')
+        ->assertForbidden();
+});
+
+test('paralegal legal and notarial legacy batch lists stay separated by module', function () {
+    $paralegal = User::factory()->create(['role' => 'paralegal']);
+
+    LegacyBatch::factory()->create([
+        'uploaded_by' => $paralegal->id,
+        'batch_name' => 'Notarial Book Legacy Archive',
+        'department' => 'Notarial',
+        'module' => LegacyBatchModule::Notarial,
+    ]);
+
+    LegacyBatch::factory()->create([
+        'uploaded_by' => $paralegal->id,
+        'batch_name' => 'Legal Case Legacy Archive',
+        'department' => 'Legal',
+        'module' => LegacyBatchModule::Legal,
+    ]);
+
+    $this->actingAs($paralegal)
+        ->getJson('/api/legacy-batches?module=notarial')
+        ->assertOk()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.batch_name', 'Notarial Book Legacy Archive')
+        ->assertJsonPath('data.0.module', LegacyBatchModule::Notarial->value);
+
+    $this->actingAs($paralegal)
+        ->getJson('/api/legacy-batches?module=legal')
+        ->assertOk()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.batch_name', 'Legal Case Legacy Archive')
+        ->assertJsonPath('data.0.module', LegacyBatchModule::Legal->value);
+});
+
+test('encoder cannot create legal legacy batches', function () {
+    $encoder = User::factory()->create(['role' => 'encoder']);
+
+    foreach ([LegacyBatchModule::Legal, LegacyBatchModule::Notarial] as $module) {
+        $this->actingAs($encoder)->postJson('/api/legacy-batches', [
+            'batch_name' => 'Legal Intern Archive',
+            'root_folder' => 'Legal Intern Files',
+            'year_from' => 2026,
+            'year_to' => 2026,
+            'department' => $module->label(),
+            'module' => $module->value,
+            'files' => [
+                [
+                    'relative_path' => 'Legal Intern Files/Intern A/CLEARANCE.pdf',
+                    'size_bytes' => 120000,
+                    'mime_type' => 'application/pdf',
+                    'modified_at' => now()->subYear()->toIso8601String(),
+                ],
+            ],
+        ])->assertForbidden();
+    }
 });
 
 test('legacy batch index paginates results', function () {

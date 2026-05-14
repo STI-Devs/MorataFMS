@@ -8,6 +8,7 @@ import type {
     CreateNotarialTemplatePayload,
     LegalArchiveQuery,
     LegalBooksQuery,
+    LawFirmDocumentModule,
     NotarialTemplateQuery,
     NotarialGeneratedDocumentQuery,
     UpdateNotarialBookPayload,
@@ -16,10 +17,10 @@ import type {
 } from '../types/legalRecords.types';
 import { lawFirmKeys } from '../utils/queryKeys';
 
-export const useLegalCatalog = () =>
+export const useLegalCatalog = (module?: LawFirmDocumentModule) =>
     useQuery({
-        queryKey: lawFirmKeys.catalog,
-        queryFn: () => lawFirmApi.getCatalog(),
+        queryKey: lawFirmKeys.catalog(module),
+        queryFn: () => lawFirmApi.getCatalog(module),
     });
 
 export const useLegalParties = (search: string, limit = 8) =>
@@ -48,18 +49,18 @@ export const useNotarialGeneratedDocuments = (params?: NotarialGeneratedDocument
         queryFn: () => lawFirmApi.getGeneratedDocuments(params),
     });
 
-export const useNotarialGeneratedDocument = (documentId: number | null) =>
+export const useNotarialGeneratedDocument = (documentId: number | null, module?: LawFirmDocumentModule) =>
     useQuery({
-        queryKey: lawFirmKeys.generatedDocument(documentId ?? 0),
-        queryFn: () => lawFirmApi.getGeneratedDocument(documentId!),
+        queryKey: lawFirmKeys.generatedDocument(documentId ?? 0, module),
+        queryFn: () => lawFirmApi.getGeneratedDocument(documentId!, module),
         enabled: documentId !== null && documentId > 0,
         refetchInterval: 8000,
     });
 
-export const useNotarialGeneratedDocumentEditorConfig = (documentId: number | null) =>
+export const useNotarialGeneratedDocumentEditorConfig = (documentId: number | null, module?: LawFirmDocumentModule) =>
     useQuery({
-        queryKey: lawFirmKeys.generatedDocumentEditor(documentId ?? 0),
-        queryFn: () => lawFirmApi.getGeneratedDocumentEditorConfig(documentId!),
+        queryKey: lawFirmKeys.generatedDocumentEditor(documentId ?? 0, module),
+        queryFn: () => lawFirmApi.getGeneratedDocumentEditorConfig(documentId!, module),
         enabled: documentId !== null && documentId > 0,
     });
 
@@ -92,11 +93,11 @@ export const useUpdateNotarialTemplate = () => {
     });
 };
 
-export const useDeleteNotarialTemplate = () => {
+export const useDeleteNotarialTemplate = (module?: LawFirmDocumentModule) => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: (templateId: number) => lawFirmApi.deleteTemplate(templateId),
+        mutationFn: (templateId: number) => lawFirmApi.deleteTemplate(templateId, module),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['law-firm', 'templates'] });
         },
@@ -116,11 +117,11 @@ export const useCreateEditableNotarialGeneratedDocument = () => {
     });
 };
 
-export const useDeleteNotarialGeneratedDocument = () => {
+export const useDeleteNotarialGeneratedDocument = (module?: LawFirmDocumentModule) => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: (documentId: number) => lawFirmApi.deleteGeneratedDocument(documentId),
+        mutationFn: (documentId: number) => lawFirmApi.deleteGeneratedDocument(documentId, module),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['law-firm', 'generated-documents'] });
             queryClient.invalidateQueries({ queryKey: ['law-firm', 'templates'] });

@@ -8,7 +8,7 @@ import {
     useNotarialGeneratedDocuments,
     useNotarialTemplates,
 } from './useLegalWorkspace';
-import type { LegalDocumentCategoryCode, LegalParty } from '../types/legalRecords.types';
+import type { DocumentTemplateCategoryCode, LawFirmDocumentModule, LegalParty } from '../types/legalRecords.types';
 import { openEditorPage } from '../utils/editorNavigation';
 
 const getErrorMessage = (error: unknown): string => {
@@ -18,9 +18,9 @@ const getErrorMessage = (error: unknown): string => {
     return first ?? data?.message ?? 'Unable to prepare the draft.';
 };
 
-export const useDocumentGenerator = () => {
+export const useDocumentGenerator = (module: LawFirmDocumentModule = 'notarial') => {
     const [templateSearch, setTemplateSearch] = useState('');
-    const [selectedCategory, setSelectedCategory] = useState<LegalDocumentCategoryCode | 'all'>('all');
+    const [selectedCategory, setSelectedCategory] = useState<DocumentTemplateCategoryCode | 'all'>('all');
     const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(null);
 
     const [partySearch, setPartySearch] = useState('');
@@ -32,11 +32,11 @@ export const useDocumentGenerator = () => {
     const deferredSearch = useDeferredValue(templateSearch);
     const deferredPartySearch = useDeferredValue(partySearch);
 
-    const catalogQuery = useLegalCatalog();
-    const templatesQuery = useNotarialTemplates({ per_page: 100, search: deferredSearch.trim() || undefined, is_active: true });
-    const readyTemplatesQuery = useNotarialTemplates({ template_status: 'ready', is_active: true, page: 1, per_page: 1 });
-    const libraryTemplatesQuery = useNotarialTemplates({ is_active: true, page: 1, per_page: 1 });
-    const generatedDocumentsQuery = useNotarialGeneratedDocuments({ page: 1, per_page: 1 });
+    const catalogQuery = useLegalCatalog(module);
+    const templatesQuery = useNotarialTemplates({ module, per_page: 100, search: deferredSearch.trim() || undefined, is_active: true });
+    const readyTemplatesQuery = useNotarialTemplates({ module, template_status: 'ready', is_active: true, page: 1, per_page: 1 });
+    const libraryTemplatesQuery = useNotarialTemplates({ module, is_active: true, page: 1, per_page: 1 });
+    const generatedDocumentsQuery = useNotarialGeneratedDocuments({ module, page: 1, per_page: 1 });
     const partiesQuery = useLegalParties(deferredPartySearch.trim());
     const createEditableRecord = useCreateEditableNotarialGeneratedDocument();
 
@@ -70,7 +70,7 @@ export const useDocumentGenerator = () => {
     const generatedDocumentCount = generatedDocumentsQuery.data?.meta.total ?? 0;
     const totalTemplateCount = libraryTemplatesQuery.data?.meta.total ?? 0;
 
-    const handleCategorySelect = (cat: LegalDocumentCategoryCode | 'all') => {
+    const handleCategorySelect = (cat: DocumentTemplateCategoryCode | 'all') => {
         setSelectedCategory(cat);
         setSelectedTemplateId(null);
         setGenerateSuccess(false);
@@ -106,6 +106,7 @@ export const useDocumentGenerator = () => {
         try {
             const document = await createEditableRecord.mutateAsync({
                 notarial_template_id: selectedTemplate.id,
+                module,
                 party_name: partyName,
                 party_id: selectedParty?.id,
                 notes: notes.trim() || undefined,
@@ -117,7 +118,10 @@ export const useDocumentGenerator = () => {
             setNotes('');
             setGenerateSuccess(true);
             openEditorPage(
-                appRoutes.paralegalGeneratedDocumentEditor.replace(':documentId', String(document.id)),
+                (module === 'legal'
+                    ? appRoutes.paralegalLegalGeneratedDocumentEditor
+                    : appRoutes.paralegalGeneratedDocumentEditor
+                ).replace(':documentId', String(document.id)),
             );
         } catch (error) {
             toast.error(getErrorMessage(error));

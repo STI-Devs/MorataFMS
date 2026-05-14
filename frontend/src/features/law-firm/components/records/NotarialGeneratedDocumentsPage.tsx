@@ -1,6 +1,7 @@
 import { useDeferredValue, useState } from 'react';
 import { DeleteConfirmModal } from '../shared/DeleteConfirmModal';
 import { toast } from 'sonner';
+import { Pagination } from '../../../../components/Pagination';
 import { useAuth } from '../../../auth';
 import { isAdmin } from '../../../auth/utils/access';
 import { appRoutes } from '../../../../lib/appRoutes';
@@ -11,14 +12,21 @@ import {
     useNotarialGeneratedDocuments,
     useNotarialTemplates,
 } from '../../hooks/useLegalWorkspace';
-import type { LegalDocumentCategoryCode, NotarialGeneratedDocument } from '../../types/legalRecords.types';
+import type { DocumentTemplateCategoryCode, LawFirmDocumentModule, NotarialGeneratedDocument } from '../../types/legalRecords.types';
 import { openEditorPage } from '../../utils/editorNavigation';
 
 const ALL_CATEGORIES = 'all';
-const PAGE_SIZE_OPTIONS = [12, 25, 50, 100] as const;
+const PAGE_SIZE_OPTIONS = [25, 50, 100] as const;
 
-const generatedDocumentEditorPath = (documentId: number): string =>
-    appRoutes.paralegalGeneratedDocumentEditor.replace(':documentId', String(documentId));
+type Props = {
+    module?: LawFirmDocumentModule;
+};
+
+const generatedDocumentEditorPath = (documentId: number, module: LawFirmDocumentModule): string =>
+    (module === 'legal'
+        ? appRoutes.paralegalLegalGeneratedDocumentEditor
+        : appRoutes.paralegalGeneratedDocumentEditor
+    ).replace(':documentId', String(documentId));
 
 const formatTimestamp = (value: string | null) => {
     if (!value) {
@@ -45,33 +53,36 @@ const SummaryCard = ({ label, value }: { label: string; value: string }) => (
     </div>
 );
 
-export const NotarialGeneratedDocumentsPage = () => {
+export const NotarialGeneratedDocumentsPage = ({ module = 'notarial' }: Props) => {
     const { user } = useAuth();
     const [searchTerm, setSearchTerm] = useState('');
     const [categoryFilter, setCategoryFilter] = useState<string>(ALL_CATEGORIES);
     const [page, setPage] = useState(1);
-    const [perPage, setPerPage] = useState<number>(12);
+    const [perPage, setPerPage] = useState<number>(25);
     const [openActionsDocumentId, setOpenActionsDocumentId] = useState<number | null>(null);
     const [pendingDeleteDocument, setPendingDeleteDocument] = useState<NotarialGeneratedDocument | null>(null);
 
     const deferredSearchTerm = useDeferredValue(searchTerm);
 
-    const catalogQuery = useLegalCatalog();
-    const deleteGeneratedDocument = useDeleteNotarialGeneratedDocument();
+    const catalogQuery = useLegalCatalog(module);
+    const deleteGeneratedDocument = useDeleteNotarialGeneratedDocument(module);
     const generatedDocumentsQuery = useNotarialGeneratedDocuments({
+        module,
         search: deferredSearchTerm.trim() || undefined,
         document_category:
             categoryFilter !== ALL_CATEGORIES
-                ? (categoryFilter as LegalDocumentCategoryCode)
+                ? (categoryFilter as DocumentTemplateCategoryCode)
                 : undefined,
         page,
         per_page: perPage,
     });
     const libraryTemplatesQuery = useNotarialTemplates({
+        module,
         per_page: 1,
         page: 1,
     });
     const readyTemplatesQuery = useNotarialTemplates({
+        module,
         template_status: 'ready',
         per_page: 1,
         page: 1,
@@ -102,7 +113,7 @@ export const NotarialGeneratedDocumentsPage = () => {
 
     const handleOpenEditor = (documentId: number): void => {
         setOpenActionsDocumentId(null);
-        openEditorPage(generatedDocumentEditorPath(documentId));
+        openEditorPage(generatedDocumentEditorPath(documentId, module));
     };
 
     const handleConfirmDelete = async (): Promise<void> => {
@@ -359,58 +370,19 @@ export const NotarialGeneratedDocumentsPage = () => {
                     </div>
 
                     {pagination ? (
-                        <div className="flex flex-col items-center justify-between gap-4 border-t border-border bg-surface-secondary px-6 py-4 sm:flex-row">
-                            <div className="flex items-center gap-3">
-                                <label
-                                    htmlFor="generated-documents-per-page"
-                                    className="text-[13px] font-medium text-text-secondary"
-                                >
-                                    Show rows
-                                </label>
-                                <div className="relative">
-                                    <select
-                                        id="generated-documents-per-page"
-                                        value={String(perPage)}
-                                        onChange={(event) => {
-                                            setPerPage(Number(event.target.value));
-                                            setPage(1);
-                                        }}
-                                        className="appearance-none rounded-lg border border-border bg-input-bg py-1.5 pl-3 pr-8 text-[13px] font-medium text-text-primary shadow-sm focus:border-text-primary focus:outline-none focus:ring-1 focus:ring-text-primary dark:shadow-none"
-                                    >
-                                        {PAGE_SIZE_OPTIONS.map((option) => (
-                                            <option key={option} value={option}>
-                                                {option}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
-                                        <svg className="h-3.5 w-3.5 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                        </svg>
-                                    </div>
-                                </div>
-                                <p className="text-[13px] text-text-secondary">
-                                    Page {pagination.current_page} of {pagination.last_page}
-                                </p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <button
-                                    type="button"
-                                    onClick={() => setPage((currentPage) => Math.max(1, currentPage - 1))}
-                                    disabled={pagination.current_page <= 1}
-                                    className="inline-flex items-center justify-center rounded-xl border border-border bg-surface-elevated px-4 py-2 text-[13px] font-medium text-text-secondary shadow-sm transition-all hover:bg-hover hover:text-text-primary focus:outline-none focus:ring-2 focus:ring-text-primary/10 disabled:cursor-not-allowed disabled:opacity-50 dark:shadow-none"
-                                >
-                                    Previous
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setPage((currentPage) => Math.min(pagination.last_page, currentPage + 1))}
-                                    disabled={pagination.current_page >= pagination.last_page}
-                                    className="inline-flex items-center justify-center rounded-xl border border-border bg-surface-elevated px-4 py-2 text-[13px] font-medium text-text-secondary shadow-sm transition-all hover:bg-hover hover:text-text-primary focus:outline-none focus:ring-2 focus:ring-text-primary/10 disabled:cursor-not-allowed disabled:opacity-50 dark:shadow-none"
-                                >
-                                    Next
-                                </button>
-                            </div>
+                        <div className="border-t border-border bg-surface-secondary px-6 py-4">
+                            <Pagination
+                                currentPage={pagination.current_page}
+                                totalPages={pagination.last_page}
+                                perPage={perPage}
+                                perPageOptions={[...PAGE_SIZE_OPTIONS]}
+                                compact
+                                onPageChange={setPage}
+                                onPerPageChange={(nextPerPage) => {
+                                    setPerPage(nextPerPage);
+                                    setPage(1);
+                                }}
+                            />
                         </div>
                     ) : null}
                 </section>

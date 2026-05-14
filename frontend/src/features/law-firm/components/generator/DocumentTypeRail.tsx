@@ -1,13 +1,13 @@
-import type { LegalDocumentCategoryCode, NotarialTemplate } from '../../types/legalRecords.types';
+import type { DocumentTemplateCategoryCode, NotarialTemplate } from '../../types/legalRecords.types';
 
-type CategoryFilter = { code: LegalDocumentCategoryCode; label: string; count: number };
+type CategoryFilter = { code: DocumentTemplateCategoryCode; label: string; count: number };
 
 type Props = {
     search: string;
     onSearchChange: (v: string) => void;
     categoryFilters: CategoryFilter[];
-    selectedCategory: LegalDocumentCategoryCode | 'all';
-    onCategorySelect: (cat: LegalDocumentCategoryCode | 'all') => void;
+    selectedCategory: DocumentTemplateCategoryCode | 'all';
+    onCategorySelect: (cat: DocumentTemplateCategoryCode | 'all') => void;
     templates: NotarialTemplate[];
     selectedTemplateId: number | null;
     onTemplateSelect: (id: number) => void;

@@ -98,6 +98,7 @@ export const EncoderArchivePage = () => {
         <div className="w-full pb-12">
             <div hidden={activeSection !== 'legacyUpload'}>
                 <LegacyFolderUploadView
+                    module="brokerage"
                     onOpenBatches={() => {
                         setResumeBatchId(null);
                         setIsLegacyBatchesMounted(true);
@@ -111,6 +112,7 @@ export const EncoderArchivePage = () => {
             {shouldMountLegacyBatches && (
                 <div hidden={activeSection !== 'legacyBatches'}>
                     <LegacyBatchesPage
+                        module="brokerage"
                         onResumeBatch={(batchId) => {
                             setResumeBatchId(batchId);
                             navigate(appRoutes.encoderLegacyFolderUpload);

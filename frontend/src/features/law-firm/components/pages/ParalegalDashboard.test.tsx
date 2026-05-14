@@ -12,13 +12,11 @@ const {
     mockUseLegalBooks,
     mockUseNotarialTemplates,
     mockUseNotarialGeneratedDocuments,
-    mockUseLegalArchive,
     mockUseAuth,
 } = vi.hoisted(() => ({
     mockUseLegalBooks: vi.fn(),
     mockUseNotarialTemplates: vi.fn(),
     mockUseNotarialGeneratedDocuments: vi.fn(),
-    mockUseLegalArchive: vi.fn(),
     mockUseAuth: vi.fn(),
 }));
 
@@ -39,7 +37,6 @@ vi.mock('../../hooks/useLegalWorkspace', () => ({
     useLegalBooks: mockUseLegalBooks,
     useNotarialTemplates: mockUseNotarialTemplates,
     useNotarialGeneratedDocuments: mockUseNotarialGeneratedDocuments,
-    useLegalArchive: mockUseLegalArchive,
 }));
 
 vi.mock('../../../auth', () => ({
@@ -94,21 +91,13 @@ describe('ParalegalDashboard', () => {
             },
         }));
 
-        mockUseNotarialGeneratedDocuments.mockReturnValue({
+        mockUseNotarialGeneratedDocuments.mockImplementation((params?: { module?: string }) => ({
             data: {
                 meta: {
-                    total: 12,
+                    total: params?.module === 'legal' ? 9 : 12,
                 },
             },
-        });
-
-        mockUseLegalArchive.mockReturnValue({
-            data: {
-                meta: {
-                    total: 9,
-                },
-            },
-        });
+        }));
     });
 
     it('surfaces the new template-generator workflow and routes cards to the template, records, and archive pages', () => {
@@ -118,22 +107,26 @@ describe('ParalegalDashboard', () => {
             </MemoryRouter>,
         );
 
-        expect(screen.getByRole('button', { name: /Create Draft/i })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /Generated Documents/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /Select a master, create a working copy/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /Search and reopen editable Word outputs/i })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /Book Register/i })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /legal file encode/i })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /legal file records/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /legal create draft/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /legal file masters/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /legal generated documents/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /legacy records/i })).toBeInTheDocument();
         expect(screen.getByText('Book 2')).toBeInTheDocument();
         expect(screen.getByText('12')).toBeInTheDocument();
         expect(screen.getByText('9')).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: /Notarial Register/i })).not.toBeInTheDocument();
 
-        fireEvent.click(screen.getByRole('button', { name: /Create Draft/i }));
-        fireEvent.click(screen.getByRole('button', { name: /Generated Documents/i }));
+        fireEvent.click(screen.getByRole('button', { name: /Select a master, create a working copy/i }));
+        fireEvent.click(screen.getByRole('button', { name: /Search and reopen editable Word outputs/i }));
         fireEvent.click(screen.getByRole('button', { name: /Book Register/i }));
+        fireEvent.click(screen.getByRole('button', { name: /legacy records/i }));
 
         expect(mockNavigate).toHaveBeenNthCalledWith(1, appRoutes.paralegalGenerator);
         expect(mockNavigate).toHaveBeenNthCalledWith(2, appRoutes.paralegalGeneratedDocuments);
         expect(mockNavigate).toHaveBeenNthCalledWith(3, appRoutes.paralegalBooks);
+        expect(mockNavigate).toHaveBeenNthCalledWith(4, appRoutes.paralegalLegacyFolderUpload);
     });
 });

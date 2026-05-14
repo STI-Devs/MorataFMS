@@ -148,7 +148,7 @@ describe('NotarialGeneratedDocumentsPage', () => {
                 meta: {
                     current_page: 1,
                     last_page: 1,
-                    per_page: 12,
+                    per_page: 25,
                     total: 1,
                 },
             },
@@ -163,7 +163,7 @@ describe('NotarialGeneratedDocumentsPage', () => {
 
         const searchInput = screen.getByPlaceholderText('Search master, party, or file...');
         const categoryFilter = document.getElementById('generated-documents-category-filter') as HTMLSelectElement;
-        const perPageFilter = document.getElementById('generated-documents-per-page') as HTMLSelectElement;
+        const perPageFilter = screen.getByDisplayValue('25') as HTMLSelectElement;
 
         fireEvent.change(searchInput, {
             target: { value: 'Maria' },

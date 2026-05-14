@@ -1,10 +1,11 @@
 <?php
 
-namespace App\Http\Requests\Notarial;
+namespace App\Http\Requests\LawFirmDocuments;
 
+use App\Enums\LawFirmDocumentModule;
 use Illuminate\Foundation\Http\FormRequest;
 
-class NotarialGeneratedDocumentIndexRequest extends FormRequest
+class LawFirmGeneratedDocumentIndexRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -36,6 +37,15 @@ class NotarialGeneratedDocumentIndexRequest extends FormRequest
     public function templateId(): ?int
     {
         return $this->filled('notarial_template_id') ? $this->integer('notarial_template_id') : null;
+    }
+
+    public function module(): LawFirmDocumentModule
+    {
+        if ($this->is('api/legal*')) {
+            return LawFirmDocumentModule::Legal;
+        }
+
+        return LawFirmDocumentModule::fromNullable($this->input('module'));
     }
 
     public function perPage(): int

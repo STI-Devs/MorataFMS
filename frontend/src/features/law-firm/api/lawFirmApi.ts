@@ -11,6 +11,7 @@ import type {
     LegalBook,
     LegalBooksQuery,
     LegalCatalogResponse,
+    LawFirmDocumentModule,
     LegalLegacyBookFile,
     LegalPageScan,
     LegalParty,
@@ -24,6 +25,9 @@ import type {
     UpdateNotarialTemplatePayload,
     UpdateNotarialPageScanPayload,
 } from '../types/legalRecords.types';
+
+const documentWorkflowPrefix = (module?: LawFirmDocumentModule): string =>
+    module === 'legal' ? '/api/legal' : '/api/notarial';
 
 export const lawFirmApi = {
     async downloadFile(downloadUrl: string, filename: string): Promise<void> {
@@ -41,8 +45,8 @@ export const lawFirmApi = {
         window.URL.revokeObjectURL(objectUrl);
     },
 
-    async getCatalog(): Promise<LegalCatalogResponse> {
-        const response = await api.get('/api/notarial/document-types');
+    async getCatalog(module?: LawFirmDocumentModule): Promise<LegalCatalogResponse> {
+        const response = await api.get(`${documentWorkflowPrefix(module)}/document-types`);
 
         return response.data;
     },
@@ -60,13 +64,16 @@ export const lawFirmApi = {
     },
 
     async getTemplates(params?: NotarialTemplateQuery): Promise<PaginatedResponse<NotarialTemplate>> {
-        const response = await api.get('/api/notarial/templates', { params });
+        const response = await api.get(`${documentWorkflowPrefix(params?.module)}/templates`, { params });
 
         return response.data;
     },
 
     async createTemplate(payload: CreateNotarialTemplatePayload): Promise<NotarialTemplate> {
         const formData = new FormData();
+        if (payload.module) {
+            formData.append('module', payload.module);
+        }
         formData.append('code', payload.code);
         formData.append('label', payload.label);
         formData.append('document_code', payload.document_code);
@@ -83,7 +90,7 @@ export const lawFirmApi = {
             formData.append('file', payload.file);
         }
 
-        const response = await api.post('/api/notarial/templates', formData, {
+        const response = await api.post(`${documentWorkflowPrefix(payload.module)}/templates`, formData, {
             headers: {
                 'Content-Type': 'multipart/form-data',
             },
@@ -95,6 +102,9 @@ export const lawFirmApi = {
     async updateTemplate(templateId: number, payload: UpdateNotarialTemplatePayload): Promise<NotarialTemplate> {
         const formData = new FormData();
         formData.append('_method', 'PUT');
+        if (payload.module !== undefined) {
+            formData.append('module', payload.module);
+        }
 
         if (payload.code !== undefined) {
             formData.append('code', payload.code);
@@ -120,7 +130,7 @@ export const lawFirmApi = {
             formData.append('file', payload.file);
         }
 
-        const response = await api.post(`/api/notarial/templates/${templateId}`, formData, {
+        const response = await api.post(`${documentWorkflowPrefix(payload.module)}/templates/${templateId}`, formData, {
             headers: {
                 'Content-Type': 'multipart/form-data',
             },
@@ -129,8 +139,8 @@ export const lawFirmApi = {
         return response.data.data;
     },
 
-    async deleteTemplate(templateId: number): Promise<void> {
-        await api.delete(`/api/notarial/templates/${templateId}`);
+    async deleteTemplate(templateId: number, module?: LawFirmDocumentModule): Promise<void> {
+        await api.delete(`${documentWorkflowPrefix(module)}/templates/${templateId}`);
     },
 
     async createBook(payload: CreateNotarialBookPayload): Promise<LegalBook> {
@@ -193,25 +203,25 @@ export const lawFirmApi = {
     },
 
     async getGeneratedDocuments(params?: NotarialGeneratedDocumentQuery): Promise<PaginatedResponse<NotarialGeneratedDocument>> {
-        const response = await api.get('/api/notarial/generated-documents', { params });
+        const response = await api.get(`${documentWorkflowPrefix(params?.module)}/generated-documents`, { params });
 
         return response.data;
     },
 
-    async getGeneratedDocument(documentId: number): Promise<NotarialGeneratedDocument> {
-        const response = await api.get(`/api/notarial/generated-documents/${documentId}`);
+    async getGeneratedDocument(documentId: number, module?: LawFirmDocumentModule): Promise<NotarialGeneratedDocument> {
+        const response = await api.get(`${documentWorkflowPrefix(module)}/generated-documents/${documentId}`);
 
         return response.data.data;
     },
 
     async createEditableGeneratedDocument(payload: CreateEditableNotarialGeneratedDocumentPayload): Promise<NotarialGeneratedDocument> {
-        const response = await api.post('/api/notarial/generated-documents', payload);
+        const response = await api.post(`${documentWorkflowPrefix(payload.module)}/generated-documents`, payload);
 
         return response.data.data;
     },
 
-    async getGeneratedDocumentEditorConfig(documentId: number): Promise<OnlyOfficeEditorConfigResponse> {
-        const response = await api.get(`/api/notarial/generated-documents/${documentId}/onlyoffice/config`);
+    async getGeneratedDocumentEditorConfig(documentId: number, module?: LawFirmDocumentModule): Promise<OnlyOfficeEditorConfigResponse> {
+        const response = await api.get(`${documentWorkflowPrefix(module)}/generated-documents/${documentId}/onlyoffice/config`);
 
         return response.data;
     },
@@ -226,8 +236,8 @@ export const lawFirmApi = {
         });
     },
 
-    async deleteGeneratedDocument(documentId: number): Promise<void> {
-        await api.delete(`/api/notarial/generated-documents/${documentId}`);
+    async deleteGeneratedDocument(documentId: number, module?: LawFirmDocumentModule): Promise<void> {
+        await api.delete(`${documentWorkflowPrefix(module)}/generated-documents/${documentId}`);
     },
 
     async getLegacyBookFiles(bookId: number): Promise<{ data: LegalLegacyBookFile[] }> {

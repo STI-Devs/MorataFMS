@@ -35,9 +35,9 @@ class LegacyBatchOrchestrator
         private LegacyBatchFileDownloader $legacyBatchFileDownloader,
     ) {}
 
-    public function authorizeAccess(User $user): void
+    public function authorizeAccess(User $user, ?string $module = null): void
     {
-        $this->legacyBatchAuthorizer->authorizeAccess($user);
+        $this->legacyBatchAuthorizer->authorizeAccess($user, $module);
     }
 
     public function authorizeVisibility(User $user, LegacyBatch $legacyBatch): void

@@ -1,17 +1,18 @@
 <?php
 
-namespace App\Queries\Notarial;
+namespace App\Queries\LawFirmDocuments;
 
-use App\Http\Requests\Notarial\NotarialTemplateIndexRequest;
+use App\Http\Requests\LawFirmDocuments\LawFirmDocumentTemplateIndexRequest;
 use App\Models\NotarialTemplate;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
-class NotarialTemplateIndexQuery
+class LawFirmDocumentTemplateIndexQuery
 {
-    public function handle(NotarialTemplateIndexRequest $request): LengthAwarePaginator
+    public function handle(LawFirmDocumentTemplateIndexRequest $request): LengthAwarePaginator
     {
         $query = NotarialTemplate::query()
             ->with('createdBy')
+            ->where('module', $request->module()->value)
             ->orderBy('label');
 
         if (($search = $request->search()) !== null) {

@@ -1,66 +1,71 @@
 <?php
 
-namespace App\Http\Controllers\Notarial;
+namespace App\Http\Controllers\LawFirmDocuments;
 
+use App\Enums\LawFirmDocumentModule;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Notarial\NotarialGeneratedDocumentIndexRequest;
-use App\Http\Requests\Notarial\StoreEditableNotarialGeneratedDocumentRequest;
-use App\Http\Resources\Notarial\NotarialGeneratedDocumentResource;
+use App\Http\Requests\LawFirmDocuments\LawFirmGeneratedDocumentIndexRequest;
+use App\Http\Requests\LawFirmDocuments\StoreEditableLawFirmGeneratedDocumentRequest;
+use App\Http\Resources\LawFirmDocuments\LawFirmGeneratedDocumentResource;
 use App\Models\NotarialGeneratedDocument;
-use App\Orchestrators\Notarial\NotarialGeneratedDocumentOrchestrator;
+use App\Orchestrators\LawFirmDocuments\LawFirmGeneratedDocumentOrchestrator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
-class NotarialGeneratedDocumentController extends Controller
+class LawFirmGeneratedDocumentController extends Controller
 {
     public function __construct(
-        private NotarialGeneratedDocumentOrchestrator $generatedDocuments,
+        private LawFirmGeneratedDocumentOrchestrator $generatedDocuments,
     ) {}
 
-    public function index(NotarialGeneratedDocumentIndexRequest $request): AnonymousResourceCollection
+    public function index(LawFirmGeneratedDocumentIndexRequest $request): AnonymousResourceCollection
     {
         $this->authorize('viewAny', NotarialGeneratedDocument::class);
 
-        return NotarialGeneratedDocumentResource::collection($this->generatedDocuments->index($request));
+        return LawFirmGeneratedDocumentResource::collection($this->generatedDocuments->index($request));
     }
 
-    public function storeEditableCopy(StoreEditableNotarialGeneratedDocumentRequest $request): JsonResponse
+    public function storeEditableCopy(StoreEditableLawFirmGeneratedDocumentRequest $request): JsonResponse
     {
         $this->authorize('create', NotarialGeneratedDocument::class);
 
-        return (new NotarialGeneratedDocumentResource(
+        return (new LawFirmGeneratedDocumentResource(
             $this->generatedDocuments->storeEditableCopy($request->validated(), $request->user())
         ))
             ->response()
             ->setStatusCode(201);
     }
 
-    public function show(NotarialGeneratedDocument $document): NotarialGeneratedDocumentResource
+    public function show(Request $request, NotarialGeneratedDocument $document): LawFirmGeneratedDocumentResource
     {
+        $this->assertMatchesRouteModule($request, $document);
         $this->authorize('view', $document);
 
-        return new NotarialGeneratedDocumentResource($this->generatedDocuments->show($document));
+        return new LawFirmGeneratedDocumentResource($this->generatedDocuments->show($document));
     }
 
-    public function download(NotarialGeneratedDocument $document): StreamedResponse
+    public function download(Request $request, NotarialGeneratedDocument $document): StreamedResponse
     {
+        $this->assertMatchesRouteModule($request, $document);
         $this->authorize('view', $document);
 
         return $this->generatedDocuments->download($document);
     }
 
-    public function preview(NotarialGeneratedDocument $document): StreamedResponse
+    public function preview(Request $request, NotarialGeneratedDocument $document): StreamedResponse
     {
+        $this->assertMatchesRouteModule($request, $document);
         $this->authorize('view', $document);
 
         return $this->generatedDocuments->preview($document);
     }
 
-    public function destroy(NotarialGeneratedDocument $document): JsonResponse
+    public function destroy(Request $request, NotarialGeneratedDocument $document): JsonResponse
     {
+        $this->assertMatchesRouteModule($request, $document);
         $this->authorize('delete', $document);
 
         $this->generatedDocuments->delete($document);
@@ -70,6 +75,7 @@ class NotarialGeneratedDocumentController extends Controller
 
     public function editorConfig(Request $request, NotarialGeneratedDocument $document): JsonResponse
     {
+        $this->assertMatchesRouteModule($request, $document);
         $this->authorize('view', $document);
 
         return response()->json($this->generatedDocuments->editorConfig($document, $request->user()));
@@ -101,5 +107,17 @@ class NotarialGeneratedDocumentController extends Controller
         return response()->json([
             'error' => $this->generatedDocuments->storeOnlyOfficeCallbackFile($document, $editedFileUrl) ? 0 : 1,
         ]);
+    }
+
+    private function assertMatchesRouteModule(Request $request, NotarialGeneratedDocument $document): void
+    {
+        abort_unless($document->module === $this->requestedModule($request)->value, 404);
+    }
+
+    private function requestedModule(Request $request): LawFirmDocumentModule
+    {
+        return str_starts_with($request->path(), 'api/legal')
+            ? LawFirmDocumentModule::Legal
+            : LawFirmDocumentModule::Notarial;
     }
 }

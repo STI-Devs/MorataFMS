@@ -3,7 +3,6 @@ import { CurrentDateTime } from '../../../../components/CurrentDateTime';
 import { appRoutes } from '../../../../lib/appRoutes';
 import { useAuth } from '../../../auth';
 import {
-    useLegalArchive,
     useLegalBooks,
     useNotarialGeneratedDocuments,
     useNotarialTemplates,
@@ -40,18 +39,32 @@ const baseModuleCards: ModuleCard[] = [
         icon: 'M4 6h16M4 10h16M6 14h12a2 2 0 012 2v3a1 1 0 01-1 1H5a1 1 0 01-1-1v-3a2 2 0 012-2z',
     },
     {
-        label: 'Legal File Encode',
-        description: 'Save non-notarial legal files like certificates, demand letters, and position papers.',
+        label: 'Legal Create Draft',
+        description: 'Create a legal Word draft from the legal document master library.',
         path: appRoutes.paralegalLegalFiles,
         accent: '#ff9f0a',
         icon: 'M5 4h10l4 4v12a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2zm9 1.5V9h3.5',
     },
     {
-        label: 'Legal File Records',
-        description: 'Search legal file records by title, related name, category, and upload status.',
+        label: 'Legal File Masters',
+        description: 'Upload and manage legal DOCX masters for the drafting engine.',
+        path: appRoutes.paralegalLegalFileMasters,
+        accent: '#bf5af2',
+        icon: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1M12 4v12m0-12l-4 4m4-4l4 4',
+    },
+    {
+        label: 'Legal Generated Documents',
+        description: 'Search and reopen legal Word outputs by party, master, or file name.',
         path: appRoutes.paralegalLegalFileRecords,
         accent: '#ff453a',
         icon: 'M4 6a2 2 0 012-2h8l6 6v8a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm4 7h8m-8 4h8',
+    },
+    {
+        label: 'Legacy Records',
+        description: 'Upload and review old notarial and legal folders from the dedicated legacy records workspace.',
+        path: appRoutes.paralegalLegacyFolderUpload,
+        accent: '#636366',
+        icon: 'M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4',
     },
 ];
 
@@ -72,14 +85,14 @@ export const ParalegalDashboard = () => {
     const templatesQuery = useNotarialTemplates({ page: 1, per_page: 1 });
     const readyTemplatesQuery = useNotarialTemplates({ template_status: 'ready', page: 1, per_page: 1 });
     const generatedDocumentsQuery = useNotarialGeneratedDocuments({ page: 1, per_page: 1 });
-    const legalArchiveQuery = useLegalArchive({ page: 1, per_page: 1 });
+    const legalGeneratedDocumentsQuery = useNotarialGeneratedDocuments({ module: 'legal', page: 1, per_page: 1 });
 
     const books = booksQuery.data?.data ?? [];
     const activeBook = books.find((book) => book.status === 'active') ?? null;
     const templateCount = templatesQuery.data?.meta.total ?? 0;
     const readyTemplateCount = readyTemplatesQuery.data?.meta.total ?? 0;
     const generatedDocumentCount = generatedDocumentsQuery.data?.meta.total ?? 0;
-    const legalArchiveCount = legalArchiveQuery.data?.meta.total ?? 0;
+    const legalGeneratedDocumentCount = legalGeneratedDocumentsQuery.data?.meta.total ?? 0;
     const moduleCards = canViewBooks ? baseModuleCards : baseModuleCards.filter((card) => card.label !== 'Book Register');
 
     return (
@@ -125,9 +138,9 @@ export const ParalegalDashboard = () => {
                         description="Editable Word outputs already created from the master library."
                     />
                     <OverviewCard
-                        label="Legal File Records"
-                        value={String(legalArchiveCount)}
-                        description="Legal file records stored outside the document generation flow."
+                        label="Generated Legal Files"
+                        value={String(legalGeneratedDocumentCount)}
+                        description="Editable legal Word outputs already created from the legal master library."
                     />
                 </div>
             </section>

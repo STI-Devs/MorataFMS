@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\LegacyBatches;
 
+use App\Enums\LegacyBatchModule;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LegacyBatches\AppendLegacyBatchManifestRequest;
 use App\Http\Requests\LegacyBatches\CompleteLegacyBatchUploadsRequest;
@@ -27,7 +28,8 @@ class LegacyBatchController extends Controller
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
-        $this->legacyBatches->authorizeAccess($user);
+        $module = $this->moduleFromRequest($request);
+        $this->legacyBatches->authorizeAccess($user, $module?->value);
         $batches = $this->legacyBatches->index($request, $user);
 
         return response()->json([
@@ -46,10 +48,12 @@ class LegacyBatchController extends Controller
     public function store(StoreLegacyBatchRequest $request): JsonResponse
     {
         $user = $request->user();
-        $this->legacyBatches->authorizeAccess($user);
+        $validated = $request->validated();
+        $module = $validated['module'] ?? LegacyBatchModule::Brokerage->value;
+        $this->legacyBatches->authorizeAccess($user, $module);
 
         return (new LegacyBatchDetailResource(
-            $this->legacyBatches->store($request->validated(), $user)
+            $this->legacyBatches->store($validated, $user)
         ))
             ->response()
             ->setStatusCode(201);
@@ -140,5 +144,22 @@ class LegacyBatchController extends Controller
         $this->legacyBatches->authorizeVisibility($request->user(), $legacyBatch);
 
         return $this->legacyBatches->downloadFile($legacyBatch, $legacyBatchFile);
+    }
+
+    private function moduleFromRequest(Request $request): ?LegacyBatchModule
+    {
+        $module = $request->query('module');
+
+        if (! is_string($module) || trim($module) === '') {
+            return null;
+        }
+
+        $resolved = LegacyBatchModule::tryFrom(trim($module));
+
+        if ($resolved === null) {
+            abort(422, 'The selected legacy batch module is invalid.');
+        }
+
+        return $resolved;
     }
 }

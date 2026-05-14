@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Actions\Notarial;
+namespace App\Actions\LawFirmDocuments;
 
+use App\Enums\LawFirmDocumentModule;
 use App\Models\LegalParty;
 use App\Models\NotarialGeneratedDocument;
 use App\Models\NotarialTemplate;
@@ -11,12 +12,17 @@ use Illuminate\Support\Str;
 use RuntimeException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
-class CreateEditableNotarialGeneratedDocument
+class CreateEditableLawFirmGeneratedDocument
 {
     public function handle(array $validated, User $user): NotarialGeneratedDocument
     {
+        $module = LawFirmDocumentModule::fromNullable($validated['module'] ?? null);
         /** @var NotarialTemplate $template */
         $template = NotarialTemplate::query()->findOrFail((int) $validated['notarial_template_id']);
+
+        if ($template->module !== $module->value) {
+            throw new HttpException(404, 'Document master was not found for this workflow.');
+        }
 
         if (! $template->is_active) {
             throw new HttpException(422, 'This document master is inactive and cannot be edited.');
@@ -37,7 +43,7 @@ class CreateEditableNotarialGeneratedDocument
             : null;
 
         $filename = $this->workingCopyFilename($template, (string) $validated['party_name']);
-        $path = 'notarial-generated/'.now()->format('Y').'/'.$template->code.'/'.$filename;
+        $path = $module->storagePrefix().'-generated/'.now()->format('Y').'/'.$template->code.'/'.$filename;
         $contents = (string) $sourceDisk->get($template->path);
 
         if (! $sourceDisk->put($path, $contents)) {
@@ -45,6 +51,7 @@ class CreateEditableNotarialGeneratedDocument
         }
 
         $record = new NotarialGeneratedDocument([
+            'module' => $module->value,
             'notarial_template_id' => $template->id,
             'template_code' => $template->code,
             'template_label' => $template->label,

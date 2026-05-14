@@ -16,6 +16,8 @@ export type LegalBookStatus = 'active' | 'full' | 'archived';
 
 export type NotarialActTypeCode = 'jurat' | 'acknowledgment' | 'oath_affirmation';
 export type NotarialTemplateStatus = 'ready' | 'missing_file';
+export type LawFirmDocumentModule = 'notarial' | 'legal';
+export type DocumentTemplateCategoryCode = LegalDocumentCategoryCode | LegalFileCategoryCode;
 
 export type PaginationMeta = {
     current_page: number;
@@ -146,11 +148,12 @@ export type LegalParty = {
 
 export type NotarialTemplate = {
     id: number;
+    module?: LawFirmDocumentModule;
     code: string;
     label: string;
     document_code: string;
     document_code_label: string | null;
-    document_category: LegalDocumentCategoryCode;
+    document_category: DocumentTemplateCategoryCode;
     document_category_label: string | null;
     description: string | null;
     is_active: boolean;
@@ -166,11 +169,12 @@ export type NotarialTemplate = {
 
 export type NotarialGeneratedDocument = {
     id: number;
+    module?: LawFirmDocumentModule;
     template_code: string;
     template_label: string;
     document_code: string;
     document_code_label: string | null;
-    document_category: LegalDocumentCategoryCode;
+    document_category: DocumentTemplateCategoryCode;
     document_category_label: string | null;
     party_name: string;
     notes: string | null;
@@ -215,6 +219,7 @@ export type LegalArchiveRecord = {
 };
 
 export type CreateNotarialTemplatePayload = {
+    module?: LawFirmDocumentModule;
     code: string;
     label: string;
     document_code: string;
@@ -224,6 +229,7 @@ export type CreateNotarialTemplatePayload = {
 };
 
 export type UpdateNotarialTemplatePayload = {
+    module?: LawFirmDocumentModule;
     code?: string;
     label?: string;
     document_code?: string;
@@ -233,6 +239,7 @@ export type UpdateNotarialTemplatePayload = {
 };
 
 export type CreateEditableNotarialGeneratedDocumentPayload = {
+    module?: LawFirmDocumentModule;
     notarial_template_id: number;
     party_name: string;
     party_id?: number;
@@ -294,6 +301,7 @@ export type LegalBooksQuery = {
 };
 
 export type NotarialTemplateQuery = {
+    module?: LawFirmDocumentModule;
     search?: string;
     document_code?: string;
     template_status?: NotarialTemplateStatus;
@@ -303,9 +311,10 @@ export type NotarialTemplateQuery = {
 };
 
 export type NotarialGeneratedDocumentQuery = {
+    module?: LawFirmDocumentModule;
     search?: string;
     document_code?: string;
-    document_category?: LegalDocumentCategoryCode;
+    document_category?: DocumentTemplateCategoryCode;
     notarial_template_id?: number;
     page?: number;
     per_page?: number;

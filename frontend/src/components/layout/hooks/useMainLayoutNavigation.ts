@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../../../features/auth';
@@ -37,7 +37,8 @@ export function useMainLayoutNavigation() {
     const [activeModule, setActiveModule] = useState<Module>(() => getInitialModule(departments));
     const [isAccountOpen, setIsAccountOpen] = useState(false);
     const [openLegalGroups, setOpenLegalGroups] = useState<Record<string, boolean>>({
-        Notarial: true,
+        'Legacy Records': true,
+        'Notarial Documents': true,
         'Legal Files': true,
     });
     const [openBrokerageGroups, setOpenBrokerageGroups] = useState<Record<string, boolean>>({
@@ -52,14 +53,17 @@ export function useMainLayoutNavigation() {
                 ? navigationItems.accountant
                 : navigationItems.encoderBrokerage;
 
-    const filteredLegalNavigationGroups = legalNavigationGroups
-        .map((group) => ({
-            ...group,
-            items: group.items.filter((item) =>
-                item.requiredPermission ? Boolean(user?.permissions?.[item.requiredPermission]) : true,
-            ),
-        }))
-        .filter((group) => group.items.length > 0);
+    const filteredLegalNavigationGroups = useMemo(
+        () => legalNavigationGroups
+            .map((group) => ({
+                ...group,
+                items: group.items.filter((item) =>
+                    item.requiredPermission ? Boolean(user?.permissions?.[item.requiredPermission]) : true,
+                ),
+            }))
+            .filter((group) => group.items.length > 0),
+        [user?.permissions],
+    );
 
     const navItems = activeModule === 'legal' ? navigationItems.legal : brokerageItems;
     const settingsItems = navigationItems.settings;
@@ -122,21 +126,21 @@ export function useMainLayoutNavigation() {
             return;
         }
 
-        const nextOpenState = { ...openLegalGroups };
-        let hasChange = false;
+        setOpenLegalGroups((currentOpenGroups) => {
+            const nextOpenState = { ...currentOpenGroups };
+            let hasChange = false;
 
-        for (const group of filteredLegalNavigationGroups) {
-            const hasActiveItem = group.items.some((item) => matchesPath(location.pathname, item.path));
-            if (hasActiveItem && ! nextOpenState[group.label]) {
-                nextOpenState[group.label] = true;
-                hasChange = true;
+            for (const group of filteredLegalNavigationGroups) {
+                const hasActiveItem = group.items.some((item) => matchesPath(location.pathname, item.path));
+                if (hasActiveItem && ! nextOpenState[group.label]) {
+                    nextOpenState[group.label] = true;
+                    hasChange = true;
+                }
             }
-        }
 
-        if (hasChange) {
-            setOpenLegalGroups(nextOpenState);
-        }
-    }, [activeModule, filteredLegalNavigationGroups, location.pathname, openLegalGroups]);
+            return hasChange ? nextOpenState : currentOpenGroups;
+        });
+    }, [activeModule, filteredLegalNavigationGroups, location.pathname]);
 
     const handleLogout = async () => {
         try {

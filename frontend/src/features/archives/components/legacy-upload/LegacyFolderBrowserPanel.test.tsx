@@ -12,6 +12,8 @@ vi.mock('../../api/legacyBatchApi', () => ({
 
 const batch = {
     id: 'legacy-1',
+    module: 'brokerage' as const,
+    moduleLabel: 'Brokerage',
     batchName: 'VESSEL 1 — Historical Archive',
     rootFolder: 'VESSEL 1',
     uploadedBy: 'R. Santos',

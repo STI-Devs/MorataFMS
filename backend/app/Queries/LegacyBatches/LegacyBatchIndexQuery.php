@@ -2,6 +2,7 @@
 
 namespace App\Queries\LegacyBatches;
 
+use App\Enums\LegacyBatchModule;
 use App\Models\LegacyBatch;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -13,6 +14,7 @@ class LegacyBatchIndexQuery
     public function handle(Request $request, User $user): LengthAwarePaginator
     {
         $search = trim((string) $request->query('search', ''));
+        $module = $this->moduleFilter($request);
         $perPage = in_array($request->integer('per_page', 20), [20, 50, 100], true)
             ? $request->integer('per_page', 20)
             : 20;
@@ -20,6 +22,10 @@ class LegacyBatchIndexQuery
         $query = LegacyBatch::query()
             ->visibleTo($user)
             ->with('uploadedBy');
+
+        if ($module !== null) {
+            $query->where('module', $module->value);
+        }
 
         if ($search !== '') {
             $query->where(function (Builder $searchQuery) use ($search): void {
@@ -42,5 +48,16 @@ class LegacyBatchIndexQuery
             ->latest()
             ->paginate($perPage)
             ->withQueryString();
+    }
+
+    private function moduleFilter(Request $request): ?LegacyBatchModule
+    {
+        $module = $request->query('module');
+
+        if (! is_string($module) || trim($module) === '') {
+            return null;
+        }
+
+        return LegacyBatchModule::tryFrom(trim($module));
     }
 }

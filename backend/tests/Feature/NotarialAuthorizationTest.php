@@ -76,6 +76,20 @@ test('legal users can browse the notarial catalog', function () {
         ->assertJsonPath('document_types.0.code', 'AFFIDAVIT_GENERAL');
 });
 
+test('legal users can browse the legal document workflow catalog', function () {
+    $paralegal = User::factory()->create([
+        'role' => 'paralegal',
+    ]);
+
+    $response = $this->actingAs($paralegal)
+        ->getJson('/api/legal/document-types')
+        ->assertOk()
+        ->assertJsonPath('categories.0.code', 'intern_records');
+
+    expect(collect($response->json('document_types'))->pluck('code')->all())
+        ->toContain('CERTIFICATE_OF_COMPLETION_INTERNS', 'DEMAND_LETTER');
+});
+
 test('admin can create a notarial template with a docx master file', function () {
     Storage::fake(config('filesystems.default', 'local'));
 
@@ -96,6 +110,36 @@ test('admin can create a notarial template with a docx master file', function ()
         ->assertJsonPath('data.template_status', 'ready');
 
     expect(NotarialTemplate::query()->where('code', 'affidavit-loss-master')->exists())->toBeTrue();
+});
+
+test('admin can create a legal document master with a docx source file', function () {
+    Storage::fake(config('filesystems.default', 'local'));
+
+    $admin = User::factory()->create(['role' => 'admin']);
+
+    $this->actingAs($admin)
+        ->post('/api/legal/templates', [
+            'code' => 'demand-letter-standard',
+            'label' => 'Demand Letter Standard',
+            'document_code' => 'DEMAND_LETTER',
+            'file' => fakeDocxUpload('demand-letter.docx', [
+                'Demand Letter',
+                'Editable content is handled directly in ONLYOFFICE.',
+            ]),
+        ])
+        ->assertCreated()
+        ->assertJsonPath('data.module', 'legal')
+        ->assertJsonPath('data.code', 'demand-letter-standard')
+        ->assertJsonPath('data.document_code_label', 'Demand Letter')
+        ->assertJsonPath('data.document_category', 'case_documents')
+        ->assertJsonPath('data.template_status', 'ready');
+
+    $template = NotarialTemplate::query()
+        ->where('module', 'legal')
+        ->where('code', 'demand-letter-standard')
+        ->firstOrFail();
+
+    expect($template->path)->toStartWith('legal-templates/demand-letter/');
 });
 
 test('paralegal can create a notarial template with a docx master file', function () {
@@ -184,6 +228,66 @@ test('paralegal can create an editable generated document and sync the legal par
     expect(NotarialGeneratedDocument::query()->firstOrFail()->legal_party_id)->toBe($party->id);
     expect(LegalParty::query()->where('name', 'Maria Santos')->value('principal_address'))->toBe('Old Address');
     Storage::disk(config('filesystems.default', 'local'))->assertExists(NotarialGeneratedDocument::query()->firstOrFail()->path);
+});
+
+test('paralegal can create a legal editable generated document from a legal master', function () {
+    Storage::fake(config('filesystems.default', 'local'));
+
+    $diskName = config('filesystems.default', 'local');
+    $sourcePath = 'legal-templates/demand_letter/master.docx';
+    Storage::disk($diskName)->put($sourcePath, 'legal master body');
+
+    $paralegal = User::factory()->create(['role' => 'paralegal']);
+    $template = NotarialTemplate::query()->forceCreate([
+        'module' => 'legal',
+        'code' => 'demand-letter-editor',
+        'label' => 'Demand Letter',
+        'document_code' => 'DEMAND_LETTER',
+        'document_category' => 'case_documents',
+        'default_notarial_act_type' => 'acknowledgment',
+        'is_active' => true,
+        'filename' => 'master.docx',
+        'path' => $sourcePath,
+        'disk' => $diskName,
+        'mime_type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'size_bytes' => strlen('legal master body'),
+        'created_by' => $paralegal->id,
+    ]);
+
+    $response = $this->actingAs($paralegal)
+        ->postJson('/api/legal/generated-documents', [
+            'notarial_template_id' => $template->id,
+            'party_name' => 'Northpoint Trading Corporation',
+            'notes' => 'Legal draft created from a DOCX master.',
+        ])
+        ->assertCreated()
+        ->assertJsonPath('data.module', 'legal')
+        ->assertJsonPath('data.template_code', 'demand-letter-editor')
+        ->assertJsonPath('data.document_code_label', 'Demand Letter')
+        ->assertJsonPath('data.document_category_label', 'Case Documents')
+        ->assertJsonPath('data.party_name', 'Northpoint Trading Corporation');
+
+    $record = NotarialGeneratedDocument::query()->findOrFail($response->json('data.id'));
+
+    expect($record->path)->toStartWith('legal-generated/');
+    expect(Storage::disk($diskName)->get($record->path))->toBe('legal master body');
+    expect(LegalParty::query()->where('name', 'Northpoint Trading Corporation')->exists())->toBeTrue();
+});
+
+test('legal and notarial document workflow routes are isolated by module', function () {
+    Storage::fake(config('filesystems.default', 'local'));
+
+    $admin = User::factory()->create(['role' => 'admin']);
+    $notarialRecord = makeGeneratedDocument($admin, 'notarial body');
+    $legalRecord = makeLegalGeneratedDocument($admin, 'legal body');
+
+    $this->actingAs($admin)
+        ->getJson("/api/legal/generated-documents/{$notarialRecord->id}")
+        ->assertNotFound();
+
+    $this->actingAs($admin)
+        ->getJson("/api/notarial/generated-documents/{$legalRecord->id}")
+        ->assertNotFound();
 });
 
 test('inactive notarial templates cannot be used for editable copies', function () {
@@ -513,6 +617,24 @@ test('legal users can get onlyoffice editor config for generated documents', fun
         ]);
 });
 
+test('legal users can get onlyoffice editor config for legal generated documents', function () {
+    Storage::fake(config('filesystems.default', 'local'));
+    config()->set('services.onlyoffice.document_server_url', 'http://onlyoffice.test');
+    config()->set('services.onlyoffice.internal_app_url', 'http://app-from-document-server.test');
+    config()->set('services.onlyoffice.jwt_secret', 'test-secret');
+
+    $paralegal = User::factory()->create(['role' => 'paralegal']);
+    $record = makeLegalGeneratedDocument($paralegal, 'legal body');
+
+    $this->actingAs($paralegal)
+        ->getJson("/api/legal/generated-documents/{$record->id}/onlyoffice/config")
+        ->assertOk()
+        ->assertJsonPath('document_server_url', 'http://onlyoffice.test')
+        ->assertJsonPath('config.document.fileType', 'docx')
+        ->assertJsonPath('config.editorConfig.mode', 'edit')
+        ->assertJsonPath('config.document.url', fn (string $url): bool => str_starts_with($url, 'http://app-from-document-server.test/api/notarial/generated-documents/'));
+});
+
 test('legal users can view a generated document storage status record', function () {
     Storage::fake(config('filesystems.default', 'local'));
 
@@ -698,6 +820,41 @@ function makeGeneratedDocument(User $user, string $contents): NotarialGeneratedD
         'notarial_act_type' => $template->default_notarial_act_type,
         'party_name' => 'Maria Santos',
         'filename' => 'maria-affidavit.docx',
+        'path' => $path,
+        'disk' => config('filesystems.default', 'local'),
+        'mime_type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'size_bytes' => strlen($contents),
+        'created_by' => $user->id,
+        'generated_at' => now(),
+    ]);
+}
+
+function makeLegalGeneratedDocument(User $user, string $contents): NotarialGeneratedDocument
+{
+    $path = 'legal-generated/2026/test-record.docx';
+    Storage::disk(config('filesystems.default', 'local'))->put($path, $contents);
+
+    $template = NotarialTemplate::query()->forceCreate([
+        'module' => 'legal',
+        'code' => 'legal-editor-master',
+        'label' => 'Legal Editor Master',
+        'document_code' => 'DEMAND_LETTER',
+        'document_category' => 'case_documents',
+        'default_notarial_act_type' => 'acknowledgment',
+        'is_active' => true,
+        'created_by' => $user->id,
+    ]);
+
+    return NotarialGeneratedDocument::query()->forceCreate([
+        'module' => 'legal',
+        'notarial_template_id' => $template->id,
+        'template_code' => $template->code,
+        'template_label' => $template->label,
+        'document_code' => $template->document_code,
+        'document_category' => $template->document_category,
+        'notarial_act_type' => $template->default_notarial_act_type,
+        'party_name' => 'Northpoint Trading Corporation',
+        'filename' => 'northpoint-demand-letter.docx',
         'path' => $path,
         'disk' => config('filesystems.default', 'local'),
         'mime_type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',

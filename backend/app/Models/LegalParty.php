@@ -15,7 +15,7 @@ class LegalParty extends Model
         'principal_address',
     ];
 
-    public function notarialGeneratedDocuments(): HasMany
+    public function lawFirmGeneratedDocuments(): HasMany
     {
         return $this->hasMany(NotarialGeneratedDocument::class, 'legal_party_id');
     }

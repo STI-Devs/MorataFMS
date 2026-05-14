@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Queries\Notarial;
+namespace App\Queries\LawFirmDocuments;
 
 use App\Models\NotarialTemplate;
 
-class NotarialTemplateShowQuery
+class LawFirmDocumentTemplateShowQuery
 {
     public function handle(NotarialTemplate $template): NotarialTemplate
     {

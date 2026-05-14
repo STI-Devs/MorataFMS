@@ -12,6 +12,7 @@ class NotarialGeneratedDocument extends Model
     use Auditable, HasFactory;
 
     protected $fillable = [
+        'module',
         'notarial_template_id',
         'template_code',
         'template_label',

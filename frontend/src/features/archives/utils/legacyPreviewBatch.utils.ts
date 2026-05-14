@@ -9,11 +9,13 @@ import type {
     FileNode,
     LegacyBatch,
     LegacyBatchMetadata,
+    LegacyBatchModule,
     LegacyBatchSummary,
 } from '../types/legacyBatch.types';
 
 interface BuildPreviewBatchArgs {
     activeBatch: LegacyBatch | null;
+    module: LegacyBatchModule;
     folderSummary: FolderSummary | null;
     localTree: FileNode | null;
     meta: BatchMeta;
@@ -22,6 +24,7 @@ interface BuildPreviewBatchArgs {
 
 export function buildPreviewBatch({
     activeBatch,
+    module,
     folderSummary,
     localTree,
     meta,
@@ -43,6 +46,8 @@ export function buildPreviewBatch({
 
     const summary: LegacyBatchSummary = activeBatch ?? {
         id: 'local-preview',
+        module,
+        moduleLabel: module === 'notarial' ? 'Notarial' : module === 'legal' ? 'Legal' : 'Brokerage',
         batchName: meta.batchName || folderSummary.rootName,
         rootFolder: folderSummary.rootName,
         uploadedBy: 'Current User',

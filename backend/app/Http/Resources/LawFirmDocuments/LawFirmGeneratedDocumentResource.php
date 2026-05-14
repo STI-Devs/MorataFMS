@@ -1,23 +1,24 @@
 <?php
 
-namespace App\Http\Resources\Notarial;
+namespace App\Http\Resources\LawFirmDocuments;
 
-use App\Support\Legal\LegalDocumentCatalog;
+use App\Support\LawFirmDocuments\LawFirmDocumentCatalog;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class NotarialGeneratedDocumentResource extends JsonResource
+class LawFirmGeneratedDocumentResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
         return [
             'id' => $this->id,
+            'module' => $this->module,
             'template_code' => $this->template_code,
             'template_label' => $this->template_label,
             'document_code' => $this->document_code,
-            'document_code_label' => LegalDocumentCatalog::labelForCode($this->document_code),
+            'document_code_label' => LawFirmDocumentCatalog::labelForCodeInModule($this->document_code, $this->module),
             'document_category' => $this->document_category,
-            'document_category_label' => LegalDocumentCatalog::labelForCategory($this->document_category),
+            'document_category_label' => LawFirmDocumentCatalog::labelForCategoryInModule($this->document_category, $this->module),
             'party_name' => $this->party_name,
             'notes' => $this->notes,
             'generated_at' => $this->generated_at?->toISOString(),
@@ -26,8 +27,14 @@ class NotarialGeneratedDocumentResource extends JsonResource
                 'mime_type' => $this->mime_type,
                 'size_bytes' => $this->size_bytes,
                 'formatted_size' => $this->formatted_size,
-                'download_url' => route('notarial.generated-documents.download', $this->resource),
-                'preview_url' => route('notarial.generated-documents.preview', $this->resource),
+                'download_url' => route(
+                    $this->module === 'legal' ? 'legal.generated-documents.download' : 'notarial.generated-documents.download',
+                    $this->resource,
+                ),
+                'preview_url' => route(
+                    $this->module === 'legal' ? 'legal.generated-documents.preview' : 'notarial.generated-documents.preview',
+                    $this->resource,
+                ),
             ],
             'template' => $this->whenLoaded('template', fn () => [
                 'id' => $this->template->id,

@@ -99,7 +99,7 @@ describe('LegacyBatchesPage', () => {
                     : [batchSummary, secondBatchSummary],
                 pagination: {
                     currentPage: 1,
-                    perPage: 20,
+                    perPage: 25,
                     total: params?.search?.toLowerCase() === 'claire' ? 1 : 2,
                     lastPage: 1,
                     from: params?.search?.toLowerCase() === 'claire' ? 1 : 1,
@@ -133,7 +133,7 @@ describe('LegacyBatchesPage', () => {
 
         expect(onResumeBatch).toHaveBeenCalledWith('legacy-batch-1');
         expect(screen.getByText('Showing 1-2 of 2 legacy batches')).toBeInTheDocument();
-        expect(screen.getByText('Page 1 of 1')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: '1' })).toBeInTheDocument();
     });
 
     it('sends the search term through the legacy batches hook', () => {
@@ -145,12 +145,24 @@ describe('LegacyBatchesPage', () => {
 
         expect(useLegacyBatchesMock).toHaveBeenLastCalledWith({
             page: 1,
-            perPage: 20,
+            perPage: 25,
             search: 'claire',
+            module: undefined,
         });
         expect(screen.getAllByText('KOTA NANHAI').length).toBeGreaterThan(0);
         expect(screen.queryByText('VESSEL 1 — Historical Archive')).not.toBeInTheDocument();
         expect(screen.getAllByText('1 matching batch').length).toBeGreaterThan(0);
+    });
+
+    it('scopes the batch list by module when requested', () => {
+        render(<LegacyBatchesPage module="legal" />);
+
+        expect(useLegacyBatchesMock).toHaveBeenLastCalledWith({
+            page: 1,
+            perPage: 25,
+            search: '',
+            module: 'legal',
+        });
     });
 
     it('allows deleting an incomplete legacy batch after confirmation', async () => {

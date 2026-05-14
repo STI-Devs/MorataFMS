@@ -81,7 +81,7 @@ describe('MainLayout', () => {
 
         const dashboardButton = screen.getByRole('button', { name: 'Dashboard' });
         const notarialGroupButton = screen.getByRole('button', { name: 'Notarial Documents' });
-        const templateGeneratorButton = screen.getByRole('button', { name: 'Create Draft' });
+        const templateGeneratorButton = screen.getAllByRole('button', { name: 'Create Draft' })[0];
 
         expect(screen.getByText('Legal notarial page')).toBeInTheDocument();
         expect(notarialGroupButton).toBeInTheDocument();
@@ -112,10 +112,82 @@ describe('MainLayout', () => {
             </MemoryRouter>,
         );
 
-        const generatedRecordsButton = screen.getByRole('button', { name: 'Generated Documents' });
+        const generatedRecordsButton = screen.getAllByRole('button', { name: 'Generated Documents' })[0];
 
         expect(screen.getByText('Generated documents page')).toBeInTheDocument();
         expect(generatedRecordsButton).toHaveClass('bg-black/8');
+    });
+
+    it('shows Legacy Records as a legal sidebar group with upload and batch child routes', () => {
+        mockUseAuth.mockReturnValue({
+            user: {
+                name: 'Paralegal User',
+                email: 'paralegal@example.com',
+                role: 'paralegal',
+                departments: ['legal'],
+                multi_department: false,
+            },
+            logout: vi.fn(),
+        });
+
+        render(
+            <MemoryRouter initialEntries={[appRoutes.paralegalLegacyFolderUpload]}>
+                <Routes>
+                    <Route element={<MainLayout />}>
+                        <Route path={appRoutes.paralegalLegacyRecordsWildcard} element={<div>Legacy upload page</div>} />
+                    </Route>
+                </Routes>
+            </MemoryRouter>,
+        );
+
+        const legacyRecordsGroupButton = screen.getByRole('button', { name: 'Legacy Records' });
+        const legalFilesGroupButton = screen.getByRole('button', { name: 'Legal Files' });
+        const legacyUploadButton = screen.getByRole('button', { name: 'Legacy Folder Upload' });
+
+        expect(legacyRecordsGroupButton).toBeInTheDocument();
+        expect(legalFilesGroupButton.compareDocumentPosition(legacyRecordsGroupButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(legacyUploadButton).toHaveClass('bg-black/8');
+        expect(screen.getByRole('button', { name: 'Notarial Batches' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Legal Batches' })).toBeInTheDocument();
+        expect(screen.getByText('Legacy upload page')).toBeInTheDocument();
+
+        fireEvent.click(legacyRecordsGroupButton);
+
+        expect(screen.queryByRole('button', { name: 'Legacy Folder Upload' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Notarial Batches' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Legal Batches' })).not.toBeInTheDocument();
+    });
+
+    it('allows an active legal navigation group to stay collapsed until the route changes', () => {
+        mockUseAuth.mockReturnValue({
+            user: {
+                name: 'Paralegal User',
+                email: 'paralegal@example.com',
+                role: 'paralegal',
+                departments: ['legal'],
+                multi_department: false,
+            },
+            logout: vi.fn(),
+        });
+
+        render(
+            <MemoryRouter initialEntries={[appRoutes.paralegalLegalFiles]}>
+                <Routes>
+                    <Route element={<MainLayout />}>
+                        <Route path={appRoutes.paralegalLegalFiles} element={<div>Legal create draft page</div>} />
+                    </Route>
+                </Routes>
+            </MemoryRouter>,
+        );
+
+        const legalFilesGroupButton = screen.getByRole('button', { name: 'Legal Files' });
+
+        expect(screen.getByText('Legal create draft page')).toBeInTheDocument();
+        expect(screen.getAllByRole('button', { name: 'Create Draft' })).toHaveLength(2);
+
+        fireEvent.click(legalFilesGroupButton);
+
+        expect(screen.getAllByRole('button', { name: 'Create Draft' })).toHaveLength(1);
     });
 
     it('switches from legal to brokerage without bouncing back to the legal navigation', () => {

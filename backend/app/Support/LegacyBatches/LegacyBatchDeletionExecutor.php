@@ -9,6 +9,7 @@ use App\Support\Operations\Deletion\Shared\PurgesAuditLogsForSubjects;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use League\Flysystem\UnableToDeleteFile;
+use League\Flysystem\UnableToListContents;
 
 class LegacyBatchDeletionExecutor
 {
@@ -22,6 +23,7 @@ class LegacyBatchDeletionExecutor
      * @return array{
      *     storage_disk: string,
      *     storage_prefix: string,
+     *     storage_prefixes: list<string>,
      *     database_file_count: int,
      *     storage_object_count: int,
      *     orphan_storage_object_count: int,
@@ -35,6 +37,7 @@ class LegacyBatchDeletionExecutor
     public function inspect(LegacyBatch $legacyBatch): array
     {
         $storagePrefix = $this->legacyBatchUploadUrlFactory->prefixFor($legacyBatch);
+        $storagePrefixes = $this->legacyBatchUploadUrlFactory->inspectablePrefixesFor($legacyBatch);
         $databasePaths = $legacyBatch->files()
             ->orderBy('id')
             ->pluck('storage_path')
@@ -43,7 +46,15 @@ class LegacyBatchDeletionExecutor
             ->values()
             ->all();
 
-        $storagePaths = collect(Storage::disk($legacyBatch->storage_disk)->allFiles($storagePrefix))
+        $storageDisk = Storage::disk($legacyBatch->storage_disk);
+        $storagePaths = collect($storagePrefixes)
+            ->flatMap(function (string $prefix) use ($storageDisk): array {
+                try {
+                    return $storageDisk->allFiles($prefix);
+                } catch (UnableToListContents) {
+                    return [];
+                }
+            })
             ->filter(fn (?string $path): bool => filled($path))
             ->unique()
             ->values()
@@ -55,6 +66,7 @@ class LegacyBatchDeletionExecutor
         return [
             'storage_disk' => $legacyBatch->storage_disk,
             'storage_prefix' => $storagePrefix,
+            'storage_prefixes' => $storagePrefixes,
             'database_file_count' => count($databasePaths),
             'storage_object_count' => count($storagePaths),
             'orphan_storage_object_count' => count($orphanStoragePaths),
@@ -70,6 +82,7 @@ class LegacyBatchDeletionExecutor
      * @return array{
      *     storage_disk: string,
      *     storage_prefix: string,
+     *     storage_prefixes: list<string>,
      *     database_file_count: int,
      *     storage_object_count: int,
      *     orphan_storage_object_count: int,
@@ -104,17 +117,26 @@ class LegacyBatchDeletionExecutor
         }
 
         $storageDisk = Storage::disk($legacyBatch->storage_disk);
-        foreach ([$inspection['storage_prefix'], $inspection['storage_prefix'].'/'] as $markerPath) {
-            try {
-                $storageDisk->delete($markerPath);
-            } catch (UnableToDeleteFile) {
-                // Some adapters treat the batch prefix as a directory instead of a zero-byte marker object.
-                // We still follow up with deleteDirectory() below to clear the prefix safely.
+        foreach ($inspection['storage_prefixes'] as $storagePrefix) {
+            foreach ([$storagePrefix, $storagePrefix.'/'] as $markerPath) {
+                try {
+                    $storageDisk->delete($markerPath);
+                } catch (UnableToDeleteFile) {
+                    // Some adapters treat the batch prefix as a directory instead of a zero-byte marker object.
+                    // We still follow up with deleteDirectory() below to clear the prefix safely.
+                }
             }
+            $storageDisk->deleteDirectory($storagePrefix);
         }
-        $storageDisk->deleteDirectory($inspection['storage_prefix']);
 
-        $remainingStoragePaths = collect($storageDisk->allFiles($inspection['storage_prefix']))
+        $remainingStoragePaths = collect($inspection['storage_prefixes'])
+            ->flatMap(function (string $prefix) use ($storageDisk): array {
+                try {
+                    return $storageDisk->allFiles($prefix);
+                } catch (UnableToListContents) {
+                    return [];
+                }
+            })
             ->filter(fn (?string $path): bool => filled($path))
             ->unique()
             ->values()

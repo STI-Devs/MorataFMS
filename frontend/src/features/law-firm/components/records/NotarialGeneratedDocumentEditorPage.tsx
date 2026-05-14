@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useLocation, useParams } from 'react-router-dom';
 import {
     useNotarialGeneratedDocument,
     useNotarialGeneratedDocumentEditorConfig,
@@ -73,10 +73,12 @@ const formatSavedTimestamp = (value: string | null): string => {
 
 export const NotarialGeneratedDocumentEditorPage = () => {
     const { documentId } = useParams();
+    const location = useLocation();
+    const module = location.pathname.includes('/legal-files/') ? 'legal' : 'notarial';
     const numericDocumentId = Number(documentId);
     const validDocumentId = Number.isFinite(numericDocumentId) && numericDocumentId > 0 ? numericDocumentId : null;
-    const generatedDocumentQuery = useNotarialGeneratedDocument(validDocumentId);
-    const editorConfigQuery = useNotarialGeneratedDocumentEditorConfig(validDocumentId);
+    const generatedDocumentQuery = useNotarialGeneratedDocument(validDocumentId, module);
+    const editorConfigQuery = useNotarialGeneratedDocumentEditorConfig(validDocumentId, module);
     const editorInstanceRef = useRef<{ destroyEditor?: () => void } | null>(null);
     const floatingBadgeRef = useRef<HTMLDivElement | null>(null);
     const floatingBadgeDragStateRef = useRef<FloatingBadgeDragState | null>(null);

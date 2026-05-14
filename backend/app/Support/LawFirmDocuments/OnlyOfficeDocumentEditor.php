@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Support\Legal;
+namespace App\Support\LawFirmDocuments;
 
 use App\Models\NotarialGeneratedDocument;
 use App\Models\User;
@@ -79,6 +79,7 @@ class OnlyOfficeDocumentEditor
     {
         return hash('sha256', implode('|', [
             'notarial-generated-document',
+            $document->module,
             $document->id,
             $document->updated_at?->timestamp ?? 0,
             $document->size_bytes,

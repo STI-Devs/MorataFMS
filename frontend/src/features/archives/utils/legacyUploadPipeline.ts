@@ -11,6 +11,7 @@ import {
 import type {
     CreateLegacyBatchPayload,
     LegacyBatch,
+    LegacyBatchModule,
     SignLegacyBatchUploadsResponse,
 } from '../types/legacyBatch.types';
 
@@ -22,6 +23,7 @@ type AsyncMutation<TPayload, TResult> = {
 
 export interface RunLegacyUploadPipelineArgs {
     activeBatch: LegacyBatch | null;
+    module?: LegacyBatchModule;
     folderSummary: FolderSummary;
     selectedFiles: File[];
     meta: BatchMeta;
@@ -45,6 +47,7 @@ export interface RunLegacyUploadPipelineArgs {
 export async function runLegacyUploadPipeline(args: RunLegacyUploadPipelineArgs): Promise<void> {
     const {
         activeBatch,
+        module,
         folderSummary,
         selectedFiles,
         meta,
@@ -87,6 +90,7 @@ export async function runLegacyUploadPipeline(args: RunLegacyUploadPipelineArgs)
             const [initialManifestChunk, ...remainingManifestChunks] = manifestChunks;
 
             batch = await createBatch.mutateAsync({
+                module,
                 batchName: meta.batchName,
                 rootFolder: folderSummary.rootName,
                 yearFrom: meta.yearFrom,
