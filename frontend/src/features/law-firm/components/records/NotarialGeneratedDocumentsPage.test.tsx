@@ -11,7 +11,6 @@ const {
     mockUseNotarialTemplates,
     mockUseDeleteNotarialGeneratedDocument,
     mockDownloadFile,
-    mockPreviewGeneratedDocument,
     mockDeleteGeneratedDocument,
     mockToastSuccess,
 } = vi.hoisted(() => ({
@@ -21,7 +20,6 @@ const {
     mockUseNotarialTemplates: vi.fn(),
     mockUseDeleteNotarialGeneratedDocument: vi.fn(),
     mockDownloadFile: vi.fn(),
-    mockPreviewGeneratedDocument: vi.fn(),
     mockDeleteGeneratedDocument: vi.fn(),
     mockToastSuccess: vi.fn(),
 }));
@@ -40,7 +38,6 @@ vi.mock('../../../auth', () => ({
 vi.mock('../../api/lawFirmApi', () => ({
     lawFirmApi: {
         downloadFile: mockDownloadFile,
-        previewGeneratedDocument: mockPreviewGeneratedDocument,
     },
 }));
 
@@ -54,10 +51,10 @@ vi.mock('../../hooks/useLegalWorkspace', () => ({
 describe('NotarialGeneratedDocumentsPage', () => {
     beforeEach(() => {
         mockDownloadFile.mockReset();
-        mockPreviewGeneratedDocument.mockReset();
         mockDeleteGeneratedDocument.mockReset();
         mockToastSuccess.mockReset();
-        vi.spyOn(window, 'open').mockReturnValue({
+        vi.spyOn(window.location, 'assign').mockImplementation(() => undefined);
+        vi.spyOn(window, 'open').mockImplementation(() => ({
             opener: null,
             document: {
                 title: '',
@@ -66,7 +63,7 @@ describe('NotarialGeneratedDocumentsPage', () => {
                 replace: vi.fn(),
             },
             close: vi.fn(),
-        } as unknown as Window);
+        } as unknown as Window));
         vi.spyOn(window.URL, 'createObjectURL').mockReturnValue('blob:generated-document-preview');
         vi.spyOn(window.URL, 'revokeObjectURL').mockImplementation(() => undefined);
 
@@ -81,10 +78,6 @@ describe('NotarialGeneratedDocumentsPage', () => {
             mutateAsync: mockDeleteGeneratedDocument.mockResolvedValue(undefined),
             isPending: false,
         });
-
-        mockPreviewGeneratedDocument.mockResolvedValue(new Blob(['stored docx body'], {
-            type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        }));
 
         mockUseLegalCatalog.mockReturnValue({
             data: {
@@ -199,20 +192,10 @@ describe('NotarialGeneratedDocumentsPage', () => {
         const actionsButton = screen.getByRole('button', { name: 'Actions for Maria Santos' });
         fireEvent.click(actionsButton);
 
-        expect(screen.getByRole('link', { name: 'Edit' })).toHaveAttribute(
-            'href',
-            '/paralegal/notarial/generated-documents/1/edit',
-        );
+        fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
 
-        const previewTab = window.open('', '_blank') as Window;
-        fireEvent.click(screen.getByRole('button', { name: 'Preview' }));
-
-        await waitFor(() => {
-            expect(mockPreviewGeneratedDocument).toHaveBeenCalledWith(1);
-        });
-
-        expect(window.URL.createObjectURL).toHaveBeenCalledWith(expect.any(Blob));
-        expect(previewTab.location.replace).toHaveBeenCalledWith('blob:generated-document-preview');
+        expect(window.open).toHaveBeenCalledWith('', '_blank');
+        expect(window.location.assign).not.toHaveBeenCalled();
 
         fireEvent.click(actionsButton);
         fireEvent.click(screen.getByRole('button', { name: 'Download' }));

@@ -10,7 +10,7 @@ class DeactivateUser
 {
     public function handle(User $user): User
     {
-        if ($user->role === UserRole::Admin) {
+        if ($user->role === UserRole::Admin && $user->is_active) {
             $activeAdminCount = User::query()
                 ->where('role', UserRole::Admin->value)
                 ->where('is_active', true)

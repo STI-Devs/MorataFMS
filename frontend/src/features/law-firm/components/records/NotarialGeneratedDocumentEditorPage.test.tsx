@@ -64,6 +64,8 @@ describe('NotarialGeneratedDocumentEditorPage', () => {
         expect(screen.getByRole('heading', { name: 'Draft #1' })).toBeInTheDocument();
         expect(screen.getByText(/App storage saved/i)).toBeInTheDocument();
         expect(screen.getByText('15 KB stored copy')).toBeInTheDocument();
+        expect(screen.queryByRole('link', { name: /Back to Generated Documents/i })).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Drag save status badge' })).toBeInTheDocument();
         expect(mockUseNotarialGeneratedDocument).toHaveBeenCalledWith(1);
 
         await waitFor(() => {

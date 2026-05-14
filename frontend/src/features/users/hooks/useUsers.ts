@@ -41,3 +41,11 @@ export const useActivateUser = () => {
         onSuccess: () => qc.invalidateQueries({ queryKey: userKeys.all }),
     });
 };
+
+export const useDeleteUser = () => {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: (id: number) => userApi.deleteUser(id),
+        onSuccess: () => qc.invalidateQueries({ queryKey: userKeys.all }),
+    });
+};

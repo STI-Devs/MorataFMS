@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { appRoutes } from '../../../../lib/appRoutes';
+import { useParams } from 'react-router-dom';
 import {
     useNotarialGeneratedDocument,
     useNotarialGeneratedDocumentEditorConfig,
@@ -8,6 +7,54 @@ import {
 import { loadOnlyOfficeScript } from '../../utils/onlyOffice';
 
 const editorElementId = 'onlyoffice-generated-document-editor';
+const floatingBadgeMargin = 16;
+const floatingBadgeFallbackWidth = 320;
+const floatingBadgeFallbackHeight = 72;
+
+type FloatingBadgePosition = {
+    x: number;
+    y: number;
+};
+
+type FloatingBadgeDragState = {
+    offsetX: number;
+    offsetY: number;
+};
+
+const getFloatingBadgeWidth = (viewportWidth: number): number =>
+    Math.min(floatingBadgeFallbackWidth, Math.max(220, viewportWidth - (floatingBadgeMargin * 2)));
+
+const clampFloatingBadgePosition = (
+    position: FloatingBadgePosition,
+    viewportWidth: number,
+    viewportHeight: number,
+    badgeWidth: number,
+    badgeHeight: number,
+): FloatingBadgePosition => ({
+    x: Math.min(
+        Math.max(floatingBadgeMargin, position.x),
+        Math.max(floatingBadgeMargin, viewportWidth - badgeWidth - floatingBadgeMargin),
+    ),
+    y: Math.min(
+        Math.max(floatingBadgeMargin, position.y),
+        Math.max(floatingBadgeMargin, viewportHeight - badgeHeight - floatingBadgeMargin),
+    ),
+});
+
+const getDefaultFloatingBadgePosition = (
+    viewportWidth: number,
+    viewportHeight: number,
+): FloatingBadgePosition =>
+    clampFloatingBadgePosition(
+        {
+            x: viewportWidth - getFloatingBadgeWidth(viewportWidth) - floatingBadgeMargin,
+            y: viewportHeight - floatingBadgeFallbackHeight - floatingBadgeMargin,
+        },
+        viewportWidth,
+        viewportHeight,
+        getFloatingBadgeWidth(viewportWidth),
+        floatingBadgeFallbackHeight,
+    );
 
 const formatSavedTimestamp = (value: string | null): string => {
     if (!value) {
@@ -31,7 +78,11 @@ export const NotarialGeneratedDocumentEditorPage = () => {
     const generatedDocumentQuery = useNotarialGeneratedDocument(validDocumentId);
     const editorConfigQuery = useNotarialGeneratedDocumentEditorConfig(validDocumentId);
     const editorInstanceRef = useRef<{ destroyEditor?: () => void } | null>(null);
+    const floatingBadgeRef = useRef<HTMLDivElement | null>(null);
+    const floatingBadgeDragStateRef = useRef<FloatingBadgeDragState | null>(null);
     const [loadError, setLoadError] = useState<string | null>(null);
+    const [floatingBadgePosition, setFloatingBadgePosition] = useState<FloatingBadgePosition | null>(null);
+    const [isDraggingFloatingBadge, setIsDraggingFloatingBadge] = useState(false);
 
     const generatedDocument = generatedDocumentQuery.data;
     const storageSavedAt = generatedDocument?.generated_at ?? generatedDocument?.updated_at ?? null;
@@ -41,6 +92,83 @@ export const NotarialGeneratedDocumentEditorPage = () => {
     const savedDetailLabel = generatedDocument?.generated_file.formatted_size
         ? `${generatedDocument.generated_file.formatted_size} stored copy`
         : 'Checking stored copy';
+
+    useEffect(() => {
+        const syncFloatingBadgePosition = () => {
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+            const badgeWidth = floatingBadgeRef.current?.offsetWidth ?? getFloatingBadgeWidth(viewportWidth);
+            const badgeHeight = floatingBadgeRef.current?.offsetHeight ?? floatingBadgeFallbackHeight;
+
+            setFloatingBadgePosition((currentPosition) => {
+                if (currentPosition === null) {
+                    return getDefaultFloatingBadgePosition(viewportWidth, viewportHeight);
+                }
+
+                return clampFloatingBadgePosition(
+                    currentPosition,
+                    viewportWidth,
+                    viewportHeight,
+                    badgeWidth,
+                    badgeHeight,
+                );
+            });
+        };
+
+        syncFloatingBadgePosition();
+        window.addEventListener('resize', syncFloatingBadgePosition);
+
+        return () => {
+            window.removeEventListener('resize', syncFloatingBadgePosition);
+        };
+    }, []);
+
+    useEffect(() => {
+        if (!isDraggingFloatingBadge) {
+            return;
+        }
+
+        const handlePointerMove = (event: PointerEvent) => {
+            const dragState = floatingBadgeDragStateRef.current;
+
+            if (!dragState) {
+                return;
+            }
+
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+            const badgeWidth = floatingBadgeRef.current?.offsetWidth ?? getFloatingBadgeWidth(viewportWidth);
+            const badgeHeight = floatingBadgeRef.current?.offsetHeight ?? floatingBadgeFallbackHeight;
+
+            setFloatingBadgePosition(
+                clampFloatingBadgePosition(
+                    {
+                        x: event.clientX - dragState.offsetX,
+                        y: event.clientY - dragState.offsetY,
+                    },
+                    viewportWidth,
+                    viewportHeight,
+                    badgeWidth,
+                    badgeHeight,
+                ),
+            );
+        };
+
+        const handlePointerUp = () => {
+            floatingBadgeDragStateRef.current = null;
+            setIsDraggingFloatingBadge(false);
+        };
+
+        window.addEventListener('pointermove', handlePointerMove);
+        window.addEventListener('pointerup', handlePointerUp);
+        window.addEventListener('pointercancel', handlePointerUp);
+
+        return () => {
+            window.removeEventListener('pointermove', handlePointerMove);
+            window.removeEventListener('pointerup', handlePointerUp);
+            window.removeEventListener('pointercancel', handlePointerUp);
+        };
+    }, [isDraggingFloatingBadge]);
 
     useEffect(() => {
         const editorConfig = editorConfigQuery.data;
@@ -70,8 +198,22 @@ export const NotarialGeneratedDocumentEditorPage = () => {
             cancelled = true;
             editorInstanceRef.current?.destroyEditor?.();
             editorInstanceRef.current = null;
+            floatingBadgeDragStateRef.current = null;
         };
     }, [editorConfigQuery.data]);
+
+    const handleFloatingBadgePointerDown = (event: React.PointerEvent<HTMLButtonElement>) => {
+        if (event.button !== 0 || !floatingBadgeRef.current) {
+            return;
+        }
+
+        const badgeBounds = floatingBadgeRef.current.getBoundingClientRect();
+        floatingBadgeDragStateRef.current = {
+            offsetX: event.clientX - badgeBounds.left,
+            offsetY: event.clientY - badgeBounds.top,
+        };
+        setIsDraggingFloatingBadge(true);
+    };
 
     if (validDocumentId === null) {
         return (
@@ -85,30 +227,56 @@ export const NotarialGeneratedDocumentEditorPage = () => {
         <div className="relative h-screen min-h-screen overflow-hidden bg-white">
             <h1 className="sr-only">Draft #{validDocumentId}</h1>
 
-            <Link
-                to={appRoutes.paralegalGeneratedDocuments}
-                className="fixed right-5 top-4 z-20 rounded-lg border border-neutral-200 bg-white/95 px-3 py-2 text-sm font-semibold text-neutral-900 shadow-sm backdrop-blur transition-colors hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-neutral-900/15"
+            <div
+                ref={floatingBadgeRef}
+                className="fixed z-20 w-[min(20rem,calc(100vw-2rem))] rounded-2xl border border-neutral-200 bg-white/95 px-3 py-2 text-[11px] shadow-lg backdrop-blur"
+                style={{
+                    left: floatingBadgePosition?.x ?? floatingBadgeMargin,
+                    top: floatingBadgePosition?.y ?? floatingBadgeMargin,
+                }}
             >
-                Back to Generated Documents
-            </Link>
+                <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                            <span
+                                className={[
+                                    'h-2 w-2 shrink-0 rounded-full',
+                                    generatedDocumentQuery.isError
+                                        ? 'bg-red-500'
+                                        : generatedDocumentQuery.isFetching
+                                            ? 'bg-amber-500'
+                                            : 'bg-emerald-500',
+                                ].join(' ')}
+                            />
+                            <span className="truncate font-semibold text-neutral-900">{savedStatusLabel}</span>
+                        </div>
+                        <p className="mt-0.5 truncate text-neutral-500">
+                            {generatedDocumentQuery.isFetching ? 'Checking backend copy...' : savedDetailLabel}
+                        </p>
+                    </div>
 
-            <div className="fixed bottom-4 left-4 z-20 max-w-[calc(100vw-2rem)] rounded-xl border border-neutral-200 bg-white/95 px-3 py-2 text-xs shadow-lg backdrop-blur">
-                <div className="flex items-center gap-2">
-                    <span
+                    <button
+                        type="button"
+                        aria-label="Drag save status badge"
+                        onPointerDown={handleFloatingBadgePointerDown}
                         className={[
-                            'h-2 w-2 shrink-0 rounded-full',
-                            generatedDocumentQuery.isError
-                                ? 'bg-red-500'
-                                : generatedDocumentQuery.isFetching
-                                    ? 'bg-amber-500'
-                                    : 'bg-emerald-500',
+                            'inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-xl border border-neutral-200 bg-white text-neutral-500 shadow-sm transition-colors',
+                            isDraggingFloatingBadge ? 'cursor-grabbing text-neutral-700' : 'cursor-grab hover:text-neutral-700',
                         ].join(' ')}
-                    />
-                    <span className="font-semibold text-neutral-900">{savedStatusLabel}</span>
+                    >
+                        <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <circle cx="6" cy="6" r="1.25" />
+                            <circle cx="10" cy="6" r="1.25" />
+                            <circle cx="14" cy="6" r="1.25" />
+                            <circle cx="6" cy="10" r="1.25" />
+                            <circle cx="10" cy="10" r="1.25" />
+                            <circle cx="14" cy="10" r="1.25" />
+                            <circle cx="6" cy="14" r="1.25" />
+                            <circle cx="10" cy="14" r="1.25" />
+                            <circle cx="14" cy="14" r="1.25" />
+                        </svg>
+                    </button>
                 </div>
-                <p className="mt-0.5 text-neutral-500">
-                    {generatedDocumentQuery.isFetching ? 'Checking backend copy...' : savedDetailLabel}
-                </p>
             </div>
 
             {editorConfigQuery.isLoading ? (

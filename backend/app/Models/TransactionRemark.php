@@ -32,13 +32,13 @@ class TransactionRemark extends Model
     /** The admin who created the remark. */
     public function author(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'author_id');
+        return $this->belongsTo(User::class, 'author_id')->withTrashed();
     }
 
     /** The user who resolved the remark (admin or encoder). */
     public function resolver(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'resolved_by');
+        return $this->belongsTo(User::class, 'resolved_by')->withTrashed();
     }
 
     /** Optional: the specific document this remark is pinned to. */

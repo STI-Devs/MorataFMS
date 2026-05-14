@@ -1,6 +1,5 @@
 import { useDeferredValue, useState } from 'react';
 import { DeleteConfirmModal } from '../shared/DeleteConfirmModal';
-import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth } from '../../../auth';
 import { isAdmin } from '../../../auth/utils/access';
@@ -13,6 +12,7 @@ import {
     useNotarialTemplates,
 } from '../../hooks/useLegalWorkspace';
 import type { LegalDocumentCategoryCode, NotarialGeneratedDocument } from '../../types/legalRecords.types';
+import { openEditorPage } from '../../utils/editorNavigation';
 
 const ALL_CATEGORIES = 'all';
 const PAGE_SIZE_OPTIONS = [12, 25, 50, 100] as const;
@@ -37,10 +37,6 @@ const formatTimestamp = (value: string | null) => {
 const getDeleteErrorMessage = (error: unknown): string =>
     (error as { response?: { data?: { message?: string } } })?.response?.data?.message
         ?? 'Unable to delete the generated document.';
-
-const getPreviewErrorMessage = (error: unknown): string =>
-    (error as { response?: { data?: { message?: string } } })?.response?.data?.message
-        ?? 'Unable to preview the generated document.';
 
 const SummaryCard = ({ label, value }: { label: string; value: string }) => (
     <div className="rounded-xl border border-border bg-surface-elevated px-4 py-3 shadow-sm dark:shadow-none">
@@ -99,42 +95,14 @@ export const NotarialGeneratedDocumentsPage = () => {
         setOpenActionsDocumentId(null);
     };
 
-    const handlePreview = async (document: NotarialGeneratedDocument): Promise<void> => {
-        setOpenActionsDocumentId(null);
-
-        const pendingTab = window.open('', '_blank');
-
-        if (pendingTab) {
-            pendingTab.opener = null;
-            pendingTab.document.title = document.generated_file.filename;
-        }
-
-        try {
-            const previewBlob = await lawFirmApi.previewGeneratedDocument(document.id);
-            const previewUrl = window.URL.createObjectURL(previewBlob);
-
-            if (pendingTab) {
-                pendingTab.location.replace(previewUrl);
-            } else {
-                const newTab = window.open(previewUrl, '_blank', 'noopener');
-
-                if (newTab) {
-                    newTab.opener = null;
-                }
-            }
-
-            window.setTimeout(() => {
-                window.URL.revokeObjectURL(previewUrl);
-            }, 60_000);
-        } catch (error) {
-            pendingTab?.close();
-            toast.error(getPreviewErrorMessage(error));
-        }
-    };
-
     const handleDelete = (document: NotarialGeneratedDocument): void => {
         setOpenActionsDocumentId(null);
         setPendingDeleteDocument(document);
+    };
+
+    const handleOpenEditor = (documentId: number): void => {
+        setOpenActionsDocumentId(null);
+        openEditorPage(generatedDocumentEditorPath(documentId));
     };
 
     const handleConfirmDelete = async (): Promise<void> => {
@@ -339,25 +307,14 @@ export const NotarialGeneratedDocumentsPage = () => {
                                             <div className="absolute right-0 top-11 z-30 w-44 overflow-hidden rounded-xl border border-border bg-surface-elevated p-1 shadow-xl dark:shadow-none">
                                                 <button
                                                     type="button"
-                                                    onClick={() => void handlePreview(document)}
-                                                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-text-secondary transition-colors hover:bg-hover hover:text-text-primary focus:bg-hover focus:outline-none"
-                                                >
-                                                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.25 12s3.75-6.75 9.75-6.75S21.75 12 21.75 12 18 18.75 12 18.75 2.25 12 2.25 12z" />
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15a3 3 0 100-6 3 3 0 000 6z" />
-                                                    </svg>
-                                                    Preview
-                                                </button>
-                                                <Link
-                                                    to={generatedDocumentEditorPath(document.id)}
-                                                    onClick={() => setOpenActionsDocumentId(null)}
+                                                    onClick={() => handleOpenEditor(document.id)}
                                                     className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-text-secondary transition-colors hover:bg-hover hover:text-text-primary focus:bg-hover focus:outline-none"
                                                 >
                                                     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                                     </svg>
                                                     Edit
-                                                </Link>
+                                                </button>
                                                 <button
                                                     type="button"
                                                     onClick={() => handleDownloadDocument(document)}

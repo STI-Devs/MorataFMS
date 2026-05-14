@@ -128,7 +128,8 @@ describe('App bootstrap routing', () => {
             });
         });
 
-        expect(screen.getByRole('link', { name: 'Back to Generated Documents' })).toBeInTheDocument();
+        expect(screen.queryByRole('link', { name: 'Back to Generated Documents' })).not.toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Draft #1' })).toBeInTheDocument();
         expect(screen.queryByText('F.M Morata')).not.toBeInTheDocument();
         expect(screen.queryByText('Main Menu')).not.toBeInTheDocument();
     });

@@ -1,5 +1,4 @@
 import { useDeferredValue, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { appRoutes } from '../../../lib/appRoutes';
 import {
@@ -10,6 +9,7 @@ import {
     useNotarialTemplates,
 } from './useLegalWorkspace';
 import type { LegalDocumentCategoryCode, LegalParty } from '../types/legalRecords.types';
+import { openEditorPage } from '../utils/editorNavigation';
 
 const getErrorMessage = (error: unknown): string => {
     const data = (error as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } })
@@ -19,7 +19,6 @@ const getErrorMessage = (error: unknown): string => {
 };
 
 export const useDocumentGenerator = () => {
-    const navigate = useNavigate();
     const [templateSearch, setTemplateSearch] = useState('');
     const [selectedCategory, setSelectedCategory] = useState<LegalDocumentCategoryCode | 'all'>('all');
     const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(null);
@@ -117,7 +116,9 @@ export const useDocumentGenerator = () => {
             setSelectedParty(null);
             setNotes('');
             setGenerateSuccess(true);
-            navigate(appRoutes.paralegalGeneratedDocumentEditor.replace(':documentId', String(document.id)));
+            openEditorPage(
+                appRoutes.paralegalGeneratedDocumentEditor.replace(':documentId', String(document.id)),
+            );
         } catch (error) {
             toast.error(getErrorMessage(error));
         }

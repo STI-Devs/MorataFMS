@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { ConfirmationModal } from '../../../components/ConfirmationModal';
 import { CurrentDateTime } from '../../../components/CurrentDateTime';
+import { useConfirmationModal } from '../../../hooks/useConfirmationModal';
 import { useAuth } from '../../auth/hooks/useAuth';
 import { isAdmin } from '../../auth/utils/access';
-import { useActivateUser, useCreateUser, useDeactivateUser, useUpdateUser, useUsers } from '../hooks/useUsers';
+import { useActivateUser, useCreateUser, useDeactivateUser, useDeleteUser, useUpdateUser, useUsers } from '../hooks/useUsers';
 import type { CreateUserData, UpdateUserData, User } from '../types/user.types';
 import { UserFormModal } from './UserFormModal';
 
@@ -61,6 +63,8 @@ export const UserManagement = () => {
     const updateUser = useUpdateUser();
     const deactivateUser = useDeactivateUser();
     const activateUser = useActivateUser();
+    const deleteUser = useDeleteUser();
+    const { openModal, modalProps } = useConfirmationModal();
 
     const handleCreateUser = async (data: CreateUserData | UpdateUserData) => {
         await createUser.mutateAsync(data as CreateUserData);
@@ -74,14 +78,32 @@ export const UserManagement = () => {
         }
     };
 
-    const handleDeactivate = async (userId: number) => {
-        if (window.confirm('Are you sure you want to deactivate this user?')) {
-            await deactivateUser.mutateAsync(userId);
-        }
+    const handleDeactivate = (user: User) => {
+        openModal({
+            title: 'Deactivate user?',
+            message: `Are you sure you want to deactivate ${user.name}?`,
+            confirmText: 'Deactivate',
+            confirmButtonClass: 'bg-red-600 hover:bg-red-700',
+            onConfirm: async () => {
+                await deactivateUser.mutateAsync(user.id);
+            },
+        });
     };
 
     const handleActivate = async (userId: number) => {
         await activateUser.mutateAsync(userId);
+    };
+
+    const handleDelete = (user: User) => {
+        openModal({
+            title: 'Delete user?',
+            message: `Are you sure you want to delete ${user.name}?`,
+            confirmText: 'Delete user',
+            confirmButtonClass: 'bg-red-600 hover:bg-red-700',
+            onConfirm: async () => {
+                await deleteUser.mutateAsync(user.id);
+            },
+        });
     };
 
     const handleEdit = (user: User) => {
@@ -302,7 +324,7 @@ export const UserManagement = () => {
                                                         {user.is_active ? (
                                                             <button
                                                                 title="Deactivate User"
-                                                                onClick={() => handleDeactivate(user.id)}
+                                                                onClick={() => handleDeactivate(user)}
                                                                 disabled={deactivateUser.isPending}
                                                                 className="p-1.5 rounded-lg transition-colors disabled:opacity-50 hover:opacity-80"
                                                                 style={{ backgroundColor: 'rgba(255,69,58,0.12)', color: '#ff453a' }}
@@ -324,6 +346,18 @@ export const UserManagement = () => {
                                                                 </svg>
                                                             </button>
                                                         )}
+
+                                                        <button
+                                                            title="Delete User"
+                                                            onClick={() => handleDelete(user)}
+                                                            disabled={deleteUser.isPending}
+                                                            className="p-1.5 rounded-lg transition-colors disabled:opacity-50 hover:opacity-80"
+                                                            style={{ backgroundColor: 'rgba(255,69,58,0.18)', color: '#ff453a' }}
+                                                        >
+                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7h6m-7 0a1 1 0 001-1V5a1 1 0 011-1h4a1 1 0 011 1v1a1 1 0 001 1m-7 0h7" />
+                                                            </svg>
+                                                        </button>
                                                     </>
                                                 )}
                                             </div>
@@ -346,7 +380,8 @@ export const UserManagement = () => {
                 user={selectedUser}
                 mode={modalMode}
             />
+
+            <ConfirmationModal {...modalProps} />
         </div>
     );
 };
-

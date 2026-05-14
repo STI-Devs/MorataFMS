@@ -5,7 +5,7 @@ interface ConfirmationOptions {
     message: string;
     confirmText?: string;
     confirmButtonClass?: string;
-    onConfirm: () => void;
+    onConfirm: () => void | Promise<void>;
 }
 
 export const useConfirmationModal = () => {
@@ -25,10 +25,9 @@ export const useConfirmationModal = () => {
         setIsOpen(false);
     }, []);
 
-    const handleConfirm = useCallback(() => {
-        options.onConfirm();
-        closeModal();
-    }, [options, closeModal]);
+    const handleConfirm = useCallback(async () => {
+        await options.onConfirm();
+    }, [options]);
 
     return {
         isOpen,

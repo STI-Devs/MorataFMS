@@ -37,4 +37,10 @@ export const userApi = {
         const response = await api.post(`/api/users/${id}/activate`);
         return response.data;
     },
+
+    // Delete a user
+    async deleteUser(id: number): Promise<{ message: string }> {
+        const response = await api.delete(`/api/users/${id}`);
+        return response.data;
+    },
 };

@@ -50,37 +50,37 @@ class ExportStage extends Model
 
     public function docsPrepCompletedBy(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'docs_prep_completed_by');
+        return $this->belongsTo(User::class, 'docs_prep_completed_by')->withTrashed();
     }
 
     public function coCompletedBy(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'co_completed_by');
+        return $this->belongsTo(User::class, 'co_completed_by')->withTrashed();
     }
 
     public function phytosanitaryCompletedBy(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'phytosanitary_completed_by');
+        return $this->belongsTo(User::class, 'phytosanitary_completed_by')->withTrashed();
     }
 
     public function cilCompletedBy(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'cil_completed_by');
+        return $this->belongsTo(User::class, 'cil_completed_by')->withTrashed();
     }
 
     public function dccciCompletedBy(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'dccci_completed_by');
+        return $this->belongsTo(User::class, 'dccci_completed_by')->withTrashed();
     }
 
     public function blCompletedBy(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'bl_completed_by');
+        return $this->belongsTo(User::class, 'bl_completed_by')->withTrashed();
     }
 
     public function billingCompletedBy(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'billing_completed_by');
+        return $this->belongsTo(User::class, 'billing_completed_by')->withTrashed();
     }
 
     public function markStageComplete(string $stage, int $userId): void

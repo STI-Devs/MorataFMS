@@ -41,7 +41,7 @@ class OpsEnsureAdmin extends Command
         $wasCreated = false;
 
         User::withoutAuditing(function () use ($email, $name, $jobTitle, $plainPassword, &$wasCreated): void {
-            $user = User::query()->firstOrNew(['email' => $email]);
+            $user = User::withTrashed()->firstOrNew(['email' => $email]);
             $wasCreated = ! $user->exists;
 
             $user->forceFill([
@@ -54,6 +54,10 @@ class OpsEnsureAdmin extends Command
                 'email_verified_at' => $user->email_verified_at ?? now(),
                 'remember_token' => Str::random(10),
             ]);
+
+            if ($user->trashed()) {
+                $user->restore();
+            }
 
             $user->save();
         });

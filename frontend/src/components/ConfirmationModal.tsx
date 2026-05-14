@@ -35,7 +35,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
 
     if (!isOpen) return null;
 
-    const iconWrapperClass = icon === 'success' ? 'bg-emerald-50' : 'bg-red-50';
+    const iconWrapperClass = icon === 'success' ? 'bg-emerald-500/10' : 'bg-red-500/10';
     const iconClass = icon === 'success' ? 'text-emerald-500' : 'text-red-500';
 
     const handleConfirm = async () => {
