@@ -156,6 +156,17 @@ test('ops migrate legacy batch storage paths maps operator connections to the in
     expect($method->invoke($command, 'mysql'))->toBe('public');
 });
 
+test('ops migrate legacy batch storage paths raises low cli memory limits for s3 inspection', function () {
+    ini_set('memory_limit', '128M');
+
+    $command = app(MigrateLegacyBatchStoragePaths::class);
+    $method = new ReflectionMethod($command, 'ensureMemoryLimit');
+    $method->setAccessible(true);
+    $method->invoke($command);
+
+    expect(ini_get('memory_limit'))->toBe('512M');
+});
+
 test('ops migrate legacy batch storage paths rejects production ops when it falls back to the mysql database', function () {
     config([
         'database.connections.mysql.database' => 'morata_fms_prod_mirror',

@@ -5,12 +5,17 @@ namespace App\Support\LegacyBatches;
 use App\Enums\LegacyBatchModule;
 use App\Models\LegacyBatch;
 use App\Models\LegacyBatchFile;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Throwable;
 
 class LegacyBatchStoragePathMigrator
 {
+    private const BATCH_CHUNK_SIZE = 10;
+
+    private const PLAN_SAMPLE_LIMIT = 50;
+
     public function __construct(private LegacyBatchUploadUrlFactory $legacyBatchUploadUrlFactory) {}
 
     /**
@@ -36,64 +41,114 @@ class LegacyBatchStoragePathMigrator
         ?string $storageDisk = null,
     ): array {
         $effectiveStorageDisk = $storageDisk ?: (string) config('filesystems.default', 'local');
-        $batches = LegacyBatch::on($connectionName)
-            ->with('files')
+        $query = LegacyBatch::on($connectionName)
             ->when($module !== null, fn ($query) => $query->where('module', $module->value))
-            ->when($batchUuid !== null, fn ($query) => $query->where('uuid', $batchUuid))
-            ->orderBy('id')
-            ->get();
-
-        $plans = [];
-        $scannedFileCount = 0;
-        $alreadyMigratedFileCount = 0;
-
-        foreach ($batches as $batch) {
-            foreach ($batch->files as $file) {
-                $scannedFileCount++;
-
-                $plan = $this->planForFile($batch, $file, $effectiveStorageDisk);
-
-                if ($plan === null) {
-                    $alreadyMigratedFileCount++;
-
-                    continue;
-                }
-
-                $plans[] = $plan;
-            }
-        }
+            ->when($batchUuid !== null, fn ($query) => $query->where('uuid', $batchUuid));
 
         $result = [
-            'scanned_batch_count' => $batches->count(),
-            'scanned_file_count' => $scannedFileCount,
-            'pending_file_count' => count($plans),
-            'already_migrated_file_count' => $alreadyMigratedFileCount,
+            'scanned_batch_count' => (clone $query)->count(),
+            'scanned_file_count' => 0,
+            'pending_file_count' => 0,
+            'already_migrated_file_count' => 0,
             'missing_file_count' => 0,
             'copied_file_count' => 0,
             'updated_file_count' => 0,
             'deleted_legacy_object_count' => 0,
             'updated_batch_count' => 0,
             'failed_paths' => [],
-            'plans' => $plans,
+            'plans' => [],
         ];
 
+        (clone $query)
+            ->orderBy('id')
+            ->chunkById(self::BATCH_CHUNK_SIZE, function (Collection $batches) use ($connectionName, $effectiveStorageDisk, $dryRun, &$result): void {
+                $batches->load('files');
+
+                foreach ($batches as $batch) {
+                    $batchPlans = $this->plansForBatch($batch, $effectiveStorageDisk, $result);
+                    $this->inspectPlans($batch, $batchPlans, $result);
+
+                    if (! $dryRun && $result['missing_file_count'] === 0 && $batchPlans !== []) {
+                        $this->applyPlans($connectionName, $batchPlans, $result);
+                    }
+                }
+            });
+
+        return $result;
+    }
+
+    /**
+     * @param  array<string, mixed>  $result
+     * @return list<array{file_id:int, batch_uuid:string, module:string, old_path:string, new_path:string, storage_disk:string, source_exists:bool, target_exists:bool}>
+     */
+    private function plansForBatch(LegacyBatch $batch, string $storageDisk, array &$result): array
+    {
+        $plans = [];
+
+        foreach ($batch->files as $file) {
+            $result['scanned_file_count']++;
+
+            $plan = $this->planForFile($batch, $file, $storageDisk);
+
+            if ($plan === null) {
+                $result['already_migrated_file_count']++;
+
+                continue;
+            }
+
+            $result['pending_file_count']++;
+            $plans[] = $plan;
+        }
+
+        return $plans;
+    }
+
+    /**
+     * @param  list<array{file_id:int, batch_uuid:string, module:string, old_path:string, new_path:string, storage_disk:string, source_exists:bool, target_exists:bool}>  $plans
+     * @param  array<string, mixed>  $result
+     */
+    private function inspectPlans(LegacyBatch $batch, array &$plans, array &$result): void
+    {
+        if ($plans === []) {
+            return;
+        }
+
+        $storageDisk = Storage::disk($plans[0]['storage_disk']);
+        $legacyPaths = array_flip($storageDisk->allFiles($this->legacyBatchUploadUrlFactory->legacyPrefixFor($batch)));
+        $modulePaths = array_flip($storageDisk->allFiles($this->legacyBatchUploadUrlFactory->prefixFor($batch)));
+
         foreach ($plans as $index => $plan) {
-            $storageDisk = Storage::disk($plan['storage_disk']);
-            $plans[$index]['source_exists'] = $storageDisk->exists($plan['old_path']);
-            $plans[$index]['target_exists'] = $storageDisk->exists($plan['new_path']);
+            $plans[$index]['source_exists'] = isset($legacyPaths[$plan['old_path']]);
+            $plans[$index]['target_exists'] = isset($modulePaths[$plan['new_path']]);
 
             if (! $plans[$index]['source_exists'] && ! $plans[$index]['target_exists']) {
                 $result['missing_file_count']++;
                 $result['failed_paths'][] = $plan['old_path'];
             }
+
+            $this->rememberPlanForSummary($plans[$index], $result);
+        }
+    }
+
+    /**
+     * @param  array{file_id:int, batch_uuid:string, module:string, old_path:string, new_path:string, storage_disk:string, source_exists:bool, target_exists:bool}  $plan
+     * @param  array<string, mixed>  $result
+     */
+    private function rememberPlanForSummary(array $plan, array &$result): void
+    {
+        if (count($result['plans']) >= self::PLAN_SAMPLE_LIMIT) {
+            return;
         }
 
-        $result['plans'] = $plans;
+        $result['plans'][] = $plan;
+    }
 
-        if ($dryRun || $result['missing_file_count'] > 0 || $plans === []) {
-            return $result;
-        }
-
+    /**
+     * @param  list<array{file_id:int, batch_uuid:string, module:string, old_path:string, new_path:string, storage_disk:string, source_exists:bool, target_exists:bool}>  $plans
+     * @param  array<string, mixed>  $result
+     */
+    private function applyPlans(string $connectionName, array $plans, array &$result): void
+    {
         foreach ($plans as $plan) {
             $storageDisk = Storage::disk($plan['storage_disk']);
 
@@ -108,7 +163,7 @@ class LegacyBatchStoragePathMigrator
         }
 
         if ($result['failed_paths'] !== []) {
-            return $result;
+            return;
         }
 
         DB::connection($connectionName)->transaction(function () use ($connectionName, $plans, &$result): void {
@@ -141,8 +196,6 @@ class LegacyBatchStoragePathMigrator
                 $result['deleted_legacy_object_count']++;
             }
         }
-
-        return $result;
     }
 
     /**

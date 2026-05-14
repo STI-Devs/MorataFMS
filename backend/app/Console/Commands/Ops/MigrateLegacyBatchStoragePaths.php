@@ -10,6 +10,8 @@ use Throwable;
 
 class MigrateLegacyBatchStoragePaths extends Command
 {
+    private const MINIMUM_MEMORY_LIMIT = '512M';
+
     protected $signature = 'ops:migrate-legacy-batch-storage-paths
                             {--connection= : Database connection name for this migration run}
                             {--module= : Optional module filter: brokerage, notarial, or legal}
@@ -26,6 +28,8 @@ class MigrateLegacyBatchStoragePaths extends Command
 
     public function handle(): int
     {
+        $this->ensureMemoryLimit();
+
         $connectionName = $this->resolveConnectionName();
         $dryRun = (bool) $this->option('dry-run');
         $force = (bool) $this->option('force');
@@ -133,6 +137,40 @@ class MigrateLegacyBatchStoragePaths extends Command
         }
 
         return (string) config('database.default');
+    }
+
+    private function ensureMemoryLimit(): void
+    {
+        $currentLimit = ini_get('memory_limit');
+
+        if ($currentLimit === false || $currentLimit === '-1') {
+            return;
+        }
+
+        if ($this->memoryLimitToBytes($currentLimit) >= $this->memoryLimitToBytes(self::MINIMUM_MEMORY_LIMIT)) {
+            return;
+        }
+
+        ini_set('memory_limit', self::MINIMUM_MEMORY_LIMIT);
+    }
+
+    private function memoryLimitToBytes(string $memoryLimit): int
+    {
+        $memoryLimit = trim($memoryLimit);
+
+        if ($memoryLimit === '') {
+            return 0;
+        }
+
+        $unit = strtolower(substr($memoryLimit, -1));
+        $value = (int) $memoryLimit;
+
+        return match ($unit) {
+            'g' => $value * 1024 * 1024 * 1024,
+            'm' => $value * 1024 * 1024,
+            'k' => $value * 1024,
+            default => $value,
+        };
     }
 
     private function resolveStorageDisk(string $connectionName): string
