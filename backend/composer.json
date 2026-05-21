@@ -9,15 +9,15 @@
     ],
     "license": "MIT",
     "require": {
-        "php": "^8.2",
+        "php": "^8.4",
         "dedoc/scramble": "^0.13.15",
         "laravel/framework": "^12.0",
-        "laravel/reverb": "*",
+        "laravel/reverb": "^1.9",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.10.1",
         "league/flysystem-aws-s3-v3": "^3.31",
-        "phpoffice/phpword": "1.4",
-        "pusher/pusher-php-server": "*"
+        "phpoffice/phpword": "^1.4",
+        "pusher/pusher-php-server": "^7.2"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
