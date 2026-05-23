@@ -27,6 +27,54 @@ export interface LegacyBatchUploadSummary {
     remaining: number;
 }
 
+export type LegacyBatchZipExportStatus = 'pending' | 'processing' | 'ready' | 'failed' | 'expired';
+
+export interface LegacyBatchZipExport {
+    id: string;
+    legacyBatchId: string | null;
+    legacyBatch?: {
+        id: string;
+        batchName: string;
+        rootFolder: string;
+        module: LegacyBatchModule;
+        moduleLabel: string;
+    } | null;
+    status: LegacyBatchZipExportStatus;
+    statusLabel: string;
+    filename: string;
+    fileSizeBytes: number;
+    fileCount: number;
+    errorMessage: string | null;
+    requestedAt: string | null;
+    startedAt: string | null;
+    completedAt: string | null;
+    expiresAt: string | null;
+    canDownload: boolean;
+    requestedBy?: {
+        id: number;
+        name: string;
+    } | null;
+}
+
+export interface LegacyBatchZipExportListParams {
+    module?: LegacyBatchModule;
+    status?: LegacyBatchZipExportStatus;
+    page?: number;
+    per_page?: number;
+}
+
+export interface LegacyBatchZipExportListResponse {
+    data: LegacyBatchZipExport[];
+    meta: {
+        current_page: number;
+        per_page: number;
+        total: number;
+        last_page: number;
+        from: number | null;
+        to: number | null;
+    };
+}
+
 export interface LegacyBatchPagination {
     currentPage: number;
     perPage: number;
@@ -56,6 +104,8 @@ export interface LegacyBatchSummary {
     metadata: LegacyBatchMetadata;
     uploadSummary: LegacyBatchUploadSummary;
     canResume: boolean;
+    canRequestZip: boolean;
+    zipExport: LegacyBatchZipExport | null;
 }
 
 export interface LegacyBatch extends LegacyBatchSummary {

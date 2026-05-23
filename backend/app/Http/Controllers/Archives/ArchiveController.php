@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Archives;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Archives\ArchiveFolderHistoryRequest;
 use App\Http\Requests\Archives\StoreArchiveExportRequest;
 use App\Http\Requests\Archives\StoreArchiveImportRequest;
 use App\Http\Requests\Archives\UpdateArchiveExportRequest;
@@ -32,6 +33,23 @@ class ArchiveController extends Controller
         return response()->json([
             'data' => $this->archives->index($request->user(), $mine),
         ]);
+    }
+
+    public function folderHistory(ArchiveFolderHistoryRequest $request): JsonResponse
+    {
+        $mine = $request->mine();
+        $this->archives->assertCanIndex($request->user(), $mine);
+
+        return response()->json($this->archives->folderHistory(
+            $request->user(),
+            $mine,
+            $request->year(),
+            $request->month(),
+            $request->archiveType(),
+            $request->search(),
+            $request->completion(),
+            $request->perPage(),
+        ));
     }
 
     public function operationalQueue(Request $request): JsonResponse

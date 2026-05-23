@@ -52,6 +52,13 @@ class LegacyBatchResource extends JsonResource
                 'remaining' => $pendingCount,
             ],
             'can_resume' => in_array($this->status?->value, ['draft', 'uploading', 'interrupted', 'failed'], true),
+            'can_request_zip' => $request->user()?->isAdmin() === true,
+            'zip_export' => $this->whenLoaded(
+                'latestZipExport',
+                fn () => $this->latestZipExport
+                    ? new LegacyBatchZipExportResource($this->latestZipExport->loadMissing('requestedBy'))
+                    : null,
+            ),
         ];
     }
 }

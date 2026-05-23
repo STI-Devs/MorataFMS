@@ -86,6 +86,8 @@ describe('ArchivesFolderView', () => {
                 setOpenMenuKey={vi.fn()}
                 onOpenUpload={vi.fn()}
                 showAuditButton
+                onRequestFolderZip={vi.fn()}
+                preparingZipRequestKeys={new Set()}
             />,
         );
 

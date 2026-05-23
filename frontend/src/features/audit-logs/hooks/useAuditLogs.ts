@@ -9,10 +9,10 @@ export const useAuditLogs = (filters: AuditLogFilters = {}) =>
         placeholderData: keepPreviousData,
     });
 
-export const useAuditActions = () =>
+export const useAuditActions = (filters: AuditLogFilters = {}) =>
     useQuery({
-        queryKey: ['admin', 'audit-actions'],
-        queryFn: () => auditLogApi.getActions(),
+        queryKey: ['admin', 'audit-actions', filters],
+        queryFn: () => auditLogApi.getActions(filters),
         select: (res) => res.data ?? [],
-        staleTime: Infinity,
+        staleTime: 30_000,
     });

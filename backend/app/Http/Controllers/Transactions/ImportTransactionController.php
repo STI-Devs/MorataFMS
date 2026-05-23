@@ -52,11 +52,11 @@ class ImportTransactionController extends Controller
         );
     }
 
-    public function stats(): JsonResponse
+    public function stats(Request $request): JsonResponse
     {
         $this->authorize('viewAny', ImportTransaction::class);
 
-        return response()->json(['data' => $this->imports->stats(request()->user())]);
+        return response()->json(['data' => $this->imports->stats($request->user())]);
     }
 
     public function cancel(CancelTransactionRequest $request, ImportTransaction $import_transaction): ImportTransactionResource

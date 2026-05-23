@@ -11,7 +11,7 @@ class LegacyBatchDetailQuery
 
     public function handle(LegacyBatch $legacyBatch): LegacyBatch
     {
-        $legacyBatch->load(['uploadedBy', 'files']);
+        $legacyBatch->load(['uploadedBy', 'files', 'latestZipExport.requestedBy']);
         $legacyBatch->setAttribute('tree', $this->legacyBatchTreeBuilder->build($legacyBatch));
 
         return $legacyBatch;

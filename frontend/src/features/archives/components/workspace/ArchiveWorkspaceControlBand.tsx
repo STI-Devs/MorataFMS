@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+
 type ArchiveMetric = {
     label: string;
     value: string;
@@ -10,6 +12,7 @@ type Props = {
     healthTone: 'good' | 'danger';
     metrics: ArchiveMetric[];
     isLoading: boolean;
+    rightAction?: ReactNode;
 };
 
 export const ArchiveWorkspaceControlBand = ({
@@ -18,6 +21,7 @@ export const ArchiveWorkspaceControlBand = ({
     healthTone,
     metrics,
     isLoading,
+    rightAction,
 }: Props) => (
     <div className="flex flex-col gap-3 border-b border-border px-4 py-3 2xl:flex-row 2xl:items-start 2xl:justify-between">
         <div className="min-w-0 flex-1">
@@ -38,20 +42,23 @@ export const ArchiveWorkspaceControlBand = ({
             </div>
         </div>
 
-        <div className="grid min-w-0 gap-1.5 sm:grid-cols-2 xl:grid-cols-4 2xl:w-auto">
-            {metrics.map((metric) => (
-                <div
-                    key={metric.label}
-                    className="grid h-8 min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-lg border border-border bg-surface-secondary/50 px-2.5"
-                >
-                    <p className="truncate text-[9px] font-black uppercase tracking-widest text-text-muted">{metric.label}</p>
-                    {isLoading ? (
-                        <div className="h-3.5 w-9 justify-self-end animate-pulse rounded bg-surface" />
-                    ) : (
-                        <p className={`text-right text-xs font-black tabular-nums ${metric.tone}`}>{metric.value}</p>
-                    )}
-                </div>
-            ))}
+        <div className="flex min-w-0 flex-col gap-2 xl:flex-row xl:items-start xl:justify-end">
+            {rightAction}
+            <div className="grid min-w-0 gap-1.5 sm:grid-cols-2 xl:grid-cols-4 2xl:w-auto">
+                {metrics.map((metric) => (
+                    <div
+                        key={metric.label}
+                        className="grid h-8 min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-lg border border-border bg-surface-secondary/50 px-2.5"
+                    >
+                        <p className="truncate text-[9px] font-black uppercase tracking-widest text-text-muted">{metric.label}</p>
+                        {isLoading ? (
+                            <div className="h-3.5 w-9 justify-self-end animate-pulse rounded bg-surface" />
+                        ) : (
+                            <p className={`text-right text-xs font-black tabular-nums ${metric.tone}`}>{metric.value}</p>
+                        )}
+                    </div>
+                ))}
+            </div>
         </div>
     </div>
 );

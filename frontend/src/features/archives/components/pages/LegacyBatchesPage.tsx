@@ -4,7 +4,10 @@ import { Pagination } from '../../../../components/Pagination';
 import { useLegacyBatch } from '../../hooks/useLegacyBatch';
 import { useLegacyBatches } from '../../hooks/useLegacyBatches';
 import { useLegacyBatchMutations } from '../../hooks/useLegacyBatchMutations';
+import { useLegacyBatchZipRequests } from '../../hooks/useLegacyBatchZipRequests';
 import type { LegacyBatchModule } from '../../types/legacyBatch.types';
+import { LegacyBatchZipButton } from '../legacy-upload/LegacyBatchZipButton';
+import { LegacyBatchZipRequestsPanel } from '../legacy-upload/LegacyBatchZipRequestsPanel';
 import { LegacyFolderBrowserPanel } from '../legacy-upload/LegacyFolderBrowserPanel';
 
 const StatusChip = ({ status }: { status: string }) => {
@@ -48,8 +51,10 @@ export const LegacyBatchesPage = ({
     const { data, isLoading, isError } = useLegacyBatches({ page, perPage, search: trimmedSearch, module });
     const [viewingBatchId, setViewingBatchId] = useState<string | null>(null);
     const [deletingBatchId, setDeletingBatchId] = useState<string | null>(null);
+    const [zipRequestsOpen, setZipRequestsOpen] = useState(false);
     const { data: viewingBatch } = useLegacyBatch(viewingBatchId, Boolean(viewingBatchId));
     const { deleteBatch } = useLegacyBatchMutations();
+    const zipRequests = useLegacyBatchZipRequests({ module });
     const batches = data?.items ?? [];
     const pagination = data?.pagination ?? {
         currentPage: 1,
@@ -63,6 +68,16 @@ export const LegacyBatchesPage = ({
     const deletingBatch = deletingBatchId
         ? batches.find((batch) => batch.id === deletingBatchId) ?? null
         : null;
+    const requestZip = (batchId: string) => {
+        zipRequests.requestBatchZip(batchId);
+    };
+    const retryZip = (batchId: string, exportId: string) => {
+        zipRequests.retryBatchZip(batchId, exportId);
+    };
+    const downloadZip = (exportId: string, filename: string) => zipRequests.downloadBatchZip(exportId, filename);
+    const isZipBusyForBatch = (batchId: string) => (
+        zipRequests.requestingBatchId === batchId || zipRequests.retryingBatchId === batchId
+    );
 
     return (
         <>
@@ -116,10 +131,22 @@ export const LegacyBatchesPage = ({
                                 )}
                             </div>
 
-                            <div className="text-xs font-semibold text-text-muted">
-                                {trimmedSearch
-                                    ? `${pagination.total.toLocaleString()} matching batch${pagination.total === 1 ? '' : 'es'}`
-                                    : `${pagination.total.toLocaleString()} legacy batches`}
+                            <div className="flex flex-wrap items-center gap-3">
+                                <LegacyBatchZipRequestsPanel
+                                    requests={zipRequests.requests}
+                                    isOpen={zipRequestsOpen}
+                                    onOpen={() => setZipRequestsOpen(true)}
+                                    onClose={() => setZipRequestsOpen(false)}
+                                    onDownload={zipRequests.downloadRequest}
+                                    onRetry={zipRequests.retryRequest}
+                                    onDismiss={zipRequests.dismissRequest}
+                                    onClearFinished={zipRequests.clearFinishedRequests}
+                                />
+                                <div className="text-xs font-semibold text-text-muted">
+                                    {trimmedSearch
+                                        ? `${pagination.total.toLocaleString()} matching batch${pagination.total === 1 ? '' : 'es'}`
+                                        : `${pagination.total.toLocaleString()} legacy batches`}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -201,6 +228,14 @@ export const LegacyBatchesPage = ({
                                                         Resume
                                                     </button>
                                                 )}
+                                                <LegacyBatchZipButton
+                                                    batch={row}
+                                                    compact
+                                                    isBusy={isZipBusyForBatch(row.id)}
+                                                    onRequest={requestZip}
+                                                    onRetry={retryZip}
+                                                    onDownload={downloadZip}
+                                                />
                                                 <button
                                                     type="button"
                                                     onClick={() => setViewingBatchId(row.id)}
@@ -252,7 +287,14 @@ export const LegacyBatchesPage = ({
                     <div className="fixed inset-0 z-40 bg-black/40" onClick={() => setViewingBatchId(null)} />
                     <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-5xl flex-col border-l border-border bg-surface shadow-2xl">
                         {viewingBatch ? (
-                            <LegacyFolderBrowserPanel batch={viewingBatch} onClose={() => setViewingBatchId(null)} />
+                            <LegacyFolderBrowserPanel
+                                batch={viewingBatch}
+                                isZipBusy={viewingBatchId !== null && isZipBusyForBatch(viewingBatchId)}
+                                onRequestZip={requestZip}
+                                onRetryZip={retryZip}
+                                onDownloadZip={downloadZip}
+                                onClose={() => setViewingBatchId(null)}
+                            />
                         ) : (
                             <div className="flex h-full items-center justify-center text-sm text-text-muted">
                                 Loading batch details...

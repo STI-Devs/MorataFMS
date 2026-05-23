@@ -1,29 +1,33 @@
 import { useState } from 'react';
-import { useAuth } from '../../../auth/hooks/useAuth';
 import type { ArchiveDocument, ArchiveYear, TransactionType } from '../../../documents/types/document.types';
+import type { ArchiveZipRequestInput } from '../../hooks/useArchiveZipRequests';
 import type { DocStatusFilter, DrillState } from '../../utils/archive.utils';
 import {
     FOLDER_COLOR,
     MONTH_NAMES,
     computeGlobalCompleteness,
     getArchiveBlCompletion,
-    hasRoleAtLeast,
 } from '../../utils/archive.utils';
 import { UploadHistoryPanel } from '../legacy-upload/UploadHistoryPanel';
 import { FolderSVG } from '../ui/FolderSVG';
 
 interface FolderRowMenuProps {
-    folderName: string;
     menuKey: string;
     openMenuKey: string | null;
     setOpenMenuKey: (key: string | null) => void;
-    docs: ArchiveDocument[];
-    type: TransactionType;
-    canDelete: boolean;
+    isDownloading: boolean;
+    onDownloadFolder: () => void;
     onViewHistory: () => void;
 }
 
-export const FolderRowMenu = ({ folderName, menuKey, openMenuKey, setOpenMenuKey, canDelete, onViewHistory }: FolderRowMenuProps) => (
+export const FolderRowMenu = ({
+    menuKey,
+    openMenuKey,
+    setOpenMenuKey,
+    isDownloading,
+    onDownloadFolder,
+    onViewHistory,
+}: FolderRowMenuProps) => (
     <div className="relative">
         <button
             title="More options"
@@ -45,14 +49,17 @@ export const FolderRowMenu = ({ folderName, menuKey, openMenuKey, setOpenMenuKey
                 <div className="absolute right-0 top-8 z-30 w-56 bg-surface rounded-xl border border-border shadow-lg py-1 overflow-hidden animate-dropdown-in">
                     {/* Download */}
                     <button
-                        onClick={() => { setOpenMenuKey(null); alert(`Downloading ${folderName}... (backend pending)`); }}
-                        className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-hover transition-colors">
+                        disabled={isDownloading}
+                        onClick={() => { setOpenMenuKey(null); onDownloadFolder(); }}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-hover transition-colors disabled:cursor-wait disabled:opacity-60">
                         <svg className="w-4 h-4 shrink-0 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                         </svg>
                         <div>
-                            <p className="text-xs font-semibold text-text-primary">Download this folder</p>
-                            <p className="text-[10px] text-text-muted">Save as ZIP file</p>
+                            <p className="text-xs font-semibold text-text-primary">
+                                {isDownloading ? 'Preparing ZIP...' : 'Prepare folder ZIP'}
+                            </p>
+                            <p className="text-[10px] text-text-muted">Track it in ZIP requests</p>
                         </div>
                     </button>
 
@@ -66,28 +73,11 @@ export const FolderRowMenu = ({ folderName, menuKey, openMenuKey, setOpenMenuKey
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         <div>
-                            <p className="text-xs font-semibold text-text-primary">View Upload History</p>
-                            <p className="text-[10px] text-text-muted">Who uploaded &amp; when</p>
+                            <p className="text-xs font-semibold text-text-primary">View Folder Activity</p>
+                            <p className="text-[10px] text-text-muted">Uploads, gaps, and latest activity</p>
                         </div>
                     </button>
 
-                    {/* Delete ΓÇö admin only */}
-                    {canDelete && (
-                        <>
-                            <div className="my-1 border-t border-border" />
-                            <button
-                                onClick={() => { setOpenMenuKey(null); alert('Delete Folder — (backend pending)'); }}
-                                className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-red-500/10 transition-colors">
-                                <svg className="w-4 h-4 shrink-0 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                                <div>
-                                    <p className="text-xs font-semibold text-red-500">Delete Folder</p>
-                                    <p className="text-[10px] text-red-400">Admin only — irreversible</p>
-                                </div>
-                            </button>
-                        </>
-                    )}
                 </div>
             </>
         )}
@@ -102,12 +92,23 @@ interface SubFolderRowProps {
     nav: (next: DrillState) => void;
     openMenuKey: string | null;
     setOpenMenuKey: (key: string | null) => void;
-    onViewHistory: (folderName: string, docs: ArchiveDocument[], type: TransactionType) => void;
+    onViewHistory: (folderName: string, year: number, month: number, type: TransactionType) => void;
+    onDownloadFolder: (request: ArchiveZipRequestInput) => void;
+    preparingZipRequestKeys: Set<string>;
 }
 
-export const SubFolderRow = ({ groupKey, docs, yr, filterStatus, nav, openMenuKey, setOpenMenuKey, onViewHistory }: SubFolderRowProps) => {
-    const { user } = useAuth();
-    const canDelete = hasRoleAtLeast(user?.role, 'admin');
+export const SubFolderRow = ({
+    groupKey,
+    docs,
+    yr,
+    filterStatus,
+    nav,
+    openMenuKey,
+    setOpenMenuKey,
+    onViewHistory,
+    onDownloadFolder,
+    preparingZipRequestKeys,
+}: SubFolderRowProps) => {
     const [monthStr, txType] = groupKey.split('|') as [string, TransactionType];
     const month = Number(monthStr);
 
@@ -130,6 +131,7 @@ export const SubFolderRow = ({ groupKey, docs, yr, filterStatus, nav, openMenuKe
         : '—';
 
     const folderName = `${MONTH_NAMES[month - 1].slice(0, 3).toUpperCase()} ${yr.year} ${txType.toUpperCase()}S`;
+    const filename = `${folderName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}.zip`;
     const iconColor = txType === 'import' ? FOLDER_COLOR.import : FOLDER_COLOR.export;
     const statusTone = statusLabel === 'Complete'
         ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600'
@@ -185,14 +187,21 @@ export const SubFolderRow = ({ groupKey, docs, yr, filterStatus, nav, openMenuKe
                         Open
                     </button>
                     <FolderRowMenu
-                        folderName={folderName}
                         menuKey={groupKey}
                         openMenuKey={openMenuKey}
                         setOpenMenuKey={setOpenMenuKey}
-                        docs={docs}
-                        type={txType}
-                        canDelete={canDelete}
-                        onViewHistory={() => onViewHistory(folderName, docs, txType)}
+                        isDownloading={preparingZipRequestKeys.has(groupKey)}
+                        onDownloadFolder={() => onDownloadFolder({
+                            requestKey: groupKey,
+                            folderName,
+                            year: yr.year,
+                            month,
+                            type: txType,
+                            fileCount: docs.length,
+                            blCount: blMap.size,
+                            filename,
+                        })}
+                        onViewHistory={() => onViewHistory(folderName, yr.year, month, txType)}
                     />
                 </div>
             </div>
@@ -209,11 +218,26 @@ interface YearRowProps {
     nav: (next: DrillState) => void;
     openMenuKey: string | null;
     setOpenMenuKey: (key: string | null) => void;
-    onViewHistory: (folderName: string, docs: ArchiveDocument[], type: TransactionType) => void;
+    onViewHistory: (folderName: string, year: number, month: number, type: TransactionType) => void;
+    onDownloadFolder: (request: ArchiveZipRequestInput) => void;
+    preparingZipRequestKeys: Set<string>;
     showAuditButton: boolean;
 }
 
-const YearRow = ({ yr, isOpen, toggleYear, filterType, filterStatus, nav, openMenuKey, setOpenMenuKey, onViewHistory, showAuditButton }: YearRowProps) => {
+const YearRow = ({
+    yr,
+    isOpen,
+    toggleYear,
+    filterType,
+    filterStatus,
+    nav,
+    openMenuKey,
+    setOpenMenuKey,
+    onViewHistory,
+    onDownloadFolder,
+    preparingZipRequestKeys,
+    showAuditButton,
+}: YearRowProps) => {
     const grouped = new Map<string, ArchiveDocument[]>();
     for (const doc of yr.documents) {
         const k = `${doc.month}|${doc.type}`;
@@ -294,7 +318,7 @@ const YearRow = ({ yr, isOpen, toggleYear, filterType, filterStatus, nav, openMe
 
             {isOpen && (
                 <div className="bg-surface-secondary/15 px-5 pb-3 pt-2" data-testid={`archive-year-panel-${yr.year}`}>
-                    <div className="overflow-hidden rounded-lg border border-border/70 bg-surface/75 shadow-sm">
+                    <div className={`${openMenuKey ? 'overflow-visible' : 'overflow-hidden'} rounded-lg border border-border/70 bg-surface/75 shadow-sm`}>
                         {visibleGroups.length === 0 ? (
                             <div className="py-8 text-center text-xs text-text-muted">No folders match the current filter.</div>
                         ) : (
@@ -303,7 +327,9 @@ const YearRow = ({ yr, isOpen, toggleYear, filterType, filterStatus, nav, openMe
                                     <SubFolderRow key={key} groupKey={key} docs={docs} yr={yr}
                                         filterStatus={filterStatus} nav={nav}
                                         openMenuKey={openMenuKey} setOpenMenuKey={setOpenMenuKey}
-                                        onViewHistory={onViewHistory} />
+                                        onViewHistory={onViewHistory}
+                                        onDownloadFolder={onDownloadFolder}
+                                        preparingZipRequestKeys={preparingZipRequestKeys} />
                                 ))}
                             </div>
                         )}
@@ -316,7 +342,8 @@ const YearRow = ({ yr, isOpen, toggleYear, filterType, filterStatus, nav, openMe
 
 interface HistoryTarget {
     folderName: string;
-    docs: ArchiveDocument[];
+    year: number;
+    month: number;
     type: TransactionType;
 }
 
@@ -332,12 +359,18 @@ interface ArchivesFolderViewProps {
     setOpenMenuKey: (key: string | null) => void;
     onOpenUpload: () => void;
     showAuditButton?: boolean;
+    historyMine?: boolean;
+    onRequestFolderZip: (request: ArchiveZipRequestInput) => void;
+    preparingZipRequestKeys: Set<string>;
 }
 
 export const ArchivesFolderView = ({
     archiveData, filterYear, filterType, filterStatus,
     expandedYears, toggleYear, nav, openMenuKey, setOpenMenuKey, onOpenUpload,
     showAuditButton = true,
+    historyMine = false,
+    onRequestFolderZip,
+    preparingZipRequestKeys,
 }: ArchivesFolderViewProps) => {
     const [historyTarget, setHistoryTarget] = useState<HistoryTarget | null>(null);
     const filteredYears = filterYear === 'all' ? archiveData : archiveData.filter(y => String(y.year) === filterYear);
@@ -372,7 +405,9 @@ export const ArchivesFolderView = ({
                         openMenuKey={openMenuKey}
                         setOpenMenuKey={setOpenMenuKey}
                         showAuditButton={showAuditButton}
-                        onViewHistory={(folderName, docs, type) => setHistoryTarget({ folderName, docs, type })}
+                        onDownloadFolder={onRequestFolderZip}
+                        preparingZipRequestKeys={preparingZipRequestKeys}
+                        onViewHistory={(folderName, year, month, type) => setHistoryTarget({ folderName, year, month, type })}
                     />
                 ))}
             </div>
@@ -381,8 +416,10 @@ export const ArchivesFolderView = ({
                 isOpen={historyTarget !== null}
                 onClose={() => setHistoryTarget(null)}
                 folderName={historyTarget?.folderName ?? ''}
-                docs={historyTarget?.docs ?? []}
+                year={historyTarget?.year ?? 0}
+                month={historyTarget?.month ?? 0}
                 type={historyTarget?.type ?? 'import'}
+                mine={historyMine}
             />
         </>
     );

@@ -58,6 +58,36 @@ export const useLegacyBatchMutations = () => {
         },
     });
 
+    const requestZipExport = useMutation({
+        mutationFn: (batchId: string) => legacyBatchApi.requestLegacyBatchZipExport(batchId),
+        onSuccess: async (zipExport, batchId) => {
+            if (zipExport.legacyBatchId) {
+                await invalidateBatch(zipExport.legacyBatchId);
+                return;
+            }
+
+            await invalidateBatch(batchId);
+        },
+    });
+
+    const retryZipExport = useMutation({
+        mutationFn: ({ exportId }: { exportId: string; batchId: string }) =>
+            legacyBatchApi.retryLegacyBatchZipExport(exportId),
+        onSuccess: async (zipExport, variables) => {
+            if (zipExport.legacyBatchId) {
+                await invalidateBatch(zipExport.legacyBatchId);
+                return;
+            }
+
+            await invalidateBatch(variables.batchId);
+        },
+    });
+
+    const downloadZipExport = useMutation({
+        mutationFn: ({ exportId, filename }: { exportId: string; filename: string }) =>
+            legacyBatchApi.downloadLegacyBatchZipExport(exportId, filename),
+    });
+
     return {
         createBatch,
         appendManifest,
@@ -65,5 +95,8 @@ export const useLegacyBatchMutations = () => {
         completeUploads,
         finalizeBatch,
         deleteBatch,
+        requestZipExport,
+        retryZipExport,
+        downloadZipExport,
     };
 };

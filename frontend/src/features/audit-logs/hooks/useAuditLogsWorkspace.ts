@@ -1,15 +1,23 @@
 import { useState } from 'react';
 
 import { useDebounce } from '../../../hooks/useDebounce';
-import type { AuditLogFilters } from '../types/auditLog.types';
-import { useAuditLogs } from './useAuditLogs';
+import type { AuditLogCategory, AuditLogFilters, AuditLogSummary } from '../types/auditLog.types';
+import { useAuditActions, useAuditLogs } from './useAuditLogs';
 
 type ActorFilter = 'human' | 'system' | 'all';
+
+const emptySummary: AuditLogSummary = {
+    total: 0,
+    created: 0,
+    updated: 0,
+    deleted: 0,
+};
 
 export function useAuditLogsWorkspace() {
     const [search, setSearch] = useState('');
     const debouncedSearch = useDebounce(search, 300);
     const [actionFilter, setActionFilter] = useState('');
+    const [categoryFilter, setCategoryFilter] = useState<AuditLogCategory>('business');
     const [actorFilter, setActorFilter] = useState<ActorFilter>('human');
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
@@ -19,17 +27,27 @@ export function useAuditLogsWorkspace() {
     const filters: AuditLogFilters = {
         search: debouncedSearch || undefined,
         action: actionFilter || undefined,
+        category: categoryFilter,
         actor: actorFilter,
         date_from: dateFrom || undefined,
         date_to: dateTo || undefined,
         page,
         per_page: 25,
     };
+    const actionFilters: AuditLogFilters = {
+        search: debouncedSearch || undefined,
+        category: categoryFilter,
+        actor: actorFilter,
+        date_from: dateFrom || undefined,
+        date_to: dateTo || undefined,
+    };
 
     const { data, isLoading, isError, refetch } = useAuditLogs(filters);
+    const { data: availableActions = [] } = useAuditActions(actionFilters);
 
     const logs = data?.data ?? [];
     const meta = data?.meta ?? { current_page: 1, last_page: 1, per_page: 25, total: 0 };
+    const summary = data?.summary ?? emptySummary;
 
     const resetForFilterChange = () => {
         setPage(1);
@@ -40,6 +58,7 @@ export function useAuditLogsWorkspace() {
         // raw state
         search,
         actionFilter,
+        categoryFilter,
         actorFilter,
         dateFrom,
         dateTo,
@@ -48,6 +67,8 @@ export function useAuditLogsWorkspace() {
         // derived data
         logs,
         meta,
+        summary,
+        availableActions,
         isLoading,
         isError,
         refetch,
@@ -62,16 +83,24 @@ export function useAuditLogsWorkspace() {
             setActionFilter(val);
             resetForFilterChange();
         },
+        handleCategory: (val: AuditLogCategory) => {
+            setCategoryFilter(val);
+            setActionFilter('');
+            resetForFilterChange();
+        },
         handleActor: (val: ActorFilter) => {
             setActorFilter(val);
+            setActionFilter('');
             resetForFilterChange();
         },
         handleDateFrom: (val: string) => {
             setDateFrom(val);
+            setActionFilter('');
             resetForFilterChange();
         },
         handleDateTo: (val: string) => {
             setDateTo(val);
+            setActionFilter('');
             resetForFilterChange();
         },
         // pagination

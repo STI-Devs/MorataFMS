@@ -6,10 +6,24 @@ const {
     useLegacyBatchesMock,
     useLegacyBatchMock,
     deleteBatchMutateAsync,
+    requestBatchZipMock,
+    retryBatchZipMock,
+    downloadBatchZipMock,
+    downloadZipRequestMock,
+    retryZipRequestMock,
+    dismissZipRequestMock,
+    clearFinishedZipRequestsMock,
 } = vi.hoisted(() => ({
     useLegacyBatchesMock: vi.fn(),
     useLegacyBatchMock: vi.fn(),
     deleteBatchMutateAsync: vi.fn(),
+    requestBatchZipMock: vi.fn(),
+    retryBatchZipMock: vi.fn(),
+    downloadBatchZipMock: vi.fn(),
+    downloadZipRequestMock: vi.fn(),
+    retryZipRequestMock: vi.fn(),
+    dismissZipRequestMock: vi.fn(),
+    clearFinishedZipRequestsMock: vi.fn(),
 }));
 
 vi.mock('../../hooks/useLegacyBatches', () => ({
@@ -23,6 +37,23 @@ vi.mock('../../hooks/useLegacyBatch', () => ({
 vi.mock('../../hooks/useLegacyBatchMutations', () => ({
     useLegacyBatchMutations: () => ({
         deleteBatch: { mutateAsync: deleteBatchMutateAsync },
+    }),
+}));
+
+vi.mock('../../hooks/useLegacyBatchZipRequests', () => ({
+    useLegacyBatchZipRequests: () => ({
+        requests: [],
+        requestBatchZip: requestBatchZipMock,
+        retryBatchZip: retryBatchZipMock,
+        downloadBatchZip: downloadBatchZipMock,
+        downloadRequest: downloadZipRequestMock,
+        retryRequest: retryZipRequestMock,
+        dismissRequest: dismissZipRequestMock,
+        clearFinishedRequests: clearFinishedZipRequestsMock,
+        isRequesting: false,
+        isRetrying: false,
+        requestingBatchId: null,
+        retryingBatchId: null,
     }),
 }));
 
@@ -61,6 +92,8 @@ const batchSummary = {
         remaining: 7,
     },
     canResume: true,
+    canRequestZip: false,
+    zipExport: null,
 };
 
 const secondBatchSummary = {
@@ -86,12 +119,21 @@ const secondBatchSummary = {
     uploadedFileCount: 9,
     pendingFileCount: 0,
     canResume: false,
+    canRequestZip: true,
+    zipExport: null,
 };
 
 describe('LegacyBatchesPage', () => {
     beforeEach(() => {
         deleteBatchMutateAsync.mockReset();
         deleteBatchMutateAsync.mockResolvedValue(undefined);
+        requestBatchZipMock.mockReset();
+        retryBatchZipMock.mockReset();
+        downloadBatchZipMock.mockReset();
+        downloadZipRequestMock.mockReset();
+        retryZipRequestMock.mockReset();
+        dismissZipRequestMock.mockReset();
+        clearFinishedZipRequestsMock.mockReset();
         useLegacyBatchesMock.mockImplementation((params?: { search?: string }) => ({
             data: {
                 items: params?.search?.toLowerCase() === 'claire'
@@ -175,5 +217,15 @@ describe('LegacyBatchesPage', () => {
         fireEvent.click(screen.getByRole('button', { name: /delete batch/i }));
 
         expect(deleteBatchMutateAsync).toHaveBeenCalledWith('legacy-batch-1');
+    });
+
+    it('allows admins to request a prepared ZIP for completed legacy batches', () => {
+        render(<LegacyBatchesPage />);
+
+        fireEvent.click(screen.getByRole('button', { name: /prepare zip/i }));
+
+        expect(requestBatchZipMock).toHaveBeenCalledWith('legacy-batch-2');
+        expect(screen.queryByText('No ZIP requests yet')).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /zip requests/i })).toBeInTheDocument();
     });
 });

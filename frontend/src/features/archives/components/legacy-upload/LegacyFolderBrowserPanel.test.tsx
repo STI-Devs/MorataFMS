@@ -28,6 +28,8 @@ const batch = {
     totalSize: '420 MB',
     totalSizeBytes: 420 * 1024 * 1024,
     canResume: false,
+    canRequestZip: true,
+    zipExport: null,
     metadata: {
         year: '2025',
         yearFrom: '2025',

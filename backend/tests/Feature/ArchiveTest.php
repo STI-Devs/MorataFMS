@@ -1548,3 +1548,165 @@ test('archive document uploads keep the archive file date month in S3 paths', fu
 
     expect($document?->path)->toStartWith('transaction-documents/imports/2023/month-06-June/BL-ARCH-DATE-001/');
 });
+
+test('archive folder history paginates BL activity with summary counts', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $shipper = Client::factory()->exporter()->create(['name' => 'Dole Philippines Inc.']);
+    $country = Country::factory()->create();
+    $uploader = User::factory()->create(['role' => 'encoder', 'name' => 'Archive Encoder']);
+
+    $completeA = ExportTransaction::factory()->create([
+        'bl_no' => 'BL-HISTORY-APR-001',
+        'shipper_id' => $shipper->id,
+        'destination_country_id' => $country->id,
+        'export_date' => '2026-04-10',
+        'is_archive' => true,
+        'archived_at' => now(),
+        'archive_origin' => ArchiveOrigin::DirectArchiveUpload,
+        'assigned_user_id' => $uploader->id,
+    ]);
+    $completeA->stages()->update([
+        'phytosanitary_not_applicable' => true,
+        'co_not_applicable' => true,
+        'dccci_not_applicable' => true,
+    ]);
+    foreach (['boc', 'bl_generation', 'cil', 'billing'] as $index => $stage) {
+        Document::factory()->create([
+            'documentable_type' => ExportTransaction::class,
+            'documentable_id' => $completeA->id,
+            'type' => $stage,
+            'filename' => "complete-a-{$stage}.pdf",
+            'uploaded_by' => $uploader->id,
+            'created_at' => now()->subMinutes(30 - $index),
+        ]);
+    }
+
+    $incomplete = ExportTransaction::factory()->create([
+        'bl_no' => 'BL-HISTORY-APR-002',
+        'shipper_id' => $shipper->id,
+        'destination_country_id' => $country->id,
+        'export_date' => '2026-04-11',
+        'is_archive' => true,
+        'archived_at' => now(),
+        'archive_origin' => ArchiveOrigin::DirectArchiveUpload,
+        'assigned_user_id' => $uploader->id,
+    ]);
+    Document::factory()->create([
+        'documentable_type' => ExportTransaction::class,
+        'documentable_id' => $incomplete->id,
+        'type' => 'boc',
+        'filename' => 'incomplete-boc.pdf',
+        'uploaded_by' => $uploader->id,
+        'created_at' => now()->subMinutes(10),
+    ]);
+
+    $completeC = ExportTransaction::factory()->create([
+        'bl_no' => 'BL-HISTORY-APR-003',
+        'shipper_id' => $shipper->id,
+        'destination_country_id' => $country->id,
+        'export_date' => '2026-04-12',
+        'is_archive' => true,
+        'archived_at' => now(),
+        'archive_origin' => ArchiveOrigin::DirectArchiveUpload,
+        'assigned_user_id' => $uploader->id,
+    ]);
+    $completeC->stages()->update([
+        'phytosanitary_not_applicable' => true,
+        'co_not_applicable' => true,
+        'dccci_not_applicable' => true,
+    ]);
+    foreach (['boc', 'bl_generation', 'cil', 'billing'] as $stage) {
+        Document::factory()->create([
+            'documentable_type' => ExportTransaction::class,
+            'documentable_id' => $completeC->id,
+            'type' => $stage,
+            'filename' => "complete-c-{$stage}.pdf",
+            'uploaded_by' => $uploader->id,
+            'created_at' => now()->subMinutes(5),
+        ]);
+    }
+
+    ExportTransaction::factory()->create([
+        'bl_no' => 'BL-HISTORY-MAY-001',
+        'shipper_id' => $shipper->id,
+        'destination_country_id' => $country->id,
+        'export_date' => '2026-05-10',
+        'is_archive' => true,
+        'archived_at' => now(),
+    ]);
+
+    $response = $this->actingAs($admin)
+        ->getJson('/api/archives/history?year=2026&month=4&type=export&per_page=2')
+        ->assertOk();
+
+    expect($response->json('summary.total_bl_records'))->toBe(3);
+    expect($response->json('summary.complete_bl_records'))->toBe(2);
+    expect($response->json('summary.incomplete_bl_records'))->toBe(1);
+    expect($response->json('summary.total_files'))->toBe(9);
+    expect($response->json('meta.current_page'))->toBe(1);
+    expect($response->json('meta.last_page'))->toBe(2);
+    expect($response->json('data'))->toHaveCount(2);
+    expect(collect($response->json('data'))->pluck('documents')->flatten(1)->pluck('uploader.name')->unique()->values()->all())
+        ->toBe(['Archive Encoder']);
+});
+
+test('archive folder history filters completion and respects mine access', function () {
+    $encoder = User::factory()->create(['role' => 'encoder']);
+    $otherEncoder = User::factory()->create(['role' => 'encoder']);
+    $shipper = Client::factory()->exporter()->create();
+    $country = Country::factory()->create();
+
+    $ownedIncomplete = ExportTransaction::factory()->create([
+        'bl_no' => 'BL-MINE-HISTORY-001',
+        'shipper_id' => $shipper->id,
+        'destination_country_id' => $country->id,
+        'export_date' => '2026-04-15',
+        'is_archive' => true,
+        'archived_at' => now(),
+        'archive_origin' => ArchiveOrigin::DirectArchiveUpload,
+        'assigned_user_id' => $encoder->id,
+    ]);
+    Document::factory()->create([
+        'documentable_type' => ExportTransaction::class,
+        'documentable_id' => $ownedIncomplete->id,
+        'type' => 'boc',
+        'uploaded_by' => $encoder->id,
+    ]);
+
+    $otherIncomplete = ExportTransaction::factory()->create([
+        'bl_no' => 'BL-OTHER-HISTORY-001',
+        'shipper_id' => $shipper->id,
+        'destination_country_id' => $country->id,
+        'export_date' => '2026-04-16',
+        'is_archive' => true,
+        'archived_at' => now(),
+        'archive_origin' => ArchiveOrigin::DirectArchiveUpload,
+        'assigned_user_id' => $otherEncoder->id,
+    ]);
+    Document::factory()->create([
+        'documentable_type' => ExportTransaction::class,
+        'documentable_id' => $otherIncomplete->id,
+        'type' => 'boc',
+        'uploaded_by' => $otherEncoder->id,
+    ]);
+
+    $this->actingAs($encoder)
+        ->getJson('/api/archives/history?year=2026&month=4&type=export')
+        ->assertForbidden();
+
+    $response = $this->actingAs($encoder)
+        ->getJson('/api/archives/history?year=2026&month=4&type=export&mine=1&completion=incomplete')
+        ->assertOk();
+
+    expect($response->json('summary.total_bl_records'))->toBe(1);
+    expect($response->json('summary.incomplete_bl_records'))->toBe(1);
+    expect(collect($response->json('data'))->pluck('bl_no')->all())->toBe(['BL-MINE-HISTORY-001']);
+});
+
+test('archive folder sync zip download route is removed in favor of async exports', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+
+    $this->actingAs($admin)
+        ->getJson('/api/archives/folder-download?year=2026&month=4&type=export')
+        ->assertNotFound();
+});

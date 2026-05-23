@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { legacyBatchApi } from '../../api/legacyBatchApi';
 import type { FileNode, LegacyBatch } from '../../types/legacyBatch.types';
+import { LegacyBatchZipButton } from './LegacyBatchZipButton';
 
 export type { FileNode, LegacyBatch } from '../../types/legacyBatch.types';
 
@@ -265,10 +266,21 @@ const ContentRow = ({
 
 interface LegacyFolderBrowserPanelProps {
     batch: LegacyBatch;
+    isZipBusy?: boolean;
+    onRequestZip?: (batchId: string) => void;
+    onRetryZip?: (batchId: string, exportId: string) => void;
+    onDownloadZip?: (exportId: string, filename: string) => void;
     onClose: () => void;
 }
 
-export const LegacyFolderBrowserPanel = ({ batch, onClose }: LegacyFolderBrowserPanelProps) => {
+export const LegacyFolderBrowserPanel = ({
+    batch,
+    isZipBusy = false,
+    onRequestZip,
+    onRetryZip,
+    onDownloadZip,
+    onClose,
+}: LegacyFolderBrowserPanelProps) => {
     const tree = batch.tree;
     const [selectedPath, setSelectedPath] = useState(tree?.name ?? batch.rootFolder);
     const [search, setSearch] = useState('');
@@ -312,6 +324,15 @@ export const LegacyFolderBrowserPanel = ({ batch, onClose }: LegacyFolderBrowser
                     </div>
 
                     <div className="flex shrink-0 items-center gap-2">
+                        {onRequestZip && onRetryZip && onDownloadZip && (
+                            <LegacyBatchZipButton
+                                batch={batch}
+                                isBusy={isZipBusy}
+                                onRequest={onRequestZip}
+                                onRetry={onRetryZip}
+                                onDownload={onDownloadZip}
+                            />
+                        )}
                         <button type="button" onClick={onClose} className="rounded-lg p-2 transition-colors hover:bg-hover">
                             <svg className="h-4 w-4 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class LegacyBatch extends Model
 {
@@ -65,6 +66,16 @@ class LegacyBatch extends Model
     public function files(): HasMany
     {
         return $this->hasMany(LegacyBatchFile::class);
+    }
+
+    public function zipExports(): HasMany
+    {
+        return $this->hasMany(LegacyBatchZipExport::class);
+    }
+
+    public function latestZipExport(): HasOne
+    {
+        return $this->hasOne(LegacyBatchZipExport::class)->latestOfMany();
     }
 
     public function uploadedBy(): BelongsTo

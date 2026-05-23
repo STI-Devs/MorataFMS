@@ -20,7 +20,10 @@ class AuditLogController extends Controller
     {
         $this->authorize('viewAny', AuditLog::class);
 
-        return AuditLogResource::collection($this->auditLogIndexQuery->handle($request));
+        return AuditLogResource::collection($this->auditLogIndexQuery->handle($request))
+            ->additional([
+                'summary' => $this->auditLogIndexQuery->summary($request),
+            ]);
     }
 
     public function actions(Request $request): JsonResponse
@@ -28,7 +31,7 @@ class AuditLogController extends Controller
         $this->authorize('viewAny', AuditLog::class);
 
         return response()->json([
-            'data' => $this->auditLogIndexQuery->actions(),
+            'data' => $this->auditLogIndexQuery->actions($request),
         ]);
     }
 }

@@ -141,6 +141,7 @@ export const EncoderArchivePage = () => {
                     searchPlaceholder="Search BL number, client, or vessel..."
                     documentViewTitle="My BL Records"
                     showAuditButton={false}
+                    historyMine
                     canDeleteDocument={(doc, userId) => doc.uploader?.id === userId}
                     canReplaceDocument={(doc, userId) => doc.uploader?.id === userId}
                 />

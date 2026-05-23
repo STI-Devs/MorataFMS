@@ -22,14 +22,25 @@ export interface AuditLogMeta {
     total: number;
 }
 
+export interface AuditLogSummary {
+    total: number;
+    created: number;
+    updated: number;
+    deleted: number;
+}
+
 export interface AuditLogListResponse {
     data: AuditLogEntry[];
     meta: AuditLogMeta;
+    summary?: AuditLogSummary;
 }
+
+export type AuditLogCategory = 'business' | 'operational' | 'all';
 
 export interface AuditLogFilters {
     search?: string;
     action?: string;
+    category?: AuditLogCategory;
     user_id?: number;
     date_from?: string;
     date_to?: string;

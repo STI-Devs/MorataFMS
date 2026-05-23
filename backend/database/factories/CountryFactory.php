@@ -21,8 +21,8 @@ class CountryFactory extends Factory
         $faker = static::faker();
 
         return [
-            'name' => $faker->unique()->country(),
-            'code' => $faker->unique()->countryCode(),
+            'name' => $faker->country(),
+            'code' => $faker->countryCode(),
             'type' => 'both',
             'is_active' => true,
         ];

@@ -6,6 +6,10 @@ import type {
     LegacyBatchListResponse,
     LegacyBatchModule,
     LegacyBatchSummary,
+    LegacyBatchZipExport,
+    LegacyBatchZipExportListParams,
+    LegacyBatchZipExportListResponse,
+    LegacyBatchZipExportStatus,
     SignLegacyBatchUploadsResponse,
 } from '../types/legacyBatch.types';
 
@@ -43,6 +47,8 @@ type LegacyBatchApiResource = {
         remaining: number;
     };
     can_resume: boolean;
+    can_request_zip: boolean;
+    zip_export?: LegacyBatchZipExportApiResource | null;
 };
 
 type LegacyBatchDetailApiResource = LegacyBatchApiResource & {
@@ -51,6 +57,33 @@ type LegacyBatchDetailApiResource = LegacyBatchApiResource & {
     started_at: string | null;
     completed_at: string | null;
     last_activity_at: string | null;
+};
+
+type LegacyBatchZipExportApiResource = {
+    id: string;
+    legacy_batch_id: string | null;
+    status: LegacyBatchZipExportStatus;
+    status_label: string;
+    filename: string;
+    file_size_bytes: number;
+    file_count: number;
+    error_message: string | null;
+    requested_at: string | null;
+    started_at: string | null;
+    completed_at: string | null;
+    expires_at: string | null;
+    can_download: boolean;
+    requested_by?: {
+        id: number;
+        name: string;
+    } | null;
+    legacy_batch?: {
+        id: string;
+        batch_name: string;
+        root_folder: string;
+        module: LegacyBatchModule | null;
+        module_label: string | null;
+    } | null;
 };
 
 type LegacyBatchListApiResponse = {
@@ -117,6 +150,8 @@ const mapSummary = (resource: LegacyBatchApiResource): LegacyBatchSummary => ({
     },
     uploadSummary: resource.upload_summary,
     canResume: resource.can_resume,
+    canRequestZip: resource.can_request_zip,
+    zipExport: resource.zip_export ? mapZipExport(resource.zip_export) : null,
 });
 
 const mapDetail = (resource: LegacyBatchDetailApiResource): LegacyBatch => ({
@@ -127,6 +162,43 @@ const mapDetail = (resource: LegacyBatchDetailApiResource): LegacyBatch => ({
     completedAt: resource.completed_at,
     lastActivityAt: resource.last_activity_at,
 });
+
+const mapZipExport = (resource: LegacyBatchZipExportApiResource): LegacyBatchZipExport => ({
+    id: resource.id,
+    legacyBatchId: resource.legacy_batch_id,
+    legacyBatch: resource.legacy_batch
+        ? {
+            id: resource.legacy_batch.id,
+            batchName: resource.legacy_batch.batch_name,
+            rootFolder: resource.legacy_batch.root_folder,
+            module: resource.legacy_batch.module ?? 'brokerage',
+            moduleLabel: resource.legacy_batch.module_label ?? 'Brokerage',
+        }
+        : null,
+    status: resource.status,
+    statusLabel: resource.status_label,
+    filename: resource.filename,
+    fileSizeBytes: resource.file_size_bytes,
+    fileCount: resource.file_count,
+    errorMessage: resource.error_message,
+    requestedAt: resource.requested_at,
+    startedAt: resource.started_at,
+    completedAt: resource.completed_at,
+    expiresAt: resource.expires_at,
+    canDownload: resource.can_download,
+    requestedBy: resource.requested_by,
+});
+
+const downloadBlob = (blob: Blob, filename: string) => {
+    const blobUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(blobUrl);
+};
 
 export const legacyBatchApi = {
     getLegacyBatches: async ({
@@ -267,18 +339,47 @@ export const legacyBatchApi = {
         await api.delete(`/api/legacy-batches/${batchId}`);
     },
 
+    getLegacyBatchZipExports: async (
+        params: LegacyBatchZipExportListParams = {},
+    ): Promise<LegacyBatchZipExportListResponse> => {
+        const response = await api.get<{ data: LegacyBatchZipExportApiResource[]; meta: LegacyBatchZipExportListResponse['meta'] }>(
+            '/api/legacy-batch-zip-exports',
+            { params },
+        );
+
+        return {
+            data: response.data.data.map(mapZipExport),
+            meta: response.data.meta,
+        };
+    },
+
+    requestLegacyBatchZipExport: async (batchId: string): Promise<LegacyBatchZipExport> => {
+        const response = await api.post<{ data: LegacyBatchZipExportApiResource }>(`/api/legacy-batches/${batchId}/zip-export`);
+        return mapZipExport(response.data.data);
+    },
+
+    retryLegacyBatchZipExport: async (exportId: string): Promise<LegacyBatchZipExport> => {
+        const response = await api.post<{ data: LegacyBatchZipExportApiResource }>(`/api/legacy-batch-zip-exports/${exportId}/retry`);
+        return mapZipExport(response.data.data);
+    },
+
+    deleteLegacyBatchZipExport: async (exportId: string): Promise<void> => {
+        await api.delete(`/api/legacy-batch-zip-exports/${exportId}`);
+    },
+
+    downloadLegacyBatchZipExport: async (exportId: string, filename: string): Promise<void> => {
+        const response = await api.get(`/api/legacy-batch-zip-exports/${exportId}/download`, {
+            responseType: 'blob',
+        });
+
+        downloadBlob(new Blob([response.data]), filename);
+    },
+
     downloadLegacyBatchFile: async (batchId: string, fileId: string, filename: string): Promise<void> => {
         const response = await api.get(`/api/legacy-batches/${batchId}/files/${fileId}/download`, {
             responseType: 'blob',
         });
 
-        const blobUrl = window.URL.createObjectURL(new Blob([response.data]));
-        const link = document.createElement('a');
-        link.href = blobUrl;
-        link.setAttribute('download', filename);
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        window.URL.revokeObjectURL(blobUrl);
+        downloadBlob(new Blob([response.data]), filename);
     },
 };

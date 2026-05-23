@@ -17,10 +17,6 @@ class ResolveTransactionRemark
     {
         $transaction = $remark->remarkble;
 
-        if (! $user->isAdmin() && $transaction->assigned_user_id !== $user->id) {
-            throw new HttpException(403, 'Unauthorized.');
-        }
-
         if ($remark->is_resolved) {
             throw new HttpException(422, 'Already resolved.');
         }

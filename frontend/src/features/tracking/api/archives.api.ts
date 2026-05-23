@@ -1,4 +1,12 @@
 import api from '../../../lib/axios';
+import type {
+    ArchiveFolderHistoryParams,
+    ArchiveFolderHistoryResponse,
+    ArchiveZipExport,
+    ArchiveZipExportCreateParams,
+    ArchiveZipExportListParams,
+    ArchiveZipExportListResponse,
+} from '../../archives/types/archiveHistory.types';
 import type { ArchiveYear } from '../../documents/types/document.types';
 import type { ApiExportTransaction, ApiImportTransaction } from '../types';
 import { buildArchiveFormData } from './internal/archiveFormData';
@@ -61,6 +69,58 @@ export const archivesApi = {
     getMyArchives: async (): Promise<ArchiveYear[]> => {
         const response = await api.get('/api/archives', { params: { mine: 1 } });
         return response.data.data;
+    },
+
+    getArchiveFolderHistory: async (params: ArchiveFolderHistoryParams): Promise<ArchiveFolderHistoryResponse> => {
+        const response = await api.get('/api/archives/history', {
+            params: {
+                ...params,
+                mine: params.mine ? 1 : undefined,
+            },
+        });
+
+        return response.data;
+    },
+
+    getArchiveZipExports: async (params: ArchiveZipExportListParams = {}): Promise<ArchiveZipExportListResponse> => {
+        const response = await api.get('/api/archive-zip-exports', {
+            params: {
+                ...params,
+                mine: params.mine === undefined ? undefined : Number(params.mine),
+            },
+        });
+
+        return response.data;
+    },
+
+    createArchiveZipExport: async (params: ArchiveZipExportCreateParams): Promise<ArchiveZipExport> => {
+        const response = await api.post('/api/archive-zip-exports', {
+            ...params,
+            mine: params.mine ? 1 : undefined,
+        });
+
+        return response.data.data;
+    },
+
+    retryArchiveZipExport: async (id: string): Promise<ArchiveZipExport> => {
+        const response = await api.post(`/api/archive-zip-exports/${id}/retry`);
+
+        return response.data.data;
+    },
+
+    deleteArchiveZipExport: async (id: string): Promise<void> => {
+        await api.delete(`/api/archive-zip-exports/${id}`);
+    },
+
+    downloadArchiveZipExport: async (id: string): Promise<Blob> => {
+        const response = await api.get(`/api/archive-zip-exports/${id}/download`, {
+            responseType: 'blob',
+        });
+        const contentType = typeof response.headers['content-type'] === 'string'
+            ? response.headers['content-type']
+            : 'application/zip';
+
+        return new Blob([response.data], { type: contentType });
     },
 
     createArchiveImport: async (data: CreateArchiveImportPayload): Promise<ApiImportTransaction> => {

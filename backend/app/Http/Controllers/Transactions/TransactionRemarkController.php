@@ -16,29 +16,25 @@ class TransactionRemarkController extends Controller
         private TransactionRemarkOrchestrator $remarks,
     ) {}
 
-    /**
-     * GET /api/transactions/{type}/{id}/remarks
-     * List remarks for a transaction. Admin sees all; encoder sees only their assigned.
-     */
     public function index(Request $request, string $type, string $id): JsonResponse
     {
+        $transaction = $this->remarks->resolveTransaction($type, $id);
+        $this->remarks->authorizeAccess($request->user(), $transaction);
+
         return response()->json([
             'data' => TransactionRemarkResource::collection(
-                $this->remarks->index($request->user(), $type, $id)
+                $this->remarks->index($transaction)
             ),
         ]);
     }
 
-    /**
-     * POST /api/transactions/{type}/{id}/remarks
-     * Create a remark on a transaction (admin only — enforced by StoreRemarkRequest).
-     */
     public function store(StoreRemarkRequest $request, string $type, string $id): JsonResponse
     {
+        $transaction = $this->remarks->resolveTransaction($type, $id);
+
         return TransactionRemarkResource::make(
             $this->remarks->store(
-                $type,
-                $id,
+                $transaction,
                 $request->validated(),
                 $request->user(),
             )
@@ -47,12 +43,10 @@ class TransactionRemarkController extends Controller
             ->setStatusCode(201);
     }
 
-    /**
-     * PATCH /api/remarks/{remark}/resolve
-     * Admin or assigned encoder can resolve.
-     */
     public function resolve(Request $request, TransactionRemark $remark): JsonResponse
     {
+        $this->remarks->authorizeRemarkAccess($request->user(), $remark);
+
         return response()->json([
             'message' => 'Remark resolved.',
             'data' => TransactionRemarkResource::make(

@@ -4,10 +4,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ArchivesPage } from './ArchivesPage';
 
 const useArchivesMock = vi.fn();
+const useArchiveZipRequestsMock = vi.fn();
 const exportArchiveCSVMock = vi.fn();
 
 vi.mock('../../hooks/useArchives', () => ({
     useArchives: () => useArchivesMock(),
+}));
+
+vi.mock('../../hooks/useArchiveZipRequests', () => ({
+    useArchiveZipRequests: () => useArchiveZipRequestsMock(),
 }));
 
 vi.mock('../../../auth/hooks/useAuth', () => ({
@@ -58,6 +63,17 @@ describe('ArchivesPage', () => {
             data: [],
             isLoading: false,
             isError: false,
+        });
+        useArchiveZipRequestsMock.mockReturnValue({
+            requests: [],
+            preparingRequestKeys: new Set(),
+            requestFolderZip: vi.fn(),
+            downloadRequest: vi.fn(),
+            dismissRequest: vi.fn(),
+            retryRequest: vi.fn(),
+            clearFinishedRequests: vi.fn(),
+            isLoading: false,
+            isRequesting: false,
         });
         exportArchiveCSVMock.mockClear();
     });

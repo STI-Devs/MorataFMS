@@ -2,9 +2,10 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AuditLogFilters, AuditLogListResponse } from '../types/auditLog.types';
 import { AuditLogs } from './AuditLogs';
-import { useAuditLogs } from '../hooks/useAuditLogs';
+import { useAuditActions, useAuditLogs } from '../hooks/useAuditLogs';
 
 vi.mock('../hooks/useAuditLogs', () => ({
+    useAuditActions: vi.fn(),
     useAuditLogs: vi.fn(),
 }));
 
@@ -15,6 +16,12 @@ const mockAuditLogResponse: AuditLogListResponse = {
         last_page: 1,
         per_page: 25,
         total: 0,
+    },
+    summary: {
+        total: 0,
+        created: 0,
+        updated: 0,
+        deleted: 0,
     },
 };
 
@@ -27,6 +34,9 @@ describe('AuditLogs', () => {
             isError: false,
             refetch: vi.fn(),
         } as unknown as ReturnType<typeof useAuditLogs>);
+        vi.mocked(useAuditActions).mockReturnValue({
+            data: ['created', 'updated', 'deleted'],
+        } as unknown as ReturnType<typeof useAuditActions>);
     });
 
     afterEach(() => {
@@ -58,5 +68,42 @@ describe('AuditLogs', () => {
         });
 
         expect(getLastFilters()?.search).toBe('admin');
+    });
+
+    it('renders backend summary counts for the current audit filter', () => {
+        vi.mocked(useAuditLogs).mockReturnValue({
+            data: {
+                ...mockAuditLogResponse,
+                summary: {
+                    total: 51,
+                    created: 22,
+                    updated: 1,
+                    deleted: 2,
+                },
+            },
+            isLoading: false,
+            isError: false,
+            refetch: vi.fn(),
+        } as unknown as ReturnType<typeof useAuditLogs>);
+
+        render(<AuditLogs />);
+
+        expect(screen.getByText('51')).toBeInTheDocument();
+        expect(screen.getByText('22')).toBeInTheDocument();
+        expect(screen.getByText('1')).toBeInTheDocument();
+        expect(screen.getByText('2')).toBeInTheDocument();
+    });
+
+    it('shows only event filters returned by the backend', () => {
+        vi.mocked(useAuditActions).mockReturnValue({
+            data: ['created', 'status_changed'],
+        } as unknown as ReturnType<typeof useAuditActions>);
+
+        render(<AuditLogs />);
+
+        expect(screen.getByRole('option', { name: 'Created' })).toBeInTheDocument();
+        expect(screen.getByRole('option', { name: 'Status Changed' })).toBeInTheDocument();
+        expect(screen.queryByRole('option', { name: 'Login' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('option', { name: 'Logout' })).not.toBeInTheDocument();
     });
 });

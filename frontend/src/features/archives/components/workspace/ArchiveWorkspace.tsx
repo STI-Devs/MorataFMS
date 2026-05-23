@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { CurrentDateTime } from '../../../../components/CurrentDateTime';
 import { ConfirmationModal } from '../../../../components/ConfirmationModal';
 import { useAuth } from '../../../auth/hooks/useAuth';
 import type { ArchiveDocument, ArchiveYear } from '../../../documents/types/document.types';
 import { useArchiveWorkspace } from '../../hooks/useArchiveWorkspace';
+import { useArchiveZipRequests } from '../../hooks/useArchiveZipRequests';
 import type { DrillState } from '../../utils/archive.utils';
 import { buildBreadcrumbParts } from '../../utils/archiveWorkspace.utils';
 import { AddArchiveDocumentModal } from '../documents/AddArchiveDocumentModal';
@@ -16,6 +18,7 @@ import { ArchivesFolderView } from './ArchivesFolderView';
 import { ArchivesBLView, ArchivesDocumentView, GlobalSearchResults } from './ArchivesViews';
 import { ArchiveWorkspaceControlBand } from './ArchiveWorkspaceControlBand';
 import { ArchiveWorkspaceFilters } from './ArchiveWorkspaceFilters';
+import { ArchiveZipRequestsPanel } from './ArchiveZipRequestsPanel';
 
 type ArchiveMetric = {
     label: string;
@@ -36,6 +39,7 @@ type ArchiveWorkspaceProps = {
     searchPlaceholder: string;
     documentViewTitle: string;
     showAuditButton?: boolean;
+    historyMine?: boolean;
     canDeleteDocument?: (doc: ArchiveDocument, userId?: number) => boolean;
     canReplaceDocument?: (doc: ArchiveDocument, userId?: number) => boolean;
 };
@@ -53,11 +57,14 @@ export const ArchiveWorkspace = ({
     searchPlaceholder,
     documentViewTitle,
     showAuditButton = true,
+    historyMine = false,
     canDeleteDocument = () => true,
     canReplaceDocument = () => true,
 }: ArchiveWorkspaceProps) => {
     const { user } = useAuth();
     const workspace = useArchiveWorkspace({ archiveData, queryKey });
+    const zipRequests = useArchiveZipRequests({ mine: historyMine });
+    const [zipRequestsOpen, setZipRequestsOpen] = useState(false);
 
     if (workspace.showLegacyUpload) {
         const currentYear = workspace.currentDrill.level !== 'years'
@@ -113,6 +120,18 @@ export const ArchiveWorkspace = ({
                     healthTone={healthTone}
                     metrics={metrics}
                     isLoading={isLoading}
+                    rightAction={(
+                        <ArchiveZipRequestsPanel
+                            requests={zipRequests.requests}
+                            isOpen={zipRequestsOpen}
+                            onOpen={() => setZipRequestsOpen(true)}
+                            onClose={() => setZipRequestsOpen(false)}
+                            onDownload={zipRequests.downloadRequest}
+                            onRetry={zipRequests.retryRequest}
+                            onDismiss={zipRequests.dismissRequest}
+                            onClearFinished={zipRequests.clearFinishedRequests}
+                        />
+                    )}
                 />
 
                 <ArchiveWorkspaceFilters
@@ -134,7 +153,7 @@ export const ArchiveWorkspace = ({
                 />
             </section>
 
-            <div className="rounded-xl border border-border overflow-hidden bg-surface shadow-sm">
+            <div className={`rounded-xl border border-border bg-surface shadow-sm ${workspace.openMenuKey ? 'overflow-visible' : 'overflow-hidden'}`}>
                 <ArchiveBrowserHeader
                     viewMode={workspace.viewMode}
                     onViewModeChange={(m) => {
@@ -206,6 +225,12 @@ export const ArchiveWorkspace = ({
                                 setOpenMenuKey={workspace.setOpenMenuKey}
                                 onOpenUpload={() => workspace.setShowLegacyUpload(true)}
                                 showAuditButton={showAuditButton}
+                                historyMine={historyMine}
+                                onRequestFolderZip={(request) => {
+                                    setZipRequestsOpen(true);
+                                    zipRequests.requestFolderZip(request);
+                                }}
+                                preparingZipRequestKeys={zipRequests.preparingRequestKeys}
                             />
                         )}
                     </>

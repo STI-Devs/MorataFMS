@@ -4,6 +4,7 @@ namespace App\Support\Archives;
 
 use App\Enums\ArchiveOrigin;
 use App\Enums\UserRole;
+use App\Models\ArchiveZipExport;
 use App\Models\ExportTransaction;
 use App\Models\ImportTransaction;
 use App\Models\User;
@@ -22,6 +23,13 @@ class ArchiveAuthorizer
     {
         if (! in_array($user->role, [UserRole::Processor, UserRole::Accounting], true)) {
             abort(403, 'Only processor and accounting users can access the archive task queue.');
+        }
+    }
+
+    public function assertCanAccessZipExport(User $user, ArchiveZipExport $archiveZipExport): void
+    {
+        if ($archiveZipExport->requested_by !== $user->id) {
+            abort(403, 'You are not allowed to access this archive ZIP request.');
         }
     }
 

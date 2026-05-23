@@ -4,6 +4,7 @@ namespace App\Support\LegacyBatches;
 
 use App\Enums\LegacyBatchModule;
 use App\Models\LegacyBatch;
+use App\Models\LegacyBatchZipExport;
 use App\Models\User;
 
 class LegacyBatchAuthorizer
@@ -44,6 +45,33 @@ class LegacyBatchAuthorizer
         if ($legacyBatch->uploaded_by !== $user->id) {
             abort(403, 'You are not allowed to access this legacy batch.');
         }
+    }
+
+    public function authorizeZipExport(User $user, LegacyBatch $legacyBatch): void
+    {
+        $this->authorizeVisibility($user, $legacyBatch);
+
+        if (! $user->isAdmin()) {
+            abort(403, 'Only administrators can prepare legacy batch ZIP downloads.');
+        }
+    }
+
+    public function authorizeZipExportIndex(User $user): void
+    {
+        if (! $user->isAdmin()) {
+            abort(403, 'Only administrators can view legacy batch ZIP downloads.');
+        }
+    }
+
+    public function authorizeZipExportAccess(User $user, LegacyBatchZipExport $legacyBatchZipExport): void
+    {
+        $legacyBatchZipExport->loadMissing('legacyBatch');
+
+        if (! $legacyBatchZipExport->legacyBatch instanceof LegacyBatch) {
+            abort(404, 'Legacy batch ZIP request was not found.');
+        }
+
+        $this->authorizeZipExport($user, $legacyBatchZipExport->legacyBatch);
     }
 
     private function isLegalModule(?string $module): bool

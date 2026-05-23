@@ -4,34 +4,50 @@ namespace App\Orchestrators\Archives;
 
 use App\Actions\Archives\CreateArchiveExport;
 use App\Actions\Archives\CreateArchiveImport;
+use App\Actions\Archives\CreateArchiveZipExport;
+use App\Actions\Archives\DeleteArchiveZipExport;
+use App\Actions\Archives\RetryArchiveZipExport;
 use App\Actions\Archives\RollbackArchiveExport;
 use App\Actions\Archives\RollbackArchiveImport;
 use App\Actions\Archives\UpdateArchiveExport;
 use App\Actions\Archives\UpdateArchiveImport;
 use App\Actions\Transactions\UpdateExportStageApplicability;
 use App\Actions\Transactions\UpdateImportStageApplicability;
+use App\Http\Requests\Archives\ArchiveZipExportIndexRequest;
+use App\Models\ArchiveZipExport;
 use App\Models\ExportTransaction;
 use App\Models\ImportTransaction;
 use App\Models\User;
+use App\Queries\Archives\ArchiveFolderHistoryQuery;
 use App\Queries\Archives\ArchiveIndexQuery;
 use App\Queries\Archives\ArchiveOperationalQueueQuery;
+use App\Queries\Archives\ArchiveZipExportIndexQuery;
 use App\Support\Archives\ArchiveAuthorizer;
+use App\Support\Archives\ArchiveZipExportDownloader;
 use App\Support\Transactions\TransactionSyncBroadcaster;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ArchiveOrchestrator
 {
     public function __construct(
         private ArchiveAuthorizer $archiveAuthorizer,
         private ArchiveIndexQuery $archiveIndexQuery,
+        private ArchiveFolderHistoryQuery $archiveFolderHistoryQuery,
         private ArchiveOperationalQueueQuery $archiveOperationalQueueQuery,
+        private ArchiveZipExportIndexQuery $archiveZipExportIndexQuery,
         private CreateArchiveImport $createArchiveImport,
         private CreateArchiveExport $createArchiveExport,
+        private CreateArchiveZipExport $createArchiveZipExport,
+        private RetryArchiveZipExport $retryArchiveZipExport,
+        private DeleteArchiveZipExport $deleteArchiveZipExport,
         private UpdateArchiveImport $updateArchiveImport,
         private UpdateArchiveExport $updateArchiveExport,
         private UpdateImportStageApplicability $updateImportStageApplicability,
         private UpdateExportStageApplicability $updateExportStageApplicability,
         private RollbackArchiveImport $rollbackArchiveImport,
         private RollbackArchiveExport $rollbackArchiveExport,
+        private ArchiveZipExportDownloader $archiveZipExportDownloader,
         private TransactionSyncBroadcaster $transactionSyncBroadcaster,
     ) {}
 
@@ -68,14 +84,72 @@ class ArchiveOrchestrator
         $this->archiveAuthorizer->assertCanRollback($user, $transaction);
     }
 
+    public function assertCanAccessZipExport(User $user, ArchiveZipExport $archiveZipExport): void
+    {
+        $this->archiveAuthorizer->assertCanAccessZipExport($user, $archiveZipExport);
+    }
+
     public function index(User $user, bool $mine): array
     {
         return $this->archiveIndexQuery->handle($user, $mine);
     }
 
+    public function folderHistory(
+        User $user,
+        bool $mine,
+        int $year,
+        int $month,
+        string $type,
+        ?string $search,
+        string $completion,
+        int $perPage,
+    ): array {
+        return $this->archiveFolderHistoryQuery->handle(
+            $user,
+            $mine,
+            $year,
+            $month,
+            $type,
+            $search,
+            $completion,
+            $perPage,
+        );
+    }
+
     public function operationalQueue(User $user): array
     {
         return $this->archiveOperationalQueueQuery->handle($user);
+    }
+
+    /**
+     * @return LengthAwarePaginator<int, ArchiveZipExport>
+     */
+    public function zipExports(ArchiveZipExportIndexRequest $request, User $user): LengthAwarePaginator
+    {
+        return $this->archiveZipExportIndexQuery->handle($request, $user);
+    }
+
+    /**
+     * @param  array{scope:string, year:int, month:int, type:string, mine:bool}  $validated
+     */
+    public function storeZipExport(User $user, array $validated): ArchiveZipExport
+    {
+        return $this->createArchiveZipExport->handle($user, $validated);
+    }
+
+    public function retryZipExport(ArchiveZipExport $archiveZipExport): ArchiveZipExport
+    {
+        return $this->retryArchiveZipExport->handle($archiveZipExport);
+    }
+
+    public function downloadZipExport(ArchiveZipExport $archiveZipExport): StreamedResponse
+    {
+        return $this->archiveZipExportDownloader->download($archiveZipExport);
+    }
+
+    public function deleteZipExport(ArchiveZipExport $archiveZipExport): void
+    {
+        $this->deleteArchiveZipExport->handle($archiveZipExport);
     }
 
     public function storeImport(array $validated, User $user): ImportTransaction

@@ -21,7 +21,7 @@ class LegacyBatchIndexQuery
 
         $query = LegacyBatch::query()
             ->visibleTo($user)
-            ->with('uploadedBy');
+            ->with(['uploadedBy', 'latestZipExport.requestedBy']);
 
         if ($module !== null) {
             $query->where('module', $module->value);

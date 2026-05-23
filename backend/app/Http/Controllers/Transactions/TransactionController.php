@@ -16,10 +16,6 @@ class TransactionController extends Controller
         private TransactionOrchestrator $transactions,
     ) {}
 
-    /**
-     * GET /api/transactions
-     * Combined list of imports + exports for admin oversight.
-     */
     public function index(Request $request): JsonResponse
     {
         $this->authorize('transactions.viewOversight');
@@ -27,10 +23,6 @@ class TransactionController extends Controller
         return response()->json($this->transactions->index($request));
     }
 
-    /**
-     * GET /api/tracking/{referenceId}
-     * Resolve a single live-tracking transaction by reference.
-     */
     public function showTracking(Request $request, string $referenceId): JsonResponse
     {
         $this->authorize('viewAny', ImportTransaction::class);
@@ -38,9 +30,6 @@ class TransactionController extends Controller
         return response()->json($this->transactions->showTracking($request, $referenceId));
     }
 
-    /**
-     * PATCH /api/transactions/import/{importTransaction}/status
-     */
     public function overrideImportStatus(OverrideStatusRequest $request, ImportTransaction $importTransaction): JsonResponse
     {
         $this->authorize('transactions.overrideStatus');
@@ -59,9 +48,6 @@ class TransactionController extends Controller
         ]);
     }
 
-    /**
-     * PATCH /api/transactions/export/{exportTransaction}/status
-     */
     public function overrideExportStatus(OverrideStatusRequest $request, ExportTransaction $exportTransaction): JsonResponse
     {
         $this->authorize('transactions.overrideStatus');

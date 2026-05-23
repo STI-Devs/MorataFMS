@@ -1,8 +1,11 @@
 <?php
 
+use App\Models\ArchiveZipExport;
 use App\Models\AuditLog;
 use App\Models\Client;
 use App\Models\ImportTransaction;
+use App\Models\LegacyBatchFile;
+use App\Models\LegacyBatchZipExport;
 use App\Models\User;
 
 // --- Authentication & Authorization ---
@@ -216,6 +219,80 @@ test('audit logs can be filtered by event type', function () {
     foreach ($data as $log) {
         expect($log['event'])->toBe('created');
     }
+});
+
+test('audit logs can separate business and operational records', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+
+    AuditLog::query()->delete();
+
+    AuditLog::query()->insert([
+        [
+            'auditable_type' => ImportTransaction::class,
+            'auditable_id' => 10,
+            'user_id' => $admin->id,
+            'event' => 'created',
+            'created_at' => '2026-05-22 10:00:00',
+        ],
+        [
+            'auditable_type' => LegacyBatchFile::class,
+            'auditable_id' => 20,
+            'user_id' => $admin->id,
+            'event' => 'created',
+            'created_at' => '2026-05-22 10:01:00',
+        ],
+        [
+            'auditable_type' => ArchiveZipExport::class,
+            'auditable_id' => 30,
+            'user_id' => $admin->id,
+            'event' => 'created',
+            'created_at' => '2026-05-22 10:02:00',
+        ],
+        [
+            'auditable_type' => LegacyBatchZipExport::class,
+            'auditable_id' => 40,
+            'user_id' => $admin->id,
+            'event' => 'created',
+            'created_at' => '2026-05-22 10:03:00',
+        ],
+    ]);
+
+    $businessResponse = $this->actingAs($admin)
+        ->getJson('/api/audit-logs?category=business&actor=all')
+        ->assertOk();
+
+    expect(collect($businessResponse->json('data'))->pluck('auditable_type')->all())
+        ->toBe(['Import Transaction']);
+    expect($businessResponse->json('summary'))->toMatchArray([
+        'total' => 1,
+        'created' => 1,
+        'updated' => 0,
+        'deleted' => 0,
+    ]);
+
+    $operationalResponse = $this->actingAs($admin)
+        ->getJson('/api/audit-logs?category=operational&actor=all')
+        ->assertOk();
+
+    expect(collect($operationalResponse->json('data'))->pluck('auditable_type')->all())
+        ->toBe([
+            'Legacy Batch Zip Export',
+            'Archive Zip Export',
+            'Legacy Batch File',
+        ]);
+    expect($operationalResponse->json('summary'))->toMatchArray([
+        'total' => 3,
+        'created' => 3,
+        'updated' => 0,
+        'deleted' => 0,
+    ]);
+
+    $businessActions = $this->actingAs($admin)
+        ->getJson('/api/audit-logs/actions?category=business&actor=all')
+        ->assertOk()
+        ->json('data');
+
+    expect($businessActions)->toBe(['created']);
 });
 
 test('audit logs include user information', function () {

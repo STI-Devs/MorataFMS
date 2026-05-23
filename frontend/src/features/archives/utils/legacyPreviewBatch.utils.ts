@@ -72,6 +72,8 @@ export function buildPreviewBatch({
             remaining: folderSummary.fileCount,
         },
         canResume: true,
+        canRequestZip: false,
+        zipExport: null,
     };
 
     return {

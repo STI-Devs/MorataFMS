@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AdminDocumentReview\AdminDocumentReviewController;
 use App\Http\Controllers\Archives\ArchiveController;
+use App\Http\Controllers\Archives\ArchiveZipExportController;
 use App\Http\Controllers\AuditLogs\AuditLogController;
 use App\Http\Controllers\Clients\ClientController;
 use App\Http\Controllers\Dashboard\AdminDashboardController;
@@ -11,6 +12,7 @@ use App\Http\Controllers\LawFirmDocuments\LawFirmDocumentCatalogController;
 use App\Http\Controllers\LawFirmDocuments\LawFirmDocumentTemplateController;
 use App\Http\Controllers\LawFirmDocuments\LawFirmGeneratedDocumentController;
 use App\Http\Controllers\LegacyBatches\LegacyBatchController;
+use App\Http\Controllers\LegacyBatches\LegacyBatchZipExportController;
 use App\Http\Controllers\LegalArchive\LegalArchiveRecordController;
 use App\Http\Controllers\ReferenceData\CountryController;
 use App\Http\Controllers\ReferenceData\LegalPartyController;
@@ -82,6 +84,8 @@ Route::middleware(['auth:sanctum', 'active-session', 'throttle:api-general'])->g
     // Archive uploads (legacy)
     Route::prefix('archives')->group(function () {
         Route::get('/', [ArchiveController::class, 'index']);
+        Route::get('history', [ArchiveController::class, 'folderHistory'])
+            ->middleware('throttle:api-search');
         Route::get('operational', [ArchiveController::class, 'operationalQueue']);
         Route::post('import', [ArchiveController::class, 'storeImport'])->middleware('throttle:archive-uploads');
         Route::post('export', [ArchiveController::class, 'storeExport'])->middleware('throttle:archive-uploads');
@@ -91,6 +95,19 @@ Route::middleware(['auth:sanctum', 'active-session', 'throttle:api-general'])->g
         Route::patch('export/{exportTransaction}/stage-applicability', [ArchiveController::class, 'updateExportStageApplicability']);
         Route::delete('import/{importTransaction}', [ArchiveController::class, 'rollbackImport'])->middleware('throttle:archive-uploads');
         Route::delete('export/{exportTransaction}', [ArchiveController::class, 'rollbackExport'])->middleware('throttle:archive-uploads');
+    });
+
+    Route::prefix('archive-zip-exports')->group(function () {
+        Route::get('/', [ArchiveZipExportController::class, 'index'])
+            ->middleware('throttle:api-search');
+        Route::post('/', [ArchiveZipExportController::class, 'store'])
+            ->middleware('throttle:api-documents');
+        Route::post('{archiveZipExport}/retry', [ArchiveZipExportController::class, 'retry'])
+            ->middleware('throttle:api-documents');
+        Route::get('{archiveZipExport}/download', [ArchiveZipExportController::class, 'download'])
+            ->middleware('throttle:api-documents');
+        Route::delete('{archiveZipExport}', [ArchiveZipExportController::class, 'destroy'])
+            ->middleware('throttle:api-documents');
     });
 
     Route::prefix('legacy-batches')->group(function () {
@@ -110,7 +127,20 @@ Route::middleware(['auth:sanctum', 'active-session', 'throttle:api-general'])->g
             ->middleware('throttle:legacy-batch-uploads');
         Route::delete('{legacyBatch}', [LegacyBatchController::class, 'destroy'])
             ->middleware('throttle:legacy-batch-uploads');
+        Route::post('{legacyBatch}/zip-export', [LegacyBatchZipExportController::class, 'store'])
+            ->middleware('throttle:api-documents');
         Route::get('{legacyBatch}/files/{legacyBatchFile}/download', [LegacyBatchController::class, 'downloadFile'])
+            ->middleware('throttle:api-documents');
+    });
+
+    Route::prefix('legacy-batch-zip-exports')->group(function () {
+        Route::get('/', [LegacyBatchZipExportController::class, 'index'])
+            ->middleware('throttle:api-search');
+        Route::post('{legacyBatchZipExport}/retry', [LegacyBatchZipExportController::class, 'retry'])
+            ->middleware('throttle:api-documents');
+        Route::get('{legacyBatchZipExport}/download', [LegacyBatchZipExportController::class, 'download'])
+            ->middleware('throttle:api-documents');
+        Route::delete('{legacyBatchZipExport}', [LegacyBatchZipExportController::class, 'destroy'])
             ->middleware('throttle:api-documents');
     });
 
