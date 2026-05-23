@@ -63,7 +63,12 @@ test('admin can request legacy batch zip export and download the prepared file',
         ->assertJsonPath('data.legacy_batch_id', $batch->uuid);
 
     $legacyBatchZipExport = LegacyBatchZipExport::query()->sole();
-    expect(AuditLog::query()->where('auditable_type', LegacyBatchZipExport::class)->exists())->toBeFalse();
+    expect(AuditLog::query()
+        ->where('auditable_type', LegacyBatchZipExport::class)
+        ->where('auditable_id', $legacyBatchZipExport->id)
+        ->where('user_id', $admin->id)
+        ->where('event', 'created')
+        ->exists())->toBeTrue();
 
     Queue::assertPushed(
         GenerateLegacyBatchZipExport::class,
@@ -81,6 +86,7 @@ test('admin can request legacy batch zip export and download the prepared file',
     $response = $this->actingAs($admin)
         ->get("/api/legacy-batch-zip-exports/{$legacyBatchZipExport->uuid}/download")
         ->assertOk()
+        ->assertHeader('X-Accel-Buffering', 'no')
         ->assertDownload('maersk-file.zip');
 
     $zipPath = tempnam(sys_get_temp_dir(), 'legacy-batch-zip-export-test-');

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ArchiveZipExportStatus;
+use App\Traits\Auditable;
 use Database\Factories\LegacyBatchZipExportFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -12,7 +13,7 @@ use Illuminate\Support\Str;
 class LegacyBatchZipExport extends Model
 {
     /** @use HasFactory<LegacyBatchZipExportFactory> */
-    use HasFactory;
+    use Auditable, HasFactory;
 
     public const EXPIRATION_HOURS = 72;
 

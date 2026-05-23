@@ -30,6 +30,7 @@ class LegacyBatchZipExportDownloader
         $headers = [
             'Content-Type' => 'application/zip',
             'Cache-Control' => 'no-store',
+            'X-Accel-Buffering' => 'no',
         ];
 
         if ($legacyBatchZipExport->file_size_bytes > 0) {

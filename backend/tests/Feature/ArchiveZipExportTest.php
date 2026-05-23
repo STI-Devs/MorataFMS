@@ -80,7 +80,12 @@ test('admin can request archive folder zip export and download the prepared file
         ->assertJsonPath('data.filename', 'apr-2026-exports.zip');
 
     $archiveZipExport = ArchiveZipExport::query()->sole();
-    expect(AuditLog::query()->where('auditable_type', ArchiveZipExport::class)->exists())->toBeFalse();
+    expect(AuditLog::query()
+        ->where('auditable_type', ArchiveZipExport::class)
+        ->where('auditable_id', $archiveZipExport->id)
+        ->where('user_id', $admin->id)
+        ->where('event', 'created')
+        ->exists())->toBeTrue();
 
     Queue::assertPushed(
         GenerateArchiveZipExport::class,
@@ -98,6 +103,7 @@ test('admin can request archive folder zip export and download the prepared file
     $response = $this->actingAs($admin)
         ->get("/api/archive-zip-exports/{$archiveZipExport->uuid}/download")
         ->assertOk()
+        ->assertHeader('X-Accel-Buffering', 'no')
         ->assertDownload('apr-2026-exports.zip');
 
     $zipPath = tempnam(sys_get_temp_dir(), 'archive-zip-export-test-');
@@ -221,6 +227,7 @@ test('admin can request an entire archive year zip export', function () {
     $response = $this->actingAs($admin)
         ->get("/api/archive-zip-exports/{$archiveZipExport->uuid}/download")
         ->assertOk()
+        ->assertHeader('X-Accel-Buffering', 'no')
         ->assertDownload('fy-2026-archive.zip');
 
     $zipPath = tempnam(sys_get_temp_dir(), 'archive-year-zip-export-test-');

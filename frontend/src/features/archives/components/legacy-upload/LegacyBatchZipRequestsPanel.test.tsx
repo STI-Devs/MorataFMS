@@ -66,4 +66,31 @@ describe('LegacyBatchZipRequestsPanel', () => {
 
         expect(clearFinished).toHaveBeenCalledTimes(1);
     });
+
+    it('requires confirmation before removing a single prepared legacy batch ZIP request', () => {
+        const dismiss = vi.fn();
+
+        render(
+            <LegacyBatchZipRequestsPanel
+                requests={[makeRequest()]}
+                isOpen
+                onOpen={vi.fn()}
+                onClose={vi.fn()}
+                onDownload={vi.fn()}
+                onRetry={vi.fn()}
+                onDismiss={dismiss}
+                onClearFinished={vi.fn()}
+            />,
+        );
+
+        fireEvent.click(screen.getByTitle(/remove request/i));
+
+        expect(dismiss).not.toHaveBeenCalled();
+        expect(screen.getByText(/remove this zip request/i)).toBeInTheDocument();
+        expect(screen.getByText(/preparing it again may take time/i)).toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole('button', { name: /remove zip/i }));
+
+        expect(dismiss).toHaveBeenCalledWith('legacy-zip-1');
+    });
 });

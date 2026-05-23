@@ -30,6 +30,7 @@ class ArchiveZipExportDownloader
         $headers = [
             'Content-Type' => 'application/zip',
             'Cache-Control' => 'no-store',
+            'X-Accel-Buffering' => 'no',
         ];
 
         if ($archiveZipExport->file_size_bytes > 0) {

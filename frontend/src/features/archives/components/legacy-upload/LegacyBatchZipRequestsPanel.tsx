@@ -78,6 +78,7 @@ export const LegacyBatchZipRequestsPanel = ({
     onClearFinished,
 }: LegacyBatchZipRequestsPanelProps) => {
     const [isConfirmingClear, setIsConfirmingClear] = useState(false);
+    const [confirmingDismissRequestId, setConfirmingDismissRequestId] = useState<string | null>(null);
     const readyCount = requests.filter((request) => request.status === 'ready').length;
     const preparingCount = requests.filter(isActiveZipRequest).length;
     const canClearFinished = requests.some((request) => !isActiveZipRequest(request));
@@ -86,6 +87,11 @@ export const LegacyBatchZipRequestsPanel = ({
     const confirmClearFinished = () => {
         onClearFinished();
         setIsConfirmingClear(false);
+    };
+
+    const confirmDismiss = (requestId: string) => {
+        onDismiss(requestId);
+        setConfirmingDismissRequestId(null);
     };
 
     return (
@@ -194,6 +200,7 @@ export const LegacyBatchZipRequestsPanel = ({
                                     const isActive = isActiveZipRequest(request);
                                     const isDownloading = downloadingRequestId === request.id;
                                     const expiryLabel = formatExpiryLabel(request.expiresAt);
+                                    const isConfirmingDismiss = confirmingDismissRequestId === request.id;
 
                                     return (
                                         <div key={request.id} className="border-b border-border px-5 py-4">
@@ -219,11 +226,6 @@ export const LegacyBatchZipRequestsPanel = ({
                                                             Requested by {request.requestedBy}
                                                         </p>
                                                     )}
-                                                    {isActive && (
-                                                        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-surface-secondary">
-                                                            <div className="h-full w-1/2 animate-pulse rounded-full bg-blue-500" />
-                                                        </div>
-                                                    )}
                                                     {request.status === 'ready' && expiryLabel && (
                                                         <p className="mt-1 text-xs font-semibold text-amber-500">
                                                             Available until {expiryLabel}
@@ -237,13 +239,38 @@ export const LegacyBatchZipRequestsPanel = ({
                                                     <button
                                                         type="button"
                                                         title="Remove request"
-                                                        onClick={() => onDismiss(request.id)}
+                                                        onClick={() => setConfirmingDismissRequestId(request.id)}
                                                         className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border bg-input-bg text-text-muted transition-colors hover:border-border-strong hover:bg-hover hover:text-text-primary"
                                                     >
                                                         <Icon name="x" className="h-3.5 w-3.5" />
                                                     </button>
                                                 )}
                                             </div>
+
+                                            {isConfirmingDismiss && (
+                                                <div className="mt-3 rounded-lg border border-amber-500/20 bg-amber-500/10 p-3">
+                                                    <p className="text-xs font-black text-amber-500">Remove this ZIP request?</p>
+                                                    <p className="mt-1 text-xs font-semibold leading-5 text-text-secondary">
+                                                        This deletes any prepared ZIP file from storage. Preparing it again may take time.
+                                                    </p>
+                                                    <div className="mt-3 flex items-center gap-2">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => confirmDismiss(request.id)}
+                                                            className="h-8 rounded-lg border border-amber-500/30 bg-amber-500/15 px-3 text-xs font-black text-amber-500 transition-colors hover:bg-amber-500/20"
+                                                        >
+                                                            Remove ZIP
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setConfirmingDismissRequestId(null)}
+                                                            className="h-8 rounded-lg border border-border bg-input-bg px-3 text-xs font-bold text-text-secondary transition-colors hover:border-border-strong hover:bg-hover hover:text-text-primary"
+                                                        >
+                                                            Cancel
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
 
                                             <div className="mt-3 flex items-center gap-2">
                                                 {request.status === 'ready' && request.canDownload && (

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\ArchiveZipExportScope;
 use App\Enums\ArchiveZipExportStatus;
+use App\Traits\Auditable;
 use Database\Factories\ArchiveZipExportFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -14,7 +15,7 @@ use Illuminate\Support\Str;
 class ArchiveZipExport extends Model
 {
     /** @use HasFactory<ArchiveZipExportFactory> */
-    use HasFactory;
+    use Auditable, HasFactory;
 
     public const EXPIRATION_HOURS = 72;
 
