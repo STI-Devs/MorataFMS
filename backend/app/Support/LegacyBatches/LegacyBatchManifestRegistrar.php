@@ -2,6 +2,8 @@
 
 namespace App\Support\LegacyBatches;
 
+use App\Data\LegacyBatches\LegacyBatchManifestData;
+use App\Data\LegacyBatches\LegacyBatchManifestFileData;
 use App\Enums\LegacyBatchFileStatus;
 use App\Models\LegacyBatch;
 use App\Models\LegacyBatchFile;
@@ -11,17 +13,17 @@ class LegacyBatchManifestRegistrar
 {
     public function __construct(private LegacyBatchUploadUrlFactory $legacyBatchUploadUrlFactory) {}
 
-    public function register(LegacyBatch $legacyBatch, array $files): void
+    public function register(LegacyBatch $legacyBatch, LegacyBatchManifestData $manifest): void
     {
-        if ($files === []) {
+        if ($manifest->isEmpty()) {
             return;
         }
 
         $timestamp = now();
 
         LegacyBatchFile::query()->upsert(
-            collect($files)->map(function (array $file) use ($legacyBatch, $timestamp): array {
-                $relativePath = $this->legacyBatchUploadUrlFactory->normalizeRelativePath($file['relative_path']);
+            collect($manifest)->map(function (LegacyBatchManifestFileData $file) use ($legacyBatch, $timestamp): array {
+                $relativePath = $this->legacyBatchUploadUrlFactory->normalizeRelativePath($file->relativePath);
 
                 return [
                     'legacy_batch_id' => $legacyBatch->id,
@@ -29,9 +31,9 @@ class LegacyBatchManifestRegistrar
                     'relative_path_hash' => hash('sha256', $relativePath),
                     'storage_path' => $this->legacyBatchUploadUrlFactory->pathFor($legacyBatch, $relativePath),
                     'filename' => str($relativePath)->afterLast('/')->value(),
-                    'mime_type' => $file['mime_type'] ?? null,
-                    'size_bytes' => (int) $file['size_bytes'],
-                    'modified_at' => $this->normalizeModifiedAt($file['modified_at'] ?? null),
+                    'mime_type' => $file->mimeType,
+                    'size_bytes' => $file->sizeBytes,
+                    'modified_at' => $this->normalizeModifiedAt($file->modifiedAt),
                     'status' => LegacyBatchFileStatus::Pending->value,
                     'uploaded_at' => null,
                     'failed_at' => null,

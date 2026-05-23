@@ -14,6 +14,7 @@ class LegacyBatchResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $user = $request->user();
         $pendingCount = max((int) $this->expected_file_count - (int) $this->uploaded_file_count, 0);
         $yearFrom = $this->effectiveYearFrom();
         $yearTo = $this->effectiveYearTo();
@@ -52,7 +53,7 @@ class LegacyBatchResource extends JsonResource
                 'remaining' => $pendingCount,
             ],
             'can_resume' => in_array($this->status?->value, ['draft', 'uploading', 'interrupted', 'failed'], true),
-            'can_request_zip' => $request->user()?->isAdmin() === true,
+            'can_request_zip' => $user?->isAdmin() === true || ($user !== null && $this->uploaded_by === $user->id),
             'zip_export' => $this->whenLoaded(
                 'latestZipExport',
                 fn () => $this->latestZipExport

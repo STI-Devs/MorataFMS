@@ -1,23 +1,45 @@
-import type { ArchiveDocument, ArchiveYear, TransactionType } from '../../../documents/types/document.types';
+import { useState } from 'react';
+import type { ArchiveDocument, ArchiveYear } from '../../../documents/types/document.types';
+import type { ArchiveDocumentIndexResponse, ArchiveDocumentIndexRow } from '../../types/archiveHistory.types';
+import { useArchiveFolderHistory } from '../../hooks/useArchiveFolderHistory';
 import type { DrillState, SortKey, ViewMode } from '../../utils/archive.utils';
 import {
-    archiveGroupMatchesSearch,
     getArchiveBlCompletion,
-    MONTH_NAMES,
     toTitleCase,
 } from '../../utils/archive.utils';
 
 interface ArchivesDocumentViewProps {
-    flatDocumentList: {
-        blNo: string; client: string; type: TransactionType;
-        year: number; month: number; yearData: ArchiveYear; docs: ArchiveDocument[];
-    }[];
+    rows: ArchiveDocumentIndexRow[];
+    meta: ArchiveDocumentIndexResponse['meta'] | undefined;
+    isFetching: boolean;
+    page: number;
+    perPage: number;
+    onPageChange: (page: number) => void;
+    onPerPageChange: (perPage: number) => void;
+    getYearData: (row: ArchiveDocumentIndexRow) => ArchiveYear;
     nav: (next: DrillState) => void;
     setViewMode: (m: ViewMode) => void;
 }
 
-export const ArchivesDocumentView = ({ flatDocumentList, nav, setViewMode }: ArchivesDocumentViewProps) => {
-    if (flatDocumentList.length === 0) return (
+export const ArchivesDocumentView = ({
+    rows,
+    meta,
+    isFetching,
+    page,
+    perPage,
+    onPageChange,
+    onPerPageChange,
+    getYearData,
+    nav,
+    setViewMode,
+}: ArchivesDocumentViewProps) => {
+    const currentPage = meta?.current_page ?? page;
+    const totalPages = meta?.last_page ?? 1;
+    const totalRows = meta?.total ?? 0;
+    const from = meta?.from ?? (totalRows > 0 ? 1 : 0);
+    const to = meta?.to ?? rows.length;
+
+    if (!isFetching && rows.length === 0) return (
         <div className="py-20 flex flex-col items-center gap-3 text-text-muted">
             <p className="text-sm font-semibold text-text-secondary">No records match your filters</p>
             <p className="text-xs">Try changing the search or filter options.</p>
@@ -32,24 +54,38 @@ export const ArchivesDocumentView = ({ flatDocumentList, nav, setViewMode }: Arc
                     <span key={i} className="text-xs font-bold text-text-muted uppercase tracking-widest truncate">{h}</span>
                 ))}
             </div>
-            {flatDocumentList.map((r, idx) => {
-                const completion = getArchiveBlCompletion(r.docs, r.type);
+            {isFetching && rows.length === 0 ? (
+                <div className="divide-y divide-border">
+                    {Array.from({ length: Math.min(perPage, 8) }).map((_, index) => (
+                        <div
+                            key={index}
+                            className="grid items-center gap-4 px-5 py-3.5"
+                            style={{ gridTemplateColumns: '60px 1fr 1fr 80px 100px 80px' }}
+                        >
+                            {Array.from({ length: 6 }).map((__, cellIndex) => (
+                                <span key={cellIndex} className="h-4 animate-pulse rounded bg-surface-secondary" />
+                            ))}
+                        </div>
+                    ))}
+                </div>
+            ) : rows.map((r) => {
+                const completion = getArchiveBlCompletion(r.documents, r.type);
                 return (
-                    <button key={idx}
+                    <button key={`${r.year}-${r.type}-${r.bl_no}`}
                         onClick={() => {
                             setViewMode('folder');
-                            nav({ level: 'files', year: r.yearData, type: r.type, month: r.month, bl: r.blNo });
+                            nav({ level: 'files', year: getYearData(r), type: r.type, month: r.month, bl: r.bl_no });
                         }}
                         className="w-full grid items-center gap-4 px-5 py-3.5 border-b border-border hover:bg-hover transition-colors text-left group"
                         style={{ gridTemplateColumns: '60px 1fr 1fr 80px 100px 80px' }}>
                         <span className="text-xs font-bold text-text-secondary tabular-nums">{r.year}</span>
-                        <span className="font-mono text-sm font-bold text-text-primary truncate group-hover:underline underline-offset-2">{r.blNo}</span>
+                        <span className="font-mono text-sm font-bold text-text-primary truncate group-hover:underline underline-offset-2">{r.bl_no}</span>
                         <span className="min-w-0">
                             <span className="block truncate text-xs text-text-secondary">{toTitleCase(r.client || '—')}</span>
                             <span className="mt-0.5 block truncate text-[10px] text-text-muted">
                                 {r.type === 'import'
-                                    ? `Vessel: ${r.docs[0]?.vessel_name ?? '—'} • Location: ${r.docs[0]?.location_of_goods ?? '—'}`
-                                    : `Vessel: ${r.docs[0]?.vessel_name ?? '—'} • Destination: ${r.docs[0]?.destination_country ?? '—'}`}
+                                    ? `Vessel: ${r.documents[0]?.vessel_name ?? '—'} • Location: ${r.documents[0]?.location_of_goods ?? '—'}`
+                                    : `Vessel: ${r.documents[0]?.vessel_name ?? '—'} • Destination: ${r.documents[0]?.destination_country ?? '—'}`}
                             </span>
                         </span>
                         <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-md w-fit ${r.type === 'import' ? 'bg-green-500/10 text-green-600 border border-green-500/30' : 'bg-blue-500/10 text-blue-500 border border-blue-500/30'}`}>
@@ -65,60 +101,53 @@ export const ArchivesDocumentView = ({ flatDocumentList, nav, setViewMode }: Arc
                     </button>
                 );
             })}
-        </div>
-    );
-};
-
-interface GlobalSearchResultsProps {
-    globalSearch: string;
-    globalResults: {
-        blNo: string; client: string; type: TransactionType;
-        year: ArchiveYear; month: number; fileCount: number;
-    }[];
-    nav: (next: DrillState) => void;
-    setGlobalSearch: (s: string) => void;
-}
-
-export const GlobalSearchResults = ({ globalSearch, globalResults, nav, setGlobalSearch }: GlobalSearchResultsProps) => {
-    if (globalResults.length === 0) return (
-        <div className="py-16 flex flex-col items-center gap-2 text-text-muted">
-            <svg className="w-8 h-8 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            <p className="text-sm font-semibold text-text-secondary">No matches found</p>
-            <p className="text-xs">No archive records match <span className="font-mono font-semibold">"{globalSearch}"</span></p>
-        </div>
-    );
-
-    return (
-        <div>
-            <div className="px-5 py-2.5 border-b border-border bg-surface-secondary">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted">
-                    {globalResults.length} result{globalResults.length !== 1 ? 's' : ''} across all years
-                </span>
-            </div>
-            {globalResults.map((r, idx) => (
-                <button key={idx} onClick={() => { setGlobalSearch(''); nav({ level: 'files', year: r.year, type: r.type, month: r.month, bl: r.blNo }); }}
-                    className="w-full flex items-center gap-3 px-5 py-3 border-b border-border hover:bg-hover transition-colors text-left group">
-                    <span className={`shrink-0 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md ${r.type === 'import' ? 'bg-green-500/10 text-green-600 border border-green-500/30' : 'bg-blue-500/10 text-blue-500 border border-blue-500/30'}`}>
-                        {r.type === 'import' ? 'IMP' : 'EXP'}
+            <div className="flex flex-col gap-3 border-t border-border bg-surface-secondary/40 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-xs font-semibold text-text-muted">
+                    Showing {from.toLocaleString()}-{to.toLocaleString()} of {totalRows.toLocaleString()} BL records
+                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                    <label className="flex items-center gap-2 text-xs font-bold text-text-secondary">
+                        Rows
+                        <select
+                            value={perPage}
+                            onChange={(event) => {
+                                onPerPageChange(Number(event.target.value));
+                            }}
+                            className="rounded-lg border border-border bg-surface px-2 py-1 text-xs font-bold text-text-primary outline-none transition-colors focus:border-blue-500"
+                        >
+                            {[25, 50, 100].map((option) => (
+                                <option key={option} value={option}>{option}</option>
+                            ))}
+                        </select>
+                    </label>
+                    <button
+                        type="button"
+                        disabled={currentPage <= 1}
+                        onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+                        className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-black text-text-secondary transition-colors hover:bg-hover hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                        Previous
+                    </button>
+                    <span className="min-w-20 text-center text-xs font-black text-text-muted">
+                        {currentPage} / {totalPages}
                     </span>
-                    <span className="font-mono text-sm font-bold text-text-primary group-hover:underline truncate">{r.blNo}</span>
-                    <span className="text-xs text-text-secondary truncate flex-1">{toTitleCase(r.client || '—')}</span>
-                    <span className="text-xs text-text-muted shrink-0 tabular-nums">{MONTH_NAMES[r.month - 1].slice(0, 3)} {r.year.year}</span>
-                    <span className="text-[10px] font-semibold text-text-muted shrink-0">{r.fileCount} {r.fileCount === 1 ? 'file' : 'files'}</span>
-                    <svg className="w-3.5 h-3.5 text-text-muted/50 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                </button>
-            ))}
+                    <button
+                        type="button"
+                        disabled={currentPage >= totalPages}
+                        onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
+                        className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-black text-text-secondary transition-colors hover:bg-hover hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                        Next
+                    </button>
+                </div>
+            </div>
         </div>
     );
 };
 
 interface BLFolderRowProps {
     blNo: string;
-    blDocs: import('../../../documents/types/document.types').ArchiveDocument[];
+    blDocs: ArchiveDocument[];
     drill: Extract<DrillState, { level: 'bls' }>;
     nav: (next: DrillState) => void;
     COL: string;
@@ -150,7 +179,7 @@ export const BLFolderRow = ({ blNo, blDocs, drill, nav, COL, color }: BLFolderRo
                     d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
             </svg>
             <button
-                onClick={() => nav({ level: 'files', year: drill.year, type: drill.type, month: drill.month, bl: blNo })}
+                onClick={() => nav({ level: 'files', year: { ...drill.year, documents: blDocs }, type: drill.type, month: drill.month, bl: blNo })}
                 className="text-sm font-bold text-text-primary truncate text-left font-mono group-hover:underline underline-offset-2 decoration-border-strong">
                 {blNo}/
             </button>
@@ -179,7 +208,7 @@ export const BLFolderRow = ({ blNo, blDocs, drill, nav, COL, color }: BLFolderRo
                 {completion.doneCount}/{completion.requiredStages.length}
             </span>
             <button
-                onClick={() => nav({ level: 'files', year: drill.year, type: drill.type, month: drill.month, bl: blNo })}
+                onClick={() => nav({ level: 'files', year: { ...drill.year, documents: blDocs }, type: drill.type, month: drill.month, bl: blNo })}
                 title="Open folder"
                 className="opacity-0 group-hover:opacity-100 transition-opacity">
                 <svg className="w-3.5 h-3.5 text-text-muted/50 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -195,32 +224,54 @@ interface ArchivesBLViewProps {
     search: string;
     sortKey: SortKey;
     sortDir: 'asc' | 'desc';
+    historyMine: boolean;
+    filterStatus: 'all' | 'complete' | 'incomplete';
     nav: (next: DrillState) => void;
 }
 
-export const ArchivesBLView = ({ drill, search, sortKey, sortDir, nav }: ArchivesBLViewProps) => {
-    const typeDocs = drill.year.documents.filter((d: ArchiveDocument) => d.type === drill.type && d.month === drill.month);
-    const blGroups = typeDocs.reduce<Record<string, ArchiveDocument[]>>((acc: Record<string, ArchiveDocument[]>, d: ArchiveDocument) => {
-        const key = d.bl_no || '(no BL)';
-        acc[key] = [...(acc[key] ?? []), d];
-        return acc;
-    }, {});
+export const ArchivesBLView = ({
+    drill,
+    search,
+    sortKey,
+    sortDir,
+    historyMine,
+    filterStatus,
+    nav,
+}: ArchivesBLViewProps) => {
+    const [page, setPage] = useState(1);
+    const [perPage, setPerPage] = useState(25);
+    const queryIdentity = `${drill.year.year}|${drill.month}|${drill.type}|${search}|${filterStatus}|${sortKey}|${sortDir}`;
+    const [lastQueryIdentity, setLastQueryIdentity] = useState(queryIdentity);
+    const effectivePage = lastQueryIdentity === queryIdentity ? page : 1;
 
-    const filteredBlEntries = (Object.entries(blGroups) as [string, ArchiveDocument[]][])
-        .filter(([, blDocs]) => {
-            if (!search) return true;
-            return archiveGroupMatchesSearch(blDocs, search, drill.year.year);
-        })
-        .sort(([aNo, aDocs], [bNo, bDocs]) => {
-            const dir = sortDir === 'asc' ? 1 : -1;
-            if (sortKey === 'bl') return aNo.localeCompare(bNo) * dir;
-            if (sortKey === 'client') return (aDocs[0]?.client ?? '').localeCompare(bDocs[0]?.client ?? '') * dir;
-            if (sortKey === 'files') return (aDocs.length - bDocs.length) * dir;
-            const aDate = aDocs[0]?.transaction_date ?? '';
-            const bDate = bDocs[0]?.transaction_date ?? '';
-            return aDate.localeCompare(bDate) * dir;
-        });
+    if (lastQueryIdentity !== queryIdentity) {
+        setLastQueryIdentity(queryIdentity);
+        if (page !== 1) {
+            setPage(1);
+        }
+    }
 
+    const historyQuery = useArchiveFolderHistory({
+        year: drill.year.year,
+        month: drill.month,
+        type: drill.type,
+        mine: historyMine,
+        page: effectivePage,
+        perPage,
+        search,
+        completion: filterStatus,
+        sort: sortKey,
+        direction: sortDir,
+        enabled: true,
+    });
+
+    const rows = historyQuery.data?.data ?? [];
+    const meta = historyQuery.data?.meta;
+    const currentPage = meta?.current_page ?? effectivePage;
+    const totalPages = meta?.last_page ?? 1;
+    const totalRows = meta?.total ?? 0;
+    const from = meta?.from ?? (totalRows > 0 ? 1 : 0);
+    const to = meta?.to ?? rows.length;
     const color = drill.type === 'import' ? '#16a34a' : '#2563eb';
     const isImport = drill.type === 'import';
     const COL = isImport ? '20px 1fr 1fr 80px 80px 100px 20px' : '20px 1fr 1fr 1fr 100px 100px 20px';
@@ -236,14 +287,69 @@ export const ArchivesBLView = ({ drill, search, sortKey, sortDir, nav }: Archive
                     <span key={i} className="text-xs font-bold text-text-muted uppercase tracking-widest truncate">{h}</span>
                 ))}
             </div>
-            {filteredBlEntries.length === 0 ? (
+            {historyQuery.isFetching && rows.length === 0 ? (
+                <div className="divide-y divide-border">
+                    {Array.from({ length: Math.min(perPage, 8) }).map((_, index) => (
+                        <div
+                            key={index}
+                            className="grid items-center gap-4 px-5 py-3.5"
+                            style={{ gridTemplateColumns: COL }}
+                        >
+                            {Array.from({ length: 7 }).map((__, cellIndex) => (
+                                <span key={cellIndex} className="h-4 animate-pulse rounded bg-surface-secondary" />
+                            ))}
+                        </div>
+                    ))}
+                </div>
+            ) : rows.length === 0 ? (
                 <div className="py-20 flex flex-col items-center gap-2 text-text-muted">
                     <p className="text-sm font-semibold text-text-secondary">{search ? `No BLs match "${search}"` : 'No records in this folder'}</p>
                 </div>
-            ) : filteredBlEntries.map(([blNo, blDocs]) => (
-                <BLFolderRow key={blNo} blNo={blNo} blDocs={blDocs}
+            ) : rows.map((row) => (
+                <BLFolderRow key={`${row.type}-${row.transaction_id}`} blNo={row.bl_no || '(no BL)'} blDocs={row.documents}
                     drill={drill} nav={nav} COL={COL} color={color} />
             ))}
+            <div className="flex flex-col gap-3 border-t border-border bg-surface-secondary/40 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-xs font-semibold text-text-muted">
+                    Showing {from.toLocaleString()}-{to.toLocaleString()} of {totalRows.toLocaleString()} BL records
+                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                    <label className="flex items-center gap-2 text-xs font-bold text-text-secondary">
+                        Rows
+                        <select
+                            value={perPage}
+                            onChange={(event) => {
+                                setPerPage(Number(event.target.value));
+                                setPage(1);
+                            }}
+                            className="rounded-lg border border-border bg-surface px-2 py-1 text-xs font-bold text-text-primary outline-none transition-colors focus:border-blue-500"
+                        >
+                            {[25, 50, 100].map((option) => (
+                                <option key={option} value={option}>{option}</option>
+                            ))}
+                        </select>
+                    </label>
+                    <button
+                        type="button"
+                        disabled={currentPage <= 1}
+                        onClick={() => setPage(Math.max(1, currentPage - 1))}
+                        className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-black text-text-secondary transition-colors hover:bg-hover hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                        Previous
+                    </button>
+                    <span className="min-w-20 text-center text-xs font-black text-text-muted">
+                        {currentPage} / {totalPages}
+                    </span>
+                    <button
+                        type="button"
+                        disabled={currentPage >= totalPages}
+                        onClick={() => setPage(Math.min(totalPages, currentPage + 1))}
+                        className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-black text-text-secondary transition-colors hover:bg-hover hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                        Next
+                    </button>
+                </div>
+            </div>
         </div>
     );
 };

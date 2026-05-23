@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Archives;
 
+use App\Data\Archives\ArchiveExportData;
 use App\Models\Document;
 use App\Models\ExportTransaction;
 use Illuminate\Foundation\Http\FormRequest;
@@ -156,5 +157,10 @@ class StoreArchiveExportRequest extends FormRequest
                     });
             },
         ];
+    }
+
+    public function archiveData(): ArchiveExportData
+    {
+        return ArchiveExportData::fromValidated($this->validated());
     }
 }

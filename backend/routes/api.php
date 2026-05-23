@@ -84,6 +84,8 @@ Route::middleware(['auth:sanctum', 'active-session', 'throttle:api-general'])->g
     // Archive uploads (legacy)
     Route::prefix('archives')->group(function () {
         Route::get('/', [ArchiveController::class, 'index']);
+        Route::get('documents', [ArchiveController::class, 'documents'])
+            ->middleware('throttle:api-search');
         Route::get('history', [ArchiveController::class, 'folderHistory'])
             ->middleware('throttle:api-search');
         Route::get('operational', [ArchiveController::class, 'operationalQueue']);

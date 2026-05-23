@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\LegacyBatches;
 
+use App\Data\LegacyBatches\LegacyBatchZipExportIndexFilters;
 use App\Enums\ArchiveZipExportStatus;
 use App\Enums\LegacyBatchModule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -14,9 +15,6 @@ class LegacyBatchZipExportIndexRequest extends FormRequest
         return true;
     }
 
-    /**
-     * @return array<string, mixed>
-     */
     public function rules(): array
     {
         return [
@@ -50,5 +48,14 @@ class LegacyBatchZipExportIndexRequest extends FormRequest
     public function perPage(): int
     {
         return $this->integer('per_page', 20);
+    }
+
+    public function filters(): LegacyBatchZipExportIndexFilters
+    {
+        return new LegacyBatchZipExportIndexFilters(
+            status: $this->status(),
+            module: $this->module(),
+            perPage: $this->perPage(),
+        );
     }
 }

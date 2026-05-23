@@ -1,4 +1,5 @@
 import api from '../../../lib/axios';
+import { startApiDownload } from '../../../lib/downloads';
 import type {
     CreateLegacyBatchPayload,
     FileNode,
@@ -367,12 +368,9 @@ export const legacyBatchApi = {
         await api.delete(`/api/legacy-batch-zip-exports/${exportId}`);
     },
 
-    downloadLegacyBatchZipExport: async (exportId: string, filename: string): Promise<void> => {
-        const response = await api.get(`/api/legacy-batch-zip-exports/${exportId}/download`, {
-            responseType: 'blob',
-        });
-
-        downloadBlob(new Blob([response.data]), filename);
+    downloadLegacyBatchZipExport: (exportId: string, filename: string): void => {
+        void filename;
+        startApiDownload(`/api/legacy-batch-zip-exports/${encodeURIComponent(exportId)}/download`);
     },
 
     downloadLegacyBatchFile: async (batchId: string, fileId: string, filename: string): Promise<void> => {

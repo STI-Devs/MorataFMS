@@ -3,6 +3,7 @@
 namespace App\Actions\Archives;
 
 use App\Actions\Documents\StoreTransactionDocument;
+use App\Data\Archives\ArchiveExportData;
 use App\Enums\ArchiveOrigin;
 use App\Enums\ExportStatus;
 use App\Models\ExportTransaction;
@@ -15,19 +16,19 @@ class CreateArchiveExport
 {
     public function __construct(private StoreTransactionDocument $storeTransactionDocument) {}
 
-    public function handle(array $validated, User $user): ExportTransaction
+    public function handle(ArchiveExportData $data, User $user): ExportTransaction
     {
         $storedPaths = [];
 
         try {
-            $transaction = DB::transaction(function () use ($validated, $user, &$storedPaths) {
+            $transaction = DB::transaction(function () use ($data, $user, &$storedPaths) {
                 $transaction = new ExportTransaction;
-                $transaction->bl_no = $validated['bl_no'];
-                $transaction->vessel = $validated['vessel'] ?? 'N/A';
-                $transaction->shipper_id = $validated['shipper_id'];
-                $transaction->destination_country_id = $validated['destination_country_id'];
-                $transaction->notes = $validated['notes'] ?? null;
-                $transaction->export_date = $validated['file_date'];
+                $transaction->bl_no = $data->blNo;
+                $transaction->vessel = $data->vessel ?? 'N/A';
+                $transaction->shipper_id = $data->shipperId;
+                $transaction->destination_country_id = $data->destinationCountryId;
+                $transaction->notes = $data->notes;
+                $transaction->export_date = $data->fileDate;
                 $transaction->is_archive = true;
                 $transaction->archived_at = now();
                 $transaction->archived_by = $user->id;
@@ -36,15 +37,15 @@ class CreateArchiveExport
                 $transaction->status = ExportStatus::Completed;
                 $transaction->save();
 
-                foreach ($validated['not_applicable_stages'] ?? [] as $stage) {
+                foreach ($data->notApplicableStages as $stage) {
                     $transaction->setStageApplicability($stage, true, $user->id);
                 }
 
-                foreach ($validated['documents'] ?? [] as $document) {
+                foreach ($data->documents as $document) {
                     $storedDocument = $this->storeTransactionDocument->handle(
                         $transaction,
-                        $document['file'],
-                        $document['stage'],
+                        $document->file,
+                        $document->stage,
                         $user->id,
                     );
 
@@ -52,7 +53,7 @@ class CreateArchiveExport
                 }
 
                 if (
-                    (! empty($validated['documents']) || ! empty($validated['not_applicable_stages']))
+                    $data->hasDocumentOrApplicabilityChanges()
                     && method_exists($transaction, 'recalculateStatus')
                 ) {
                     $transaction->recalculateStatus();

@@ -2,6 +2,7 @@
 
 namespace App\Support\Archives;
 
+use App\Enums\ArchiveZipExportScope;
 use App\Models\ArchiveZipExport;
 use App\Models\Document;
 use App\Models\ExportTransaction;
@@ -36,27 +37,17 @@ class ArchiveFolderZipBuilder
             throw new HttpException(404, 'Archive ZIP request owner was not found.');
         }
 
-        if ($archiveZipExport->month === null || $archiveZipExport->type === null) {
-            throw new HttpException(422, 'Archive ZIP request is missing folder scope details.');
-        }
-
-        $query = $this->transactions(
-            $user,
-            $archiveZipExport->mine,
-            $archiveZipExport->year,
-            $archiveZipExport->month,
-            $archiveZipExport->type,
-        );
-        $statistics = $this->statistics(clone $query);
+        $querySpecs = $this->querySpecs($archiveZipExport, $user);
+        $statistics = $this->statistics($querySpecs);
 
         if ($statistics['file_count'] === 0) {
-            throw new HttpException(404, 'This archive folder has no downloadable documents.');
+            throw new HttpException(404, 'This archive scope has no downloadable documents.');
         }
 
         $zipPath = $this->temporaryZipPath();
 
         try {
-            $this->buildZip(clone $query, $archiveZipExport->type, $zipPath);
+            $this->buildZip($querySpecs, $archiveZipExport->scope, $zipPath);
             $statistics['file_size_bytes'] = (int) filesize($zipPath);
             $this->storeZipFile($archiveZipExport, $zipPath);
 
@@ -74,6 +65,11 @@ class ArchiveFolderZipBuilder
         return "{$monthName}-{$year}-{$pluralType}.zip";
     }
 
+    public function yearDownloadFilename(int $year): string
+    {
+        return "fy-{$year}-archive.zip";
+    }
+
     /**
      * @return Builder<ImportTransaction|ExportTransaction>
      */
@@ -81,7 +77,7 @@ class ArchiveFolderZipBuilder
         User $user,
         bool $mine,
         int $year,
-        int $month,
+        ?int $month,
         string $type,
     ): Builder {
         $modelClass = $this->modelClass($type);
@@ -99,14 +95,20 @@ class ArchiveFolderZipBuilder
                     ->where(function (Builder $primaryDateQuery) use ($dateColumn, $year, $month): void {
                         $primaryDateQuery
                             ->whereNotNull($dateColumn)
-                            ->whereYear($dateColumn, $year)
-                            ->whereMonth($dateColumn, $month);
+                            ->whereYear($dateColumn, $year);
+
+                        if ($month !== null) {
+                            $primaryDateQuery->whereMonth($dateColumn, $month);
+                        }
                     })
                     ->orWhere(function (Builder $fallbackDateQuery) use ($dateColumn, $year, $month): void {
                         $fallbackDateQuery
                             ->whereNull($dateColumn)
-                            ->whereYear('created_at', $year)
-                            ->whereMonth('created_at', $month);
+                            ->whereYear('created_at', $year);
+
+                        if ($month !== null) {
+                            $fallbackDateQuery->whereMonth('created_at', $month);
+                        }
                     });
             });
 
@@ -118,9 +120,9 @@ class ArchiveFolderZipBuilder
     }
 
     /**
-     * @param  Builder<ImportTransaction|ExportTransaction>  $query
+     * @param  list<array{type:string, query:Builder<ImportTransaction|ExportTransaction>}>  $querySpecs
      */
-    private function buildZip(Builder $query, string $type, string $zipPath): void
+    private function buildZip(array $querySpecs, ArchiveZipExportScope $scope, string $zipPath): void
     {
         $workDir = dirname($zipPath);
         $zip = new ZipArchive;
@@ -134,47 +136,52 @@ class ArchiveFolderZipBuilder
             $this->openZip($zip, $zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
             $zipOpen = true;
 
-            $query
-                ->orderBy('id')
-                ->chunkById(self::TRANSACTION_CHUNK_SIZE, function ($transactions) use (
-                    $disk,
-                    &$filesInBatch,
-                    &$tempFiles,
-                    &$usedEntryNames,
-                    &$zip,
-                    &$zipOpen,
-                    $type,
-                    $workDir,
-                    $zipPath,
-                ): void {
-                    foreach ($transactions as $transaction) {
-                        foreach ($transaction->documents as $document) {
-                            if ($filesInBatch >= self::ZIP_BATCH_SIZE) {
-                                $this->closeZip($zip);
-                                $zipOpen = false;
-                                $this->deleteFiles($tempFiles);
-                                $tempFiles = [];
-                                $this->openZip($zip, $zipPath, ZipArchive::CREATE);
-                                $zipOpen = true;
-                                $filesInBatch = 0;
+            foreach ($querySpecs as $querySpec) {
+                $type = $querySpec['type'];
+
+                $querySpec['query']
+                    ->orderBy('id')
+                    ->chunkById(self::TRANSACTION_CHUNK_SIZE, function ($transactions) use (
+                        $disk,
+                        &$filesInBatch,
+                        &$tempFiles,
+                        &$usedEntryNames,
+                        &$zip,
+                        &$zipOpen,
+                        $scope,
+                        $type,
+                        $workDir,
+                        $zipPath,
+                    ): void {
+                        foreach ($transactions as $transaction) {
+                            foreach ($transaction->documents as $document) {
+                                if ($filesInBatch >= self::ZIP_BATCH_SIZE) {
+                                    $this->closeZip($zip);
+                                    $zipOpen = false;
+                                    $this->deleteFiles($tempFiles);
+                                    $tempFiles = [];
+                                    $this->openZip($zip, $zipPath, ZipArchive::CREATE);
+                                    $zipOpen = true;
+                                    $filesInBatch = 0;
+                                }
+
+                                $tempPath = $this->copyDocumentToTempFile($disk, $document, $workDir);
+                                $tempFiles[] = $tempPath;
+
+                                $entryName = $this->uniqueEntryName(
+                                    $this->entryName($transaction, $document, $type, $scope),
+                                    $usedEntryNames,
+                                );
+
+                                if (! $zip->addFile($tempPath, $entryName)) {
+                                    throw new HttpException(500, "Unable to add {$document->filename} to the archive ZIP.");
+                                }
+
+                                $filesInBatch++;
                             }
-
-                            $tempPath = $this->copyDocumentToTempFile($disk, $document, $workDir);
-                            $tempFiles[] = $tempPath;
-
-                            $entryName = $this->uniqueEntryName(
-                                $this->entryName($transaction, $document, $type),
-                                $usedEntryNames,
-                            );
-
-                            if (! $zip->addFile($tempPath, $entryName)) {
-                                throw new HttpException(500, "Unable to add {$document->filename} to the archive ZIP.");
-                            }
-
-                            $filesInBatch++;
                         }
-                    }
-                });
+                    });
+            }
 
             $this->closeZip($zip);
             $zipOpen = false;
@@ -191,17 +198,25 @@ class ArchiveFolderZipBuilder
     }
 
     /**
-     * @param  Builder<ImportTransaction|ExportTransaction>  $query
+     * @param  list<array{type:string, query:Builder<ImportTransaction|ExportTransaction>}>  $querySpecs
      * @return array{file_count:int, bl_count:int, file_size_bytes:int}
      */
-    private function statistics(Builder $query): array
+    private function statistics(array $querySpecs): array
     {
-        return [
-            'file_count' => (int) (clone $query)
+        $fileCount = 0;
+        $blCount = 0;
+
+        foreach ($querySpecs as $querySpec) {
+            $fileCount += (int) (clone $querySpec['query'])
                 ->withCount('documents')
                 ->pluck('documents_count')
-                ->sum(),
-            'bl_count' => (int) (clone $query)->count(),
+                ->sum();
+            $blCount += (int) (clone $querySpec['query'])->count();
+        }
+
+        return [
+            'file_count' => $fileCount,
+            'bl_count' => $blCount,
             'file_size_bytes' => 0,
         ];
     }
@@ -294,12 +309,70 @@ class ArchiveFolderZipBuilder
         ImportTransaction|ExportTransaction $transaction,
         Document $document,
         string $type,
+        ArchiveZipExportScope $scope,
     ): string {
         $blNo = $this->sanitizePathSegment($transaction->bl_no ?: 'no-bl');
         $stage = $this->sanitizePathSegment($document->type ?: 'documents');
         $filename = $this->sanitizeFilename($document->filename ?: basename($document->path));
 
+        if ($scope === ArchiveZipExportScope::Year) {
+            $folderName = $this->sanitizePathSegment($this->transactionFolderName($transaction, $type));
+
+            return "{$folderName}/{$blNo}/{$stage}/{$filename}";
+        }
+
         return "{$blNo}/{$stage}/{$filename}";
+    }
+
+    /**
+     * @return list<array{type:string, query:Builder<ImportTransaction|ExportTransaction>}>
+     */
+    private function querySpecs(ArchiveZipExport $archiveZipExport, User $user): array
+    {
+        if ($archiveZipExport->scope === ArchiveZipExportScope::Folder) {
+            if ($archiveZipExport->month === null || $archiveZipExport->type === null) {
+                throw new HttpException(422, 'Archive ZIP request is missing folder scope details.');
+            }
+
+            return [[
+                'type' => $archiveZipExport->type,
+                'query' => $this->transactions(
+                    $user,
+                    $archiveZipExport->mine,
+                    $archiveZipExport->year,
+                    $archiveZipExport->month,
+                    $archiveZipExport->type,
+                ),
+            ]];
+        }
+
+        return [
+            [
+                'type' => 'import',
+                'query' => $this->transactions($user, $archiveZipExport->mine, $archiveZipExport->year, null, 'import'),
+            ],
+            [
+                'type' => 'export',
+                'query' => $this->transactions($user, $archiveZipExport->mine, $archiveZipExport->year, null, 'export'),
+            ],
+        ];
+    }
+
+    private function transactionMonth(ImportTransaction|ExportTransaction $transaction, string $type): int
+    {
+        $date = $type === 'import' ? $transaction->arrival_date : $transaction->export_date;
+
+        return (int) ($date ?? $transaction->created_at)->month;
+    }
+
+    private function transactionFolderName(ImportTransaction|ExportTransaction $transaction, string $type): string
+    {
+        $date = $type === 'import' ? $transaction->arrival_date : $transaction->export_date;
+        $effectiveDate = $date ?? $transaction->created_at;
+        $monthName = strtoupper(date('M', mktime(0, 0, 0, $this->transactionMonth($transaction, $type), 1)));
+        $pluralType = $type === 'import' ? 'IMPORTS' : 'EXPORTS';
+
+        return "{$monthName} {$effectiveDate->year} {$pluralType}";
     }
 
     /**

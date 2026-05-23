@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\LegacyBatches;
 
+use App\Data\LegacyBatches\LegacyBatchCreateData;
 use App\Enums\LegacyBatchModule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -168,5 +169,10 @@ class StoreLegacyBatchRequest extends FormRequest
         }
 
         return 'Only PDF, Office documents, spreadsheets, email message files, text files, and images are allowed in legacy uploads.';
+    }
+
+    public function legacyBatchData(): LegacyBatchCreateData
+    {
+        return LegacyBatchCreateData::fromValidated($this->validated());
     }
 }

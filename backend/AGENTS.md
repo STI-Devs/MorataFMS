@@ -277,6 +277,7 @@ For new backend work, prefer this request flow:
 
 Controller
 -> FormRequest
+-> Data object for meaningful multi-field payloads
 -> Policy / Gate
 -> Action for state changes
 -> Query for read/list/report concerns
@@ -315,6 +316,26 @@ Good fits:
 - profile or account mutations
 
 Use focused names such as `CreateImportTransaction`, `ResolveTransactionRemark`, or `ArchiveReviewedTransaction`. Avoid vague classes like `GeneralService` or `TransactionHelper`.
+
+## Data Objects
+
+Use `app/Data` for typed payload objects that carry validated data across multiple layers.
+
+Good fits:
+
+- filter payloads with several fields passed from FormRequest to Controller to Orchestrator to Query
+- command payloads with several fields passed from FormRequest to Controller to Orchestrator to Action
+- reusable request/business payloads where array-shape PHPDoc would otherwise be repeated across classes
+
+Data objects should:
+
+- be domain-scoped, such as `app/Data/Archives`
+- be `final readonly` by default
+- use constructor property promotion
+- contain normalized, already-validated data
+- avoid duplicating validation rules that belong in FormRequest classes
+
+Do not create a Data object for one or two scalar values or for payloads that never leave the controller/request boundary. Use typed Data objects instead of passing broad associative arrays through Orchestrators, Actions, or Queries when the payload is meaningful enough to name.
 
 ## Queries
 
@@ -368,6 +389,7 @@ This backend follows a lightweight CQRS-style structure. Keep command and query 
 
 - commands / state changes -> `app/Actions`
 - reads / listings / reports / dashboards -> `app/Queries`
+- typed cross-layer payloads -> `app/Data`
 - reusable technical helpers -> `app/Support`
 - persistence and relationships -> Eloquent models
 

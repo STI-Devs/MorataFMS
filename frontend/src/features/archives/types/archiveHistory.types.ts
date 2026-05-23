@@ -11,6 +11,8 @@ export type ArchiveFolderHistoryParams = {
     per_page?: number;
     search?: string;
     completion?: ArchiveFolderHistoryCompletion;
+    sort?: 'period' | 'bl' | 'client' | 'files';
+    direction?: 'asc' | 'desc';
 };
 
 export type ArchiveFolderHistoryRow = {
@@ -53,6 +55,35 @@ export type ArchiveFolderHistoryResponse = {
     meta: ArchiveFolderHistoryMeta;
 };
 
+export type ArchiveDocumentIndexCompletion = 'all' | 'complete' | 'incomplete';
+
+export type ArchiveDocumentIndexParams = {
+    mine?: boolean;
+    year?: number;
+    type?: TransactionType | 'all';
+    search?: string;
+    completion?: ArchiveDocumentIndexCompletion;
+    page?: number;
+    per_page?: number;
+};
+
+export type ArchiveDocumentIndexRow = {
+    bl_no: string;
+    client: string;
+    type: TransactionType;
+    year: number;
+    month: number;
+    transaction_id: number;
+    documentable_type: string;
+    not_applicable_stages: string[];
+    documents: ArchiveDocument[];
+};
+
+export type ArchiveDocumentIndexResponse = {
+    data: ArchiveDocumentIndexRow[];
+    meta: ArchiveFolderHistoryMeta;
+};
+
 export type ArchiveZipExportStatus = 'pending' | 'processing' | 'ready' | 'failed' | 'expired';
 
 export type ArchiveZipExport = {
@@ -86,10 +117,10 @@ export type ArchiveZipExportListParams = {
 };
 
 export type ArchiveZipExportCreateParams = {
-    scope?: 'folder';
+    scope?: 'folder' | 'year';
     year: number;
-    month: number;
-    type: TransactionType;
+    month?: number | null;
+    type?: TransactionType | null;
     mine?: boolean;
 };
 

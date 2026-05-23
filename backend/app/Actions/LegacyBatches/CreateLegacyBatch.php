@@ -2,7 +2,7 @@
 
 namespace App\Actions\LegacyBatches;
 
-use App\Enums\LegacyBatchModule;
+use App\Data\LegacyBatches\LegacyBatchCreateData;
 use App\Enums\LegacyBatchStatus;
 use App\Models\LegacyBatch;
 use App\Models\User;
@@ -14,34 +14,30 @@ class CreateLegacyBatch
 {
     public function __construct(private LegacyBatchManifestRegistrar $legacyBatchManifestRegistrar) {}
 
-    public function handle(array $data, User $user): LegacyBatch
+    public function handle(LegacyBatchCreateData $data, User $user): LegacyBatch
     {
-        $manifestFiles = collect($data['files']);
-        $expectedFileCount = (int) ($data['expected_file_count'] ?? $manifestFiles->count());
-        $totalSizeBytes = (int) ($data['total_size_bytes'] ?? $manifestFiles->sum('size_bytes'));
-
-        return DB::transaction(function () use ($data, $manifestFiles, $user, $expectedFileCount, $totalSizeBytes): LegacyBatch {
+        return DB::transaction(function () use ($data, $user): LegacyBatch {
             $batch = LegacyBatch::query()->create([
                 'uuid' => (string) Str::uuid(),
-                'batch_name' => $data['batch_name'],
-                'root_folder' => $data['root_folder'],
-                'year' => (int) $data['year_to'],
-                'year_from' => (int) $data['year_from'],
-                'year_to' => (int) $data['year_to'],
-                'department' => $data['department'],
-                'module' => $data['module'] ?? LegacyBatchModule::Brokerage->value,
-                'notes' => $data['notes'] ?? null,
+                'batch_name' => $data->batchName,
+                'root_folder' => $data->rootFolder,
+                'year' => $data->yearTo,
+                'year_from' => $data->yearFrom,
+                'year_to' => $data->yearTo,
+                'department' => $data->department,
+                'module' => $data->module->value,
+                'notes' => $data->notes,
                 'status' => LegacyBatchStatus::Draft,
-                'expected_file_count' => $expectedFileCount,
+                'expected_file_count' => $data->expectedFileCount,
                 'uploaded_file_count' => 0,
                 'failed_file_count' => 0,
-                'total_size_bytes' => $totalSizeBytes,
+                'total_size_bytes' => $data->totalSizeBytes,
                 'storage_disk' => (string) config('filesystems.default', 'local'),
                 'uploaded_by' => $user->id,
                 'last_activity_at' => now(),
             ]);
 
-            $this->legacyBatchManifestRegistrar->register($batch, $manifestFiles->all());
+            $this->legacyBatchManifestRegistrar->register($batch, $data->manifest);
 
             return $batch;
         });

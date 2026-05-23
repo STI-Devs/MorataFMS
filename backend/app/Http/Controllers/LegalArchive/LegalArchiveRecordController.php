@@ -22,7 +22,7 @@ class LegalArchiveRecordController extends Controller
     {
         $this->authorize('viewAny', LegalArchiveRecord::class);
 
-        return LegalArchiveRecordResource::collection($this->legalArchiveRecords->index($request));
+        return LegalArchiveRecordResource::collection($this->legalArchiveRecords->index($request->filters()));
     }
 
     public function store(StoreLegalArchiveRecordRequest $request): JsonResponse
@@ -31,7 +31,7 @@ class LegalArchiveRecordController extends Controller
 
         return (new LegalArchiveRecordResource(
             $this->legalArchiveRecords->store(
-                $request->safe()->except('file'),
+                $request->recordData(),
                 $request->user(),
                 $request->file('file'),
             )

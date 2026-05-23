@@ -40,10 +40,10 @@ export const EncoderArchivePage = () => {
     const globalPct = computeGlobalCompleteness(archiveData);
     const incompleteBLs = countIncompleteBLs(archiveData);
     const totalMyUploads = archiveData.reduce(
-        (sum, year) => sum + year.documents.filter(doc => doc.uploader?.id === user?.id).length,
+        (sum, year) => sum + (year.uploaded_file_count ?? year.documents.filter(doc => doc.uploader?.id === user?.id).length),
         0,
     );
-    const uniqueBLs = new Set(archiveData.flatMap(year => year.documents.map(doc => `${doc.bl_no}|${doc.type}|${year.year}`))).size;
+    const uniqueBLs = archiveData.reduce((sum, year) => sum + (year.bl_count ?? year.imports + year.exports), 0);
     const currentDate = new Date();
     const firstUploadByBl = archiveData.reduce((carry, year) => {
         year.documents.forEach((doc) => {
@@ -67,11 +67,13 @@ export const EncoderArchivePage = () => {
 
         return carry;
     }, new Map<string, Date>());
-    const thisMonthBLsAdded = Array.from(firstUploadByBl.values()).filter((uploadedDate) =>
-        uploadedDate.getMonth() === currentDate.getMonth() && uploadedDate.getFullYear() === currentDate.getFullYear(),
-    ).length;
+    const thisMonthBLsAdded = archiveData.some((year) => year.current_month_bl_count !== undefined)
+        ? archiveData.reduce((sum, year) => sum + (year.current_month_bl_count ?? 0), 0)
+        : Array.from(firstUploadByBl.values()).filter((uploadedDate) =>
+            uploadedDate.getMonth() === currentDate.getMonth() && uploadedDate.getFullYear() === currentDate.getFullYear(),
+        ).length;
     const totalStorageBytes = archiveData.reduce(
-        (sum, year) => sum + year.documents.reduce((docsSum, doc) => docsSum + (doc.size_bytes ?? 0), 0),
+        (sum, year) => sum + (year.total_size_bytes ?? year.documents.reduce((docsSum, doc) => docsSum + (doc.size_bytes ?? 0), 0)),
         0,
     );
 
@@ -140,7 +142,6 @@ export const EncoderArchivePage = () => {
                     ]}
                     searchPlaceholder="Search BL number, client, or vessel..."
                     documentViewTitle="My BL Records"
-                    showAuditButton={false}
                     historyMine
                     canDeleteDocument={(doc, userId) => doc.uploader?.id === userId}
                     canReplaceDocument={(doc, userId) => doc.uploader?.id === userId}

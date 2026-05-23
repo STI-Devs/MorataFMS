@@ -94,8 +94,9 @@ test('admin can request legacy batch zip export and download the prepared file',
     @unlink($zipPath);
 });
 
-test('legacy batch zip exports are admin only and require completed batches', function () {
+test('legacy batch zip exports can be requested by admins or the uploading user only and require completed batches', function () {
     $encoder = User::factory()->create(['role' => 'encoder']);
+    $otherEncoder = User::factory()->create(['role' => 'encoder']);
     $admin = User::factory()->create(['role' => 'admin']);
     $batch = LegacyBatch::factory()->completed()->create([
         'uploaded_by' => $encoder->id,
@@ -107,7 +108,13 @@ test('legacy batch zip exports are admin only and require completed batches', fu
 
     $this->actingAs($encoder)
         ->postJson("/api/legacy-batches/{$batch->uuid}/zip-export")
-        ->assertForbidden();
+        ->assertAccepted()
+        ->assertJsonPath('data.status', ArchiveZipExportStatus::Pending->value);
+
+    $this->actingAs($otherEncoder)
+        ->postJson("/api/legacy-batches/{$batch->uuid}/zip-export")
+        ->assertForbidden()
+        ->assertSeeText('You are not allowed to access this legacy batch.');
 
     $interruptedBatch = LegacyBatch::factory()->create([
         'uploaded_by' => $admin->id,
@@ -120,9 +127,10 @@ test('legacy batch zip exports are admin only and require completed batches', fu
         ->assertSeeText('Only completed legacy batches can be prepared as ZIP downloads.');
 });
 
-test('admin can list legacy batch zip exports by module and status', function () {
+test('users can list legacy batch zip exports they are allowed to access by module and status', function () {
     $admin = User::factory()->create(['role' => 'admin']);
     $encoder = User::factory()->create(['role' => 'encoder']);
+    $otherEncoder = User::factory()->create(['role' => 'encoder']);
     $brokerageBatch = LegacyBatch::factory()->completed()->create([
         'uploaded_by' => $admin->id,
         'batch_name' => 'APRIL 2026',
@@ -134,6 +142,18 @@ test('admin can list legacy batch zip exports by module and status', function ()
         'batch_name' => 'LEGAL ARCHIVE',
         'root_folder' => 'LEGAL ARCHIVE',
         'module' => 'legal',
+    ]);
+    $encoderBatch = LegacyBatch::factory()->completed()->create([
+        'uploaded_by' => $encoder->id,
+        'batch_name' => 'ENCODER ARCHIVE',
+        'root_folder' => 'ENCODER ARCHIVE',
+        'module' => 'brokerage',
+    ]);
+    $otherEncoderBatch = LegacyBatch::factory()->completed()->create([
+        'uploaded_by' => $otherEncoder->id,
+        'batch_name' => 'OTHER ENCODER ARCHIVE',
+        'root_folder' => 'OTHER ENCODER ARCHIVE',
+        'module' => 'brokerage',
     ]);
     $readyLegacyBatchZipExport = LegacyBatchZipExport::factory()->ready()->create([
         'legacy_batch_id' => $brokerageBatch->id,
@@ -148,20 +168,31 @@ test('admin can list legacy batch zip exports by module and status', function ()
         'legacy_batch_id' => $legalBatch->id,
         'requested_by' => $admin->id,
     ]);
+    $encoderLegacyBatchZipExport = LegacyBatchZipExport::factory()->ready()->create([
+        'legacy_batch_id' => $encoderBatch->id,
+        'requested_by' => $encoder->id,
+    ]);
+    LegacyBatchZipExport::factory()->ready()->create([
+        'legacy_batch_id' => $otherEncoderBatch->id,
+        'requested_by' => $otherEncoder->id,
+    ]);
 
     $this->actingAs($encoder)
         ->getJson('/api/legacy-batch-zip-exports')
-        ->assertForbidden();
+        ->assertSuccessful()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.id', $encoderLegacyBatchZipExport->uuid)
+        ->assertJsonPath('data.0.legacy_batch.id', $encoderBatch->uuid)
+        ->assertJsonPath('data.0.legacy_batch.batch_name', 'ENCODER ARCHIVE');
 
     $this->actingAs($admin)
         ->getJson('/api/legacy-batch-zip-exports?module=brokerage&status=ready')
         ->assertSuccessful()
-        ->assertJsonCount(1, 'data')
-        ->assertJsonPath('data.0.id', $readyLegacyBatchZipExport->uuid)
-        ->assertJsonPath('data.0.legacy_batch.id', $brokerageBatch->uuid)
-        ->assertJsonPath('data.0.legacy_batch.batch_name', 'APRIL 2026')
-        ->assertJsonPath('data.0.legacy_batch.module', 'brokerage')
-        ->assertJsonPath('data.0.file_count', 5);
+        ->assertJsonCount(3, 'data')
+        ->assertJsonFragment(['id' => $readyLegacyBatchZipExport->uuid])
+        ->assertJsonFragment(['batch_name' => 'APRIL 2026'])
+        ->assertJsonFragment(['module' => 'brokerage'])
+        ->assertJsonFragment(['file_count' => 5]);
 });
 
 test('legacy batch zip export requests are idempotent while active', function () {
@@ -184,6 +215,36 @@ test('legacy batch zip export requests are idempotent while active', function ()
     expect(LegacyBatchZipExport::query()->count())->toBe(1);
 
     Queue::assertPushed(GenerateLegacyBatchZipExport::class, 1);
+});
+
+test('legacy batch zip export requests are capped at five active zip requests per user', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+
+    foreach (range(1, 5) as $index) {
+        $existingBatch = LegacyBatch::factory()->completed()->create([
+            'uploaded_by' => $admin->id,
+            'batch_name' => "Existing Batch {$index}",
+        ]);
+
+        LegacyBatchZipExport::factory()->ready()->create([
+            'legacy_batch_id' => $existingBatch->id,
+            'requested_by' => $admin->id,
+        ]);
+    }
+
+    $newBatch = LegacyBatch::factory()->completed()->create([
+        'uploaded_by' => $admin->id,
+        'batch_name' => 'New Batch',
+    ]);
+
+    Queue::fake();
+
+    $this->actingAs($admin)
+        ->postJson("/api/legacy-batches/{$newBatch->uuid}/zip-export")
+        ->assertTooManyRequests()
+        ->assertSeeText('You can only keep 5 active ZIP requests at a time.');
+
+    Queue::assertNothingPushed();
 });
 
 test('failed legacy batch zip exports can be retried and finished requests can be deleted', function () {

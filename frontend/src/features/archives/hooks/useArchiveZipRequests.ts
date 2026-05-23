@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { TransactionType } from '../../documents/types/document.types';
 import { trackingApi } from '../../tracking/api/trackingApi';
@@ -10,12 +10,13 @@ export type ArchiveZipRequestStatus = ArchiveZipExportStatus;
 
 export type ArchiveZipRequest = {
     id: string;
+    scope: ArchiveZipExport['scope'];
     requestKey: string;
     folderName: string;
     filename: string;
     year: number;
-    month: number;
-    type: TransactionType;
+    month: number | null;
+    type: TransactionType | null;
     fileCount: number;
     blCount: number;
     fileSizeBytes: number;
@@ -27,7 +28,8 @@ export type ArchiveZipRequest = {
     errorMessage: string | null;
 };
 
-export type ArchiveZipRequestInput = {
+type ArchiveFolderZipRequestInput = {
+    scope?: 'folder';
     requestKey: string;
     folderName: string;
     year: number;
@@ -38,11 +40,24 @@ export type ArchiveZipRequestInput = {
     filename: string;
 };
 
+type ArchiveYearZipRequestInput = {
+    scope: 'year';
+    requestKey: string;
+    folderName: string;
+    year: number;
+    fileCount: number;
+    blCount: number;
+    filename: string;
+};
+
+export type ArchiveZipRequestInput = ArchiveFolderZipRequestInput | ArchiveYearZipRequestInput;
+
 type UseArchiveZipRequestsArgs = {
     mine: boolean;
 };
 
 const ZIP_REQUEST_PAGE_SIZE = 20;
+const DOWNLOAD_START_GUARD_MS = 2000;
 
 const isActiveZipStatus = (status: ArchiveZipRequestStatus) => (
     status === 'pending' || status === 'processing'
@@ -53,12 +68,35 @@ const buildFolderName = (year: number, month: number, type: TransactionType): st
 );
 
 const toZipRequest = (archiveZipExport: ArchiveZipExport): ArchiveZipRequest | null => {
+    if (archiveZipExport.scope === 'year') {
+        return {
+            id: archiveZipExport.id,
+            scope: archiveZipExport.scope,
+            requestKey: `year|${archiveZipExport.year}`,
+            folderName: `FY ${archiveZipExport.year}`,
+            filename: archiveZipExport.filename,
+            year: archiveZipExport.year,
+            month: null,
+            type: null,
+            fileCount: archiveZipExport.file_count,
+            blCount: archiveZipExport.bl_count,
+            fileSizeBytes: archiveZipExport.file_size_bytes,
+            status: archiveZipExport.status,
+            requestedAt: archiveZipExport.requested_at,
+            completedAt: archiveZipExport.completed_at,
+            expiresAt: archiveZipExport.expires_at,
+            canDownload: archiveZipExport.can_download,
+            errorMessage: archiveZipExport.error_message,
+        };
+    }
+
     if (archiveZipExport.month === null || archiveZipExport.type === null) {
         return null;
     }
 
     return {
         id: archiveZipExport.id,
+        scope: archiveZipExport.scope,
         requestKey: `${archiveZipExport.month}|${archiveZipExport.type}`,
         folderName: buildFolderName(archiveZipExport.year, archiveZipExport.month, archiveZipExport.type),
         filename: archiveZipExport.filename,
@@ -77,20 +115,18 @@ const toZipRequest = (archiveZipExport: ArchiveZipExport): ArchiveZipRequest | n
     };
 };
 
-const downloadBlob = (blob: Blob, filename: string) => {
-    const blobUrl = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = blobUrl;
-    link.setAttribute('download', filename);
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(blobUrl);
-};
-
 export const useArchiveZipRequests = ({ mine }: UseArchiveZipRequestsArgs) => {
     const queryClient = useQueryClient();
     const queryKey = archiveKeys.zipExports(mine);
+    const activeDownloadRequestIdRef = useRef<string | null>(null);
+    const downloadResetTimerRef = useRef<number | null>(null);
+    const [downloadingRequestId, setDownloadingRequestId] = useState<string | null>(null);
+
+    useEffect(() => () => {
+        if (downloadResetTimerRef.current !== null) {
+            window.clearTimeout(downloadResetTimerRef.current);
+        }
+    }, []);
 
     const zipExportsQuery = useQuery({
         queryKey,
@@ -121,13 +157,23 @@ export const useArchiveZipRequests = ({ mine }: UseArchiveZipRequestsArgs) => {
     ), [queryClient, queryKey]);
 
     const requestMutation = useMutation({
-        mutationFn: (input: ArchiveZipRequestInput) => trackingApi.createArchiveZipExport({
-            scope: 'folder',
-            year: input.year,
-            month: input.month,
-            type: input.type,
-            mine,
-        }),
+        mutationFn: (input: ArchiveZipRequestInput) => {
+            if (input.scope === 'year') {
+                return trackingApi.createArchiveZipExport({
+                    scope: 'year',
+                    year: input.year,
+                    mine,
+                });
+            }
+
+            return trackingApi.createArchiveZipExport({
+                scope: 'folder',
+                year: input.year,
+                month: input.month,
+                type: input.type,
+                mine,
+            });
+        },
         onSuccess: invalidateZipRequests,
     });
 
@@ -148,11 +194,23 @@ export const useArchiveZipRequests = ({ mine }: UseArchiveZipRequestsArgs) => {
         onSuccess: invalidateZipRequests,
     });
 
-    const downloadMutation = useMutation({
-        mutationFn: (request: ArchiveZipRequest) => trackingApi.downloadArchiveZipExport(request.id)
-            .then((blob) => ({ blob, filename: request.filename })),
-        onSuccess: ({ blob, filename }) => downloadBlob(blob, filename),
-    });
+    const markDownloadStarted = useCallback((requestId: string) => {
+        activeDownloadRequestIdRef.current = requestId;
+        setDownloadingRequestId(requestId);
+
+        if (downloadResetTimerRef.current !== null) {
+            window.clearTimeout(downloadResetTimerRef.current);
+        }
+
+        downloadResetTimerRef.current = window.setTimeout(() => {
+            if (activeDownloadRequestIdRef.current === requestId) {
+                activeDownloadRequestIdRef.current = null;
+                setDownloadingRequestId(null);
+            }
+
+            downloadResetTimerRef.current = null;
+        }, DOWNLOAD_START_GUARD_MS);
+    }, []);
 
     const requestFolderZip = useCallback((input: ArchiveZipRequestInput) => {
         if (preparingRequestKeys.has(input.requestKey)) {
@@ -163,14 +221,19 @@ export const useArchiveZipRequests = ({ mine }: UseArchiveZipRequestsArgs) => {
     }, [preparingRequestKeys, requestMutation]);
 
     const downloadRequest = useCallback((requestId: string) => {
+        if (activeDownloadRequestIdRef.current === requestId || downloadingRequestId === requestId) {
+            return;
+        }
+
         const request = requests.find((item) => item.id === requestId);
 
         if (!request || request.status !== 'ready' || !request.canDownload) {
             return;
         }
 
-        downloadMutation.mutate(request);
-    }, [downloadMutation, requests]);
+        markDownloadStarted(requestId);
+        trackingApi.startArchiveZipExportDownload(request.id);
+    }, [downloadingRequestId, markDownloadStarted, requests]);
 
     const dismissRequest = useCallback((requestId: string) => {
         const request = requests.find((item) => item.id === requestId);
@@ -212,6 +275,7 @@ export const useArchiveZipRequests = ({ mine }: UseArchiveZipRequestsArgs) => {
         dismissRequest,
         retryRequest,
         clearFinishedRequests,
+        downloadingRequestId,
         isLoading: zipExportsQuery.isLoading,
         isRequesting: requestMutation.isPending,
     };

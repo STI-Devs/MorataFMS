@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { legacyBatchApi } from '../api/legacyBatchApi';
 import type {
@@ -34,6 +34,7 @@ type UseLegacyBatchZipRequestsArgs = {
 };
 
 const ZIP_REQUEST_PAGE_SIZE = 20;
+const DOWNLOAD_START_GUARD_MS = 2000;
 
 const isActiveZipStatus = (status: LegacyBatchZipRequestStatus) => (
     status === 'pending' || status === 'processing'
@@ -66,6 +67,15 @@ const toZipRequest = (zipExport: LegacyBatchZipExport): LegacyBatchZipRequest | 
 export const useLegacyBatchZipRequests = ({ module }: UseLegacyBatchZipRequestsArgs = {}) => {
     const queryClient = useQueryClient();
     const queryKey = legacyBatchQueryKeys.zipExports(module);
+    const activeDownloadRequestIdRef = useRef<string | null>(null);
+    const downloadResetTimerRef = useRef<number | null>(null);
+    const [downloadingRequestId, setDownloadingRequestId] = useState<string | null>(null);
+
+    useEffect(() => () => {
+        if (downloadResetTimerRef.current !== null) {
+            window.clearTimeout(downloadResetTimerRef.current);
+        }
+    }, []);
 
     const zipExportsQuery = useQuery({
         queryKey,
@@ -124,12 +134,23 @@ export const useLegacyBatchZipRequests = ({ module }: UseLegacyBatchZipRequestsA
         onSuccess: () => invalidateZipRequests(),
     });
 
-    const downloadMutation = useMutation({
-        mutationFn: (request: LegacyBatchZipRequest) => legacyBatchApi.downloadLegacyBatchZipExport(
-            request.id,
-            request.filename,
-        ),
-    });
+    const markDownloadStarted = useCallback((requestId: string) => {
+        activeDownloadRequestIdRef.current = requestId;
+        setDownloadingRequestId(requestId);
+
+        if (downloadResetTimerRef.current !== null) {
+            window.clearTimeout(downloadResetTimerRef.current);
+        }
+
+        downloadResetTimerRef.current = window.setTimeout(() => {
+            if (activeDownloadRequestIdRef.current === requestId) {
+                activeDownloadRequestIdRef.current = null;
+                setDownloadingRequestId(null);
+            }
+
+            downloadResetTimerRef.current = null;
+        }, DOWNLOAD_START_GUARD_MS);
+    }, []);
 
     const requestBatchZip = useCallback((batchId: string) => {
         requestMutation.mutate(batchId);
@@ -150,34 +171,28 @@ export const useLegacyBatchZipRequests = ({ module }: UseLegacyBatchZipRequestsA
     }, [retryMutation]);
 
     const downloadRequest = useCallback((requestId: string) => {
+        if (activeDownloadRequestIdRef.current === requestId || downloadingRequestId === requestId) {
+            return;
+        }
+
         const request = requests.find((item) => item.id === requestId);
 
         if (!request || request.status !== 'ready' || !request.canDownload) {
             return;
         }
 
-        downloadMutation.mutate(request);
-    }, [downloadMutation, requests]);
+        markDownloadStarted(requestId);
+        legacyBatchApi.downloadLegacyBatchZipExport(request.id, request.filename);
+    }, [downloadingRequestId, markDownloadStarted, requests]);
 
     const downloadBatchZip = useCallback((exportId: string, filename: string) => {
-        downloadMutation.mutate({
-            id: exportId,
-            batchId: '',
-            batchName: '',
-            rootFolder: '',
-            moduleLabel: '',
-            filename,
-            fileCount: 0,
-            fileSizeBytes: 0,
-            status: 'ready',
-            requestedAt: null,
-            completedAt: null,
-            expiresAt: null,
-            canDownload: true,
-            errorMessage: null,
-            requestedBy: null,
-        });
-    }, [downloadMutation]);
+        if (activeDownloadRequestIdRef.current === exportId || downloadingRequestId === exportId) {
+            return;
+        }
+
+        markDownloadStarted(exportId);
+        legacyBatchApi.downloadLegacyBatchZipExport(exportId, filename);
+    }, [downloadingRequestId, markDownloadStarted]);
 
     const dismissRequest = useCallback((requestId: string) => {
         const request = requests.find((item) => item.id === requestId);
@@ -210,10 +225,11 @@ export const useLegacyBatchZipRequests = ({ module }: UseLegacyBatchZipRequestsA
         retryRequest,
         dismissRequest,
         clearFinishedRequests,
+        downloadingRequestId,
         isLoading: zipExportsQuery.isLoading,
         isRequesting: requestMutation.isPending,
         isRetrying: retryMutation.isPending,
-        isDownloading: downloadMutation.isPending,
+        isDownloading: downloadingRequestId !== null,
         requestingBatchId: requestMutation.isPending ? requestMutation.variables ?? null : null,
         retryingBatchId: retryMutation.isPending ? retryMutation.variables?.batchId ?? null : null,
     };

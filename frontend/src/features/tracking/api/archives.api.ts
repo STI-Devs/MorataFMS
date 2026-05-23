@@ -1,7 +1,10 @@
 import api from '../../../lib/axios';
+import { startApiDownload } from '../../../lib/downloads';
 import type {
     ArchiveFolderHistoryParams,
     ArchiveFolderHistoryResponse,
+    ArchiveDocumentIndexParams,
+    ArchiveDocumentIndexResponse,
     ArchiveZipExport,
     ArchiveZipExportCreateParams,
     ArchiveZipExportListParams,
@@ -82,6 +85,17 @@ export const archivesApi = {
         return response.data;
     },
 
+    getArchiveDocuments: async (params: ArchiveDocumentIndexParams = {}): Promise<ArchiveDocumentIndexResponse> => {
+        const response = await api.get('/api/archives/documents', {
+            params: {
+                ...params,
+                mine: params.mine ? 1 : undefined,
+            },
+        });
+
+        return response.data;
+    },
+
     getArchiveZipExports: async (params: ArchiveZipExportListParams = {}): Promise<ArchiveZipExportListResponse> => {
         const response = await api.get('/api/archive-zip-exports', {
             params: {
@@ -112,15 +126,8 @@ export const archivesApi = {
         await api.delete(`/api/archive-zip-exports/${id}`);
     },
 
-    downloadArchiveZipExport: async (id: string): Promise<Blob> => {
-        const response = await api.get(`/api/archive-zip-exports/${id}/download`, {
-            responseType: 'blob',
-        });
-        const contentType = typeof response.headers['content-type'] === 'string'
-            ? response.headers['content-type']
-            : 'application/zip';
-
-        return new Blob([response.data], { type: contentType });
+    startArchiveZipExportDownload: (id: string): void => {
+        startApiDownload(`/api/archive-zip-exports/${encodeURIComponent(id)}/download`);
     },
 
     createArchiveImport: async (data: CreateArchiveImportPayload): Promise<ApiImportTransaction> => {

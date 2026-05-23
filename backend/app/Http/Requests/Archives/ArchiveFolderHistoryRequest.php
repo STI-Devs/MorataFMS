@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Archives;
 
+use App\Data\Archives\ArchiveFolderHistoryFilters;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -24,47 +25,31 @@ class ArchiveFolderHistoryRequest extends FormRequest
             'mine' => ['nullable', 'boolean'],
             'search' => ['nullable', 'string', 'max:100'],
             'completion' => ['nullable', Rule::in(['all', 'complete', 'incomplete'])],
+            'sort' => ['nullable', Rule::in(['period', 'bl', 'client', 'files'])],
+            'direction' => ['nullable', Rule::in(['asc', 'desc'])],
             'page' => ['nullable', 'integer', 'min:1'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ];
     }
 
-    public function year(): int
+    public function filters(): ArchiveFolderHistoryFilters
     {
-        return $this->integer('year');
-    }
+        $validated = $this->validated();
+        $search = trim((string) ($validated['search'] ?? ''));
+        $completion = (string) ($validated['completion'] ?? 'all');
+        $sort = (string) ($validated['sort'] ?? 'period');
+        $direction = (string) ($validated['direction'] ?? 'desc');
 
-    public function month(): int
-    {
-        return $this->integer('month');
-    }
-
-    public function archiveType(): string
-    {
-        return (string) $this->validated('type');
-    }
-
-    public function mine(): bool
-    {
-        return $this->boolean('mine');
-    }
-
-    public function search(): ?string
-    {
-        $search = trim((string) $this->input('search', ''));
-
-        return $search !== '' ? $search : null;
-    }
-
-    public function completion(): string
-    {
-        $completion = (string) $this->input('completion', 'all');
-
-        return $completion !== '' ? $completion : 'all';
-    }
-
-    public function perPage(): int
-    {
-        return $this->integer('per_page', 25);
+        return new ArchiveFolderHistoryFilters(
+            mine: $this->boolean('mine'),
+            year: $this->integer('year'),
+            month: $this->integer('month'),
+            type: (string) $validated['type'],
+            search: $search !== '' ? $search : null,
+            completion: $completion !== '' ? $completion : 'all',
+            sort: $sort !== '' ? $sort : 'period',
+            direction: $direction !== '' ? $direction : 'desc',
+            perPage: $this->integer('per_page', 25),
+        );
     }
 }

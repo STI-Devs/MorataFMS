@@ -69,6 +69,8 @@ RUN apt-get update \
         libzip4 \
         nginx \
         supervisor \
+    && nginx_version="$(dpkg-query -W -f='${Version}' nginx)" \
+    && dpkg --compare-versions "$nginx_version" ge "1.22.1-9+deb12u7" \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 

@@ -8,6 +8,7 @@ use App\Jobs\GenerateLegacyBatchZipExport;
 use App\Models\LegacyBatch;
 use App\Models\LegacyBatchZipExport;
 use App\Models\User;
+use App\Support\Archives\ZipExportRequestQuota;
 use App\Support\LegacyBatches\LegacyBatchZipBuilder;
 use Illuminate\Support\Str;
 
@@ -15,6 +16,7 @@ class CreateLegacyBatchZipExport
 {
     public function __construct(
         private LegacyBatchZipBuilder $legacyBatchZipBuilder,
+        private ZipExportRequestQuota $zipExportRequestQuota,
     ) {}
 
     public function handle(LegacyBatch $legacyBatch, User $user): LegacyBatchZipExport
@@ -41,6 +43,8 @@ class CreateLegacyBatchZipExport
         if ($existingRequest instanceof LegacyBatchZipExport) {
             return $existingRequest->loadMissing(['legacyBatch', 'requestedBy']);
         }
+
+        $this->zipExportRequestQuota->assertCanCreateFor($user);
 
         $uuid = (string) Str::uuid();
         $filename = $this->legacyBatchZipBuilder->downloadFilename($legacyBatch);

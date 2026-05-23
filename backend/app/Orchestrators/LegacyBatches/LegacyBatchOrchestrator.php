@@ -11,7 +11,9 @@ use App\Actions\LegacyBatches\DeleteLegacyBatchZipExport;
 use App\Actions\LegacyBatches\FinalizeLegacyBatch;
 use App\Actions\LegacyBatches\RetryLegacyBatchZipExport;
 use App\Actions\LegacyBatches\SignLegacyBatchUploads;
-use App\Http\Requests\LegacyBatches\LegacyBatchZipExportIndexRequest;
+use App\Data\LegacyBatches\LegacyBatchCreateData;
+use App\Data\LegacyBatches\LegacyBatchManifestData;
+use App\Data\LegacyBatches\LegacyBatchZipExportIndexFilters;
 use App\Models\LegacyBatch;
 use App\Models\LegacyBatchFile;
 use App\Models\LegacyBatchZipExport;
@@ -80,14 +82,14 @@ class LegacyBatchOrchestrator
     /**
      * @return LengthAwarePaginator<int, LegacyBatchZipExport>
      */
-    public function zipExports(LegacyBatchZipExportIndexRequest $request, User $user): LengthAwarePaginator
+    public function zipExports(LegacyBatchZipExportIndexFilters $filters, User $user): LengthAwarePaginator
     {
-        return $this->legacyBatchZipExportIndexQuery->handle($request, $user);
+        return $this->legacyBatchZipExportIndexQuery->handle($filters, $user);
     }
 
-    public function store(array $validated, User $user): LegacyBatch
+    public function store(LegacyBatchCreateData $data, User $user): LegacyBatch
     {
-        $batch = $this->createLegacyBatch->handle($validated, $user);
+        $batch = $this->createLegacyBatch->handle($data, $user);
 
         return $this->legacyBatchDetailQuery->handle($batch);
     }
@@ -112,9 +114,9 @@ class LegacyBatchOrchestrator
         $this->deleteLegacyBatchZipExport->handle($legacyBatchZipExport);
     }
 
-    public function appendManifest(LegacyBatch $legacyBatch, array $files): int
+    public function appendManifest(LegacyBatch $legacyBatch, LegacyBatchManifestData $manifest): int
     {
-        return $this->appendLegacyBatchManifest->handle($legacyBatch, $files);
+        return $this->appendLegacyBatchManifest->handle($legacyBatch, $manifest);
     }
 
     public function show(LegacyBatch $legacyBatch): LegacyBatch

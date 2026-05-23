@@ -16,6 +16,8 @@ type UseArchiveFolderHistoryArgs = {
     perPage: number;
     search: string;
     completion: ArchiveFolderHistoryCompletion;
+    sort: NonNullable<ArchiveFolderHistoryParams['sort']>;
+    direction: NonNullable<ArchiveFolderHistoryParams['direction']>;
     enabled: boolean;
 };
 
@@ -28,10 +30,12 @@ export const useArchiveFolderHistory = ({
     perPage,
     search,
     completion,
+    sort,
+    direction,
     enabled,
 }: UseArchiveFolderHistoryArgs) =>
     useQuery<ArchiveFolderHistoryResponse>({
-        queryKey: archiveKeys.folderHistory(year, month, type, mine, page, perPage, search, completion),
+        queryKey: archiveKeys.folderHistory(year, month, type, mine, page, perPage, search, completion, sort, direction),
         queryFn: () => trackingApi.getArchiveFolderHistory({
             year,
             month,
@@ -41,6 +45,8 @@ export const useArchiveFolderHistory = ({
             per_page: perPage,
             search: search || undefined,
             completion,
+            sort,
+            direction,
         }),
         enabled,
         staleTime: 60 * 1000,

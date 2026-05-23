@@ -75,6 +75,9 @@ export const LegacyBatchesPage = ({
         zipRequests.retryBatchZip(batchId, exportId);
     };
     const downloadZip = (exportId: string, filename: string) => zipRequests.downloadBatchZip(exportId, filename);
+    const isZipDownloading = (exportId?: string | null) => (
+        exportId !== undefined && exportId !== null && zipRequests.downloadingRequestId === exportId
+    );
     const isZipBusyForBatch = (batchId: string) => (
         zipRequests.requestingBatchId === batchId || zipRequests.retryingBatchId === batchId
     );
@@ -138,6 +141,7 @@ export const LegacyBatchesPage = ({
                                     onOpen={() => setZipRequestsOpen(true)}
                                     onClose={() => setZipRequestsOpen(false)}
                                     onDownload={zipRequests.downloadRequest}
+                                    downloadingRequestId={zipRequests.downloadingRequestId}
                                     onRetry={zipRequests.retryRequest}
                                     onDismiss={zipRequests.dismissRequest}
                                     onClearFinished={zipRequests.clearFinishedRequests}
@@ -232,6 +236,7 @@ export const LegacyBatchesPage = ({
                                                     batch={row}
                                                     compact
                                                     isBusy={isZipBusyForBatch(row.id)}
+                                                    isDownloading={isZipDownloading(row.zipExport?.id)}
                                                     onRequest={requestZip}
                                                     onRetry={retryZip}
                                                     onDownload={downloadZip}

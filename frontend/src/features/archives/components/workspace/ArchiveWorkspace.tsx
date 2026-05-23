@@ -3,8 +3,10 @@ import { CurrentDateTime } from '../../../../components/CurrentDateTime';
 import { ConfirmationModal } from '../../../../components/ConfirmationModal';
 import { useAuth } from '../../../auth/hooks/useAuth';
 import type { ArchiveDocument, ArchiveYear } from '../../../documents/types/document.types';
+import { useArchiveDocuments } from '../../hooks/useArchiveDocuments';
 import { useArchiveWorkspace } from '../../hooks/useArchiveWorkspace';
 import { useArchiveZipRequests } from '../../hooks/useArchiveZipRequests';
+import type { ArchiveDocumentIndexRow } from '../../types/archiveHistory.types';
 import type { DrillState } from '../../utils/archive.utils';
 import { buildBreadcrumbParts } from '../../utils/archiveWorkspace.utils';
 import { AddArchiveDocumentModal } from '../documents/AddArchiveDocumentModal';
@@ -15,7 +17,7 @@ import { EmptyState } from '../ui/EmptyState';
 import { ArchiveBrowserHeader } from './ArchiveBrowserHeader';
 import { ArchiveFilesView } from './ArchiveFilesView';
 import { ArchivesFolderView } from './ArchivesFolderView';
-import { ArchivesBLView, ArchivesDocumentView, GlobalSearchResults } from './ArchivesViews';
+import { ArchivesBLView, ArchivesDocumentView } from './ArchivesViews';
 import { ArchiveWorkspaceControlBand } from './ArchiveWorkspaceControlBand';
 import { ArchiveWorkspaceFilters } from './ArchiveWorkspaceFilters';
 import { ArchiveZipRequestsPanel } from './ArchiveZipRequestsPanel';
@@ -38,7 +40,6 @@ type ArchiveWorkspaceProps = {
     metrics: ArchiveMetric[];
     searchPlaceholder: string;
     documentViewTitle: string;
-    showAuditButton?: boolean;
     historyMine?: boolean;
     canDeleteDocument?: (doc: ArchiveDocument, userId?: number) => boolean;
     canReplaceDocument?: (doc: ArchiveDocument, userId?: number) => boolean;
@@ -56,7 +57,6 @@ export const ArchiveWorkspace = ({
     metrics,
     searchPlaceholder,
     documentViewTitle,
-    showAuditButton = true,
     historyMine = false,
     canDeleteDocument = () => true,
     canReplaceDocument = () => true,
@@ -65,6 +65,35 @@ export const ArchiveWorkspace = ({
     const workspace = useArchiveWorkspace({ archiveData, queryKey });
     const zipRequests = useArchiveZipRequests({ mine: historyMine });
     const [zipRequestsOpen, setZipRequestsOpen] = useState(false);
+    const [documentPage, setDocumentPage] = useState(1);
+    const [documentPerPage, setDocumentPerPage] = useState(25);
+    const documentCompletion = workspace.incompleteFilterActive ? 'incomplete' : workspace.filterStatus;
+    const isDocumentRowsMode = (workspace.viewMode === 'document' || (workspace.viewMode === 'folder' && workspace.globalSearch.trim() !== ''))
+        && !workspace.showLegacyUpload;
+    const documentRowsQuery = useArchiveDocuments({
+        mine: historyMine,
+        page: documentPage,
+        perPage: documentPerPage,
+        search: workspace.globalSearch.trim(),
+        year: workspace.filterYear,
+        type: workspace.filterType === 'all' ? 'all' : workspace.filterType as 'import' | 'export',
+        completion: documentCompletion,
+        enabled: isDocumentRowsMode,
+    });
+    const resetDocumentPage = () => setDocumentPage(1);
+    const documentRowTotal = isDocumentRowsMode
+        ? (documentRowsQuery.data?.meta.total ?? workspace.flatDocumentList.length)
+        : workspace.flatDocumentList.length;
+    const getDocumentYearData = (row: ArchiveDocumentIndexRow): ArchiveYear => {
+        const yearData = archiveData.find((archiveYear) => archiveYear.year === row.year);
+
+        return yearData ? { ...yearData, documents: row.documents } : {
+            year: row.year,
+            imports: row.type === 'import' ? 1 : 0,
+            exports: row.type === 'export' ? 1 : 0,
+            documents: row.documents,
+        };
+    };
 
     if (workspace.showLegacyUpload) {
         const currentYear = workspace.currentDrill.level !== 'years'
@@ -90,7 +119,7 @@ export const ArchiveWorkspace = ({
     const totalImports = archiveData.reduce((sum, year) => sum + year.imports, 0);
     const totalExports = archiveData.reduce((sum, year) => sum + year.exports, 0);
     const totalBLRecords = totalImports + totalExports;
-    const totalDocs = archiveData.reduce((sum, year) => sum + year.documents.length, 0);
+    const totalDocs = archiveData.reduce((sum, year) => sum + (year.file_count ?? year.documents.length), 0);
     const availableYears = archiveData.map((y) => y.year);
 
     const breadcrumbParts = buildBreadcrumbParts({
@@ -127,6 +156,7 @@ export const ArchiveWorkspace = ({
                             onOpen={() => setZipRequestsOpen(true)}
                             onClose={() => setZipRequestsOpen(false)}
                             onDownload={zipRequests.downloadRequest}
+                            downloadingRequestId={zipRequests.downloadingRequestId}
                             onRetry={zipRequests.retryRequest}
                             onDismiss={zipRequests.dismissRequest}
                             onClearFinished={zipRequests.clearFinishedRequests}
@@ -139,13 +169,23 @@ export const ArchiveWorkspace = ({
                     availableYears={availableYears}
                     searchPlaceholder={searchPlaceholder}
                     globalSearch={workspace.globalSearch}
-                    onGlobalSearchChange={workspace.setGlobalSearch}
+                    onGlobalSearchChange={(value) => {
+                        resetDocumentPage();
+                        workspace.setGlobalSearch(value);
+                    }}
                     filterYear={workspace.filterYear}
-                    onFilterYearChange={workspace.setFilterYear}
+                    onFilterYearChange={(value) => {
+                        resetDocumentPage();
+                        workspace.setFilterYear(value);
+                    }}
                     filterType={workspace.filterType}
-                    onFilterTypeChange={workspace.setFilterType}
+                    onFilterTypeChange={(value) => {
+                        resetDocumentPage();
+                        workspace.setFilterType(value);
+                    }}
                     filterStatus={workspace.filterStatus}
                     onFilterStatusChange={(value) => {
+                        resetDocumentPage();
                         workspace.setFilterStatus(value);
                         workspace.setIncompleteFilterActive(false);
                     }}
@@ -157,6 +197,7 @@ export const ArchiveWorkspace = ({
                 <ArchiveBrowserHeader
                     viewMode={workspace.viewMode}
                     onViewModeChange={(m) => {
+                        resetDocumentPage();
                         workspace.setViewMode(m);
                         if (m === 'folder') {
                             workspace.setFilterStatus('all');
@@ -164,7 +205,7 @@ export const ArchiveWorkspace = ({
                         }
                     }}
                     documentViewTitle={documentViewTitle}
-                    flatDocumentCount={workspace.flatDocumentList.length}
+                    flatDocumentCount={documentRowTotal}
                     currentDrill={workspace.currentDrill}
                     archiveData={archiveData}
                     totalDocs={totalDocs}
@@ -195,20 +236,21 @@ export const ArchiveWorkspace = ({
                     </div>
                 ) : (
                     <>
-                        {workspace.viewMode === 'document' && (
+                        {isDocumentRowsMode && (
                             <ArchivesDocumentView
-                                flatDocumentList={workspace.flatDocumentList}
+                                rows={documentRowsQuery.data?.data ?? []}
+                                meta={documentRowsQuery.data?.meta}
+                                isFetching={documentRowsQuery.isFetching}
+                                page={documentPage}
+                                perPage={documentPerPage}
+                                onPageChange={setDocumentPage}
+                                onPerPageChange={(perPage) => {
+                                    setDocumentPerPage(perPage);
+                                    setDocumentPage(1);
+                                }}
+                                getYearData={getDocumentYearData}
                                 nav={workspace.nav}
                                 setViewMode={workspace.setViewMode}
-                            />
-                        )}
-
-                        {workspace.viewMode === 'folder' && workspace.globalSearch.trim() && (
-                            <GlobalSearchResults
-                                globalSearch={workspace.globalSearch}
-                                globalResults={workspace.globalResults}
-                                nav={workspace.nav}
-                                setGlobalSearch={workspace.setGlobalSearch}
                             />
                         )}
 
@@ -224,7 +266,6 @@ export const ArchiveWorkspace = ({
                                 openMenuKey={workspace.openMenuKey}
                                 setOpenMenuKey={workspace.setOpenMenuKey}
                                 onOpenUpload={() => workspace.setShowLegacyUpload(true)}
-                                showAuditButton={showAuditButton}
                                 historyMine={historyMine}
                                 onRequestFolderZip={(request) => {
                                     setZipRequestsOpen(true);
@@ -242,6 +283,8 @@ export const ArchiveWorkspace = ({
                         search={workspace.search}
                         sortKey={workspace.sortKey}
                         sortDir={workspace.sortDir}
+                        historyMine={historyMine}
+                        filterStatus={documentCompletion}
                         nav={workspace.nav}
                     />
                 )}

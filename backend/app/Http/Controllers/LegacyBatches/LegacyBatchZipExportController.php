@@ -25,7 +25,7 @@ class LegacyBatchZipExportController extends Controller
         $this->legacyBatches->authorizeZipExportIndex($request->user());
 
         return LegacyBatchZipExportResource::collection(
-            $this->legacyBatches->zipExports($request, $request->user()),
+            $this->legacyBatches->zipExports($request->filters(), $request->user()),
         );
     }
 

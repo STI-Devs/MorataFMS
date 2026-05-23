@@ -54,11 +54,32 @@ export interface ArchiveDocument {
     uploader: { id: number; name: string } | null;
 }
 
+export interface ArchiveFolderSummary {
+    year: number;
+    month: number;
+    type: TransactionType;
+    file_count: number;
+    bl_count: number;
+    completed_bl_count: number;
+    incomplete_bl_count: number;
+    total_size_bytes: number;
+    latest_uploaded_at: string | null;
+}
+
 export interface ArchiveYear {
     year: number;
     imports: number;
     exports: number;
     documents: ArchiveDocument[];
+    folders?: ArchiveFolderSummary[];
+    file_count?: number;
+    bl_count?: number;
+    completed_bl_count?: number;
+    incomplete_bl_count?: number;
+    total_size_bytes?: number;
+    latest_uploaded_at?: string | null;
+    uploaded_file_count?: number;
+    current_month_bl_count?: number;
 }
 
 export interface DocumentTransactionListRow {

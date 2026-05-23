@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Archives;
 
+use App\Data\Archives\ArchiveZipExportData;
+use App\Enums\ArchiveZipExportScope;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -18,36 +20,30 @@ class StoreArchiveZipExportRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'scope' => ['nullable', Rule::in(['folder'])],
+            'scope' => ['nullable', Rule::in(['folder', 'year'])],
             'year' => ['required', 'integer', 'min:2000', 'max:2100'],
-            'month' => ['required', 'integer', 'min:1', 'max:12'],
-            'type' => ['required', Rule::in(['import', 'export'])],
+            'month' => [Rule::requiredIf($this->archiveScope() === 'folder'), 'nullable', 'integer', 'min:1', 'max:12'],
+            'type' => [Rule::requiredIf($this->archiveScope() === 'folder'), 'nullable', Rule::in(['import', 'export'])],
             'mine' => ['nullable', 'boolean'],
         ];
     }
 
-    public function archiveScope(): string
+    private function archiveScope(): string
     {
         return (string) $this->input('scope', 'folder');
     }
 
-    public function year(): int
+    public function zipExportData(): ArchiveZipExportData
     {
-        return $this->integer('year');
-    }
+        $validated = $this->validated();
+        $type = $validated['type'] ?? null;
 
-    public function month(): int
-    {
-        return $this->integer('month');
-    }
-
-    public function archiveType(): string
-    {
-        return (string) $this->validated('type');
-    }
-
-    public function mine(): bool
-    {
-        return $this->boolean('mine');
+        return new ArchiveZipExportData(
+            scope: ArchiveZipExportScope::from((string) ($validated['scope'] ?? 'folder')),
+            year: $this->integer('year'),
+            month: $this->filled('month') ? $this->integer('month') : null,
+            type: is_string($type) ? $type : null,
+            mine: $this->boolean('mine'),
+        );
     }
 }

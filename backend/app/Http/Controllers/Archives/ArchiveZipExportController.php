@@ -23,22 +23,18 @@ class ArchiveZipExportController extends Controller
     public function index(ArchiveZipExportIndexRequest $request): AnonymousResourceCollection
     {
         return ArchiveZipExportResource::collection(
-            $this->archives->zipExports($request, $request->user()),
+            $this->archives->zipExports($request->filters(), $request->user()),
         );
     }
 
     public function store(StoreArchiveZipExportRequest $request): JsonResponse
     {
-        $mine = $request->mine();
-        $this->archives->assertCanIndex($request->user(), $mine);
+        $data = $request->zipExportData();
+        $this->archives->assertCanIndex($request->user(), $data->mine);
 
-        return (new ArchiveZipExportResource($this->archives->storeZipExport($request->user(), [
-            'scope' => $request->archiveScope(),
-            'year' => $request->year(),
-            'month' => $request->month(),
-            'type' => $request->archiveType(),
-            'mine' => $mine,
-        ])))->response()->setStatusCode(202);
+        return (new ArchiveZipExportResource(
+            $this->archives->storeZipExport($request->user(), $data),
+        ))->response()->setStatusCode(202);
     }
 
     public function retry(Request $request, ArchiveZipExport $archiveZipExport): JsonResponse

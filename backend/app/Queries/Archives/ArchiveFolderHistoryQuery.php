@@ -2,6 +2,7 @@
 
 namespace App\Queries\Archives;
 
+use App\Data\Archives\ArchiveFolderHistoryFilters;
 use App\Models\Client;
 use App\Models\Document;
 use App\Models\ExportTransaction;
@@ -20,35 +21,38 @@ class ArchiveFolderHistoryQuery
      */
     public function handle(
         User $user,
-        bool $mine,
-        int $year,
-        int $month,
-        string $type,
-        ?string $search,
-        string $completion,
-        int $perPage,
+        ArchiveFolderHistoryFilters $filters,
     ): array {
-        $baseQuery = $this->baseQuery($user, $mine, $year, $month, $type, $search);
+        $baseQuery = $this->baseQuery(
+            $user,
+            $filters->mine,
+            $filters->year,
+            $filters->month,
+            $filters->type,
+            $filters->search,
+        );
         $totalBlRecords = (clone $baseQuery)->count();
-        $completeBlRecords = $this->applyCompletionFilter(clone $baseQuery, $type, 'complete')->count();
+        $completeBlRecords = $this->applyCompletionFilter(clone $baseQuery, $filters->type, 'complete')->count();
         $totalFiles = (clone $baseQuery)
             ->withCount('documents')
             ->pluck('documents_count')
             ->sum();
-        $latestUploadedAt = $this->latestUploadedAt(clone $baseQuery, $type);
+        $latestUploadedAt = $this->latestUploadedAt(clone $baseQuery, $filters->type);
 
-        $historyQuery = $completion === 'all'
+        $historyQuery = $filters->completion === 'all'
             ? $baseQuery
-            : $this->applyCompletionFilter($baseQuery, $type, $completion);
+            : $this->applyCompletionFilter($baseQuery, $filters->type, $filters->completion);
 
-        $paginator = $historyQuery
-            ->orderByDesc($this->dateColumn($type))
-            ->orderBy('bl_no')
-            ->paginate($perPage);
+        $paginator = $this->applySort(
+            $historyQuery->withCount('documents'),
+            $filters->type,
+            $filters->sort,
+            $filters->direction,
+        )->paginate($filters->perPage);
 
         return [
             'data' => $paginator->getCollection()
-                ->map(fn (ImportTransaction|ExportTransaction $transaction): array => $this->formatTransaction($transaction, $type))
+                ->map(fn (ImportTransaction|ExportTransaction $transaction): array => $this->formatTransaction($transaction, $filters->type))
                 ->values()
                 ->all(),
             'summary' => [
@@ -89,6 +93,8 @@ class ArchiveFolderHistoryQuery
                 'documents.uploadedBy',
                 'stages',
                 $type === 'import' ? 'importer' : 'shipper',
+                $type === 'import' ? 'originCountry' : 'destinationCountry',
+                ...($type === 'import' ? ['locationOfGoods'] : []),
             ])
             ->where(function (Builder $dateQuery) use ($dateColumn, $year, $month): void {
                 $dateQuery
@@ -115,6 +121,34 @@ class ArchiveFolderHistoryQuery
         }
 
         return $query;
+    }
+
+    /**
+     * @param  Builder<ImportTransaction|ExportTransaction>  $query
+     * @return Builder<ImportTransaction|ExportTransaction>
+     */
+    private function applySort(Builder $query, string $type, string $sort, string $direction): Builder
+    {
+        return match ($sort) {
+            'bl' => $query
+                ->orderBy('bl_no', $direction)
+                ->orderByDesc($this->dateColumn($type)),
+            'client' => $query
+                ->orderBy(
+                    Client::query()
+                        ->select('name')
+                        ->whereColumn('clients.id', $type === 'import' ? 'import_transactions.importer_id' : 'export_transactions.shipper_id')
+                        ->limit(1),
+                    $direction,
+                )
+                ->orderBy('bl_no'),
+            'files' => $query
+                ->orderBy('documents_count', $direction)
+                ->orderBy('bl_no'),
+            default => $query
+                ->orderByRaw('COALESCE('.$this->dateColumn($type).', created_at) '.$direction)
+                ->orderBy('bl_no'),
+        };
     }
 
     /**
@@ -277,10 +311,20 @@ class ArchiveFolderHistoryQuery
             'id' => $document->id,
             'type' => $type,
             'bl_no' => $transaction->bl_no,
+            'customs_ref_no' => $transaction instanceof ImportTransaction ? $transaction->customs_ref_no : null,
             'month' => (int) (($type === 'import' ? $transaction->arrival_date : $transaction->export_date) ?? $transaction->created_at)->month,
             'client' => $type === 'import'
                 ? ($transaction->importer?->name ?? 'Unknown')
                 : ($transaction->shipper?->name ?? 'Unknown'),
+            'client_id' => $type === 'import' ? $transaction->importer_id : $transaction->shipper_id,
+            'selective_color' => $transaction instanceof ImportTransaction ? $transaction->selective_color : null,
+            'origin_country' => $transaction instanceof ImportTransaction ? $transaction->originCountry?->name : null,
+            'origin_country_id' => $transaction instanceof ImportTransaction ? $transaction->origin_country_id : null,
+            'destination_country' => $transaction instanceof ExportTransaction ? $transaction->destinationCountry?->name : null,
+            'destination_country_id' => $transaction instanceof ExportTransaction ? $transaction->destination_country_id : null,
+            'vessel_name' => $transaction instanceof ImportTransaction ? $transaction->vessel_name : $transaction->vessel,
+            'location_of_goods' => $transaction instanceof ImportTransaction ? $transaction->locationOfGoods?->name : null,
+            'location_of_goods_id' => $transaction instanceof ImportTransaction ? $transaction->location_of_goods_id : null,
             'transaction_date' => (($type === 'import' ? $transaction->arrival_date : $transaction->export_date) ?? $transaction->created_at)->toDateString(),
             'transaction_id' => $transaction->id,
             'documentable_type' => $this->modelClass($type),

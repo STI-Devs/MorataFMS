@@ -124,6 +124,12 @@ export const getArchiveBlCompletion = (
 };
 
 export const computeGlobalCompleteness = (archiveData: ArchiveYear[]): number => {
+    const summaryBLCount = archiveData.reduce((sum, yearData) => sum + (yearData.bl_count ?? 0), 0);
+    if (summaryBLCount > 0) {
+        const completeBLCount = archiveData.reduce((sum, yearData) => sum + (yearData.completed_bl_count ?? 0), 0);
+        return Math.round((completeBLCount / summaryBLCount) * 100);
+    }
+
     const blMap = new Map<string, { type: TransactionType; stages: Set<string>; notApplicableStages: Set<string> }>();
     for (const yearData of archiveData) {
         for (const doc of yearData.documents) {
@@ -145,6 +151,11 @@ export const computeGlobalCompleteness = (archiveData: ArchiveYear[]): number =>
 };
 
 export const countIncompleteBLs = (archiveData: ArchiveYear[]): number => {
+    const summaryBLCount = archiveData.reduce((sum, yearData) => sum + (yearData.bl_count ?? 0), 0);
+    if (summaryBLCount > 0) {
+        return archiveData.reduce((sum, yearData) => sum + (yearData.incomplete_bl_count ?? 0), 0);
+    }
+
     const blMap = new Map<string, { type: TransactionType; stages: Set<string>; notApplicableStages: Set<string> }>();
     for (const yearData of archiveData) {
         for (const doc of yearData.documents) {
@@ -288,6 +299,16 @@ export const syncArchiveDrillState = (
         return refreshedYear === current.year
             ? current
             : { ...current, year: refreshedYear };
+    }
+
+    const currentSnapshotStillHasFiles = current.year.documents.some((doc) =>
+        doc.type === current.type
+        && doc.month === current.month
+        && (doc.bl_no || '(no BL)') === current.bl,
+    );
+
+    if (currentSnapshotStillHasFiles && refreshedYear.documents.length === 0) {
+        return current;
     }
 
     const trackedTransactionId = current.year.documents.find((doc) =>

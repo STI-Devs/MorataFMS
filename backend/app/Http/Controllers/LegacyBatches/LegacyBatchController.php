@@ -48,12 +48,11 @@ class LegacyBatchController extends Controller
     public function store(StoreLegacyBatchRequest $request): JsonResponse
     {
         $user = $request->user();
-        $validated = $request->validated();
-        $module = $validated['module'] ?? LegacyBatchModule::Brokerage->value;
-        $this->legacyBatches->authorizeAccess($user, $module);
+        $data = $request->legacyBatchData();
+        $this->legacyBatches->authorizeAccess($user, $data->module->value);
 
         return (new LegacyBatchDetailResource(
-            $this->legacyBatches->store($validated, $user)
+            $this->legacyBatches->store($data, $user)
         ))
             ->response()
             ->setStatusCode(201);
@@ -66,7 +65,7 @@ class LegacyBatchController extends Controller
         $this->legacyBatches->authorizeVisibility($request->user(), $legacyBatch);
         $registeredFileCount = $this->legacyBatches->appendManifest(
             $legacyBatch,
-            $request->validated()['files'],
+            $request->manifestData(),
         );
 
         return response()->json([

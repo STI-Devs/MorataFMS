@@ -50,6 +50,7 @@ vi.mock('../../hooks/useLegacyBatchZipRequests', () => ({
         retryRequest: retryZipRequestMock,
         dismissRequest: dismissZipRequestMock,
         clearFinishedRequests: clearFinishedZipRequestsMock,
+        downloadingRequestId: null,
         isRequesting: false,
         isRetrying: false,
         requestingBatchId: null,

@@ -81,11 +81,16 @@ describe('MainLayout', () => {
 
         const dashboardButton = screen.getByRole('button', { name: 'Dashboard' });
         const notarialGroupButton = screen.getByRole('button', { name: 'Notarial Documents' });
-        const templateGeneratorButton = screen.getAllByRole('button', { name: 'Create Draft' })[0];
 
         expect(screen.getByText('Legal notarial page')).toBeInTheDocument();
         expect(notarialGroupButton).toBeInTheDocument();
         expect(dashboardButton).not.toHaveClass('bg-black/8');
+        expect(screen.queryByRole('button', { name: 'Create Draft' })).not.toBeInTheDocument();
+
+        fireEvent.click(notarialGroupButton);
+
+        const templateGeneratorButton = screen.getByRole('button', { name: 'Create Draft' });
+
         expect(templateGeneratorButton).toHaveClass('bg-black/8');
         expect(templateGeneratorButton.querySelector('svg')).toBeNull();
     });
@@ -112,7 +117,9 @@ describe('MainLayout', () => {
             </MemoryRouter>,
         );
 
-        const generatedRecordsButton = screen.getAllByRole('button', { name: 'Generated Documents' })[0];
+        fireEvent.click(screen.getByRole('button', { name: 'Notarial Documents' }));
+
+        const generatedRecordsButton = screen.getByRole('button', { name: 'Generated Documents' });
 
         expect(screen.getByText('Generated documents page')).toBeInTheDocument();
         expect(generatedRecordsButton).toHaveClass('bg-black/8');
@@ -142,10 +149,15 @@ describe('MainLayout', () => {
 
         const legacyRecordsGroupButton = screen.getByRole('button', { name: 'Legacy Records' });
         const legalFilesGroupButton = screen.getByRole('button', { name: 'Legal Files' });
-        const legacyUploadButton = screen.getByRole('button', { name: 'Legacy Folder Upload' });
 
         expect(legacyRecordsGroupButton).toBeInTheDocument();
         expect(legalFilesGroupButton.compareDocumentPosition(legacyRecordsGroupButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(screen.queryByRole('button', { name: 'Legacy Folder Upload' })).not.toBeInTheDocument();
+
+        fireEvent.click(legacyRecordsGroupButton);
+
+        const legacyUploadButton = screen.getByRole('button', { name: 'Legacy Folder Upload' });
+
         expect(legacyUploadButton).toHaveClass('bg-black/8');
         expect(screen.getByRole('button', { name: 'Notarial Batches' })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Legal Batches' })).toBeInTheDocument();
@@ -158,7 +170,7 @@ describe('MainLayout', () => {
         expect(screen.queryByRole('button', { name: 'Legal Batches' })).not.toBeInTheDocument();
     });
 
-    it('allows an active legal navigation group to stay collapsed until the route changes', () => {
+    it('keeps legal navigation groups collapsed until the user opens them', () => {
         mockUseAuth.mockReturnValue({
             user: {
                 name: 'Paralegal User',
@@ -183,11 +195,15 @@ describe('MainLayout', () => {
         const legalFilesGroupButton = screen.getByRole('button', { name: 'Legal Files' });
 
         expect(screen.getByText('Legal create draft page')).toBeInTheDocument();
-        expect(screen.getAllByRole('button', { name: 'Create Draft' })).toHaveLength(2);
+        expect(screen.queryByRole('button', { name: 'Create Draft' })).not.toBeInTheDocument();
 
         fireEvent.click(legalFilesGroupButton);
 
-        expect(screen.getAllByRole('button', { name: 'Create Draft' })).toHaveLength(1);
+        expect(screen.getByRole('button', { name: 'Create Draft' })).toHaveClass('bg-black/8');
+
+        fireEvent.click(legalFilesGroupButton);
+
+        expect(screen.queryByRole('button', { name: 'Create Draft' })).not.toBeInTheDocument();
     });
 
     it('switches from legal to brokerage without bouncing back to the legal navigation', () => {

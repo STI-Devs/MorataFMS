@@ -9,6 +9,9 @@ use App\Models\Client;
 use App\Models\Country;
 use App\Models\Document;
 use App\Models\ExportTransaction;
+use App\Models\ImportTransaction;
+use App\Models\LegacyBatch;
+use App\Models\LegacyBatchZipExport;
 use App\Models\User;
 use App\Support\Archives\ArchiveFolderZipBuilder;
 use Illuminate\Support\Facades\Queue;
@@ -136,6 +139,133 @@ test('archive zip export requests enforce full archive and owner access', functi
     $this->actingAs($otherUser)
         ->getJson("/api/archive-zip-exports/{$archiveZipExport->uuid}/download")
         ->assertForbidden();
+});
+
+test('admin can request an entire archive year zip export', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+    $importer = Client::factory()->importer()->create();
+    $shipper = Client::factory()->exporter()->create();
+    $country = Country::factory()->create();
+    $uploader = User::factory()->create(['role' => 'encoder']);
+
+    $importTransaction = ImportTransaction::factory()->create([
+        'bl_no' => 'BL-YEAR-ZIP-IMPORT',
+        'importer_id' => $importer->id,
+        'origin_country_id' => $country->id,
+        'arrival_date' => '2026-03-08',
+        'is_archive' => true,
+        'archived_at' => now(),
+        'archive_origin' => ArchiveOrigin::DirectArchiveUpload,
+        'assigned_user_id' => $uploader->id,
+    ]);
+
+    $exportTransaction = ExportTransaction::factory()->create([
+        'bl_no' => 'BL-YEAR-ZIP-EXPORT',
+        'shipper_id' => $shipper->id,
+        'destination_country_id' => $country->id,
+        'export_date' => '2026-04-12',
+        'is_archive' => true,
+        'archived_at' => now(),
+        'archive_origin' => ArchiveOrigin::DirectArchiveUpload,
+        'assigned_user_id' => $uploader->id,
+    ]);
+
+    Storage::disk($this->documentDisk)->put('archive/import-entry.pdf', 'import entry contents');
+    Storage::disk($this->documentDisk)->put('archive/export-billing.pdf', 'export billing contents');
+
+    Document::factory()->create([
+        'documentable_type' => ImportTransaction::class,
+        'documentable_id' => $importTransaction->id,
+        'type' => 'entry',
+        'filename' => 'Import Entry.pdf',
+        'path' => 'archive/import-entry.pdf',
+        'uploaded_by' => $uploader->id,
+    ]);
+    Document::factory()->create([
+        'documentable_type' => ExportTransaction::class,
+        'documentable_id' => $exportTransaction->id,
+        'type' => 'billing',
+        'filename' => 'Export Billing.pdf',
+        'path' => 'archive/export-billing.pdf',
+        'uploaded_by' => $uploader->id,
+    ]);
+
+    Queue::fake();
+
+    $this->actingAs($admin)
+        ->postJson('/api/archive-zip-exports', [
+            'scope' => 'year',
+            'year' => 2026,
+        ])
+        ->assertAccepted()
+        ->assertJsonPath('data.scope', 'year')
+        ->assertJsonPath('data.month', null)
+        ->assertJsonPath('data.type', null)
+        ->assertJsonPath('data.filename', 'fy-2026-archive.zip');
+
+    $archiveZipExport = ArchiveZipExport::query()->sole();
+
+    Queue::assertPushed(
+        GenerateArchiveZipExport::class,
+        fn (GenerateArchiveZipExport $job): bool => $job->archiveZipExportId === $archiveZipExport->id,
+    );
+
+    (new GenerateArchiveZipExport($archiveZipExport->id))->handle(app(ArchiveFolderZipBuilder::class));
+
+    $archiveZipExport->refresh();
+
+    expect($archiveZipExport->status)->toBe(ArchiveZipExportStatus::Ready);
+    expect($archiveZipExport->file_count)->toBe(2);
+    expect($archiveZipExport->bl_count)->toBe(2);
+
+    $response = $this->actingAs($admin)
+        ->get("/api/archive-zip-exports/{$archiveZipExport->uuid}/download")
+        ->assertOk()
+        ->assertDownload('fy-2026-archive.zip');
+
+    $zipPath = tempnam(sys_get_temp_dir(), 'archive-year-zip-export-test-');
+    file_put_contents($zipPath, $response->streamedContent());
+
+    $zip = new ZipArchive;
+    expect($zip->open($zipPath))->toBeTrue();
+    expect($zip->getFromName('MAR 2026 IMPORTS/BL-YEAR-ZIP-IMPORT/entry/Import Entry.pdf'))->toBe('import entry contents');
+    expect($zip->getFromName('APR 2026 EXPORTS/BL-YEAR-ZIP-EXPORT/billing/Export Billing.pdf'))->toBe('export billing contents');
+    $zip->close();
+    @unlink($zipPath);
+});
+
+test('archive zip export requests are capped at five active zip requests per user', function () {
+    $admin = User::factory()->create(['role' => 'admin']);
+
+    foreach (range(1, 4) as $month) {
+        ArchiveZipExport::factory()->ready()->create([
+            'requested_by' => $admin->id,
+            'year' => 2026,
+            'month' => $month,
+            'type' => 'export',
+        ]);
+    }
+
+    $legacyBatch = LegacyBatch::factory()->completed()->create([
+        'uploaded_by' => $admin->id,
+    ]);
+    LegacyBatchZipExport::factory()->ready()->create([
+        'legacy_batch_id' => $legacyBatch->id,
+        'requested_by' => $admin->id,
+    ]);
+
+    Queue::fake();
+
+    $this->actingAs($admin)
+        ->postJson('/api/archive-zip-exports', [
+            'year' => 2026,
+            'month' => 6,
+            'type' => 'export',
+        ])
+        ->assertTooManyRequests()
+        ->assertSeeText('You can only keep 5 active ZIP requests at a time.');
+
+    Queue::assertNothingPushed();
 });
 
 test('failed archive zip exports can be retried and finished requests can be deleted', function () {

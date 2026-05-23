@@ -2,20 +2,20 @@
 
 namespace App\Queries\LegalArchive;
 
-use App\Http\Requests\LegalArchive\LegalArchiveRecordIndexRequest;
+use App\Data\LegalArchive\LegalArchiveRecordIndexFilters;
 use App\Models\LegalArchiveRecord;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class LegalArchiveRecordIndexQuery
 {
-    public function handle(LegalArchiveRecordIndexRequest $request): LengthAwarePaginator
+    public function handle(LegalArchiveRecordIndexFilters $filters): LengthAwarePaginator
     {
         $query = LegalArchiveRecord::query()
             ->with('createdBy')
             ->latest('document_date')
             ->latest('created_at');
 
-        $search = $request->search();
+        $search = $filters->search;
 
         if ($search !== null) {
             $query->where(function ($innerQuery) use ($search): void {
@@ -25,15 +25,15 @@ class LegalArchiveRecordIndexQuery
             });
         }
 
-        if (($fileCategory = $request->fileCategory()) !== null) {
+        if (($fileCategory = $filters->fileCategory) !== null) {
             $query->where('file_category', $fileCategory);
         }
 
-        if (($fileCode = $request->fileCode()) !== null) {
+        if (($fileCode = $filters->fileCode) !== null) {
             $query->where('file_code', $fileCode);
         }
 
-        if (($uploadStatus = $request->uploadStatus()) === 'uploaded') {
+        if (($uploadStatus = $filters->uploadStatus) === 'uploaded') {
             $query->whereNotNull('path');
         }
 
@@ -41,6 +41,6 @@ class LegalArchiveRecordIndexQuery
             $query->whereNull('path');
         }
 
-        return $query->paginate($request->perPage());
+        return $query->paginate($filters->perPage);
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\LegacyBatches;
 
+use App\Data\LegacyBatches\LegacyBatchManifestData;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
@@ -129,5 +130,10 @@ class AppendLegacyBatchManifestRequest extends FormRequest
         }
 
         return 'Only PDF, Office documents, spreadsheets, email message files, text files, and images are allowed in legacy uploads.';
+    }
+
+    public function manifestData(): LegacyBatchManifestData
+    {
+        return LegacyBatchManifestData::fromValidatedFiles($this->validated()['files']);
     }
 }

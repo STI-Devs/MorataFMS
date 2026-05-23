@@ -671,7 +671,15 @@ test('archive listing only returns transactions with is_archive flag', function 
         'type' => 'boc',
     ]);
 
-    $response = $this->actingAs($user)->getJson('/api/archives')->assertOk();
+    $this->actingAs($user)
+        ->getJson('/api/archives')
+        ->assertOk()
+        ->assertJsonPath('data.0.documents', []);
+
+    $response = $this->actingAs($user)
+        ->getJson('/api/archives/documents?year=2023&type=import')
+        ->assertOk()
+        ->assertJsonPath('meta.total', 1);
 
     $allDocs = collect($response->json('data'))->pluck('documents')->flatten(1);
     $blNumbers = $allDocs->pluck('bl_no')->toArray();
@@ -744,7 +752,7 @@ test('encoder my archive listing only returns documents uploaded by the current 
     ]);
 
     $response = $this->actingAs($encoder)
-        ->getJson('/api/archives?mine=1')
+        ->getJson('/api/archives/documents?mine=1&year=2024&type=all')
         ->assertOk();
 
     $documents = collect($response->json('data'))
@@ -810,7 +818,7 @@ test('admin can access archive documents uploaded by every user', function () {
     ]);
 
     $response = $this->actingAs($admin)
-        ->getJson('/api/archives')
+        ->getJson('/api/archives/documents?year=2024&type=all')
         ->assertOk();
 
     $documents = collect($response->json('data'))
@@ -867,7 +875,7 @@ test('archive listing exposes vessel name and location of goods metadata for arc
     ]);
 
     $response = $this->actingAs($admin)
-        ->getJson('/api/archives')
+        ->getJson('/api/archives/documents?year=2024&type=all')
         ->assertOk();
 
     $documents = collect($response->json('data'))
@@ -930,7 +938,7 @@ test('archive listing exposes transaction identifiers needed for archive editing
     ]);
 
     $response = $this->actingAs($admin)
-        ->getJson('/api/archives')
+        ->getJson('/api/archives/documents?year=2024&type=all')
         ->assertOk();
 
     $documents = collect($response->json('data'))

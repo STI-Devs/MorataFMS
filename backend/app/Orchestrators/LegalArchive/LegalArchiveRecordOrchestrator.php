@@ -3,7 +3,8 @@
 namespace App\Orchestrators\LegalArchive;
 
 use App\Actions\LegalArchive\CreateLegalArchiveRecord;
-use App\Http\Requests\LegalArchive\LegalArchiveRecordIndexRequest;
+use App\Data\LegalArchive\LegalArchiveRecordData;
+use App\Data\LegalArchive\LegalArchiveRecordIndexFilters;
 use App\Models\LegalArchiveRecord;
 use App\Models\User;
 use App\Queries\LegalArchive\LegalArchiveRecordIndexQuery;
@@ -20,14 +21,14 @@ class LegalArchiveRecordOrchestrator
         private LegalArchiveRecordFileManager $fileManager,
     ) {}
 
-    public function index(LegalArchiveRecordIndexRequest $request): LengthAwarePaginator
+    public function index(LegalArchiveRecordIndexFilters $filters): LengthAwarePaginator
     {
-        return $this->legalArchiveRecordIndexQuery->handle($request);
+        return $this->legalArchiveRecordIndexQuery->handle($filters);
     }
 
-    public function store(array $validated, User $user, ?UploadedFile $file): LegalArchiveRecord
+    public function store(LegalArchiveRecordData $data, User $user, ?UploadedFile $file): LegalArchiveRecord
     {
-        return $this->createLegalArchiveRecord->handle($validated, $user, $file);
+        return $this->createLegalArchiveRecord->handle($data, $user, $file);
     }
 
     public function download(LegalArchiveRecord $record): StreamedResponse

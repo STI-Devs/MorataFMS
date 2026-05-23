@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Icon } from '../../../../components/Icon';
 import type { LegacyBatchZipRequest } from '../../hooks/useLegacyBatchZipRequests';
 
@@ -7,6 +8,7 @@ type LegacyBatchZipRequestsPanelProps = {
     onOpen: () => void;
     onClose: () => void;
     onDownload: (requestId: string) => void;
+    downloadingRequestId?: string | null;
     onRetry: (requestId: string) => void;
     onDismiss: (requestId: string) => void;
     onClearFinished: () => void;
@@ -44,19 +46,47 @@ const formatBytes = (bytes: number): string => {
     return `${value.toFixed(unitIndex === 0 ? 0 : 2)} ${units[unitIndex]}`;
 };
 
+const formatExpiryLabel = (expiresAt: string | null): string | null => {
+    if (!expiresAt) {
+        return null;
+    }
+
+    const parsed = new Date(expiresAt);
+
+    if (Number.isNaN(parsed.getTime())) {
+        return null;
+    }
+
+    return new Intl.DateTimeFormat('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+    }).format(parsed);
+};
+
 export const LegacyBatchZipRequestsPanel = ({
     requests,
     isOpen,
     onOpen,
     onClose,
     onDownload,
+    downloadingRequestId = null,
     onRetry,
     onDismiss,
     onClearFinished,
 }: LegacyBatchZipRequestsPanelProps) => {
+    const [isConfirmingClear, setIsConfirmingClear] = useState(false);
     const readyCount = requests.filter((request) => request.status === 'ready').length;
     const preparingCount = requests.filter(isActiveZipRequest).length;
     const canClearFinished = requests.some((request) => !isActiveZipRequest(request));
+    const finishedCount = requests.filter((request) => !isActiveZipRequest(request)).length;
+
+    const confirmClearFinished = () => {
+        onClearFinished();
+        setIsConfirmingClear(false);
+    };
 
     return (
         <>
@@ -108,17 +138,45 @@ export const LegacyBatchZipRequestsPanel = ({
                         </div>
 
                         <div className="flex items-center justify-between border-b border-border px-5 py-3">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-text-muted">Prepared Downloads</p>
+                            <div>
+                                <p className="text-[10px] font-black uppercase tracking-widest text-text-muted">Prepared Downloads</p>
+                                <p className="mt-1 text-xs font-semibold text-text-muted">Ready ZIP files are kept for 3 days.</p>
+                            </div>
                             {canClearFinished && (
                                 <button
                                     type="button"
-                                    onClick={onClearFinished}
+                                    onClick={() => setIsConfirmingClear(true)}
                                     className="h-8 rounded-lg border border-border bg-input-bg px-3 text-xs font-bold text-text-secondary transition-colors hover:border-border-strong hover:bg-hover hover:text-text-primary"
                                 >
                                     Clear finished
                                 </button>
                             )}
                         </div>
+
+                        {isConfirmingClear && (
+                            <div className="border-b border-amber-500/20 bg-amber-500/10 px-5 py-4">
+                                <p className="text-xs font-black text-amber-500">Clear prepared ZIP files?</p>
+                                <p className="mt-1 text-xs font-semibold leading-5 text-text-secondary">
+                                    This removes {finishedCount.toLocaleString()} finished request{finishedCount === 1 ? '' : 's'} from this panel and deletes any prepared ZIP file from storage. To download it again, the ZIP must be prepared again.
+                                </p>
+                                <div className="mt-3 flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={confirmClearFinished}
+                                        className="h-8 rounded-lg border border-amber-500/30 bg-amber-500/15 px-3 text-xs font-black text-amber-500 transition-colors hover:bg-amber-500/20"
+                                    >
+                                        Clear ZIP files
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsConfirmingClear(false)}
+                                        className="h-8 rounded-lg border border-border bg-input-bg px-3 text-xs font-bold text-text-secondary transition-colors hover:border-border-strong hover:bg-hover hover:text-text-primary"
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        )}
 
                         {requests.length === 0 ? (
                             <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
@@ -134,6 +192,8 @@ export const LegacyBatchZipRequestsPanel = ({
                             <div className="min-h-0 flex-1 overflow-y-auto">
                                 {requests.map((request) => {
                                     const isActive = isActiveZipRequest(request);
+                                    const isDownloading = downloadingRequestId === request.id;
+                                    const expiryLabel = formatExpiryLabel(request.expiresAt);
 
                                     return (
                                         <div key={request.id} className="border-b border-border px-5 py-4">
@@ -164,6 +224,11 @@ export const LegacyBatchZipRequestsPanel = ({
                                                             <div className="h-full w-1/2 animate-pulse rounded-full bg-blue-500" />
                                                         </div>
                                                     )}
+                                                    {request.status === 'ready' && expiryLabel && (
+                                                        <p className="mt-1 text-xs font-semibold text-amber-500">
+                                                            Available until {expiryLabel}
+                                                        </p>
+                                                    )}
                                                     {request.errorMessage && (
                                                         <p className="mt-2 text-xs font-bold text-red-500">{request.errorMessage}</p>
                                                     )}
@@ -184,10 +249,12 @@ export const LegacyBatchZipRequestsPanel = ({
                                                 {request.status === 'ready' && request.canDownload && (
                                                     <button
                                                         type="button"
+                                                        disabled={isDownloading}
                                                         onClick={() => onDownload(request.id)}
-                                                        className="h-8 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 text-xs font-black text-emerald-600 transition-colors hover:bg-emerald-500/20"
+                                                        aria-busy={isDownloading}
+                                                        className="h-8 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 text-xs font-black text-emerald-600 transition-colors hover:bg-emerald-500/20 disabled:cursor-wait disabled:opacity-70"
                                                     >
-                                                        Download ZIP
+                                                        {isDownloading ? 'Downloading...' : 'Download ZIP'}
                                                     </button>
                                                 )}
                                                 {(request.status === 'failed' || request.status === 'expired') && (

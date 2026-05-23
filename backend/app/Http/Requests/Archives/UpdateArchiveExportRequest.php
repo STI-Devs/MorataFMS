@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Archives;
 
+use App\Data\Archives\ArchiveExportData;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -48,5 +49,10 @@ class UpdateArchiveExportRequest extends FormRequest
             'file_date.after_or_equal' => 'Archive period cannot be before year 2000.',
             'file_date.before_or_equal' => 'Archive date cannot be in the future. Archives are for past documents only.',
         ];
+    }
+
+    public function archiveData(): ArchiveExportData
+    {
+        return ArchiveExportData::fromValidated($this->validated());
     }
 }

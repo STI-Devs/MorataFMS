@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Archives;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Archives\ArchiveDocumentIndexRequest;
 use App\Http\Requests\Archives\ArchiveFolderHistoryRequest;
 use App\Http\Requests\Archives\StoreArchiveExportRequest;
 use App\Http\Requests\Archives\StoreArchiveImportRequest;
@@ -37,19 +38,22 @@ class ArchiveController extends Controller
 
     public function folderHistory(ArchiveFolderHistoryRequest $request): JsonResponse
     {
-        $mine = $request->mine();
-        $this->archives->assertCanIndex($request->user(), $mine);
+        $filters = $request->filters();
+        $this->archives->assertCanIndex($request->user(), $filters->mine);
 
-        return response()->json($this->archives->folderHistory(
-            $request->user(),
-            $mine,
-            $request->year(),
-            $request->month(),
-            $request->archiveType(),
-            $request->search(),
-            $request->completion(),
-            $request->perPage(),
-        ));
+        return response()->json(
+            $this->archives->folderHistory($request->user(), $filters),
+        );
+    }
+
+    public function documents(ArchiveDocumentIndexRequest $request): JsonResponse
+    {
+        $filters = $request->filters();
+        $this->archives->assertCanIndex($request->user(), $filters->mine);
+
+        return response()->json(
+            $this->archives->documents($request->user(), $filters),
+        );
     }
 
     public function operationalQueue(Request $request): JsonResponse
@@ -67,7 +71,7 @@ class ArchiveController extends Controller
 
         return (new ImportTransactionResource(
             $this->archives->storeImport(
-                $request->validated(),
+                $request->archiveData(),
                 $request->user(),
             )
         ))
@@ -81,7 +85,7 @@ class ArchiveController extends Controller
 
         return (new ExportTransactionResource(
             $this->archives->storeExport(
-                $request->validated(),
+                $request->archiveData(),
                 $request->user(),
             )
         ))
@@ -98,7 +102,7 @@ class ArchiveController extends Controller
         return new ImportTransactionResource(
             $this->archives->updateImport(
                 $importTransaction,
-                $request->validated(),
+                $request->archiveData(),
                 $request->user(),
             )
         );
@@ -113,7 +117,7 @@ class ArchiveController extends Controller
         return new ExportTransactionResource(
             $this->archives->updateExport(
                 $exportTransaction,
-                $request->validated(),
+                $request->archiveData(),
                 $request->user(),
             )
         );

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Archives;
 
+use App\Data\Archives\ArchiveImportData;
 use App\Enums\SelectiveColor;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -63,5 +64,10 @@ class UpdateArchiveImportRequest extends FormRequest
             'file_date.after_or_equal' => 'Archive period cannot be before year 2000.',
             'file_date.before_or_equal' => 'Archive date cannot be in the future. Archives are for past documents only.',
         ];
+    }
+
+    public function archiveData(): ArchiveImportData
+    {
+        return ArchiveImportData::fromValidated($this->validated());
     }
 }

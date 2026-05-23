@@ -1,5 +1,10 @@
 import { useState } from 'react';
-import type { ArchiveDocument, ArchiveYear, TransactionType } from '../../../documents/types/document.types';
+import type {
+    ArchiveDocument,
+    ArchiveFolderSummary,
+    ArchiveYear,
+    TransactionType,
+} from '../../../documents/types/document.types';
 import type { ArchiveZipRequestInput } from '../../hooks/useArchiveZipRequests';
 import type { DocStatusFilter, DrillState } from '../../utils/archive.utils';
 import {
@@ -86,7 +91,8 @@ export const FolderRowMenu = ({
 
 interface SubFolderRowProps {
     groupKey: string;
-    docs: ArchiveDocument[];
+    docs?: ArchiveDocument[];
+    folder?: ArchiveFolderSummary;
     yr: ArchiveYear;
     filterStatus: DocStatusFilter;
     nav: (next: DrillState) => void;
@@ -99,7 +105,8 @@ interface SubFolderRowProps {
 
 export const SubFolderRow = ({
     groupKey,
-    docs,
+    docs = [],
+    folder,
     yr,
     filterStatus,
     nav,
@@ -118,16 +125,23 @@ export const SubFolderRow = ({
         if (!blMap.has(bk)) blMap.set(bk, []);
         blMap.get(bk)!.push(d);
     }
-    const completedBLs = [...blMap.values()].filter((blDocs) => getArchiveBlCompletion(blDocs, txType).isComplete).length;
-    const folderPct = blMap.size === 0 ? 0 : Math.round((completedBLs / blMap.size) * 100);
+    const blCount = folder?.bl_count ?? blMap.size;
+    const fileCount = folder?.file_count ?? docs.length;
+    const completedBLs = folder?.completed_bl_count
+        ?? [...blMap.values()].filter((blDocs) => getArchiveBlCompletion(blDocs, txType).isComplete).length;
+    const folderPct = blCount === 0 ? 0 : Math.round((completedBLs / blCount) * 100);
 
     const statusLabel = folderPct >= 90 ? 'Complete' : folderPct >= 50 ? 'Partial' : 'Incomplete';
     if (filterStatus === 'complete' && statusLabel !== 'Complete') return null;
     if (filterStatus === 'incomplete' && statusLabel === 'Complete') return null;
 
-    const lastDoc = docs.reduce((a, b) => (a.uploaded_at ?? '') > (b.uploaded_at ?? '') ? a : b);
-    const lastUpd = lastDoc.uploaded_at
-        ? new Date(lastDoc.uploaded_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    const latestUploadedAt = folder?.latest_uploaded_at
+        ?? docs.reduce<ArchiveDocument | null>((latest, doc) => {
+            if (latest === null) return doc;
+            return (doc.uploaded_at ?? '') > (latest.uploaded_at ?? '') ? doc : latest;
+        }, null)?.uploaded_at;
+    const lastUpd = latestUploadedAt
+        ? new Date(latestUploadedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
         : '—';
 
     const folderName = `${MONTH_NAMES[month - 1].slice(0, 3).toUpperCase()} ${yr.year} ${txType.toUpperCase()}S`;
@@ -156,9 +170,9 @@ export const SubFolderRow = ({
                         {folderName}
                     </span>
                     <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-semibold text-text-muted">
-                        <span>{docs.length.toLocaleString()} files</span>
+                        <span>{fileCount.toLocaleString()} files</span>
                         <span className="h-1 w-1 rounded-full bg-text-muted/40" />
-                        <span>{blMap.size.toLocaleString()} BL{blMap.size === 1 ? '' : 's'}</span>
+                        <span>{blCount.toLocaleString()} BL{blCount === 1 ? '' : 's'}</span>
                         <span className="h-1 w-1 rounded-full bg-text-muted/40" />
                         <span>Updated {lastUpd}</span>
                     </span>
@@ -197,8 +211,8 @@ export const SubFolderRow = ({
                             year: yr.year,
                             month,
                             type: txType,
-                            fileCount: docs.length,
-                            blCount: blMap.size,
+                            fileCount,
+                            blCount,
                             filename,
                         })}
                         onViewHistory={() => onViewHistory(folderName, yr.year, month, txType)}
@@ -221,7 +235,6 @@ interface YearRowProps {
     onViewHistory: (folderName: string, year: number, month: number, type: TransactionType) => void;
     onDownloadFolder: (request: ArchiveZipRequestInput) => void;
     preparingZipRequestKeys: Set<string>;
-    showAuditButton: boolean;
 }
 
 const YearRow = ({
@@ -236,7 +249,6 @@ const YearRow = ({
     onViewHistory,
     onDownloadFolder,
     preparingZipRequestKeys,
-    showAuditButton,
 }: YearRowProps) => {
     const grouped = new Map<string, ArchiveDocument[]>();
     for (const doc of yr.documents) {
@@ -245,7 +257,16 @@ const YearRow = ({
         grouped.get(k)!.push(doc);
     }
 
-    const allGroups = [...grouped.entries()].sort(([a], [b]) => {
+    const allGroups = (yr.folders?.length
+        ? yr.folders.map((folder): [string, { docs: ArchiveDocument[]; folder?: ArchiveFolderSummary }] => [
+            `${folder.month}|${folder.type}`,
+            { docs: grouped.get(`${folder.month}|${folder.type}`) ?? [], folder },
+        ])
+        : [...grouped.entries()].map(([key, docs]): [string, { docs: ArchiveDocument[]; folder?: ArchiveFolderSummary }] => [
+            key,
+            { docs },
+        ])
+    ).sort(([a], [b]) => {
         const [mA, tA] = a.split('|');
         const [mB, tB] = b.split('|');
         return Number(mA) - Number(mB) || tA.localeCompare(tB);
@@ -253,14 +274,22 @@ const YearRow = ({
 
     const visibleGroups = filterType === 'all' ? allGroups : allGroups.filter(([k]) => k.split('|')[1] === filterType);
 
-    const totalFiles = yr.documents.length;
-    const totalBLs = yr.imports + yr.exports;
-    const yearPct = computeGlobalCompleteness([yr]);
+    const totalFiles = yr.file_count ?? yr.documents.length;
+    const totalBLs = yr.bl_count ?? (yr.imports + yr.exports);
+    const yearPct = yr.bl_count
+        ? Math.round(((yr.completed_bl_count ?? 0) / yr.bl_count) * 100)
+        : computeGlobalCompleteness([yr]);
+    const yearRequestKey = `year|${yr.year}`;
+    const isPreparingYearZip = preparingZipRequestKeys.has(yearRequestKey);
 
-    const incompleteSubCount = allGroups.filter(([k, docs]) => {
+    const incompleteSubCount = allGroups.filter(([k, group]) => {
+        if (group.folder) {
+            return group.folder.incomplete_bl_count > 0;
+        }
+
         const txType = k.split('|')[1] as TransactionType;
         const bm = new Map<string, ArchiveDocument[]>();
-        for (const d of docs) {
+        for (const d of group.docs) {
             const bk = d.bl_no || '(no BL)';
             if (!bm.has(bk)) bm.set(bk, []);
             bm.get(bk)!.push(d);
@@ -297,21 +326,25 @@ const YearRow = ({
                     )}
                     <div className="flex items-center gap-1.5 ml-2" onClick={e => e.stopPropagation()}>
                         <button title="Download ZIP"
-                            onClick={e => { e.stopPropagation(); alert(`Downloading FY ${yr.year} archive... (backend pending)`); }}
-                            className="w-7 h-7 flex items-center justify-center rounded-md border border-border bg-input-bg text-text-secondary hover:border-blue-500/50 hover:text-blue-500 hover:bg-blue-500/10 transition-all shadow-sm">
+                            aria-label={`Prepare FY ${yr.year} ZIP`}
+                            disabled={isPreparingYearZip}
+                            onClick={e => {
+                                e.stopPropagation();
+                                onDownloadFolder({
+                                    scope: 'year',
+                                    requestKey: yearRequestKey,
+                                    folderName: `FY ${yr.year}`,
+                                    year: yr.year,
+                                    fileCount: totalFiles,
+                                    blCount: totalBLs,
+                                    filename: `fy-${yr.year}-archive.zip`,
+                                });
+                            }}
+                            className="w-7 h-7 flex items-center justify-center rounded-md border border-border bg-input-bg text-text-secondary hover:border-blue-500/50 hover:text-blue-500 hover:bg-blue-500/10 transition-all shadow-sm disabled:cursor-wait disabled:opacity-60">
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                             </svg>
                         </button>
-                        {showAuditButton && (
-                            <button title="Mark as Audited"
-                                onClick={e => { e.stopPropagation(); alert(`Mark FY ${yr.year} as Audited - (coming soon)`); }}
-                                className="w-7 h-7 flex items-center justify-center rounded-md border border-emerald-500/30 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 hover:border-emerald-500/50 transition-all shadow-sm">
-                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                            </button>
-                        )}
                     </div>
                 </div>
             </div>
@@ -323,8 +356,8 @@ const YearRow = ({
                             <div className="py-8 text-center text-xs text-text-muted">No folders match the current filter.</div>
                         ) : (
                             <div>
-                                {visibleGroups.map(([key, docs]) => (
-                                    <SubFolderRow key={key} groupKey={key} docs={docs} yr={yr}
+                                {visibleGroups.map(([key, group]) => (
+                                    <SubFolderRow key={key} groupKey={key} docs={group.docs} folder={group.folder} yr={yr}
                                         filterStatus={filterStatus} nav={nav}
                                         openMenuKey={openMenuKey} setOpenMenuKey={setOpenMenuKey}
                                         onViewHistory={onViewHistory}
@@ -358,7 +391,6 @@ interface ArchivesFolderViewProps {
     openMenuKey: string | null;
     setOpenMenuKey: (key: string | null) => void;
     onOpenUpload: () => void;
-    showAuditButton?: boolean;
     historyMine?: boolean;
     onRequestFolderZip: (request: ArchiveZipRequestInput) => void;
     preparingZipRequestKeys: Set<string>;
@@ -367,7 +399,6 @@ interface ArchivesFolderViewProps {
 export const ArchivesFolderView = ({
     archiveData, filterYear, filterType, filterStatus,
     expandedYears, toggleYear, nav, openMenuKey, setOpenMenuKey, onOpenUpload,
-    showAuditButton = true,
     historyMine = false,
     onRequestFolderZip,
     preparingZipRequestKeys,
@@ -404,7 +435,6 @@ export const ArchivesFolderView = ({
                         nav={nav}
                         openMenuKey={openMenuKey}
                         setOpenMenuKey={setOpenMenuKey}
-                        showAuditButton={showAuditButton}
                         onDownloadFolder={onRequestFolderZip}
                         preparingZipRequestKeys={preparingZipRequestKeys}
                         onViewHistory={(folderName, year, month, type) => setHistoryTarget({ folderName, year, month, type })}

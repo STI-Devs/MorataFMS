@@ -11,6 +11,17 @@ export const archiveKeys = {
         perPage: number,
         search: string,
         completion: string,
-    ) => ['archives', 'folder-history', year, month, type, mine, page, perPage, search, completion] as const,
+        sort: string,
+        direction: string,
+    ) => ['archives', 'folder-history', year, month, type, mine, page, perPage, search, completion, sort, direction] as const,
+    documents: (
+        mine: boolean,
+        page: number,
+        perPage: number,
+        search: string,
+        year: string,
+        type: string,
+        completion: string,
+    ) => ['archives', 'documents', mine, page, perPage, search, year, type, completion] as const,
     zipExports: (mine: boolean) => ['archives', 'zip-exports', mine] as const,
 };

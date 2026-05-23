@@ -72,6 +72,7 @@ describe('ArchivesPage', () => {
             dismissRequest: vi.fn(),
             retryRequest: vi.fn(),
             clearFinishedRequests: vi.fn(),
+            downloadingRequestId: null,
             isLoading: false,
             isRequesting: false,
         });

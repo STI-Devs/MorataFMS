@@ -8,9 +8,9 @@ export const ArchivesPage = () => {
 
     const globalPct = computeGlobalCompleteness(archiveData);
     const incompleteBLs = countIncompleteBLs(archiveData);
-    const totalBLs = new Set(archiveData.flatMap(y => y.documents.map(d => `${d.bl_no}|${d.type}|${y.year}`))).size;
+    const totalBLs = archiveData.reduce((sum, year) => sum + (year.bl_count ?? year.imports + year.exports), 0);
     const totalStorageBytes = archiveData.reduce(
-        (sum, year) => sum + year.documents.reduce((docsSum, doc) => docsSum + (doc.size_bytes ?? 0), 0),
+        (sum, year) => sum + (year.total_size_bytes ?? year.documents.reduce((docsSum, doc) => docsSum + (doc.size_bytes ?? 0), 0)),
         0,
     );
 
@@ -45,7 +45,6 @@ export const ArchivesPage = () => {
             ]}
             searchPlaceholder="Search BL number, client, or vessel..."
             documentViewTitle="All BL Records"
-            showAuditButton
         />
     );
 };

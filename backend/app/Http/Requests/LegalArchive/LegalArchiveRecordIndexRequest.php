@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\LegalArchive;
 
+use App\Data\LegalArchive\LegalArchiveRecordIndexFilters;
 use Illuminate\Foundation\Http\FormRequest;
 
 class LegalArchiveRecordIndexRequest extends FormRequest
@@ -41,5 +42,16 @@ class LegalArchiveRecordIndexRequest extends FormRequest
     public function perPage(): int
     {
         return $this->integer('per_page', 25);
+    }
+
+    public function filters(): LegalArchiveRecordIndexFilters
+    {
+        return new LegalArchiveRecordIndexFilters(
+            search: $this->search(),
+            fileCategory: $this->fileCategory(),
+            fileCode: $this->fileCode(),
+            uploadStatus: $this->uploadStatus(),
+            perPage: $this->perPage(),
+        );
     }
 }

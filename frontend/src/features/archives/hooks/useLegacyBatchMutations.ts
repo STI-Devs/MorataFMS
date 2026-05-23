@@ -84,8 +84,9 @@ export const useLegacyBatchMutations = () => {
     });
 
     const downloadZipExport = useMutation({
-        mutationFn: ({ exportId, filename }: { exportId: string; filename: string }) =>
-            legacyBatchApi.downloadLegacyBatchZipExport(exportId, filename),
+        mutationFn: async ({ exportId, filename }: { exportId: string; filename: string }) => {
+            legacyBatchApi.downloadLegacyBatchZipExport(exportId, filename);
+        },
     });
 
     return {

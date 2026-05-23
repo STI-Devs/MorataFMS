@@ -3,6 +3,7 @@
 namespace App\Actions\Archives;
 
 use App\Actions\Documents\StoreTransactionDocument;
+use App\Data\Archives\ArchiveImportData;
 use App\Enums\ArchiveOrigin;
 use App\Enums\ImportStatus;
 use App\Models\ImportTransaction;
@@ -15,23 +16,23 @@ class CreateArchiveImport
 {
     public function __construct(private StoreTransactionDocument $storeTransactionDocument) {}
 
-    public function handle(array $validated, User $user): ImportTransaction
+    public function handle(ArchiveImportData $data, User $user): ImportTransaction
     {
         $storedPaths = [];
 
         try {
-            $transaction = DB::transaction(function () use ($validated, $user, &$storedPaths) {
+            $transaction = DB::transaction(function () use ($data, $user, &$storedPaths) {
                 $transaction = new ImportTransaction;
-                $transaction->customs_ref_no = $validated['customs_ref_no']
-                    ?? 'ARCH-'.$validated['file_date'].'-'.strtoupper(substr(uniqid(), -6));
-                $transaction->bl_no = $validated['bl_no'];
-                $transaction->vessel_name = $validated['vessel_name'] ?? null;
-                $transaction->selective_color = $validated['selective_color'];
-                $transaction->importer_id = $validated['importer_id'];
-                $transaction->origin_country_id = $validated['origin_country_id'] ?? null;
-                $transaction->location_of_goods_id = $validated['location_of_goods_id'] ?? null;
-                $transaction->arrival_date = $validated['file_date'];
-                $transaction->notes = $validated['notes'] ?? null;
+                $transaction->customs_ref_no = $data->customsRefNo
+                    ?? 'ARCH-'.$data->fileDate.'-'.strtoupper(substr(uniqid(), -6));
+                $transaction->bl_no = $data->blNo;
+                $transaction->vessel_name = $data->vesselName;
+                $transaction->selective_color = $data->selectiveColor->value;
+                $transaction->importer_id = $data->importerId;
+                $transaction->origin_country_id = $data->originCountryId;
+                $transaction->location_of_goods_id = $data->locationOfGoodsId;
+                $transaction->arrival_date = $data->fileDate;
+                $transaction->notes = $data->notes;
                 $transaction->is_archive = true;
                 $transaction->archived_at = now();
                 $transaction->archived_by = $user->id;
@@ -40,15 +41,15 @@ class CreateArchiveImport
                 $transaction->status = ImportStatus::Completed;
                 $transaction->save();
 
-                foreach ($validated['not_applicable_stages'] ?? [] as $stage) {
+                foreach ($data->notApplicableStages as $stage) {
                     $transaction->setStageApplicability($stage, true, $user->id);
                 }
 
-                foreach ($validated['documents'] ?? [] as $document) {
+                foreach ($data->documents as $document) {
                     $storedDocument = $this->storeTransactionDocument->handle(
                         $transaction,
-                        $document['file'],
-                        $document['stage'],
+                        $document->file,
+                        $document->stage,
                         $user->id,
                     );
 
@@ -56,7 +57,7 @@ class CreateArchiveImport
                 }
 
                 if (
-                    (! empty($validated['documents']) || ! empty($validated['not_applicable_stages']))
+                    $data->hasDocumentOrApplicabilityChanges()
                     && method_exists($transaction, 'recalculateStatus')
                 ) {
                     $transaction->recalculateStatus();

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Archives;
 
+use App\Data\Archives\ArchiveZipExportIndexFilters;
 use App\Enums\ArchiveZipExportStatus;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -13,9 +14,6 @@ class ArchiveZipExportIndexRequest extends FormRequest
         return true;
     }
 
-    /**
-     * @return array<string, mixed>
-     */
     public function rules(): array
     {
         return [
@@ -44,5 +42,14 @@ class ArchiveZipExportIndexRequest extends FormRequest
     public function mine(): ?bool
     {
         return $this->has('mine') ? $this->boolean('mine') : null;
+    }
+
+    public function filters(): ArchiveZipExportIndexFilters
+    {
+        return new ArchiveZipExportIndexFilters(
+            status: $this->status(),
+            mine: $this->mine(),
+            perPage: $this->perPage(),
+        );
     }
 }

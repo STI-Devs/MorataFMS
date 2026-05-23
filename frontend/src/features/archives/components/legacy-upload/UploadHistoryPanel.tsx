@@ -84,6 +84,8 @@ export const UploadHistoryPanel = ({ isOpen, onClose, folderName, year, month, t
         perPage: PER_PAGE,
         search: debouncedSearch,
         completion: completionFilter,
+        sort: 'period',
+        direction: 'desc',
         enabled: isOpen && year > 0 && month > 0,
     });
 

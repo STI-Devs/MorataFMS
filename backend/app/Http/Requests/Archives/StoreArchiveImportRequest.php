@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Archives;
 
+use App\Data\Archives\ArchiveImportData;
 use App\Enums\SelectiveColor;
 use App\Models\Document;
 use App\Models\ImportTransaction;
@@ -171,5 +172,10 @@ class StoreArchiveImportRequest extends FormRequest
                     });
             },
         ];
+    }
+
+    public function archiveData(): ArchiveImportData
+    {
+        return ArchiveImportData::fromValidated($this->validated());
     }
 }

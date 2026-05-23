@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\LegalArchive;
 
+use App\Data\LegalArchive\LegalArchiveRecordData;
 use App\Models\LegalArchiveRecord;
 use App\Support\LawFirmDocuments\LawFirmDocumentCatalog;
 use Illuminate\Foundation\Http\FormRequest;
@@ -39,5 +40,10 @@ class StoreLegalArchiveRecordRequest extends FormRequest
             'notes' => ['nullable', 'string', 'max:2000'],
             'file' => ['nullable', 'file', 'max:20480', 'mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png'],
         ];
+    }
+
+    public function recordData(): LegalArchiveRecordData
+    {
+        return LegalArchiveRecordData::fromValidated($this->safe()->except('file'));
     }
 }

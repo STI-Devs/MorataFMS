@@ -4,6 +4,7 @@ import type { LegacyBatchSummary } from '../../types/legacyBatch.types';
 type LegacyBatchZipButtonProps = {
     batch: LegacyBatchSummary;
     isBusy?: boolean;
+    isDownloading?: boolean;
     compact?: boolean;
     onRequest: (batchId: string) => void;
     onRetry: (batchId: string, exportId: string) => void;
@@ -15,6 +16,7 @@ const isActiveZipStatus = (status?: string): boolean => status === 'pending' || 
 export const LegacyBatchZipButton = ({
     batch,
     isBusy = false,
+    isDownloading = false,
     compact = false,
     onRequest,
     onRetry,
@@ -28,7 +30,9 @@ export const LegacyBatchZipButton = ({
     const isPreparing = isBusy || isActiveZipStatus(zipExport?.status);
     const isReady = zipExport?.status === 'ready' && zipExport.canDownload;
     const needsRetry = zipExport?.status === 'failed' || zipExport?.status === 'expired';
-    const label = isPreparing
+    const label = isDownloading
+        ? 'Downloading...'
+        : isPreparing
         ? 'Preparing ZIP'
         : isReady
             ? 'Download ZIP'
@@ -37,7 +41,7 @@ export const LegacyBatchZipButton = ({
                 : 'Prepare ZIP';
 
     const handleClick = () => {
-        if (isPreparing) {
+        if (isPreparing || isDownloading) {
             return;
         }
 
@@ -57,7 +61,7 @@ export const LegacyBatchZipButton = ({
     return (
         <button
             type="button"
-            disabled={isPreparing}
+            disabled={isPreparing || isDownloading}
             onClick={handleClick}
             title={zipExport?.errorMessage ?? label}
             className={`inline-flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
@@ -68,7 +72,7 @@ export const LegacyBatchZipButton = ({
                         : 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100'
             } ${compact ? 'xl:min-w-[96px]' : ''}`}
         >
-            <Icon name={isPreparing ? 'clock' : 'download'} className="h-3.5 w-3.5" />
+            <Icon name={isPreparing || isDownloading ? 'clock' : 'download'} className="h-3.5 w-3.5" />
             {label}
         </button>
     );

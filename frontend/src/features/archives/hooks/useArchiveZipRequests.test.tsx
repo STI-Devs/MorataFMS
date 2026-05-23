@@ -8,24 +8,24 @@ import { useArchiveZipRequests } from './useArchiveZipRequests';
 const {
     mockCreateArchiveZipExport,
     mockDeleteArchiveZipExport,
-    mockDownloadArchiveZipExport,
     mockGetArchiveZipExports,
     mockRetryArchiveZipExport,
+    mockStartArchiveZipExportDownload,
 } = vi.hoisted(() => ({
     mockCreateArchiveZipExport: vi.fn(),
     mockDeleteArchiveZipExport: vi.fn(),
-    mockDownloadArchiveZipExport: vi.fn(),
     mockGetArchiveZipExports: vi.fn(),
     mockRetryArchiveZipExport: vi.fn(),
+    mockStartArchiveZipExportDownload: vi.fn(),
 }));
 
 vi.mock('../../tracking/api/trackingApi', () => ({
     trackingApi: {
         createArchiveZipExport: mockCreateArchiveZipExport,
         deleteArchiveZipExport: mockDeleteArchiveZipExport,
-        downloadArchiveZipExport: mockDownloadArchiveZipExport,
         getArchiveZipExports: mockGetArchiveZipExports,
         retryArchiveZipExport: mockRetryArchiveZipExport,
+        startArchiveZipExportDownload: mockStartArchiveZipExportDownload,
     },
 }));
 
@@ -70,9 +70,9 @@ describe('useArchiveZipRequests', () => {
     beforeEach(() => {
         mockCreateArchiveZipExport.mockReset();
         mockDeleteArchiveZipExport.mockReset();
-        mockDownloadArchiveZipExport.mockReset();
         mockGetArchiveZipExports.mockReset();
         mockRetryArchiveZipExport.mockReset();
+        mockStartArchiveZipExportDownload.mockReset();
     });
 
     it('maps pending backend zip exports into drawer requests and active folder keys', async () => {
@@ -127,6 +127,60 @@ describe('useArchiveZipRequests', () => {
         }));
     });
 
+    it('maps and creates backend zip export requests for an entire filing year', async () => {
+        mockGetArchiveZipExports.mockResolvedValue({
+            data: [
+                makeZipExport({
+                    scope: 'year',
+                    scope_label: 'Year',
+                    month: null,
+                    type: null,
+                    status: 'ready',
+                    status_label: 'Ready',
+                    can_download: true,
+                    filename: 'fy-2026-archive.zip',
+                }),
+            ],
+        });
+        mockCreateArchiveZipExport.mockResolvedValue(makeZipExport({
+            scope: 'year',
+            scope_label: 'Year',
+            month: null,
+            type: null,
+            filename: 'fy-2026-archive.zip',
+        }));
+
+        const { result } = renderHook(() => useArchiveZipRequests({ mine: false }), {
+            wrapper: makeWrapper(),
+        });
+
+        await waitFor(() => expect(result.current.requests).toHaveLength(1));
+
+        expect(result.current.requests[0]).toMatchObject({
+            requestKey: 'year|2026',
+            folderName: 'FY 2026',
+            filename: 'fy-2026-archive.zip',
+        });
+
+        act(() => {
+            result.current.requestFolderZip({
+                scope: 'year',
+                requestKey: 'year|2026',
+                folderName: 'FY 2026',
+                year: 2026,
+                fileCount: 79,
+                blCount: 7,
+                filename: 'fy-2026-archive.zip',
+            });
+        });
+
+        await waitFor(() => expect(mockCreateArchiveZipExport).toHaveBeenCalledWith({
+            scope: 'year',
+            year: 2026,
+            mine: false,
+        }));
+    });
+
     it('clears only finished zip export requests', async () => {
         mockGetArchiveZipExports.mockResolvedValue({
             data: [
@@ -148,5 +202,27 @@ describe('useArchiveZipRequests', () => {
 
         await waitFor(() => expect(mockDeleteArchiveZipExport).toHaveBeenCalledTimes(1));
         expect(mockDeleteArchiveZipExport).toHaveBeenCalledWith('ready-zip');
+    });
+
+    it('marks a ready zip export as downloading and ignores duplicate download clicks', async () => {
+        mockGetArchiveZipExports.mockResolvedValue({
+            data: [
+                makeZipExport({ status: 'ready', status_label: 'Ready', can_download: true }),
+            ],
+        });
+        const { result } = renderHook(() => useArchiveZipRequests({ mine: false }), {
+            wrapper: makeWrapper(),
+        });
+
+        await waitFor(() => expect(result.current.requests).toHaveLength(1));
+
+        act(() => {
+            result.current.downloadRequest('zip-1');
+            result.current.downloadRequest('zip-1');
+        });
+
+        expect(result.current.downloadingRequestId).toBe('zip-1');
+        expect(mockStartArchiveZipExportDownload).toHaveBeenCalledTimes(1);
+        expect(mockStartArchiveZipExportDownload).toHaveBeenCalledWith('zip-1');
     });
 });

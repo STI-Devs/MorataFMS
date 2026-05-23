@@ -13,11 +13,17 @@ use App\Actions\Archives\UpdateArchiveExport;
 use App\Actions\Archives\UpdateArchiveImport;
 use App\Actions\Transactions\UpdateExportStageApplicability;
 use App\Actions\Transactions\UpdateImportStageApplicability;
-use App\Http\Requests\Archives\ArchiveZipExportIndexRequest;
+use App\Data\Archives\ArchiveDocumentIndexFilters;
+use App\Data\Archives\ArchiveExportData;
+use App\Data\Archives\ArchiveFolderHistoryFilters;
+use App\Data\Archives\ArchiveImportData;
+use App\Data\Archives\ArchiveZipExportData;
+use App\Data\Archives\ArchiveZipExportIndexFilters;
 use App\Models\ArchiveZipExport;
 use App\Models\ExportTransaction;
 use App\Models\ImportTransaction;
 use App\Models\User;
+use App\Queries\Archives\ArchiveDocumentIndexQuery;
 use App\Queries\Archives\ArchiveFolderHistoryQuery;
 use App\Queries\Archives\ArchiveIndexQuery;
 use App\Queries\Archives\ArchiveOperationalQueueQuery;
@@ -33,6 +39,7 @@ class ArchiveOrchestrator
     public function __construct(
         private ArchiveAuthorizer $archiveAuthorizer,
         private ArchiveIndexQuery $archiveIndexQuery,
+        private ArchiveDocumentIndexQuery $archiveDocumentIndexQuery,
         private ArchiveFolderHistoryQuery $archiveFolderHistoryQuery,
         private ArchiveOperationalQueueQuery $archiveOperationalQueueQuery,
         private ArchiveZipExportIndexQuery $archiveZipExportIndexQuery,
@@ -94,26 +101,14 @@ class ArchiveOrchestrator
         return $this->archiveIndexQuery->handle($user, $mine);
     }
 
-    public function folderHistory(
-        User $user,
-        bool $mine,
-        int $year,
-        int $month,
-        string $type,
-        ?string $search,
-        string $completion,
-        int $perPage,
-    ): array {
-        return $this->archiveFolderHistoryQuery->handle(
-            $user,
-            $mine,
-            $year,
-            $month,
-            $type,
-            $search,
-            $completion,
-            $perPage,
-        );
+    public function documents(User $user, ArchiveDocumentIndexFilters $filters): array
+    {
+        return $this->archiveDocumentIndexQuery->handle($user, $filters);
+    }
+
+    public function folderHistory(User $user, ArchiveFolderHistoryFilters $filters): array
+    {
+        return $this->archiveFolderHistoryQuery->handle($user, $filters);
     }
 
     public function operationalQueue(User $user): array
@@ -124,17 +119,14 @@ class ArchiveOrchestrator
     /**
      * @return LengthAwarePaginator<int, ArchiveZipExport>
      */
-    public function zipExports(ArchiveZipExportIndexRequest $request, User $user): LengthAwarePaginator
+    public function zipExports(ArchiveZipExportIndexFilters $filters, User $user): LengthAwarePaginator
     {
-        return $this->archiveZipExportIndexQuery->handle($request, $user);
+        return $this->archiveZipExportIndexQuery->handle($filters, $user);
     }
 
-    /**
-     * @param  array{scope:string, year:int, month:int, type:string, mine:bool}  $validated
-     */
-    public function storeZipExport(User $user, array $validated): ArchiveZipExport
+    public function storeZipExport(User $user, ArchiveZipExportData $data): ArchiveZipExport
     {
-        return $this->createArchiveZipExport->handle($user, $validated);
+        return $this->createArchiveZipExport->handle($user, $data);
     }
 
     public function retryZipExport(ArchiveZipExport $archiveZipExport): ArchiveZipExport
@@ -152,30 +144,30 @@ class ArchiveOrchestrator
         $this->deleteArchiveZipExport->handle($archiveZipExport);
     }
 
-    public function storeImport(array $validated, User $user): ImportTransaction
+    public function storeImport(ArchiveImportData $data, User $user): ImportTransaction
     {
-        $transaction = $this->createArchiveImport->handle($validated, $user);
+        $transaction = $this->createArchiveImport->handle($data, $user);
         $this->transactionSyncBroadcaster->transactionChanged($transaction, $user, 'archive_created');
 
         return $transaction;
     }
 
-    public function storeExport(array $validated, User $user): ExportTransaction
+    public function storeExport(ArchiveExportData $data, User $user): ExportTransaction
     {
-        $transaction = $this->createArchiveExport->handle($validated, $user);
+        $transaction = $this->createArchiveExport->handle($data, $user);
         $this->transactionSyncBroadcaster->transactionChanged($transaction, $user, 'archive_created');
 
         return $transaction;
     }
 
-    public function updateImport(ImportTransaction $transaction, array $validated, User $user): ImportTransaction
+    public function updateImport(ImportTransaction $transaction, ArchiveImportData $data, User $user): ImportTransaction
     {
-        return $this->updateArchiveImport->handle($transaction, $validated, $user);
+        return $this->updateArchiveImport->handle($transaction, $data, $user);
     }
 
-    public function updateExport(ExportTransaction $transaction, array $validated, User $user): ExportTransaction
+    public function updateExport(ExportTransaction $transaction, ArchiveExportData $data, User $user): ExportTransaction
     {
-        return $this->updateArchiveExport->handle($transaction, $validated, $user);
+        return $this->updateArchiveExport->handle($transaction, $data, $user);
     }
 
     public function updateImportStageApplicability(

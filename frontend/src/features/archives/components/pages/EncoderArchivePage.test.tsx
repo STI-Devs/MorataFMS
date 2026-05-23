@@ -9,6 +9,8 @@ import {
 } from 'vitest';
 import { appRoutes } from '../../../../lib/appRoutes';
 import type { ArchiveYear } from '../../../documents/types/document.types';
+import { useArchiveFolderHistory } from '../../hooks/useArchiveFolderHistory';
+import type { ArchiveFolderHistoryResponse } from '../../types/archiveHistory.types';
 import { EncoderArchivePage } from './EncoderArchivePage';
 
 let archiveData: ArchiveYear[] = [];
@@ -24,6 +26,12 @@ vi.mock('../../hooks/useMyArchives', () => ({
         isError: false,
     }),
 }));
+
+vi.mock('../../hooks/useArchiveFolderHistory', () => ({
+    useArchiveFolderHistory: vi.fn(),
+}));
+
+const useArchiveFolderHistoryMock = vi.mocked(useArchiveFolderHistory);
 
 vi.mock('../../../auth/hooks/useAuth', () => ({
     useAuth: () => ({
@@ -92,6 +100,46 @@ const createArchiveData = (clientName: string): ArchiveYear[] => ([
     },
 ]);
 
+const createFolderHistoryResponse = (): ArchiveFolderHistoryResponse => {
+    const year = archiveData[0];
+    const documents = year.documents;
+    const firstDocument = documents[0];
+
+    return {
+        data: [{
+            bl_no: firstDocument.bl_no,
+            type: firstDocument.type,
+            transaction_id: firstDocument.transaction_id,
+            documentable_type: firstDocument.documentable_type,
+            client: firstDocument.client,
+            transaction_date: firstDocument.transaction_date,
+            not_applicable_stages: firstDocument.not_applicable_stages ?? [],
+            required_stages: ['boc'],
+            uploaded_stage_count: documents.length,
+            required_stage_count: 1,
+            is_complete: true,
+            latest_uploaded_at: firstDocument.uploaded_at,
+            latest_uploader: firstDocument.uploader,
+            documents,
+        }],
+        summary: {
+            total_bl_records: 1,
+            complete_bl_records: 1,
+            incomplete_bl_records: 0,
+            total_files: documents.length,
+            latest_uploaded_at: firstDocument.uploaded_at,
+        },
+        meta: {
+            current_page: 1,
+            last_page: 1,
+            per_page: 25,
+            total: 1,
+            from: 1,
+            to: 1,
+        },
+    };
+};
+
 const createWrapper = () => {
     const queryClient = new QueryClient({
         defaultOptions: {
@@ -120,6 +168,12 @@ describe('EncoderArchivePage', () => {
     beforeEach(() => {
         archiveData = createArchiveData('Original Archive Client');
         legacyUploadCleanupSpy.mockClear();
+        useArchiveFolderHistoryMock.mockReset();
+        useArchiveFolderHistoryMock.mockReturnValue({
+            data: createFolderHistoryResponse(),
+            isFetching: false,
+            isError: false,
+        } as ReturnType<typeof useArchiveFolderHistory>);
     });
 
     it('refreshes the open file view when archive data changes after an edit', async () => {

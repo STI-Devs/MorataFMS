@@ -36,11 +36,7 @@ export function useMainLayoutNavigation() {
 
     const [activeModule, setActiveModule] = useState<Module>(() => getInitialModule(departments));
     const [isAccountOpen, setIsAccountOpen] = useState(false);
-    const [openLegalGroups, setOpenLegalGroups] = useState<Record<string, boolean>>({
-        'Legacy Records': true,
-        'Notarial Documents': true,
-        'Legal Files': true,
-    });
+    const [openLegalGroups, setOpenLegalGroups] = useState<Record<string, boolean>>({});
     const [openBrokerageGroups, setOpenBrokerageGroups] = useState<Record<string, boolean>>({
         Records: true,
     });
@@ -120,27 +116,6 @@ export function useMainLayoutNavigation() {
             });
         }
     }, [hasBrokerage, hasLegal, isLegalRoute, isSettingsRoute]);
-
-    useEffect(() => {
-        if (activeModule !== 'legal') {
-            return;
-        }
-
-        setOpenLegalGroups((currentOpenGroups) => {
-            const nextOpenState = { ...currentOpenGroups };
-            let hasChange = false;
-
-            for (const group of filteredLegalNavigationGroups) {
-                const hasActiveItem = group.items.some((item) => matchesPath(location.pathname, item.path));
-                if (hasActiveItem && ! nextOpenState[group.label]) {
-                    nextOpenState[group.label] = true;
-                    hasChange = true;
-                }
-            }
-
-            return hasChange ? nextOpenState : currentOpenGroups;
-        });
-    }, [activeModule, filteredLegalNavigationGroups, location.pathname]);
 
     const handleLogout = async () => {
         try {
