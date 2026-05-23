@@ -295,6 +295,7 @@ export const LegacyBatchesPage = ({
                             <LegacyFolderBrowserPanel
                                 batch={viewingBatch}
                                 isZipBusy={viewingBatchId !== null && isZipBusyForBatch(viewingBatchId)}
+                                isZipDownloading={isZipDownloading(viewingBatch.zipExport?.id)}
                                 onRequestZip={requestZip}
                                 onRetryZip={retryZip}
                                 onDownloadZip={downloadZip}

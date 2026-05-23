@@ -57,7 +57,8 @@ type UseArchiveZipRequestsArgs = {
 };
 
 const ZIP_REQUEST_PAGE_SIZE = 20;
-const DOWNLOAD_START_GUARD_MS = 2000;
+const ZIP_REQUEST_REFETCH_INTERVAL_MS = 5000;
+const DOWNLOAD_HANDOFF_GUARD_MS = 3000;
 
 const isActiveZipStatus = (status: ArchiveZipRequestStatus) => (
     status === 'pending' || status === 'processing'
@@ -135,7 +136,7 @@ export const useArchiveZipRequests = ({ mine }: UseArchiveZipRequestsArgs) => {
             const data = query.state.data as ArchiveZipExportListResponse | undefined;
 
             return data?.data.some((archiveZipExport) => isActiveZipStatus(archiveZipExport.status))
-                ? 3000
+                ? ZIP_REQUEST_REFETCH_INTERVAL_MS
                 : false;
         },
     });
@@ -209,7 +210,7 @@ export const useArchiveZipRequests = ({ mine }: UseArchiveZipRequestsArgs) => {
             }
 
             downloadResetTimerRef.current = null;
-        }, DOWNLOAD_START_GUARD_MS);
+        }, DOWNLOAD_HANDOFF_GUARD_MS);
     }, []);
 
     const requestFolderZip = useCallback((input: ArchiveZipRequestInput) => {

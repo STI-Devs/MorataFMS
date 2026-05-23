@@ -267,6 +267,7 @@ const ContentRow = ({
 interface LegacyFolderBrowserPanelProps {
     batch: LegacyBatch;
     isZipBusy?: boolean;
+    isZipDownloading?: boolean;
     onRequestZip?: (batchId: string) => void;
     onRetryZip?: (batchId: string, exportId: string) => void;
     onDownloadZip?: (exportId: string, filename: string) => void;
@@ -276,6 +277,7 @@ interface LegacyFolderBrowserPanelProps {
 export const LegacyFolderBrowserPanel = ({
     batch,
     isZipBusy = false,
+    isZipDownloading = false,
     onRequestZip,
     onRetryZip,
     onDownloadZip,
@@ -328,6 +330,7 @@ export const LegacyFolderBrowserPanel = ({
                             <LegacyBatchZipButton
                                 batch={batch}
                                 isBusy={isZipBusy}
+                                isDownloading={isZipDownloading}
                                 onRequest={onRequestZip}
                                 onRetry={onRetryZip}
                                 onDownload={onDownloadZip}

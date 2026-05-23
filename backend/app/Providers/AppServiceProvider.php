@@ -85,6 +85,10 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(60)->by('api-documents:'.$this->rateLimitKey($request));
         });
 
+        RateLimiter::for('zip-downloads', function (Request $request) {
+            return Limit::perMinute(15)->by('zip-downloads:'.$this->rateLimitKey($request));
+        });
+
         RateLimiter::for('public-documents', function (Request $request) {
             return Limit::perMinute(20)->by('public-documents:'.$request->ip());
         });

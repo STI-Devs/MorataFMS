@@ -34,7 +34,8 @@ type UseLegacyBatchZipRequestsArgs = {
 };
 
 const ZIP_REQUEST_PAGE_SIZE = 20;
-const DOWNLOAD_START_GUARD_MS = 2000;
+const ZIP_REQUEST_REFETCH_INTERVAL_MS = 5000;
+const DOWNLOAD_HANDOFF_GUARD_MS = 3000;
 
 const isActiveZipStatus = (status: LegacyBatchZipRequestStatus) => (
     status === 'pending' || status === 'processing'
@@ -69,6 +70,7 @@ export const useLegacyBatchZipRequests = ({ module }: UseLegacyBatchZipRequestsA
     const queryKey = legacyBatchQueryKeys.zipExports(module);
     const activeDownloadRequestIdRef = useRef<string | null>(null);
     const downloadResetTimerRef = useRef<number | null>(null);
+    const previousActiveRequestIdsRef = useRef<Set<string>>(new Set());
     const [downloadingRequestId, setDownloadingRequestId] = useState<string | null>(null);
 
     useEffect(() => () => {
@@ -87,7 +89,7 @@ export const useLegacyBatchZipRequests = ({ module }: UseLegacyBatchZipRequestsA
             const data = query.state.data as LegacyBatchZipExportListResponse | undefined;
 
             return data?.data.some((zipExport) => isActiveZipStatus(zipExport.status))
-                ? 3000
+                ? ZIP_REQUEST_REFETCH_INTERVAL_MS
                 : false;
         },
     });
@@ -97,6 +99,32 @@ export const useLegacyBatchZipRequests = ({ module }: UseLegacyBatchZipRequestsA
             .map(toZipRequest)
             .filter((request): request is LegacyBatchZipRequest => request !== null) ?? []
     ), [zipExportsQuery.data]);
+
+    useEffect(() => {
+        const activeRequestIds = new Set(
+            requests
+                .filter((request) => isActiveZipStatus(request.status))
+                .map((request) => request.id),
+        );
+        const completedRequestIds = [...previousActiveRequestIdsRef.current]
+            .filter((requestId) => !activeRequestIds.has(requestId));
+
+        previousActiveRequestIdsRef.current = activeRequestIds;
+
+        if (completedRequestIds.length === 0) {
+            return;
+        }
+
+        const affectedBatchIds = requests
+            .filter((request) => completedRequestIds.includes(request.id))
+            .map((request) => request.batchId);
+
+        void queryClient.invalidateQueries({ queryKey: legacyBatchQueryKeys.all });
+
+        affectedBatchIds.forEach((batchId) => {
+            void queryClient.invalidateQueries({ queryKey: legacyBatchQueryKeys.detail(batchId) });
+        });
+    }, [queryClient, requests]);
 
     const invalidateZipRequests = useCallback(async (batchId?: string | null) => {
         const invalidations = [
@@ -149,7 +177,7 @@ export const useLegacyBatchZipRequests = ({ module }: UseLegacyBatchZipRequestsA
             }
 
             downloadResetTimerRef.current = null;
-        }, DOWNLOAD_START_GUARD_MS);
+        }, DOWNLOAD_HANDOFF_GUARD_MS);
     }, []);
 
     const requestBatchZip = useCallback((batchId: string) => {

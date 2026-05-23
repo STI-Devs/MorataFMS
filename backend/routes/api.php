@@ -107,7 +107,7 @@ Route::middleware(['auth:sanctum', 'active-session', 'throttle:api-general'])->g
         Route::post('{archiveZipExport}/retry', [ArchiveZipExportController::class, 'retry'])
             ->middleware('throttle:api-documents');
         Route::get('{archiveZipExport}/download', [ArchiveZipExportController::class, 'download'])
-            ->middleware('throttle:api-documents');
+            ->middleware('throttle:zip-downloads');
         Route::delete('{archiveZipExport}', [ArchiveZipExportController::class, 'destroy'])
             ->middleware('throttle:api-documents');
     });
@@ -141,7 +141,7 @@ Route::middleware(['auth:sanctum', 'active-session', 'throttle:api-general'])->g
         Route::post('{legacyBatchZipExport}/retry', [LegacyBatchZipExportController::class, 'retry'])
             ->middleware('throttle:api-documents');
         Route::get('{legacyBatchZipExport}/download', [LegacyBatchZipExportController::class, 'download'])
-            ->middleware('throttle:api-documents');
+            ->middleware('throttle:zip-downloads');
         Route::delete('{legacyBatchZipExport}', [LegacyBatchZipExportController::class, 'destroy'])
             ->middleware('throttle:api-documents');
     });
