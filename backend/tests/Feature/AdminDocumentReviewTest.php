@@ -54,7 +54,7 @@ test('admin can list the paginated admin document review queue', function () {
         'billing_completed_at' => $finalizedAt,
     ]);
 
-    foreach (['boc', 'ppa', 'do', 'billing'] as $typeKey) {
+    foreach (['boc', 'do', 'ppa', 'billing'] as $typeKey) {
         Document::factory()->create([
             'documentable_type' => ImportTransaction::class,
             'documentable_id' => $importTransaction->id,

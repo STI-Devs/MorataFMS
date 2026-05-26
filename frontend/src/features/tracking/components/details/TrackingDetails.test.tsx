@@ -399,7 +399,6 @@ describe('TrackingDetails', () => {
             byStageIndex: {
                 0: [doc],
                 1: [makeApiDocument({ id: 801, type: 'bonds', filename: 'bonds.pdf' })],
-                2: [makeApiDocument({ id: 803, type: 'ppa', filename: 'ppa.pdf' })],
             },
             isLoading: false,
         });
@@ -428,7 +427,7 @@ describe('TrackingDetails', () => {
             expect(screen.queryByText('Edit modal open')).not.toBeInTheDocument();
         });
 
-        fireEvent.click(screen.getByText('Upload 3'));
+        fireEvent.click(screen.getByText('Upload 2'));
         expect(screen.getByText('Upload modal: Delivery Order Request')).toBeInTheDocument();
         fireEvent.click(screen.getByText('Close upload'));
         await waitFor(() => {
@@ -489,7 +488,6 @@ describe('TrackingDetails', () => {
             byStageIndex: {
                 0: [makeApiDocument({ id: 706, type: 'boc', filename: 'boc.pdf' })],
                 1: [makeApiDocument({ id: 717, type: 'bonds', filename: 'bonds.pdf' })],
-                2: [makeApiDocument({ id: 719, type: 'ppa', filename: 'ppa.pdf' })],
             },
             isLoading: false,
         });
@@ -500,7 +498,7 @@ describe('TrackingDetails', () => {
             queryClient,
         });
 
-        fireEvent.click(screen.getByText('Upload 3'));
+        fireEvent.click(screen.getByText('Upload 2'));
         fireEvent.click(screen.getByText('Confirm upload'));
 
         await waitFor(() => {

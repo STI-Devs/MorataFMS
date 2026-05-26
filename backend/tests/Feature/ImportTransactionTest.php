@@ -65,8 +65,8 @@ test('processors list shared imports with ready processor tasks', function () {
     $visibleTransaction->stages()->update([
         'boc_status' => 'completed',
         'bonds_status' => 'completed',
+        'do_status' => 'completed',
         'ppa_status' => 'pending',
-        'do_status' => 'pending',
         'port_charges_status' => 'pending',
         'billing_status' => 'pending',
     ]);
@@ -75,6 +75,7 @@ test('processors list shared imports with ready processor tasks', function () {
     $completedProcessorTaskTransaction->stages()->update([
         'boc_status' => 'completed',
         'bonds_status' => 'completed',
+        'do_status' => 'completed',
         'ppa_status' => 'completed',
         'port_charges_status' => 'completed',
         'billing_status' => 'pending',
@@ -181,9 +182,10 @@ test('accounting can list waiting imports when requesting the operational worksp
         'boc_completed_at' => '2026-04-09 07:00:00',
         'bonds_status' => 'completed',
         'bonds_completed_at' => '2026-04-10 07:00:00',
+        'do_status' => 'completed',
+        'do_completed_at' => '2026-04-11 07:00:00',
         'ppa_status' => 'completed',
         'ppa_completed_at' => $waitingSince,
-        'do_status' => 'pending',
         'port_charges_status' => 'pending',
         'releasing_status' => 'pending',
         'billing_status' => 'pending',
@@ -790,6 +792,8 @@ test('marking an optional import stage as not applicable does not advance the li
             'boc_completed_at' => now()->subHour(),
             'bonds_status' => 'completed',
             'bonds_completed_at' => now(),
+            'do_status' => 'completed',
+            'do_completed_at' => now(),
         ],
     ],
     'port charges' => [

@@ -370,7 +370,7 @@ test('document upload accepts valid import stage keys', function () {
     $user = User::factory()->create(['role' => 'admin']);
     $transaction = ImportTransaction::factory()->create();
 
-    foreach (['boc', 'bonds', 'ppa', 'do', 'port_charges', 'releasing', 'billing', 'others'] as $stage) {
+    foreach (['boc', 'bonds', 'do', 'ppa', 'port_charges', 'releasing', 'billing', 'others'] as $stage) {
         $this->actingAs($user)->postJson('/api/documents', [
             'file' => UploadedFile::fake()->create("doc-{$stage}.pdf", 100, 'application/pdf'),
             'type' => $stage,

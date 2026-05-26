@@ -64,7 +64,7 @@ test('encoder dashboard returns only the authenticated encoder workload', functi
         'updated_at' => now()->subMinutes(30),
     ]);
 
-    foreach (['boc', 'bonds', 'ppa', 'do', 'port_charges', 'releasing', 'billing'] as $typeKey) {
+    foreach (['boc', 'bonds', 'do', 'ppa', 'port_charges', 'releasing', 'billing'] as $typeKey) {
         Document::factory()->create([
             'documentable_type' => ImportTransaction::class,
             'documentable_id' => $remarkImport->id,

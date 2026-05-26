@@ -50,7 +50,7 @@ class ArchiveSeeder extends Seeder
         'YMLU',
     ];
 
-    private const IMPORT_STAGES = ['boc', 'ppa', 'do', 'port_charges', 'releasing', 'billing'];
+    private const IMPORT_STAGES = ['boc', 'do', 'ppa', 'port_charges', 'releasing', 'billing'];
 
     private const EXPORT_STAGES = ['docs_prep', 'bl', 'phytosanitary', 'co', 'cil', 'dccci'];
 

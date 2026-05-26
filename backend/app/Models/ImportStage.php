@@ -98,7 +98,7 @@ class ImportStage extends Model
 
     public function getCompletedStagesCount(): int
     {
-        $stages = ['boc', 'bonds', 'ppa', 'do', 'port_charges', 'releasing', 'billing'];
+        $stages = ['boc', 'bonds', 'do', 'ppa', 'port_charges', 'releasing', 'billing'];
         $count = 0;
 
         foreach ($stages as $stage) {

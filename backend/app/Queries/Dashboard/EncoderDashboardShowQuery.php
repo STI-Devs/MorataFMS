@@ -884,8 +884,8 @@ class EncoderDashboardShowQuery
         return [
             'boc' => 'BOC Document Processing',
             'bonds' => 'BONDS',
-            'ppa' => 'Payment for PPA Charges',
             'do' => 'Delivery Order Request',
+            'ppa' => 'Payment for PPA Charges',
             'port_charges' => 'Payment for Port Charges',
             'releasing' => 'Releasing of Documents',
             'billing' => 'Billing and Liquidation',

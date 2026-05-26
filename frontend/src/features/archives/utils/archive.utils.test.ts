@@ -42,7 +42,7 @@ describe('archive completeness', () => {
     it('treats import records with all required stages as complete even without others', () => {
         const archiveData = [
             buildArchiveYear(
-                ['boc', 'ppa', 'do', 'port_charges', 'releasing', 'billing'],
+                ['boc', 'do', 'ppa', 'port_charges', 'releasing', 'billing'],
                 ['bonds'],
             ),
         ];
@@ -63,7 +63,7 @@ describe('archive completeness', () => {
     it('treats optional stages marked as N/A as complete in per-BL completion counts', () => {
         const archiveData = [
             buildArchiveYear(
-                ['boc', 'ppa', 'do', 'port_charges', 'releasing', 'billing'],
+                ['boc', 'do', 'ppa', 'port_charges', 'releasing', 'billing'],
                 ['bonds'],
             ),
         ];

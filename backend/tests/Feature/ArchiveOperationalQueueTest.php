@@ -29,7 +29,7 @@ it('returns processor archive task records grouped by queue status', function ()
         'bl_no' => 'BL-ARCH-PROC-MINE',
         'importer_id' => $importer->id,
     ]);
-    foreach (['boc', 'bonds', 'ppa', 'do', 'port_charges', 'releasing', 'billing'] as $stage) {
+    foreach (['boc', 'bonds', 'do', 'ppa', 'port_charges', 'releasing', 'billing'] as $stage) {
         attachStageDocument($completedByMe, $stage, $stage === 'ppa' || $stage === 'port_charges' ? $processor : $encoder);
     }
 
@@ -37,7 +37,7 @@ it('returns processor archive task records grouped by queue status', function ()
         'bl_no' => 'BL-ARCH-PROC-SHARED',
         'importer_id' => $importer->id,
     ]);
-    foreach (['boc', 'bonds', 'ppa', 'do', 'releasing', 'billing'] as $stage) {
+    foreach (['boc', 'bonds', 'do', 'ppa', 'releasing', 'billing'] as $stage) {
         attachStageDocument($alreadySupplied, $stage, $encoder);
     }
     $alreadySupplied->setStageApplicability('port_charges', true, $encoder->id);
@@ -101,7 +101,7 @@ it('returns accounting archive task records with billing as the only owned stage
         'bl_no' => 'BL-ARCH-ACC-MINE',
         'importer_id' => $importer->id,
     ]);
-    foreach (['boc', 'bonds', 'ppa', 'do', 'port_charges', 'releasing'] as $stage) {
+    foreach (['boc', 'bonds', 'do', 'ppa', 'port_charges', 'releasing'] as $stage) {
         attachStageDocument($completedByMe, $stage, $encoder);
     }
     attachStageDocument($completedByMe, 'billing', $accountant);

@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
     applyQueueFilter,
+    buildImportQueueRows,
     buildStageChip,
     compareQueueRows,
     formatDateLabel,
@@ -96,6 +97,40 @@ describe('processorTransaction.utils', () => {
 
         it('summarizes count when more than one chip is ready', () => {
             expect(getNextActionLabel([ready('PPA'), ready('Port Charges')])).toBe('2 stages ready now');
+        });
+    });
+
+    describe('buildImportQueueRows', () => {
+        it('keeps PPA blocked until the delivery order stage is completed', () => {
+            const [row] = buildImportQueueRows([{
+                id: 10,
+                customs_ref_no: 'IMP-DO-FIRST',
+                bl_no: 'BL-DO-FIRST',
+                selective_color: 'green',
+                importer: { id: 1, name: 'Acme Importer' },
+                arrival_date: '2026-04-15',
+                status: 'Processing',
+                notes: null,
+                created_at: '2026-04-15T00:00:00Z',
+                waiting_since: '2026-04-15T00:00:00Z',
+                location_of_goods: null,
+                not_applicable_stages: [],
+                open_remarks_count: 0,
+                documents_count: 0,
+                stages: {
+                    boc: 'completed',
+                    bonds: 'completed',
+                    do: 'pending',
+                    ppa: 'pending',
+                    port_charges: 'pending',
+                    releasing: 'pending',
+                    billing: 'pending',
+                },
+            }]);
+
+            expect(row.state).toBe('waiting');
+            expect(row.stageChips.find((chip) => chip.key === 'ppa')?.tone).toBe('waiting');
+            expect(row.blocker).toBe('Waiting for Delivery Order Request.');
         });
     });
 

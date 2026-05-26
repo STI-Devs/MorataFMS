@@ -36,6 +36,18 @@ test('admin can list documents', function () {
     $response->assertOk();
 });
 
+test('import document type order follows the current workflow sequence', function () {
+    expect(Document::requiredTypeKeysFor(ImportTransaction::class))->toBe([
+        'boc',
+        'bonds',
+        'do',
+        'ppa',
+        'port_charges',
+        'releasing',
+        'billing',
+    ]);
+});
+
 test('encoders can only list their own documents', function () {
     $encoder = User::factory()->create(['role' => 'encoder']);
     $otherEncoder = User::factory()->create(['role' => 'encoder']);
@@ -203,13 +215,14 @@ test('operational roles can upload only their allowed stage documents', function
             'ppa' => [
                 'boc_status' => 'completed',
                 'bonds_status' => 'completed',
+                'do_status' => 'completed',
                 'ppa_status' => 'pending',
             ],
             'billing' => [
                 'boc_status' => 'completed',
                 'bonds_status' => 'completed',
-                'ppa_status' => 'completed',
                 'do_status' => 'completed',
+                'ppa_status' => 'completed',
                 'port_charges_status' => 'completed',
                 'releasing_status' => 'completed',
                 'billing_status' => 'pending',
@@ -962,6 +975,7 @@ test('operational upload stamps and clears stage completion ownership', function
     $transaction->stages()->update([
         'boc_status' => 'completed',
         'bonds_status' => 'completed',
+        'do_status' => 'completed',
         'ppa_status' => 'pending',
     ]);
 

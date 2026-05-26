@@ -57,8 +57,8 @@ describe('ProcessorTransactionPage', () => {
             stages: {
                 boc: 'completed',
                 bonds: 'completed',
+                do: 'completed',
                 ppa: 'pending',
-                do: 'pending',
                 port_charges: 'pending',
                 releasing: 'pending',
                 billing: 'pending',

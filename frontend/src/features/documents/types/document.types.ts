@@ -278,8 +278,8 @@ export interface ArchiveStageDefinition {
 export const IMPORT_STAGES: readonly ArchiveStageDefinition[] = [
     { key: 'boc', label: 'BOC Document Processing' },
     { key: 'bonds', label: 'BONDS', optional: true },
-    { key: 'ppa', label: 'Payment for PPA Charges', optional: true },
     { key: 'do', label: 'Delivery Order Request' },
+    { key: 'ppa', label: 'Payment for PPA Charges', optional: true },
     { key: 'port_charges', label: 'Payment for Port Charges', optional: true },
     { key: 'releasing', label: 'Releasing of Documents' },
     { key: 'billing', label: 'Billing and Liquidation' },

@@ -28,8 +28,8 @@ class ImportTransaction extends Model
         return [
             'boc' => 'boc',
             'bonds' => 'bonds',
-            'ppa' => 'ppa',
             'do' => 'do',
+            'ppa' => 'ppa',
             'port_charges' => 'port_charges',
             'releasing' => 'releasing',
             'billing' => 'billing',
@@ -170,7 +170,7 @@ class ImportTransaction extends Model
             $newStatus = ImportStatus::Completed;
         } elseif (in_array('billing', $docTypes, true)) {
             $newStatus = ImportStatus::Completed;
-        } elseif (collect(['bonds', 'ppa', 'do', 'port_charges', 'releasing'])
+        } elseif (collect(['bonds', 'do', 'ppa', 'port_charges', 'releasing'])
             ->contains(fn (string $stage): bool => in_array($stage, $docTypes, true))) {
             $newStatus = ImportStatus::Processing;
         } elseif (in_array('boc', $docTypes, true)) {
@@ -237,7 +237,8 @@ class ImportTransaction extends Model
                                 $ppaQuery
                                     ->where('ppa_status', '!=', StageStatus::Completed->value)
                                     ->where('boc_status', StageStatus::Completed->value)
-                                    ->where('bonds_status', StageStatus::Completed->value);
+                                    ->where('bonds_status', StageStatus::Completed->value)
+                                    ->where('do_status', StageStatus::Completed->value);
                             })
                             ->orWhere(function (Builder $portChargesQuery): void {
                                 $portChargesQuery
@@ -257,8 +258,8 @@ class ImportTransaction extends Model
                         ->where('billing_status', '!=', StageStatus::Completed->value)
                         ->where('boc_status', StageStatus::Completed->value)
                         ->where('bonds_status', StageStatus::Completed->value)
-                        ->where('ppa_status', StageStatus::Completed->value)
                         ->where('do_status', StageStatus::Completed->value)
+                        ->where('ppa_status', StageStatus::Completed->value)
                         ->where('port_charges_status', StageStatus::Completed->value)
                         ->where('releasing_status', StageStatus::Completed->value);
                 }),

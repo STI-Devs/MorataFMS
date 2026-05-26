@@ -101,9 +101,9 @@ describe('ProcessorUploadModal', () => {
             />,
         );
 
-        expect(screen.getByTestId('stage-PPA')).toHaveTextContent('active');
+        expect(screen.getByTestId('stage-PPA')).toHaveTextContent('pending');
         expect(screen.getByTestId('stage-Port Charges')).toHaveTextContent('pending');
-        expect(screen.getByText('Waiting for earlier stages to be completed first.')).toBeInTheDocument();
+        expect(screen.getAllByText('Waiting for earlier stages to be completed first.')).toHaveLength(2);
     });
 
     it('keeps completed stage rows usable from uploaded documents', () => {
