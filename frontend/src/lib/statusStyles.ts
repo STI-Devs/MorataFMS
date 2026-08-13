@@ -1,12 +1,4 @@
-﻿/**
- * Shared status → color/background mapping used across all transaction views.
- *
- * Canonical display labels:
- *   Workflow UI: real backend stage statuses plus a few legacy aliases still
- *   used elsewhere in the app.
- */
-
-export interface StatusStyle {
+﻿export interface StatusStyle {
     color: string;
     bg: string;
 }
