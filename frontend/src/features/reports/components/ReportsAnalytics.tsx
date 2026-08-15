@@ -1,4 +1,23 @@
 import { useState } from 'react';
+import {
+    ArrowDownRight,
+    ArrowUpRight,
+    Award,
+    Download,
+    Layers,
+    Users,
+} from 'lucide-react';
+import { Badge } from '../../../components/ui/badge';
+import { Button } from '../../../components/ui/button';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardFooter,
+    CardHeader,
+    CardTitle,
+} from '../../../components/ui/card';
+import { Skeleton } from '../../../components/ui/skeleton';
 import { useCurrentDateTime } from '../../../hooks/useCurrentDateTime';
 import { useClientReport, useMonthlyReport, useTurnaroundReport } from '../hooks/useReports';
 import type { ClientReportResponse, MonthlyReportResponse, TurnaroundReportResponse } from '../types/report.types';
@@ -57,42 +76,78 @@ const FlowDonut = ({ imports, exports }: { imports: number; exports: number }) =
     const total = imports + exports || 1;
     const r = 38;
     const circ = 2 * Math.PI * r;
-    const gap = 4;
     const impPct = Math.max(imports / total, 0);
     const expPct = Math.max(exports / total, 0);
-    const impDash = impPct * circ - gap;
-    const expDash = expPct * circ - gap;
+    const impDash = impPct * circ;
+    const expDash = expPct * circ;
+
     return (
-        <div className="relative w-40 h-40 flex items-center justify-center flex-shrink-0">
-            <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
-                <circle cx="50" cy="50" r={r} stroke="currentColor" strokeWidth="16" fill="transparent" className="text-border" />
-                <circle cx="50" cy="50" r={r} stroke="var(--chart-1)" strokeWidth="16" fill="transparent"
-                    strokeDasharray={`${impDash} ${circ}`} strokeLinecap="round" />
-                <circle cx="50" cy="50" r={r} stroke="var(--chart-2)" strokeWidth="16" fill="transparent"
-                    strokeDasharray={`${expDash} ${circ}`} strokeDashoffset={-(impPct * circ)} strokeLinecap="round" />
+        <div className="relative size-36 flex items-center justify-center shrink-0">
+            <svg viewBox="0 0 100 100" className="size-full -rotate-90">
+                <circle
+                    cx="50"
+                    cy="50"
+                    r={r}
+                    stroke="currentColor"
+                    strokeWidth="12"
+                    fill="transparent"
+                    className="text-muted/30"
+                />
+                {imports > 0 && (
+                    <circle
+                        cx="50"
+                        cy="50"
+                        r={r}
+                        stroke="var(--primary)"
+                        strokeWidth="12"
+                        fill="transparent"
+                        strokeDasharray={`${impDash} ${circ}`}
+                        className="transition-all duration-700"
+                    />
+                )}
+                {exports > 0 && (
+                    <circle
+                        cx="50"
+                        cy="50"
+                        r={r}
+                        stroke="var(--success)"
+                        strokeWidth="12"
+                        fill="transparent"
+                        strokeDasharray={`${expDash} ${circ}`}
+                        strokeDashoffset={-impDash}
+                        className="transition-all duration-700"
+                    />
+                )}
             </svg>
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-2xl font-bold text-foreground">{total}</span>
-                <span className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">total</span>
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                <span className="text-2xl font-bold tabular-nums text-foreground">{total}</span>
+                <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">TOTAL</span>
             </div>
         </div>
     );
 };
 
-const MiniBarChart = ({ data }: { data: { label: string; value: number; color: string }[] }) => {
+const MiniBarChart = ({ data }: { data: { label: string; value: number; colorClass: string; rank: number }[] }) => {
     const max = Math.max(...data.map(d => d.value), 1);
     return (
-        <div className="space-y-2.5 w-full">
-            {data.map((d, i) => (
-                <div key={i} className="space-y-1">
-                    <div className="flex justify-between items-center">
-                        <span className="text-xs text-muted-foreground truncate max-w-[140px]" title={d.label}>{d.label}</span>
-                        <span className="text-xs font-bold text-foreground ml-2">{d.value}</span>
+        <div className="space-y-3 w-full">
+            {data.map((d) => (
+                <div key={d.label} className="space-y-1.5">
+                    <div className="flex justify-between items-center text-xs">
+                        <div className="flex items-center gap-2 min-w-0">
+                            <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-bold text-muted-foreground">
+                                #{d.rank}
+                            </span>
+                            <span className="text-foreground font-medium truncate max-w-[200px]" title={d.label}>
+                                {d.label}
+                            </span>
+                        </div>
+                        <span className="text-xs font-bold tabular-nums text-foreground ml-2">{d.value}</span>
                     </div>
-                    <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
                         <div
-                            className="h-full rounded-full transition-all duration-700 ease-out"
-                            style={{ width: `${(d.value / max) * 100}%`, backgroundColor: d.color }}
+                            className={`h-full rounded-full transition-all duration-700 ease-out ${d.colorClass}`}
+                            style={{ width: `${(d.value / max) * 100}%` }}
                         />
                     </div>
                 </div>
@@ -112,36 +167,48 @@ const MonthlyBars = ({
     const hasSelectedMonth = selectedMonth > 0;
 
     return (
-        <div className="flex items-end gap-1.5 h-48 w-full">
+        <div className="flex items-end gap-2 h-44 w-full pt-4">
             {data.map((d, i) => {
                 const impH = (d.imports / max) * 100;
                 const expH = (d.exports / max) * 100;
                 const isSelected = selectedMonth === d.month;
-                const segmentOpacity = !hasSelectedMonth || isSelected ? 0.85 : 0.25;
+                const segmentOpacity = !hasSelectedMonth || isSelected ? 1 : 0.35;
 
                 return (
                     <div
                         key={i}
                         aria-current={isSelected ? 'true' : undefined}
-                        className={`flex-1 flex flex-col items-center gap-1 group transition-opacity duration-300 ${
-                            hasSelectedMonth && !isSelected ? 'opacity-60' : 'opacity-100'
+                        className={`group/bar relative flex-1 flex flex-col items-center gap-1.5 transition-all duration-300 ${
+                            hasSelectedMonth && !isSelected ? 'opacity-50' : 'opacity-100'
                         }`}
                     >
-                        <div className="w-full flex flex-col items-center gap-px h-44">
+                        <div className="w-full flex flex-col justify-end items-center h-36">
                             <div
                                 className={`w-full flex flex-col justify-end h-full gap-0.5 rounded-sm transition-all duration-300 ${
-                                    isSelected ? 'ring-2 ring-primary/25 ring-offset-2 ring-offset-card' : ''
+                                    isSelected ? 'ring-2 ring-primary ring-offset-2 ring-offset-card' : ''
                                 }`}
                             >
-                                <div className="w-full rounded-t-sm transition-all duration-500"
-                                    style={{ height: `${impH}%`, backgroundColor: 'var(--chart-1)', opacity: segmentOpacity }} title={`Imports: ${d.imports}`} />
-                                <div className="w-full"
-                                    style={{ height: `${expH}%`, backgroundColor: 'var(--chart-2)', opacity: segmentOpacity }} title={`Exports: ${d.exports}`} />
+                                <div
+                                    className="w-full rounded-t-xs bg-primary transition-all duration-500 group-hover/bar:brightness-110"
+                                    style={{ height: `${impH}%`, minHeight: d.imports > 0 ? '4px' : '0', opacity: segmentOpacity }}
+                                    title={`Imports: ${d.imports}`}
+                                />
+                                <div
+                                    className="w-full rounded-b-xs bg-success transition-all duration-500 group-hover/bar:brightness-110"
+                                    style={{ height: `${expH}%`, minHeight: d.exports > 0 ? '4px' : '0', opacity: segmentOpacity }}
+                                    title={`Exports: ${d.exports}`}
+                                />
                             </div>
                         </div>
-                        <span className={`text-[9px] font-medium ${isSelected ? 'text-primary' : 'text-muted-foreground'}`}>
+                        <span className={`text-[10px] font-semibold ${isSelected ? 'text-primary' : 'text-muted-foreground'}`}>
                             {MONTH_SHORT[d.month - 1]}
                         </span>
+
+                        {/* Tooltip */}
+                        <div className="pointer-events-none absolute -top-8 left-1/2 hidden -translate-x-1/2 whitespace-nowrap rounded-md border border-border bg-popover px-2 py-1 text-[10px] font-medium text-popover-foreground shadow-md group-hover/bar:block z-20">
+                            <span className="text-primary font-semibold">{d.imports} Imp</span> /{' '}
+                            <span className="text-success font-semibold">{d.exports} Exp</span>
+                        </div>
                     </div>
                 );
             })}
@@ -171,21 +238,6 @@ function reportVolumeForPeriod(monthly: MonthlyReportResponse | undefined, month
     };
 }
 
-// KPI Stat card
-const StatCard = ({ label, value, unit, icon, accent }: { label: string; value: string | number; unit?: string; icon: React.ReactNode; accent: string }) => (
-    <div className="bg-card border border-border rounded-2xl p-5 flex items-center gap-4 shadow-xs">
-        <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${accent}`}>
-            {icon}
-        </div>
-        <div className="min-w-0">
-            <p className="text-xs font-medium text-muted-foreground mb-0.5">{label}</p>
-            <p className="text-2xl font-bold text-foreground leading-none tabular-nums">
-                {value}<span className="text-sm font-normal text-muted-foreground ml-1">{unit}</span>
-            </p>
-        </div>
-    </div>
-);
-
 export const ReportsAnalytics = () => {
     const dateTime = useCurrentDateTime();
 
@@ -210,290 +262,458 @@ export const ReportsAnalytics = () => {
     const completedCount = (turnaround?.imports.completed_count || 0) + (turnaround?.exports.completed_count || 0);
     const completionRatio = totalVol > 0 ? Math.round((completedCount / totalVol) * 100) : 0;
 
-    return (
-        <div className="w-full px-1 py-2 space-y-6" style={{ fontFamily: 'Inter, sans-serif' }}>
+    const impPercent = totalVol > 0 ? Math.round((impVol / totalVol) * 100) : 0;
+    const expPercent = totalVol > 0 ? Math.round((expVol / totalVol) * 100) : 0;
 
+    const clientColors = [
+        'bg-primary',
+        'bg-emerald-500',
+        'bg-amber-500',
+        'bg-sky-500',
+        'bg-indigo-500',
+    ];
+
+    return (
+        <div className="w-full space-y-6 pb-8">
             {/* Page Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                    <h1 className="text-xl font-bold text-foreground tracking-tight">
+                <div className="flex flex-col gap-1">
+                    <h1 className="text-2xl font-bold tracking-tight text-foreground">
                         Reports &amp; Analytics
                     </h1>
-                    <p className="text-sm text-muted-foreground mt-0.5">
+                    <p className="text-sm text-muted-foreground">
                         {year}{month ? ` · ${MONTH_FULL[month - 1]}` : ' · Full Year'} · {dateTime.date}
                     </p>
                 </div>
 
-                <div className="flex items-center gap-2.5">
+                <div className="flex items-center gap-2.5 flex-wrap">
                     <select
                         value={year}
                         onChange={e => setYear(Number(e.target.value))}
-                        className="px-3 py-2 rounded-xl border border-border bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 shadow-xs"
+                        className="h-9 px-3 rounded-lg border border-border/80 bg-card text-foreground text-xs font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-xs cursor-pointer"
                     >
-                        {reportYears.map(selectedYear => <option key={selectedYear} value={selectedYear}>{selectedYear}</option>)}
+                        {reportYears.map(selectedYear => (
+                            <option key={selectedYear} value={selectedYear}>{selectedYear}</option>
+                        ))}
                     </select>
+
                     <select
                         value={month}
                         onChange={e => setMonth(Number(e.target.value))}
-                        className="px-3 py-2 rounded-xl border border-border bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 shadow-xs"
+                        className="h-9 px-3 rounded-lg border border-border/80 bg-card text-foreground text-xs font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-xs cursor-pointer"
                     >
                         <option value={0}>All Months</option>
-                        {MONTH_FULL.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
+                        {MONTH_FULL.map((m, i) => (
+                            <option key={i + 1} value={i + 1}>{m}</option>
+                        ))}
                     </select>
-                    <button
+
+                    <Button
                         onClick={() => downloadCSV(monthly, clients, turnaround, year, month)}
-                        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 active:bg-primary/80 transition-colors shadow-sm"
+                        className="h-9 gap-2 text-xs font-semibold cursor-pointer shadow-xs"
                     >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                        </svg>
+                        <Download className="size-3.5" />
                         Export
-                    </button>
+                    </Button>
                 </div>
             </div>
 
             {isLoading ? (
-                <div className="py-24 flex items-center justify-center">
-                    <div className="flex flex-col items-center gap-3">
-                        <div className="w-8 h-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
-                        <p className="text-sm text-muted-foreground">Loading report data…</p>
+                <div className="space-y-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {Array.from({ length: 4 }).map((_, i) => (
+                            <div key={i} className="rounded-xl border border-border/80 p-4 space-y-2 bg-card">
+                                <Skeleton className="h-3.5 w-24" />
+                                <div className="flex justify-between items-center">
+                                    <Skeleton className="h-7 w-12" />
+                                    <Skeleton className="h-5 w-14 rounded-md" />
+                                </div>
+                                <Skeleton className="h-3 w-full" />
+                            </div>
+                        ))}
+                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        <div className="rounded-xl border border-border/80 p-6 space-y-4 bg-card h-72">
+                            <Skeleton className="h-4 w-32" />
+                            <Skeleton className="h-full w-full" />
+                        </div>
+                        <div className="rounded-xl border border-border/80 p-6 space-y-4 bg-card h-72">
+                            <Skeleton className="h-4 w-32" />
+                            <Skeleton className="h-full w-full" />
+                        </div>
                     </div>
                 </div>
             ) : (
                 <>
-                    {/* KPI Row */}
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                        <StatCard
-                            label="Total Transactions"
-                            value={totalVol}
-                            icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>}
-                            accent="bg-chart-1/[9%] text-chart-1"
-                        />
-                        <StatCard
-                            label="Active Clients"
-                            value={clients?.clients.length || 0}
-                            icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>}
-                            accent="bg-chart-2/[9%] text-chart-2"
-                        />
-                        <StatCard
-                            label="Avg Import Speed"
-                            value={turnaround?.imports.avg_days ?? '—'}
-                            unit={turnaround?.imports.avg_days ? 'days' : ''}
-                            icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
-                            accent="bg-chart-3/[9%] text-chart-3"
-                        />
-                        <StatCard
-                            label="Avg Export Speed"
-                            value={turnaround?.exports.avg_days ?? '—'}
-                            unit={turnaround?.exports.avg_days ? 'days' : ''}
-                            icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>}
-                            accent="bg-chart-4/[9%] text-chart-4"
-                        />
-                    </div>
+                    {/* Section 1: KPI Stat Cards */}
+                    <section className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+                        {/* 1.1 Total Transactions */}
+                        <Card className="cursor-pointer hover:border-border transition-all">
+                            <CardHeader className="p-4 pb-2 space-y-1.5">
+                                <CardDescription className="text-xs font-semibold text-muted-foreground">
+                                    Total Transactions
+                                </CardDescription>
+                                <div className="flex items-center justify-between gap-2">
+                                    <CardTitle className="text-2xl font-bold tabular-nums text-foreground">
+                                        {totalVol}
+                                    </CardTitle>
+                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 font-medium shrink-0 gap-1">
+                                        <Layers className="size-3" />
+                                        Volume
+                                    </Badge>
+                                </div>
+                            </CardHeader>
+                            <CardFooter className="flex-col items-start gap-1 p-4 pt-0 text-xs">
+                                <div className="line-clamp-1 flex items-center gap-1.5 font-medium text-foreground text-[11px]">
+                                    Active Period Volume
+                                </div>
+                                <div className="text-muted-foreground text-[11px] truncate">
+                                    Files processed in {year}
+                                </div>
+                            </CardFooter>
+                        </Card>
 
-                    {/* Main Charts Row */}
+                        {/* 1.2 Active Clients */}
+                        <Card className="cursor-pointer hover:border-border transition-all">
+                            <CardHeader className="p-4 pb-2 space-y-1.5">
+                                <CardDescription className="text-xs font-semibold text-muted-foreground">
+                                    Active Clients
+                                </CardDescription>
+                                <div className="flex items-center justify-between gap-2">
+                                    <CardTitle className="text-2xl font-bold tabular-nums text-foreground">
+                                        {clients?.clients.length || 0}
+                                    </CardTitle>
+                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 font-medium shrink-0 gap-1">
+                                        <Users className="size-3" />
+                                        Clients
+                                    </Badge>
+                                </div>
+                            </CardHeader>
+                            <CardFooter className="flex-col items-start gap-1 p-4 pt-0 text-xs">
+                                <div className="line-clamp-1 flex items-center gap-1.5 font-medium text-foreground text-[11px]">
+                                    Engaged Accounts
+                                </div>
+                                <div className="text-muted-foreground text-[11px] truncate">
+                                    Active importers &amp; exporters
+                                </div>
+                            </CardFooter>
+                        </Card>
+
+                        {/* 1.3 Avg Import Speed */}
+                        <Card className="cursor-pointer hover:border-border transition-all">
+                            <CardHeader className="p-4 pb-2 space-y-1.5">
+                                <CardDescription className="text-xs font-semibold text-muted-foreground">
+                                    Avg Import Speed
+                                </CardDescription>
+                                <div className="flex items-center justify-between gap-2">
+                                    <CardTitle className="text-2xl font-bold tabular-nums text-foreground">
+                                        {turnaround?.imports.avg_days ?? '—'}
+                                        {turnaround?.imports.avg_days ? <span className="text-sm font-normal text-muted-foreground ml-1">days</span> : ''}
+                                    </CardTitle>
+                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 font-medium shrink-0 gap-1">
+                                        <ArrowDownRight className="size-3" />
+                                        Inbound SLA
+                                    </Badge>
+                                </div>
+                            </CardHeader>
+                            <CardFooter className="flex-col items-start gap-1 p-4 pt-0 text-xs">
+                                <div className="line-clamp-1 flex items-center gap-1.5 font-medium text-foreground text-[11px]">
+                                    Customs Clearance Avg
+                                </div>
+                                <div className="text-muted-foreground text-[11px] truncate">
+                                    {turnaround?.imports.completed_count ?? 0} files completed
+                                </div>
+                            </CardFooter>
+                        </Card>
+
+                        {/* 1.4 Avg Export Speed */}
+                        <Card className="cursor-pointer hover:border-border transition-all">
+                            <CardHeader className="p-4 pb-2 space-y-1.5">
+                                <CardDescription className="text-xs font-semibold text-muted-foreground">
+                                    Avg Export Speed
+                                </CardDescription>
+                                <div className="flex items-center justify-between gap-2">
+                                    <CardTitle className="text-2xl font-bold tabular-nums text-foreground">
+                                        {turnaround?.exports.avg_days ?? '—'}
+                                        {turnaround?.exports.avg_days ? <span className="text-sm font-normal text-muted-foreground ml-1">days</span> : ''}
+                                    </CardTitle>
+                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 font-medium shrink-0 gap-1">
+                                        <ArrowUpRight className="size-3" />
+                                        Outbound SLA
+                                    </Badge>
+                                </div>
+                            </CardHeader>
+                            <CardFooter className="flex-col items-start gap-1 p-4 pt-0 text-xs">
+                                <div className="line-clamp-1 flex items-center gap-1.5 font-medium text-foreground text-[11px]">
+                                    Export Processing Avg
+                                </div>
+                                <div className="text-muted-foreground text-[11px] truncate">
+                                    {turnaround?.exports.completed_count ?? 0} files completed
+                                </div>
+                            </CardFooter>
+                        </Card>
+                    </section>
+
+                    {/* Section 2: Visual Charts Row */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-
-                        {/* Monthly Volume Chart */}
-                        <div className="bg-card border border-border rounded-2xl p-6 shadow-xs flex flex-col">
-                            <div className="flex items-start justify-between mb-6">
-                                <div>
-                                    <h2 className="text-sm font-semibold text-foreground">Monthly Volume</h2>
-                                    <p className="text-xs text-muted-foreground mt-0.5">Imports &amp; exports per month</p>
-                                </div>
-                                <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
-                                    <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: 'var(--chart-1)' }} />Imports</span>
-                                    <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: 'var(--chart-2)' }} />Exports</span>
-                                </div>
-                            </div>
-
-                            {monthlyData.length > 0 ? (
-                                <MonthlyBars data={monthlyData} selectedMonth={month} />
-                            ) : (
-                                <div className="h-24 flex items-center justify-center text-sm text-muted-foreground">No data for this period</div>
-                            )}
-
-                            {/* Summary row below bars */}
-                            <div className="grid grid-cols-3 items-center gap-4 mt-5 pt-4 border-t border-border">
-                                <div className="text-center">
-                                    <p className="text-xs text-muted-foreground mb-0.5">Imports</p>
-                                    <p className="text-base font-bold" style={{ color: 'var(--chart-1)' }}>{impVol}</p>
-                                </div>
-                                <div className="text-center">
-                                    <p className="text-xs text-muted-foreground mb-0.5">Exports</p>
-                                    <p className="text-base font-bold" style={{ color: 'var(--chart-2)' }}>{expVol}</p>
-                                </div>
-                                <div className="text-center">
-                                    <p className="text-xs text-muted-foreground mb-0.5">Total</p>
-                                    <p className="text-base font-bold text-foreground">{totalVol}</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Transaction Flow */}
-                        <div className="bg-card border border-border rounded-2xl p-6 shadow-xs flex flex-col">
-                            <div className="mb-6">
-                                <h2 className="text-sm font-semibold text-foreground">Transaction Flow</h2>
-                                <p className="text-xs text-muted-foreground mt-0.5">Import vs. export distribution</p>
-                            </div>
-
-                            <div className="flex-1 flex items-center gap-6">
-                                {/* Donut — centered */}
-                                <div className="flex items-center justify-center flex-shrink-0">
-                                    <FlowDonut imports={impVol} exports={expVol} />
-                                </div>
-
-                                {/* Horizontal bars */}
-                                <div className="flex-1 flex flex-col justify-around gap-4">
-                                    {/* Imports */}
-                                    <div>
-                                        <div className="flex justify-between items-center mb-2">
-                                            <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-                                                <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: 'var(--chart-1)' }} />Imports
-                                            </span>
-                                            <span className="text-xs font-bold text-foreground">{impVol}</span>
-                                        </div>
-                                        <div className="h-5 bg-muted rounded-full">
-                                            <div className="h-full rounded-full transition-all duration-700" style={{ width: `${totalVol ? (impVol / totalVol) * 100 : 0}%`, backgroundColor: 'var(--chart-1)' }} />
-                                        </div>
-                                    </div>
-                                    {/* Exports */}
-                                    <div>
-                                        <div className="flex justify-between items-center mb-2">
-                                            <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-                                                <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: 'var(--chart-2)' }} />Exports
-                                            </span>
-                                            <span className="text-xs font-bold text-foreground">{expVol}</span>
-                                        </div>
-                                        <div className="h-5 bg-muted rounded-full">
-                                            <div className="h-full rounded-full transition-all duration-700" style={{ width: `${totalVol ? (expVol / totalVol) * 100 : 0}%`, backgroundColor: 'var(--chart-2)' }} />
-                                        </div>
-                                    </div>
-                                    {/* Completed */}
-                                    <div>
-                                        <div className="flex justify-between items-center mb-2">
-                                            <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-                                                <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: 'var(--chart-3)' }} />Completed
-                                            </span>
-                                            <span className="text-xs font-bold text-foreground">{completionRatio}%</span>
-                                        </div>
-                                        <div className="h-5 bg-muted rounded-full">
-                                            <div className="h-full rounded-full transition-all duration-700" style={{ width: `${completionRatio}%`, backgroundColor: 'var(--chart-3)' }} />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Bottom Row: Clients + Turnaround */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-
-                        {/* Client Distribution */}
-                        <div className="bg-card border border-border rounded-2xl p-6 shadow-xs">
-                            <div className="mb-5">
-                                <h2 className="text-sm font-semibold text-foreground">Client Distribution</h2>
-                                <p className="text-xs text-muted-foreground mt-0.5">Top clients by transaction volume</p>
-                            </div>
-
-                            {sortedClients.length > 0 ? (
-                                <MiniBarChart
-                                    data={sortedClients.map((c, i) => ({
-                                        label: c.client_name,
-                                        value: c.total,
-                                        color: ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)', 'var(--chart-5)'][i] || 'var(--muted-foreground)',
-                                    }))}
-                                />
-                            ) : (
-                                <div className="py-8 flex items-center justify-center text-sm text-muted-foreground">No client data for this period</div>
-                            )}
-
-                            {sortedClients.length > 0 && (
-                                <div className="mt-5 pt-4 border-t border-border">
-                                    <div className="flex justify-between text-xs text-muted-foreground">
-                                        <span>Most active client</span>
-                                        <span className="font-medium truncate max-w-[180px]" style={{ color: 'var(--chart-1)' }} title={sortedClients[0]?.client_name}>
-                                            {sortedClients[0]?.client_name || '—'}
+                        {/* 2.1 Monthly Volume Chart */}
+                        <Card className="flex flex-col">
+                            <CardHeader className="pb-2">
+                                <div className="flex items-center justify-between">
+                                    <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                                        Monthly Volume
+                                    </CardTitle>
+                                    <div className="flex items-center gap-3 text-xs">
+                                        <span className="flex items-center gap-1.5 text-muted-foreground text-[11px]">
+                                            <span className="size-2 rounded-full bg-primary shrink-0" />
+                                            Import
+                                        </span>
+                                        <span className="flex items-center gap-1.5 text-muted-foreground text-[11px]">
+                                            <span className="size-2 rounded-full bg-success shrink-0" />
+                                            Export
                                         </span>
                                     </div>
                                 </div>
-                            )}
-                        </div>
+                                <CardDescription className="text-xs text-muted-foreground">
+                                    Imports &amp; exports per month
+                                </CardDescription>
+                            </CardHeader>
 
-                        {/* Turnaround Times */}
-                        <div className="bg-card border border-border rounded-2xl p-6 shadow-xs">
-                            <div className="mb-5">
-                                <h2 className="text-sm font-semibold text-foreground">Turnaround Performance</h2>
-                                <p className="text-xs text-muted-foreground mt-0.5">Average processing speed by type</p>
-                            </div>
-
-                            <div className="space-y-5">
-                                {/* Import Turnaround */}
-                                <div className="flex items-center gap-4">
-                                    <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-chart-1/[13%]">
-                                        <svg className="w-5 h-5" style={{ color: 'var(--chart-1)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4" />
-                                        </svg>
+                            <CardContent className="mt-auto pt-2">
+                                {monthlyData.length > 0 ? (
+                                    <MonthlyBars data={monthlyData} selectedMonth={month} />
+                                ) : (
+                                    <div className="h-44 flex items-center justify-center text-xs text-muted-foreground">
+                                        No data for this period
                                     </div>
-                                    <div className="flex-1">
-                                        <div className="flex justify-between items-center mb-1.5">
-                                            <span className="text-xs font-medium text-muted-foreground">Imports</span>
-                                            <span className="text-xs font-bold text-foreground">
+                                )}
+
+                                {/* Summary row below bars */}
+                                <div className="grid grid-cols-3 items-center gap-4 mt-5 pt-4 border-t border-border/60">
+                                    <div className="text-center">
+                                        <p className="text-xs text-muted-foreground mb-0.5">Imports</p>
+                                        <p className="text-base font-bold text-primary tabular-nums">{impVol}</p>
+                                    </div>
+                                    <div className="text-center">
+                                        <p className="text-xs text-muted-foreground mb-0.5">Exports</p>
+                                        <p className="text-base font-bold text-success tabular-nums">{expVol}</p>
+                                    </div>
+                                    <div className="text-center">
+                                        <p className="text-xs text-muted-foreground mb-0.5">Total</p>
+                                        <p className="text-base font-bold text-foreground tabular-nums">{totalVol}</p>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* 2.2 Transaction Flow */}
+                        <Card className="flex flex-col">
+                            <CardHeader className="pb-2">
+                                <div className="flex items-center justify-between">
+                                    <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                                        Transaction Flow
+                                    </CardTitle>
+                                    <Badge variant="outline" className="text-[11px] font-medium">
+                                        Distribution
+                                    </Badge>
+                                </div>
+                                <CardDescription className="text-xs text-muted-foreground">
+                                    Import vs. export distribution
+                                </CardDescription>
+                            </CardHeader>
+
+                            <CardContent className="mt-auto pt-2">
+                                <div className="flex flex-col sm:flex-row items-center gap-6">
+                                    {/* Donut — centered */}
+                                    <FlowDonut imports={impVol} exports={expVol} />
+
+                                    {/* Horizontal bars */}
+                                    <div className="flex-1 w-full space-y-4">
+                                        {/* Imports */}
+                                        <div>
+                                            <div className="flex justify-between items-center mb-1.5 text-xs font-medium">
+                                                <span className="text-muted-foreground flex items-center gap-1.5">
+                                                    <span className="size-2 rounded-full bg-primary shrink-0" />
+                                                    Imports
+                                                </span>
+                                                <span className="font-semibold text-foreground tabular-nums">{impVol} ({impPercent}%)</span>
+                                            </div>
+                                            <div className="h-2 bg-muted rounded-full overflow-hidden">
+                                                <div
+                                                    className="h-full bg-primary rounded-full transition-all duration-700"
+                                                    style={{ width: `${impPercent}%` }}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Exports */}
+                                        <div>
+                                            <div className="flex justify-between items-center mb-1.5 text-xs font-medium">
+                                                <span className="text-muted-foreground flex items-center gap-1.5">
+                                                    <span className="size-2 rounded-full bg-success shrink-0" />
+                                                    Exports
+                                                </span>
+                                                <span className="font-semibold text-foreground tabular-nums">{expVol} ({expPercent}%)</span>
+                                            </div>
+                                            <div className="h-2 bg-muted rounded-full overflow-hidden">
+                                                <div
+                                                    className="h-full bg-success rounded-full transition-all duration-700"
+                                                    style={{ width: `${expPercent}%` }}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Completed */}
+                                        <div className="pt-2 border-t border-border/50">
+                                            <div className="flex justify-between items-center mb-1.5 text-xs font-medium">
+                                                <span className="text-muted-foreground flex items-center gap-1.5">
+                                                    <span className="size-2 rounded-full bg-emerald-500 shrink-0" />
+                                                    Completed
+                                                </span>
+                                                <span className="font-semibold text-foreground tabular-nums">{completionRatio}% · {completedCount} files</span>
+                                            </div>
+                                            <div className="h-2 bg-muted rounded-full overflow-hidden">
+                                                <div
+                                                    className="h-full bg-emerald-500 rounded-full transition-all duration-700"
+                                                    style={{ width: `${completionRatio}%` }}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    {/* Section 3: Bottom Row: Clients + Turnaround */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        {/* 3.1 Client Distribution */}
+                        <Card className="flex flex-col justify-between">
+                            <CardHeader className="pb-3">
+                                <div className="flex items-center justify-between">
+                                    <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                                        Client Distribution
+                                    </CardTitle>
+                                    <Badge variant="outline" className="text-[11px] font-medium">
+                                        Top Clients
+                                    </Badge>
+                                </div>
+                                <CardDescription className="text-xs text-muted-foreground">
+                                    Top clients by transaction volume
+                                </CardDescription>
+                            </CardHeader>
+
+                            <CardContent className="space-y-4">
+                                {sortedClients.length > 0 ? (
+                                    <MiniBarChart
+                                        data={sortedClients.map((c, i) => ({
+                                            label: c.client_name,
+                                            value: c.total,
+                                            colorClass: clientColors[i % clientColors.length],
+                                            rank: i + 1,
+                                        }))}
+                                    />
+                                ) : (
+                                    <div className="py-8 flex items-center justify-center text-xs text-muted-foreground">
+                                        No client data for this period
+                                    </div>
+                                )}
+                            </CardContent>
+
+                            {sortedClients.length > 0 && (
+                                <CardFooter className="p-4 pt-3 border-t border-border/50 text-xs flex justify-between items-center">
+                                    <span className="text-muted-foreground flex items-center gap-1.5">
+                                        <Award className="size-3.5 text-warning" />
+                                        Most active client
+                                    </span>
+                                    <span className="font-semibold text-primary truncate max-w-[200px]" title={sortedClients[0]?.client_name}>
+                                        {sortedClients[0]?.client_name || '—'}
+                                    </span>
+                                </CardFooter>
+                            )}
+                        </Card>
+
+                        {/* 3.2 Turnaround Times */}
+                        <Card className="flex flex-col justify-between">
+                            <CardHeader className="pb-3">
+                                <div className="flex items-center justify-between">
+                                    <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                                        Turnaround Performance
+                                    </CardTitle>
+                                    <Badge variant="outline" className="text-[11px] font-medium">
+                                        Speed SLA
+                                    </Badge>
+                                </div>
+                                <CardDescription className="text-xs text-muted-foreground">
+                                    Average processing speed by type
+                                </CardDescription>
+                            </CardHeader>
+
+                            <CardContent className="space-y-4">
+                                {/* Import Turnaround */}
+                                <div className="flex items-center gap-3.5 p-3 rounded-xl border border-border/50 bg-card/60 shadow-xs">
+                                    <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                                        <ArrowDownRight className="size-4" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex justify-between items-center mb-1">
+                                            <span className="text-xs font-semibold text-foreground">Imports</span>
+                                            <span className="text-xs font-bold tabular-nums text-foreground">
                                                 {turnaround?.imports.avg_days ?? '—'} days avg
                                             </span>
                                         </div>
-                                        <div className="h-1.5 bg-muted rounded-full">
-                                            <div className="h-full rounded-full transition-all duration-700"
-                                                style={{ width: `${Math.min(((turnaround?.imports.avg_days || 0) / 20) * 100, 100)}%`, backgroundColor: 'var(--chart-1)' }} />
+                                        <div className="h-1.5 bg-muted rounded-full overflow-hidden mb-1">
+                                            <div
+                                                className="h-full bg-primary rounded-full transition-all duration-700"
+                                                style={{ width: `${Math.min(((turnaround?.imports.avg_days || 0) / 20) * 100, 100)}%` }}
+                                            />
                                         </div>
-                                        <div className="flex justify-between mt-1">
-                                            <span className="text-[10px] text-muted-foreground">{turnaround?.imports.completed_count ?? 0} completed</span>
-                                            <span className="text-[10px] text-muted-foreground">{turnaround?.imports.min_days ?? '—'}–{turnaround?.imports.max_days ?? '—'} days range</span>
+                                        <div className="flex justify-between text-[10px] text-muted-foreground">
+                                            <span>{turnaround?.imports.completed_count ?? 0} completed</span>
+                                            <span>{turnaround?.imports.min_days ?? '—'}–{turnaround?.imports.max_days ?? '—'} days range</span>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="h-px bg-border" />
-
                                 {/* Export Turnaround */}
-                                <div className="flex items-center gap-4">
-                                    <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-chart-4/[13%]">
-                                        <svg className="w-5 h-5" style={{ color: 'var(--chart-4)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
-                                        </svg>
+                                <div className="flex items-center gap-3.5 p-3 rounded-xl border border-border/50 bg-card/60 shadow-xs">
+                                    <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-success/10 text-success">
+                                        <ArrowUpRight className="size-4" />
                                     </div>
-                                    <div className="flex-1">
-                                        <div className="flex justify-between items-center mb-1.5">
-                                            <span className="text-xs font-medium text-muted-foreground">Exports</span>
-                                            <span className="text-xs font-bold text-foreground">
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex justify-between items-center mb-1">
+                                            <span className="text-xs font-semibold text-foreground">Exports</span>
+                                            <span className="text-xs font-bold tabular-nums text-foreground">
                                                 {turnaround?.exports.avg_days ?? '—'} days avg
                                             </span>
                                         </div>
-                                        <div className="h-1.5 bg-muted rounded-full">
-                                            <div className="h-full rounded-full transition-all duration-700"
-                                                style={{ width: `${Math.min(((turnaround?.exports.avg_days || 0) / 20) * 100, 100)}%`, backgroundColor: 'var(--chart-4)' }} />
+                                        <div className="h-1.5 bg-muted rounded-full overflow-hidden mb-1">
+                                            <div
+                                                className="h-full bg-success rounded-full transition-all duration-700"
+                                                style={{ width: `${Math.min(((turnaround?.exports.avg_days || 0) / 20) * 100, 100)}%` }}
+                                            />
                                         </div>
-                                        <div className="flex justify-between mt-1">
-                                            <span className="text-[10px] text-muted-foreground">{turnaround?.exports.completed_count ?? 0} completed</span>
-                                            <span className="text-[10px] text-muted-foreground">{turnaround?.exports.min_days ?? '—'}–{turnaround?.exports.max_days ?? '—'} days range</span>
+                                        <div className="flex justify-between text-[10px] text-muted-foreground">
+                                            <span>{turnaround?.exports.completed_count ?? 0} completed</span>
+                                            <span>{turnaround?.exports.min_days ?? '—'}–{turnaround?.exports.max_days ?? '—'} days range</span>
                                         </div>
                                     </div>
                                 </div>
+                            </CardContent>
 
-                                <div className="h-px bg-border" />
-
-                                {/* Completion ratio summary */}
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-xs font-medium text-muted-foreground">Completion Rate</p>
-                                        <p className="text-[11px] text-muted-foreground mt-0.5">{completedCount} of {totalVol} transactions completed</p>
-                                    </div>
-                                    <div className="text-2xl font-bold tabular-nums" style={{ color: 'var(--chart-3)' }}>
-                                        {completionRatio}<span className="text-sm font-normal text-muted-foreground">%</span>
-                                    </div>
+                            {/* Completion ratio summary */}
+                            <CardFooter className="p-4 pt-3 border-t border-border/50 text-xs flex justify-between items-center">
+                                <div>
+                                    <p className="font-semibold text-foreground">Overall Completion Rate</p>
+                                    <p className="text-[11px] text-muted-foreground">
+                                        {completedCount} of {totalVol} transactions finalized
+                                    </p>
                                 </div>
-                            </div>
-                        </div>
+                                <div className="text-xl font-bold tabular-nums text-emerald-500">
+                                    {completionRatio}%
+                                </div>
+                            </CardFooter>
+                        </Card>
                     </div>
                 </>
             )}

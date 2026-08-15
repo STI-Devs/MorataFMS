@@ -124,16 +124,16 @@ describe('AdminDashboard', () => {
         expect(screen.getAllByText('11').length).toBeGreaterThan(0);
         expect(screen.getByText('Status Mix')).toBeInTheDocument();
         expect(screen.getByText('Overdue Transactions')).toBeInTheDocument();
-        expect(screen.getByText('Overdue Queue Size')).toBeInTheDocument();
+        expect(screen.getByText('5 Flagged')).toBeInTheDocument();
         expect(screen.getByText('Import Overdue')).toBeInTheDocument();
         expect(screen.getByText('Export Overdue')).toBeInTheDocument();
         expect(screen.getAllByText('overdue records')).toHaveLength(2);
         expect(screen.getByText('oldest: 81h')).toBeInTheDocument();
         expect(screen.getByText('oldest: 76h')).toBeInTheDocument();
         expect(screen.getByText('Records & Archive')).toBeInTheDocument();
-        expect(screen.getByText('Records In Review')).toBeInTheDocument();
+        expect(screen.getByText('8 In Review')).toBeInTheDocument();
         expect(screen.getByText('Ready for Archive')).toBeInTheDocument();
-        expect(screen.getByText('Missing Archive Docs')).toBeInTheDocument();
+        expect(screen.getByText('Missing Docs')).toBeInTheDocument();
         expect(screen.getByText('BL-EXP-FLAG-001')).toBeInTheDocument();
         expect(screen.getByText('Admin User')).toBeInTheDocument();
 

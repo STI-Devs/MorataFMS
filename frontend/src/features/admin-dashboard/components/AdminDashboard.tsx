@@ -272,33 +272,6 @@ export const AdminDashboard = () => {
         },
     ];
 
-    const recordsTiles = [
-        {
-            label: 'Ready for Archive',
-            value: recordsSummary?.archive_ready_count ?? 0,
-            valueClass: 'text-success',
-            icon: CheckCircle2,
-        },
-        {
-            label: 'Missing Archive Docs',
-            value: recordsSummary?.missing_docs_count ?? 0,
-            valueClass: 'text-warning',
-            icon: FileSpreadsheet,
-        },
-        {
-            label: 'Completed in Review',
-            value: recordsSummary?.completed_count ?? 0,
-            valueClass: 'text-foreground',
-            icon: FolderSync,
-        },
-        {
-            label: 'Cancelled in Review',
-            value: recordsSummary?.cancelled_count ?? 0,
-            valueClass: 'text-danger',
-            icon: ShieldAlert,
-        },
-    ];
-
     const statusColors: Record<string, string> = {
         pending: 'var(--warning)',
         in_progress: 'var(--info)',
@@ -593,39 +566,22 @@ export const AdminDashboard = () => {
 
                 {/* Section 3: Operational SLA & Archive Readiness */}
                 <section className="grid gap-4 xl:grid-cols-12">
-                    {/* Overdue Transactions */}
-                    <Card className="xl:col-span-7">
+                    {/* 3.1 Overdue Transactions */}
+                    <Card className="xl:col-span-7 flex flex-col justify-between">
                         <CardHeader className="flex-row items-start justify-between pb-3">
                             <div>
                                 <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                                     Overdue Transactions
                                 </CardTitle>
                                 <CardDescription className="mt-1 text-xs">
-                                    Active records beyond the update threshold and needing follow-up.
+                                    Active records beyond the 48h update SLA threshold needing follow-up.
                                 </CardDescription>
                             </div>
-                            <Badge variant="outline" className="text-[10px] font-medium uppercase tracking-wider shrink-0">
-                                {overdueTransactions?.threshold_hours ?? 48}+h without update
+                            <Badge variant="outline" className="text-xs font-semibold text-danger border-danger/20 bg-danger/10 px-2 py-0.5 shrink-0">
+                                {overdueTransactions?.total ?? 0} Flagged
                             </Badge>
                         </CardHeader>
                         <CardContent className="space-y-3">
-                            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/40 border border-border/50">
-                                <div>
-                                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                                        Overdue Queue Size
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">Exceeded service level update target</p>
-                                </div>
-                                <div className="flex items-baseline gap-1.5">
-                                    <span className="text-2xl font-bold tabular-nums text-foreground">
-                                        {overdueTransactions?.total ?? '—'}
-                                    </span>
-                                    <span className="text-xs text-muted-foreground font-medium">
-                                        flagged records
-                                    </span>
-                                </div>
-                            </div>
-
                             <div className="grid gap-3 sm:grid-cols-2">
                                 {overdueCards.map((card) => {
                                     const stats = overdueTransactions?.[card.key];
@@ -638,7 +594,7 @@ export const AdminDashboard = () => {
                                     return (
                                         <div
                                             key={card.key}
-                                            className="flex flex-col justify-between p-3.5 rounded-xl border border-border/50 bg-card/60 shadow-xs"
+                                            className="flex flex-col justify-between p-3.5 rounded-xl border border-border/60 bg-card/60 shadow-xs space-y-3"
                                         >
                                             <div className="flex items-start justify-between gap-2">
                                                 <div className="flex items-center gap-2">
@@ -650,7 +606,7 @@ export const AdminDashboard = () => {
                                                             {card.label}
                                                         </p>
                                                         <p className="text-[10px] text-muted-foreground">
-                                                            No staff update past SLA
+                                                            Past 48h SLA
                                                         </p>
                                                     </div>
                                                 </div>
@@ -659,7 +615,7 @@ export const AdminDashboard = () => {
                                                 </Badge>
                                             </div>
 
-                                            <div className="my-3 flex items-baseline gap-1.5">
+                                            <div className="flex items-baseline gap-1.5">
                                                 <span className="text-2xl font-bold tabular-nums text-foreground">
                                                     {overdueCount}
                                                 </span>
@@ -668,7 +624,7 @@ export const AdminDashboard = () => {
                                                 </span>
                                             </div>
 
-                                            <div className="mb-3 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                                            <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
                                                 <div
                                                     className={`h-full rounded-full ${card.accentBarClass} transition-all duration-500`}
                                                     style={{ width: `${barWidth}%` }}
@@ -692,7 +648,7 @@ export const AdminDashboard = () => {
                         </CardContent>
                     </Card>
 
-                    {/* Records & Archive */}
+                    {/* 3.2 Records & Archive */}
                     <Card className="xl:col-span-5 flex flex-col justify-between">
                         <CardHeader className="flex-row items-start justify-between pb-3">
                             <div>
@@ -700,51 +656,58 @@ export const AdminDashboard = () => {
                                     Records &amp; Archive
                                 </CardTitle>
                                 <CardDescription className="mt-1 text-xs">
-                                    Post-operations archive readiness and review load.
+                                    Post-operations archive readiness and compliance load.
                                 </CardDescription>
                             </div>
-                            <Badge variant="secondary" className="text-[10px] font-medium uppercase tracking-wider shrink-0">
-                                Post-Operations
+                            <Badge variant="outline" className="text-xs font-semibold px-2 py-0.5 shrink-0">
+                                {recordsSummary?.in_review_count ?? 0} In Review
                             </Badge>
                         </CardHeader>
                         <CardContent className="space-y-3">
-                            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/40 border border-border/50">
-                                <div>
-                                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                                        Records In Review
+                            {/* Primary Action Cards: Ready vs Missing */}
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="flex flex-col justify-between p-3.5 rounded-xl border border-success/30 bg-success/5 shadow-xs">
+                                    <div className="flex items-center justify-between mb-1.5">
+                                        <span className="text-xs font-semibold text-foreground">
+                                            Ready for Archive
+                                        </span>
+                                        <CheckCircle2 className="size-4 text-success shrink-0" />
+                                    </div>
+                                    <p className="text-2xl font-bold tabular-nums tracking-tight text-success my-1">
+                                        {recordsSummary?.archive_ready_count ?? 0}
                                     </p>
-                                    <p className="text-xs text-muted-foreground">Pending archival compliance check</p>
+                                    <p className="text-[10px] text-muted-foreground">
+                                        Compliant &amp; ready
+                                    </p>
                                 </div>
-                                <div className="flex items-baseline gap-1.5">
-                                    <span className="text-2xl font-bold tabular-nums text-foreground">
-                                        {recordsSummary?.in_review_count ?? '—'}
-                                    </span>
-                                    <span className="text-xs text-muted-foreground font-medium">
-                                        queue size
-                                    </span>
+
+                                <div className="flex flex-col justify-between p-3.5 rounded-xl border border-warning/30 bg-warning/5 shadow-xs">
+                                    <div className="flex items-center justify-between mb-1.5">
+                                        <span className="text-xs font-semibold text-foreground">
+                                            Missing Docs
+                                        </span>
+                                        <FileSpreadsheet className="size-4 text-warning shrink-0" />
+                                    </div>
+                                    <p className="text-2xl font-bold tabular-nums tracking-tight text-warning my-1">
+                                        {recordsSummary?.missing_docs_count ?? 0}
+                                    </p>
+                                    <p className="text-[10px] text-muted-foreground">
+                                        Action required
+                                    </p>
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-2.5">
-                                {recordsTiles.map((tile) => {
-                                    const TileIcon = tile.icon;
-                                    return (
-                                        <div
-                                            key={tile.label}
-                                            className="flex flex-col justify-between p-3 rounded-xl border border-border/50 bg-card/60 shadow-xs"
-                                        >
-                                            <div className="flex items-center justify-between mb-1.5">
-                                                <span className="text-[11px] font-medium text-muted-foreground truncate">
-                                                    {tile.label}
-                                                </span>
-                                                <TileIcon className={`size-3.5 ${tile.valueClass} opacity-80`} />
-                                            </div>
-                                            <p className={`text-xl font-bold tabular-nums tracking-tight ${tile.valueClass}`}>
-                                                {tile.value}
-                                            </p>
-                                        </div>
-                                    );
-                                })}
+                            {/* Secondary Queue Context Summary */}
+                            <div className="flex items-center justify-between p-2.5 rounded-lg border border-border/50 bg-muted/30 text-xs text-muted-foreground">
+                                <div className="flex items-center gap-1.5">
+                                    <FolderSync className="size-3.5 text-muted-foreground shrink-0" />
+                                    <span>Completed: <strong className="text-foreground font-semibold">{recordsSummary?.completed_count ?? 0}</strong></span>
+                                </div>
+                                <span className="text-border">|</span>
+                                <div className="flex items-center gap-1.5">
+                                    <ShieldAlert className="size-3.5 text-danger shrink-0" />
+                                    <span>Cancelled: <strong className="text-foreground font-semibold">{recordsSummary?.cancelled_count ?? 0}</strong></span>
+                                </div>
                             </div>
                         </CardContent>
                     </Card>
