@@ -15,6 +15,14 @@ vi.stubGlobal('matchMedia', (query: string): MediaQueryList => ({
     dispatchEvent: vi.fn(),
 }));
 
+// recharts ResponsiveContainer needs ResizeObserver; happy-dom has none.
+class ResizeObserverStub {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+}
+vi.stubGlobal('ResizeObserver', ResizeObserverStub);
+
 afterEach(() => {
     cleanup();
     vi.restoreAllMocks();

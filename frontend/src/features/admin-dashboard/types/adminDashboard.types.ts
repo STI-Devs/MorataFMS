@@ -14,7 +14,6 @@ export interface AdminDashboardCriticalItem {
     ref: string;
     status: 'stuck' | 'missing' | 'review';
     title: string;
-    detail: string;
     age: string;
     destination: AdminDashboardDestination;
 }
@@ -26,7 +25,6 @@ export interface AdminDashboardFeedItem {
     action: string;
     target: string;
     detail: string;
-    created_at: string | null;
 }
 
 export interface AdminDashboardWorkloadItem {

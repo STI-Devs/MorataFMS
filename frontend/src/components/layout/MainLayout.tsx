@@ -55,7 +55,7 @@ export const MainLayout = () => {
                     id="main-content"
                     className="relative flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto bg-background p-6"
                 >
-                    <div className="mx-auto flex min-h-0 w-full max-w-7xl flex-1 flex-col">
+                    <div className="flex min-h-0 w-full flex-1 flex-col">
                         <Suspense fallback={<PageFallback />}>
                             <Outlet context={{ user: nav.user }} />
                         </Suspense>
