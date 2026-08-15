@@ -29,8 +29,8 @@ export interface DocumentStat {
 }
 
 export const TYPE_CONFIG: Record<TransactionType, { label: string; color: string; bg: string }> = {
-    import: { label: 'Import', color: '#0a84ff', bg: 'rgba(10,132,255,0.12)' },
-    export: { label: 'Export', color: '#30d158', bg: 'rgba(48,209,88,0.12)' },
+    import: { label: 'Import', color: 'var(--primary)', bg: 'color-mix(in srgb, var(--primary) 12%, transparent)' },
+    export: { label: 'Export', color: 'var(--success)', bg: 'color-mix(in srgb, var(--success) 12%, transparent)' },
 };
 
 export const FILTER_LABELS: Record<TypeFilter, string> = {
@@ -94,21 +94,21 @@ export const buildDocumentStats = (
             label: 'Completed Transactions',
             value: counts?.completed ?? 0,
             sub: `${counts?.completed ?? 0} shipments cleared`,
-            color: '#0a84ff',
+            color: 'var(--primary)',
             icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2',
         },
         {
             label: 'Import Cleared',
             value: counts?.imports ?? 0,
             sub: 'Inbound shipments',
-            color: '#0a84ff',
+            color: 'var(--primary)',
             icon: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12',
         },
         {
             label: 'Export Shipped',
             value: counts?.exports ?? 0,
             sub: 'Outbound shipments',
-            color: '#30d158',
+            color: 'var(--success)',
             icon: 'M12 19l9 2-9-18-9 18 9-2zm0 0v-8',
         },
         {
@@ -118,7 +118,7 @@ export const buildDocumentStats = (
                 missingDocs > 0
                     ? `${missingDocs} visible shipments missing docs`
                     : 'Visible shipments have files',
-            color: missingDocs > 0 ? '#ff9f0a' : '#30d158',
+            color: missingDocs > 0 ? 'var(--warning)' : 'var(--success)',
             icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
         },
     ];

@@ -9,7 +9,7 @@ type Props = {
 };
 
 export const DocumentRow = ({ doc, isAlternate, onDownload, onPreview }: Props) => {
-    const stageColor = STAGE_COLORS[doc.stageKey] ?? { color: '#9ca3af', bg: 'rgba(156,163,175,0.1)' };
+    const stageColor = STAGE_COLORS[doc.stageKey] ?? { color: 'var(--muted-foreground)', bg: 'color-mix(in srgb, var(--muted-foreground) 10%, transparent)' };
 
     return (
         <div
@@ -29,7 +29,7 @@ export const DocumentRow = ({ doc, isAlternate, onDownload, onPreview }: Props) 
             </div>
             <p className="text-sm font-semibold text-text-secondary">{formatDate(doc.date)}</p>
             <div className="flex items-center gap-2">
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold text-white shrink-0 ${doc.uploader.avatarColor}`}>
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold text-primary-foreground shrink-0 ${doc.uploader.avatarColor}`}>
                     {doc.uploader.initials}
                 </div>
                 <span className="text-sm font-semibold text-text-secondary truncate">{doc.uploader.name}</span>
@@ -37,7 +37,7 @@ export const DocumentRow = ({ doc, isAlternate, onDownload, onPreview }: Props) 
             <p className="text-sm font-semibold text-text-secondary">{doc.size}</p>
             <div className="flex items-center justify-center gap-1">
                 <button
-                    className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-md transition-colors"
+                    className="p-1.5 text-primary hover:bg-primary/10 rounded-md transition-colors"
                     title="Download"
                     onClick={() => onDownload(doc)}
                 >

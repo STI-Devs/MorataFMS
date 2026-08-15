@@ -20,12 +20,12 @@ type QuickAction = {
 };
 
 const quickActions: QuickAction[] = [
-    { label: 'Document Review', path: appRoutes.adminDocumentReview, icon: 'file-text', accent: '#0a84ff' },
-    { label: 'Transaction Oversight', path: appRoutes.transactions, icon: 'archive', accent: '#30d158' },
-    { label: 'Live Tracking', path: appRoutes.liveTracking, icon: 'clock', accent: '#64d2ff' },
-    { label: 'Reports & Analytics', path: appRoutes.reports, icon: 'flag', accent: '#ff9f0a' },
-    { label: 'User Management', path: appRoutes.users, icon: 'user', accent: '#bf5af2' },
-    { label: 'Client Management', path: appRoutes.clients, icon: 'truck', accent: '#30d158' },
+    { label: 'Document Review', path: appRoutes.adminDocumentReview, icon: 'file-text', accent: 'var(--primary)' },
+    { label: 'Transaction Oversight', path: appRoutes.transactions, icon: 'archive', accent: 'var(--success)' },
+    { label: 'Live Tracking', path: appRoutes.liveTracking, icon: 'clock', accent: 'var(--sky)' },
+    { label: 'Reports & Analytics', path: appRoutes.reports, icon: 'flag', accent: 'var(--warning)' },
+    { label: 'User Management', path: appRoutes.users, icon: 'user', accent: 'var(--violet)' },
+    { label: 'Client Management', path: appRoutes.clients, icon: 'truck', accent: 'var(--success)' },
 ];
 
 const statusLabels: Record<AdminDashboardCriticalItem['status'], string> = {
@@ -64,42 +64,42 @@ export const AdminDashboard = () => {
             label: 'Active Imports',
             value: dashboardQuery.isLoading ? '—' : String(dashboard?.kpis.active_imports ?? 0),
             helper: 'Open import workload',
-            color: '#0a84ff',
+            color: 'var(--primary)',
             icon: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12',
         },
         {
             label: 'Active Exports',
             value: dashboardQuery.isLoading ? '—' : String(dashboard?.kpis.active_exports ?? 0),
             helper: 'Open export workload',
-            color: '#30d158',
+            color: 'var(--success)',
             icon: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4',
         },
         {
             label: 'ETA/ETD This Week',
             value: dashboardQuery.isLoading ? '—' : String(dashboard?.kpis.upcoming_eta_etd ?? 0),
             helper: 'Arrivals/departures within 7 days',
-            color: '#ff9f0a',
+            color: 'var(--warning)',
             icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z',
         },
         {
             label: 'Open Remarks',
             value: dashboardQuery.isLoading ? '—' : String(dashboard?.kpis.open_remarks ?? 0),
             helper: 'Unresolved operational blockers',
-            color: '#ff453a',
+            color: 'var(--danger)',
             icon: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z',
         },
         {
             label: 'Needs Update',
             value: dashboardQuery.isLoading ? '—' : String(dashboard?.kpis.delayed_shipments ?? 0),
             helper: 'No activity logged for 48+ hours',
-            color: '#bf5af2',
+            color: 'var(--violet)',
             icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z',
         },
         {
             label: 'Document Gaps',
             value: dashboardQuery.isLoading ? '—' : String(dashboard?.kpis.missing_final_docs ?? 0),
             helper: 'Finalized files still incomplete',
-            color: '#ff453a',
+            color: 'var(--danger)',
             icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
         },
     ];
@@ -131,17 +131,17 @@ export const AdminDashboard = () => {
             key: 'imports',
             label: 'Import Overdue',
             icon: 'download',
-            accentTextClass: 'text-blue-500',
-            accentSurfaceClass: 'bg-blue-500/10',
-            accentBarClass: 'bg-blue-500/85',
+            accentTextClass: 'text-primary',
+            accentSurfaceClass: 'bg-primary/10',
+            accentBarClass: 'bg-primary/85',
         },
         {
             key: 'exports',
             label: 'Export Overdue',
             icon: 'truck',
-            accentTextClass: 'text-emerald-500',
-            accentSurfaceClass: 'bg-emerald-500/10',
-            accentBarClass: 'bg-emerald-500/85',
+            accentTextClass: 'text-success',
+            accentSurfaceClass: 'bg-success/10',
+            accentBarClass: 'bg-success/85',
         },
     ];
 
@@ -149,12 +149,12 @@ export const AdminDashboard = () => {
         {
             label: 'Ready for Archive',
             value: recordsSummary?.archive_ready_count ?? 0,
-            valueClass: 'text-emerald-500',
+            valueClass: 'text-success',
         },
         {
             label: 'Missing Archive Docs',
             value: recordsSummary?.missing_docs_count ?? 0,
-            valueClass: 'text-amber-500',
+            valueClass: 'text-warning',
         },
         {
             label: 'Completed in Review',
@@ -164,16 +164,16 @@ export const AdminDashboard = () => {
         {
             label: 'Cancelled in Review',
             value: recordsSummary?.cancelled_count ?? 0,
-            valueClass: 'text-red-500',
+            valueClass: 'text-danger',
         },
     ];
 
 
     const statusColors = {
-        pending: '#ff9f0a',
-        in_progress: '#0a84ff',
-        completed: '#30d158',
-        cancelled: '#ff453a',
+        pending: 'var(--warning)',
+        in_progress: 'var(--info)',
+        completed: 'var(--success)',
+        cancelled: 'var(--danger)',
     };
 
     return (
@@ -231,12 +231,12 @@ export const AdminDashboard = () => {
                             {analytics ? analytics.monthly_volume.months.map((month) => (
                                 <div key={month.month} className="group relative flex h-full w-full flex-col justify-end">
                                     <div className="flex h-full w-full flex-col justify-end gap-[1px]">
-                                        <div 
-                                            className="w-full rounded-[2px] bg-blue-500/80 transition-all group-hover:bg-blue-400" 
+                                        <div
+                                            className="w-full rounded-[2px] bg-primary/80 transition-all group-hover:bg-primary"
                                             style={{ height: `${(month.imports / volumeMax) * 100}%`, minHeight: month.imports > 0 ? '4px' : '0' }}
                                         />
-                                        <div 
-                                            className="w-full rounded-[2px] bg-emerald-500/80 transition-all group-hover:bg-emerald-400" 
+                                        <div
+                                            className="w-full rounded-[2px] bg-success/80 transition-all group-hover:bg-success"
                                             style={{ height: `${(month.exports / volumeMax) * 100}%`, minHeight: month.exports > 0 ? '4px' : '0' }}
                                         />
                                     </div>
@@ -244,7 +244,7 @@ export const AdminDashboard = () => {
                                     
                                     {/* Tooltip */}
                                     <div className="absolute -top-10 left-1/2 hidden -translate-x-1/2 whitespace-nowrap rounded border border-border bg-surface px-2 py-1 text-[10px] shadow-lg group-hover:block z-10">
-                                        <span className="text-blue-500 font-medium">{month.imports}</span> / <span className="text-emerald-500 font-medium">{month.exports}</span>
+                                        <span className="text-primary font-medium">{month.imports}</span> / <span className="text-success font-medium">{month.exports}</span>
                                     </div>
                                 </div>
                             )) : (
@@ -268,7 +268,7 @@ export const AdminDashboard = () => {
                                     <span className="text-text-primary">{analytics?.transaction_flow.imports ?? '—'}</span>
                                 </div>
                                 <div className="flex h-2 w-full overflow-hidden rounded-full bg-surface">
-                                    <div className="bg-blue-500/80 transition-all" style={{ width: `${importsPercentage}%` }} />
+                                    <div className="bg-primary/80 transition-all" style={{ width: `${importsPercentage}%` }} />
                                 </div>
                             </div>
 
@@ -278,7 +278,7 @@ export const AdminDashboard = () => {
                                     <span className="text-text-primary">{analytics?.transaction_flow.exports ?? '—'}</span>
                                 </div>
                                 <div className="flex h-2 w-full overflow-hidden rounded-full bg-surface">
-                                    <div className="bg-emerald-500/80 transition-all" style={{ width: `${exportsPercentage}%` }} />
+                                    <div className="bg-success/80 transition-all" style={{ width: `${exportsPercentage}%` }} />
                                 </div>
                             </div>
                             
@@ -290,7 +290,7 @@ export const AdminDashboard = () => {
                                     </span>
                                 </div>
                                 <div className="flex h-2 w-full overflow-hidden rounded-full bg-surface">
-                                    <div className="bg-emerald-500/80 transition-all" style={{ width: `${completionRate}%` }} />
+                                    <div className="bg-success/80 transition-all" style={{ width: `${completionRate}%` }} />
                                 </div>
                             </div>
                         </div>
@@ -504,19 +504,19 @@ export const AdminDashboard = () => {
                                                 <div className="flex items-start gap-4 sm:items-center">
                                                     <div className="mt-1 flex sm:mt-0">
                                                         {item.status === 'stuck' ? (
-                                                            <Icon name="alert-circle" className="h-4 w-4 text-red-500" />
+                                                            <Icon name="alert-circle" className="h-4 w-4 text-danger" />
                                                         ) : item.status === 'missing' ? (
-                                                            <Icon name="file-text" className="h-4 w-4 text-amber-500" />
+                                                            <Icon name="file-text" className="h-4 w-4 text-warning" />
                                                         ) : (
-                                                            <Icon name="clock" className="h-4 w-4 text-blue-500" />
+                                                            <Icon name="clock" className="h-4 w-4 text-info" />
                                                         )}
                                                     </div>
                                                     <div>
                                                         <div className="flex items-center gap-3">
                                                             <span className="text-[14px] font-medium text-text-primary">{item.ref}</span>
                                                             <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
-                                                                item.status === 'stuck' ? 'border-red-500/20 text-red-500 bg-red-500/5' :
-                                                                item.status === 'missing' ? 'border-amber-500/20 text-amber-500 bg-amber-500/5' :
+                                                                item.status === 'stuck' ? 'border-danger/20 text-danger bg-danger/5' :
+                                                                item.status === 'missing' ? 'border-warning/20 text-warning bg-warning/5' :
                                                                 'border-border text-text-secondary bg-surface/50'
                                                             }`}>
                                                                 {statusLabels[item.status]}
@@ -559,8 +559,8 @@ export const AdminDashboard = () => {
                                                 </div>
                                                 <div className="flex items-center gap-3 text-right">
                                                     {person.overdue > 0 && (
-                                                        <span className="flex items-center gap-1.5 rounded-full bg-red-500/10 px-2 py-0.5 text-[10px] font-medium text-red-500">
-                                                            <div className="h-1.5 w-1.5 rounded-full bg-red-500" />
+                                                        <span className="flex items-center gap-1.5 rounded-full bg-danger/10 px-2 py-0.5 text-[10px] font-medium text-danger">
+                                                            <div className="h-1.5 w-1.5 rounded-full bg-danger" />
                                                             {person.overdue} late
                                                         </span>
                                                     )}
@@ -587,7 +587,7 @@ export const AdminDashboard = () => {
                                             <div key={item.id} className="flex gap-4 p-4 transition-colors hover:bg-surface">
                                                 <div className="mt-0.5 shrink-0 text-text-muted">
                                                     {item.action === 'Document Alert' ? (
-                                                        <Icon name="file-text" className="h-3.5 w-3.5 text-amber-500" />
+                                                        <Icon name="file-text" className="h-3.5 w-3.5 text-warning" />
                                                     ) : (
                                                         <Icon name="edit" className="h-3.5 w-3.5" />
                                                     )}

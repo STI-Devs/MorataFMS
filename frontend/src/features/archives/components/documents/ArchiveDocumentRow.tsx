@@ -26,31 +26,31 @@ const EXPORT_STAGE_LABELS: Record<string, string> = {
 };
 
 const STAGE_COLORS: Record<string, { color: string; bg: string }> = {
-    boc:           { color: '#f97316', bg: 'rgba(249,115,22,0.1)' },
-    bonds:         { color: '#d97706', bg: 'rgba(217,119,6,0.1)' },
-    phytosanitary: { color: '#0f766e', bg: 'rgba(15,118,110,0.1)' },
-    ppa:           { color: '#3b82f6', bg: 'rgba(59,130,246,0.1)' },
-    do:            { color: '#8b5cf6', bg: 'rgba(139,92,246,0.1)' },
-    port_charges:  { color: '#06b6d4', bg: 'rgba(6,182,212,0.1)' },
-    releasing:     { color: '#22c55e', bg: 'rgba(34,197,94,0.1)' },
-    billing:       { color: '#ff9f0a', bg: 'rgba(255,159,10,0.1)' },
+    boc:           { color: 'var(--warning)', bg: 'color-mix(in srgb, var(--warning) 10%, transparent)' },
+    bonds:         { color: 'var(--warning)', bg: 'color-mix(in srgb, var(--warning) 10%, transparent)' },
+    phytosanitary: { color: 'var(--success)', bg: 'color-mix(in srgb, var(--success) 10%, transparent)' },
+    ppa:           { color: 'var(--info)', bg: 'color-mix(in srgb, var(--info) 10%, transparent)' },
+    do:            { color: 'var(--violet)', bg: 'color-mix(in srgb, var(--violet) 10%, transparent)' },
+    port_charges:  { color: 'var(--sky)', bg: 'color-mix(in srgb, var(--sky) 10%, transparent)' },
+    releasing:     { color: 'var(--success)', bg: 'color-mix(in srgb, var(--success) 10%, transparent)' },
+    billing:       { color: 'var(--warning)', bg: 'color-mix(in srgb, var(--warning) 10%, transparent)' },
     // Export stages
-    docs_prep:     { color: '#f97316', bg: 'rgba(249,115,22,0.1)' },
-    bl_generation: { color: '#f97316', bg: 'rgba(249,115,22,0.1)' },
-    bl:            { color: '#f97316', bg: 'rgba(249,115,22,0.1)' },
-    co:            { color: '#3b82f6', bg: 'rgba(59,130,246,0.1)' },
-    cil:           { color: '#22c55e', bg: 'rgba(34,197,94,0.1)' },
-    dccci:         { color: '#22c55e', bg: 'rgba(34,197,94,0.1)' },
+    docs_prep:     { color: 'var(--warning)', bg: 'color-mix(in srgb, var(--warning) 10%, transparent)' },
+    bl_generation: { color: 'var(--warning)', bg: 'color-mix(in srgb, var(--warning) 10%, transparent)' },
+    bl:            { color: 'var(--warning)', bg: 'color-mix(in srgb, var(--warning) 10%, transparent)' },
+    co:            { color: 'var(--info)', bg: 'color-mix(in srgb, var(--info) 10%, transparent)' },
+    cil:           { color: 'var(--success)', bg: 'color-mix(in srgb, var(--success) 10%, transparent)' },
+    dccci:         { color: 'var(--success)', bg: 'color-mix(in srgb, var(--success) 10%, transparent)' },
     // Shared catch-all
-    others:        { color: '#6b7280', bg: 'rgba(107,114,128,0.1)' },
+    others:        { color: 'var(--muted-foreground)', bg: 'color-mix(in srgb, var(--muted-foreground) 10%, transparent)' },
 };
 
 const extFromFilename = (name: string) => name.split('.').pop()?.toLowerCase() ?? '';
 
 const extStyle = (ext: string) => {
-    if (ext === 'pdf')  return { color: '#ef4444', bg: 'rgba(239,68,68,0.1)' };
-    if (ext === 'docx') return { color: '#3b82f6', bg: 'rgba(59,130,246,0.1)' };
-    return                     { color: '#f97316', bg: 'rgba(249,115,22,0.1)' };
+    if (ext === 'pdf')  return { color: 'var(--danger)', bg: 'color-mix(in srgb, var(--danger) 10%, transparent)' };
+    if (ext === 'docx') return { color: 'var(--info)', bg: 'color-mix(in srgb, var(--info) 10%, transparent)' };
+    return                     { color: 'var(--warning)', bg: 'color-mix(in srgb, var(--warning) 10%, transparent)' };
 };
 
 const formatDate = (iso: string) => {
@@ -82,7 +82,7 @@ export const ArchiveDocumentRow = ({ doc, onDelete, canDelete = true, onReplace,
     const ext = extFromFilename(doc.filename);
     const c = extStyle(ext);
     const stageKey = doc.stage in STAGE_COLORS ? doc.stage : '_';
-    const sc = STAGE_COLORS[stageKey] ?? { color: '#9ca3af', bg: 'rgba(156,163,175,0.1)' };
+    const sc = STAGE_COLORS[stageKey] ?? { color: 'var(--muted-foreground)', bg: 'color-mix(in srgb, var(--muted-foreground) 10%, transparent)' };
     const stage = getStageLabel(doc);
     const initials = doc.uploader ? getInitials(doc.uploader.name) : '??';
 
@@ -125,14 +125,14 @@ export const ArchiveDocumentRow = ({ doc, onDelete, canDelete = true, onReplace,
 
             {/* Actions */}
             <div className="flex items-center justify-end gap-1">
-                <div className="mr-1 hidden h-6 w-6 shrink-0 items-center justify-center rounded-full text-[8px] font-black text-white ring-2 ring-surface sm:flex"
-                    style={{ backgroundColor: '#ff9f0a' }}
+                <div className="mr-1 hidden h-6 w-6 shrink-0 items-center justify-center rounded-full text-[8px] font-black text-primary-foreground ring-2 ring-surface sm:flex"
+                    style={{ backgroundColor: 'var(--warning)' }}
                     title={doc.uploader?.name ?? 'Unknown'}>
                     {initials}
                 </div>
                 <button
                     title="Download"
-                    className="rounded-md p-1.5 text-blue-500 transition-colors hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                    className="rounded-md p-1.5 text-primary transition-colors hover:bg-primary/10"
                     onClick={handleDownload}>
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -152,7 +152,7 @@ export const ArchiveDocumentRow = ({ doc, onDelete, canDelete = true, onReplace,
                 {canDelete && onDelete && (
                     <button
                         title="Delete"
-                        className="p-1.5 rounded-md text-text-muted hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                        className="p-1.5 rounded-md text-text-muted hover:text-danger hover:bg-danger/10 transition-colors"
                         onClick={e => { e.stopPropagation(); onDelete(doc.id); }}>
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

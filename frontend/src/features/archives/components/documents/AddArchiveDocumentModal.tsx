@@ -133,7 +133,7 @@ export const AddArchiveDocumentModal: React.FC<AddArchiveDocumentModalProps> = (
                 <form onSubmit={handleSubmit} className="px-5 py-4 space-y-5">
                     <div className="space-y-2">
                         <p className="text-[11px] font-black text-text-muted uppercase tracking-[0.12em]">
-                            Stage <span className="text-red-400">*</span>
+                            Stage <span className="text-danger">*</span>
                         </p>
 
                         <div className="grid grid-cols-2 gap-2">
@@ -142,9 +142,9 @@ export const AddArchiveDocumentModal: React.FC<AddArchiveDocumentModalProps> = (
                                 const isNotApplicable = notApplicableStages.has(stage.key);
                                 const isSelected = selectedStage === stage.key;
                                 const cardClass = isSelected
-                                    ? 'border-green-500 bg-green-500/10 ring-1 ring-green-500/30'
+                                    ? 'border-success bg-success/10 ring-1 ring-success/30'
                                     : isNotApplicable
-                                        ? 'border-amber-500/30 bg-amber-500/10 opacity-80'
+                                        ? 'border-warning/30 bg-warning/10 opacity-80'
                                         : 'border-border-strong bg-input-bg hover:border-border hover:bg-hover';
 
                                 return (
@@ -158,13 +158,13 @@ export const AddArchiveDocumentModal: React.FC<AddArchiveDocumentModalProps> = (
                                         <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
                                             <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
                                                 isNotApplicable
-                                                    ? 'bg-amber-500/15 text-amber-600'
-                                                    : count > 0 ? 'bg-blue-500/15 text-blue-500' : 'bg-amber-400/10 text-amber-500'
+                                                    ? 'bg-warning/15 text-warning'
+                                                    : count > 0 ? 'bg-info/15 text-info' : 'bg-warning/10 text-warning'
                                             }`}>
                                                 {isNotApplicable ? 'N/A' : count > 0 ? `${count} file${count === 1 ? '' : 's'}` : 'Empty'}
                                             </span>
                                             {isSelected && (
-                                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-green-500 text-[9px] font-black text-white uppercase tracking-wider">
+                                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-success text-[9px] font-black text-primary-foreground uppercase tracking-wider">
                                                     Selected
                                                 </span>
                                             )}
@@ -174,7 +174,7 @@ export const AddArchiveDocumentModal: React.FC<AddArchiveDocumentModalProps> = (
                                             {stage.label}
                                         </p>
                                         {isNotApplicable && (
-                                            <p className="mt-1 text-[10px] font-semibold text-amber-600">
+                                            <p className="mt-1 text-[10px] font-semibold text-warning">
                                                 This stage is marked as not applicable.
                                             </p>
                                         )}
@@ -185,11 +185,11 @@ export const AddArchiveDocumentModal: React.FC<AddArchiveDocumentModalProps> = (
 
                         <div className="flex items-center gap-4 pt-0.5">
                             <span className="flex items-center gap-1 text-[10px] text-text-muted">
-                                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                                <span className="w-1.5 h-1.5 rounded-full bg-warning" />
                                 Empty stage
                             </span>
                             <span className="flex items-center gap-1 text-[10px] text-text-muted">
-                                <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                                <span className="w-1.5 h-1.5 rounded-full bg-info" />
                                 Existing uploaded files
                             </span>
                         </div>
@@ -197,7 +197,7 @@ export const AddArchiveDocumentModal: React.FC<AddArchiveDocumentModalProps> = (
 
                     <div className="space-y-2">
                         <p className="text-[11px] font-black text-text-muted uppercase tracking-[0.12em]">
-                            Files <span className="text-red-400">*</span>
+                            Files <span className="text-danger">*</span>
                         </p>
 
                         <input
@@ -214,13 +214,13 @@ export const AddArchiveDocumentModal: React.FC<AddArchiveDocumentModalProps> = (
                             onClick={() => fileInputRef.current?.click()}
                             className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border-2 border-dashed transition-all text-left ${
                                 files.length > 0
-                                    ? 'border-green-500/40 bg-green-500/5'
+                                    ? 'border-success/40 bg-success/5'
                                     : 'border-border hover:border-border-strong bg-surface-subtle hover:bg-hover'
                             }`}
                         >
                             <Icon
                                 name="file-text"
-                                className={`w-5 h-5 shrink-0 ${files.length > 0 ? 'text-green-500' : 'text-text-muted'}`}
+                                className={`w-5 h-5 shrink-0 ${files.length > 0 ? 'text-success' : 'text-text-muted'}`}
                             />
                             <div className="flex-1 min-w-0">
                                 <p className={`text-sm font-semibold truncate ${files.length > 0 ? 'text-text-primary' : 'text-text-muted'}`}>
@@ -241,7 +241,7 @@ export const AddArchiveDocumentModal: React.FC<AddArchiveDocumentModalProps> = (
                                             fileInputRef.current.value = '';
                                         }
                                     }}
-                                    className="text-[10px] font-bold text-text-muted hover:text-red-400 transition-colors shrink-0 px-1 py-0.5 rounded"
+                                    className="text-[10px] font-bold text-text-muted hover:text-danger transition-colors shrink-0 px-1 py-0.5 rounded"
                                 >
                                     Clear
                                 </span>
@@ -252,7 +252,7 @@ export const AddArchiveDocumentModal: React.FC<AddArchiveDocumentModalProps> = (
                             <div className="space-y-2 max-h-44 overflow-y-auto pr-1">
                                 {files.map((file, index) => (
                                     <div key={`${file.name}-${file.size}-${index}`} className="flex items-center gap-3 px-3 py-2 rounded-lg border border-border bg-surface-subtle">
-                                        <Icon name="file-text" className="w-4 h-4 text-green-500 shrink-0" />
+                                        <Icon name="file-text" className="w-4 h-4 text-success shrink-0" />
                                         <div className="flex-1 min-w-0">
                                             <p className="text-xs font-semibold text-text-primary truncate">{file.name}</p>
                                             <p className="text-[10px] text-text-muted">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
@@ -267,7 +267,7 @@ export const AddArchiveDocumentModal: React.FC<AddArchiveDocumentModalProps> = (
                                                     fileInputRef.current.value = '';
                                                 }
                                             }}
-                                            className="text-text-muted hover:text-red-400 transition-colors shrink-0"
+                                            className="text-text-muted hover:text-danger transition-colors shrink-0"
                                         >
                                             <Icon name="x" className="w-4 h-4" />
                                         </button>
@@ -278,9 +278,9 @@ export const AddArchiveDocumentModal: React.FC<AddArchiveDocumentModalProps> = (
                     </div>
 
                     {error && (
-                        <div className="flex items-start gap-2 px-3 py-2.5 bg-red-500/10 border border-red-500/20 rounded-lg">
-                            <Icon name="alert-circle" className="w-3.5 h-3.5 text-red-400 shrink-0 mt-0.5" />
-                            <p className="text-xs text-red-400 font-semibold">{error}</p>
+                        <div className="flex items-start gap-2 px-3 py-2.5 bg-danger/10 border border-danger/20 rounded-lg">
+                            <Icon name="alert-circle" className="w-3.5 h-3.5 text-danger shrink-0 mt-0.5" />
+                            <p className="text-xs text-danger font-semibold">{error}</p>
                         </div>
                     )}
 
@@ -295,8 +295,8 @@ export const AddArchiveDocumentModal: React.FC<AddArchiveDocumentModalProps> = (
                         <button
                             type="submit"
                             disabled={!canSubmit}
-                            className="flex-1 px-4 py-2.5 text-sm font-bold rounded-xl text-white transition-all disabled:opacity-100 disabled:cursor-not-allowed"
-                            style={{ backgroundColor: canSubmit ? '#30d158' : '#9ca3af' }}
+                            className="flex-1 px-4 py-2.5 text-sm font-bold rounded-xl text-primary-foreground transition-all disabled:opacity-100 disabled:cursor-not-allowed"
+                            style={{ backgroundColor: canSubmit ? 'var(--success)' : 'var(--muted-foreground)' }}
                         >
                             {isUploading ? 'Uploading…' : `Upload ${files.length > 1 ? 'Documents' : 'Document'}`}
                         </button>

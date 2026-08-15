@@ -46,8 +46,8 @@ function TrackingPanelHeader({
     return (
         <div className="flex items-center justify-between px-5 py-4">
             <div className="flex items-center gap-3">
-                <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${badgeTone === 'green' ? 'bg-emerald-500/10' : 'bg-blue-500/10'}`}>
-                    <span className={`h-2.5 w-2.5 rounded-full ${badgeTone === 'green' ? 'bg-emerald-500' : 'bg-blue-500'}`} />
+                <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${badgeTone === 'green' ? 'bg-success/10' : 'bg-primary/10'}`}>
+                    <span className={`h-2.5 w-2.5 rounded-full ${badgeTone === 'green' ? 'bg-success' : 'bg-primary'}`} />
                 </div>
                 <div>
                     <h2 className="text-sm font-bold tracking-tight text-text-primary">{title}</h2>
@@ -120,7 +120,7 @@ function ImportGroupsPanel({
                                             onClick={() => navigate(appRoutes.trackingDetail.replace(':referenceId', encodeURIComponent(transaction.customs_ref_no)))}
                                             className={`grid w-full gap-3 border-b border-border/40 px-5 py-4 text-left transition-all hover:bg-hover/80 last:border-0 lg:grid-cols-[1.35fr_1.1fr_108px_1.2fr_110px] lg:items-center lg:py-3.5 ${
                                                 index % 2 !== 0 ? 'bg-surface/30' : 'bg-surface'
-                                            } ${transaction.open_remarks_count > 0 ? 'border-l-[3px] border-l-red-500 bg-red-50/10 dark:bg-red-950/10' : 'border-l-[3px] border-l-transparent'}`}
+                                            } ${transaction.open_remarks_count > 0 ? 'border-l-[3px] border-l-danger bg-danger/10' : 'border-l-[3px] border-l-transparent'}`}
                                         >
                                             <div className="min-w-0 pl-1">
                                                 <span className="mb-1 block text-[10px] font-bold uppercase text-text-muted lg:hidden">Customs Ref</span>
@@ -215,7 +215,7 @@ function ExportGroupsPanel({
                                                 onClick={() => navigate(appRoutes.trackingDetail.replace(':referenceId', encodeURIComponent(reference)))}
                                                 className={`grid w-full gap-3 border-b border-border/40 px-5 py-4 text-left transition-all hover:bg-hover/80 last:border-0 lg:grid-cols-[1.15fr_1.25fr_108px_1fr_120px] lg:items-center lg:py-3.5 ${
                                                     index % 2 !== 0 ? 'bg-surface/30' : 'bg-surface'
-                                                } ${transaction.open_remarks_count > 0 ? 'border-l-[3px] border-l-red-500 bg-red-50/10 dark:bg-red-950/10' : 'border-l-[3px] border-l-transparent'}`}
+                                                } ${transaction.open_remarks_count > 0 ? 'border-l-[3px] border-l-danger bg-danger/10' : 'border-l-[3px] border-l-transparent'}`}
                                             >
                                                 <div className="min-w-0 pl-1">
                                                     <span className="mb-1 block text-[10px] font-bold uppercase text-text-muted lg:hidden">BL No.</span>

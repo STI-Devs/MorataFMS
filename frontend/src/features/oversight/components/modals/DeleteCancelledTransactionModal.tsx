@@ -21,8 +21,8 @@ export const DeleteCancelledTransactionModal = ({ transaction, onCancel, onConfi
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: 'rgba(255,69,58,0.15)' }}>
-                        <Icon name="trash" className="w-5 h-5" style={{ color: '#ff453a' }} />
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-danger/15">
+                        <Icon name="trash" className="w-5 h-5 text-danger" />
                     </div>
                     <div className="flex-1 min-w-0">
                         <p className="text-sm font-bold text-text-primary">Delete Cancelled Transaction</p>
@@ -44,8 +44,7 @@ export const DeleteCancelledTransactionModal = ({ transaction, onCancel, onConfi
                     </button>
                     <button
                         onClick={onConfirm}
-                        className="px-4 py-2 text-sm font-semibold rounded-lg text-white transition-colors"
-                        style={{ backgroundColor: '#ff453a' }}
+                        className="px-4 py-2 text-sm font-semibold rounded-lg bg-danger text-primary-foreground transition-colors"
                     >
                         Delete
                     </button>

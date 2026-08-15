@@ -35,7 +35,7 @@ export const hasRoleAtLeast = (userRole: string | undefined, minRole: string): b
     (ROLE_RANK[userRole ?? ''] ?? 0) >= (ROLE_RANK[minRole] ?? 99);
 
 
-export const FOLDER_COLOR = { import: '#16a34a', export: '#2563eb' } as const;
+export const FOLDER_COLOR = { import: 'var(--success)', export: 'var(--info)' } as const;
 export const FOLDER_LABEL = { import: 'imports', export: 'exports' } as const;
 export const MONTH_NAMES = [
     'January', 'February', 'March', 'April', 'May', 'June',

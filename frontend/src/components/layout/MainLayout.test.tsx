@@ -84,14 +84,14 @@ describe('MainLayout', () => {
 
         expect(screen.getByText('Legal notarial page')).toBeInTheDocument();
         expect(notarialGroupButton).toBeInTheDocument();
-        expect(dashboardButton).not.toHaveClass('bg-black/8');
+        expect(dashboardButton).not.toHaveAttribute('data-active', 'true');
         expect(screen.queryByRole('button', { name: 'Create Draft' })).not.toBeInTheDocument();
 
         fireEvent.click(notarialGroupButton);
 
         const templateGeneratorButton = screen.getByRole('button', { name: 'Create Draft' });
 
-        expect(templateGeneratorButton).toHaveClass('bg-black/8');
+        expect(templateGeneratorButton).toHaveAttribute('data-active', 'true');
         expect(templateGeneratorButton.querySelector('svg')).toBeNull();
     });
 
@@ -122,7 +122,7 @@ describe('MainLayout', () => {
         const generatedRecordsButton = screen.getByRole('button', { name: 'Generated Documents' });
 
         expect(screen.getByText('Generated documents page')).toBeInTheDocument();
-        expect(generatedRecordsButton).toHaveClass('bg-black/8');
+        expect(generatedRecordsButton).toHaveAttribute('data-active', 'true');
     });
 
     it('shows Legacy Records as a legal sidebar group with upload and batch child routes', () => {
@@ -158,7 +158,7 @@ describe('MainLayout', () => {
 
         const legacyUploadButton = screen.getByRole('button', { name: 'Legacy Folder Upload' });
 
-        expect(legacyUploadButton).toHaveClass('bg-black/8');
+        expect(legacyUploadButton).toHaveAttribute('data-active', 'true');
         expect(screen.getByRole('button', { name: 'Notarial Batches' })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Legal Batches' })).toBeInTheDocument();
         expect(screen.getByText('Legacy upload page')).toBeInTheDocument();
@@ -199,7 +199,7 @@ describe('MainLayout', () => {
 
         fireEvent.click(legalFilesGroupButton);
 
-        expect(screen.getByRole('button', { name: 'Create Draft' })).toHaveClass('bg-black/8');
+        expect(screen.getByRole('button', { name: 'Create Draft' })).toHaveAttribute('data-active', 'true');
 
         fireEvent.click(legalFilesGroupButton);
 
@@ -243,7 +243,7 @@ describe('MainLayout', () => {
 
         expect(recordsGroupButton).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Records Archive' })).toBeInTheDocument();
-        expect(legacyUploadButton).toHaveClass('bg-black/8');
+        expect(legacyUploadButton).toHaveAttribute('data-active', 'true');
         expect(screen.getByRole('button', { name: 'Legacy Batches' })).toBeInTheDocument();
         expect(screen.getByText('Legacy upload page')).toBeInTheDocument();
 
@@ -304,7 +304,7 @@ describe('MainLayout', () => {
             </MemoryRouter>,
         );
 
-        expect(screen.getByRole('button', { name: 'Accounting Tasks' })).toHaveClass('bg-black/8');
+        expect(screen.getByRole('button', { name: 'Accounting Tasks' })).toHaveAttribute('data-active', 'true');
         expect(screen.queryByRole('button', { name: 'ImpExp' })).not.toBeInTheDocument();
         expect(screen.getByText('Accounting tasks page')).toBeInTheDocument();
     });
@@ -332,7 +332,7 @@ describe('MainLayout', () => {
         );
 
         expect(screen.getByText('Encoder dashboard')).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'Dashboard' })).toHaveClass('bg-black/8');
+        expect(screen.getByRole('button', { name: 'Dashboard' })).toHaveAttribute('data-active', 'true');
         expect(screen.getByRole('button', { name: 'Tracking' })).toBeInTheDocument();
         const recordsGroupButton = screen.getByRole('button', { name: 'Records' });
 
@@ -366,6 +366,56 @@ describe('MainLayout', () => {
 
         expect(screen.getByText('Encoder legacy upload')).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Records' })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'Legacy Folder Upload' })).toHaveClass('bg-black/8');
+        expect(screen.getByRole('button', { name: 'Legacy Folder Upload' })).toHaveAttribute('data-active', 'true');
+    });
+
+    it('collapses and expands the sidebar via the toggle trigger', () => {
+        render(
+            <MemoryRouter initialEntries={[appRoutes.help]}>
+                <Routes>
+                    <Route element={<MainLayout />}>
+                        <Route path={appRoutes.help} element={<div>Help page</div>} />
+                    </Route>
+                </Routes>
+            </MemoryRouter>,
+        );
+
+        const desktopSidebar = document.querySelector('[data-slot="sidebar"]');
+        expect(desktopSidebar).toHaveAttribute('data-state', 'expanded');
+
+        // Both the header trigger and the edge rail expose "Toggle Sidebar"; either toggles.
+        const [toggleButton] = screen.getAllByRole('button', { name: 'Toggle Sidebar' });
+        fireEvent.click(toggleButton);
+        expect(desktopSidebar).toHaveAttribute('data-state', 'collapsed');
+
+        fireEvent.click(toggleButton);
+        expect(desktopSidebar).toHaveAttribute('data-state', 'expanded');
+    });
+
+    it('renders company branding and module switcher accessible in both expanded and collapsed states', () => {
+        render(
+            <MemoryRouter initialEntries={[appRoutes.dashboard]}>
+                <Routes>
+                    <Route element={<MainLayout />}>
+                        <Route path={appRoutes.dashboard} element={<div>Dashboard</div>} />
+                    </Route>
+                </Routes>
+            </MemoryRouter>,
+        );
+
+        const desktopSidebar = document.querySelector('[data-slot="sidebar"]');
+        expect(desktopSidebar).toHaveAttribute('data-state', 'expanded');
+
+        expect(screen.getByRole('button', { name: 'F.M Morata' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Brokerage' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Legal' })).toBeInTheDocument();
+
+        const [toggleButton] = screen.getAllByRole('button', { name: 'Toggle Sidebar' });
+        fireEvent.click(toggleButton);
+        expect(desktopSidebar).toHaveAttribute('data-state', 'collapsed');
+
+        expect(screen.getByRole('button', { name: 'F.M Morata' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Brokerage' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Legal' })).toBeInTheDocument();
     });
 });

@@ -78,15 +78,14 @@ export const ImportList = () => {
                             renderRow={(row, _, navigate, onCancel) => (
                                 <>
                                     <div className="flex justify-center items-center">
-                                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: row.color, boxShadow: `0 0 4px ${row.color}40` }} />
+                                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: row.color, boxShadow: `0 0 4px color-mix(in srgb, ${row.color} 25%, transparent)` }} />
                                     </div>
                                     <div className="flex items-center justify-start gap-1.5 min-w-0 pr-2">
                                         <p className="text-sm font-bold text-text-primary truncate" title={row.ref}>{row.ref}</p>
                                         {row.open_remarks_count > 0 && (
                                             <button
                                                 onClick={e => { e.stopPropagation(); setRemarkTarget(row); }}
-                                                className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold shrink-0"
-                                                style={{ color: '#ff453a', backgroundColor: 'rgba(255,69,58,0.12)' }}
+                                                className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold shrink-0 text-danger bg-danger/10"
                                                 title={`${row.open_remarks_count} open remark(s)`}
                                             >
                                                 <Icon name="flag" className="w-3 h-3" />
@@ -104,14 +103,14 @@ export const ImportList = () => {
                                     <p className="text-sm text-text-secondary font-bold truncate text-left pl-4" title={row.importer}>{row.importer}</p>
                                     <div className="flex justify-center gap-1.5">
                                         <button
-                                            className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-md transition-colors"
+                                            className="p-1.5 text-primary hover:bg-primary/10 rounded-md transition-colors"
                                             onClick={e => { e.stopPropagation(); navigate(`${appRoutes.trackingDetail.replace(':referenceId', encodeURIComponent(row.ref))}`); }}
                                             title="View Details"
                                         >
                                             <Icon name="eye" className="w-4 h-4" />
                                         </button>
                                         <button
-                                            className={`p-1.5 rounded-md transition-colors ${CANCELLABLE_IMPORT_STATUSES.has(row.status) ? 'text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 cursor-pointer' : 'text-text-muted/30 cursor-not-allowed'}`}
+                                            className={`p-1.5 rounded-md transition-colors ${CANCELLABLE_IMPORT_STATUSES.has(row.status) ? 'text-danger hover:bg-danger/10 cursor-pointer' : 'text-text-muted/30 cursor-not-allowed'}`}
                                             onClick={e => { e.stopPropagation(); if (CANCELLABLE_IMPORT_STATUSES.has(row.status)) { onCancel(row.id, row.ref); } }}
                                             disabled={!CANCELLABLE_IMPORT_STATUSES.has(row.status)}
                                             title={CANCELLABLE_IMPORT_STATUSES.has(row.status) ? 'Cancel Transaction' : 'Cannot cancel'}

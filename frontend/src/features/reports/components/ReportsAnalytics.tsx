@@ -65,15 +65,15 @@ const FlowDonut = ({ imports, exports }: { imports: number; exports: number }) =
     return (
         <div className="relative w-40 h-40 flex items-center justify-center flex-shrink-0">
             <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
-                <circle cx="50" cy="50" r={r} stroke="currentColor" strokeWidth="16" fill="transparent" className="text-gray-100 dark:text-white/5" />
-                <circle cx="50" cy="50" r={r} stroke="#38bdf8" strokeWidth="16" fill="transparent"
+                <circle cx="50" cy="50" r={r} stroke="currentColor" strokeWidth="16" fill="transparent" className="text-border" />
+                <circle cx="50" cy="50" r={r} stroke="var(--chart-1)" strokeWidth="16" fill="transparent"
                     strokeDasharray={`${impDash} ${circ}`} strokeLinecap="round" />
-                <circle cx="50" cy="50" r={r} stroke="#a78bfa" strokeWidth="16" fill="transparent"
+                <circle cx="50" cy="50" r={r} stroke="var(--chart-2)" strokeWidth="16" fill="transparent"
                     strokeDasharray={`${expDash} ${circ}`} strokeDashoffset={-(impPct * circ)} strokeLinecap="round" />
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-2xl font-bold text-gray-800 dark:text-gray-100">{total}</span>
-                <span className="text-[11px] text-gray-400 font-medium uppercase tracking-wide">total</span>
+                <span className="text-2xl font-bold text-foreground">{total}</span>
+                <span className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">total</span>
             </div>
         </div>
     );
@@ -86,10 +86,10 @@ const MiniBarChart = ({ data }: { data: { label: string; value: number; color: s
             {data.map((d, i) => (
                 <div key={i} className="space-y-1">
                     <div className="flex justify-between items-center">
-                        <span className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[140px]" title={d.label}>{d.label}</span>
-                        <span className="text-xs font-bold text-gray-700 dark:text-gray-200 ml-2">{d.value}</span>
+                        <span className="text-xs text-muted-foreground truncate max-w-[140px]" title={d.label}>{d.label}</span>
+                        <span className="text-xs font-bold text-foreground ml-2">{d.value}</span>
                     </div>
-                    <div className="h-1.5 bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden">
+                    <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                         <div
                             className="h-full rounded-full transition-all duration-700 ease-out"
                             style={{ width: `${(d.value / max) * 100}%`, backgroundColor: d.color }}
@@ -130,16 +130,16 @@ const MonthlyBars = ({
                         <div className="w-full flex flex-col items-center gap-px h-44">
                             <div
                                 className={`w-full flex flex-col justify-end h-full gap-0.5 rounded-sm transition-all duration-300 ${
-                                    isSelected ? 'ring-2 ring-blue-500/25 ring-offset-2 ring-offset-white dark:ring-offset-[#1c1c1e]' : ''
+                                    isSelected ? 'ring-2 ring-primary/25 ring-offset-2 ring-offset-card' : ''
                                 }`}
                             >
                                 <div className="w-full rounded-t-sm transition-all duration-500"
-                                    style={{ height: `${impH}%`, backgroundColor: '#38bdf8', opacity: segmentOpacity }} title={`Imports: ${d.imports}`} />
+                                    style={{ height: `${impH}%`, backgroundColor: 'var(--chart-1)', opacity: segmentOpacity }} title={`Imports: ${d.imports}`} />
                                 <div className="w-full"
-                                    style={{ height: `${expH}%`, backgroundColor: '#a78bfa', opacity: segmentOpacity }} title={`Exports: ${d.exports}`} />
+                                    style={{ height: `${expH}%`, backgroundColor: 'var(--chart-2)', opacity: segmentOpacity }} title={`Exports: ${d.exports}`} />
                             </div>
                         </div>
-                        <span className={`text-[9px] font-medium ${isSelected ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}`}>
+                        <span className={`text-[9px] font-medium ${isSelected ? 'text-primary' : 'text-muted-foreground'}`}>
                             {MONTH_SHORT[d.month - 1]}
                         </span>
                     </div>
@@ -173,14 +173,14 @@ function reportVolumeForPeriod(monthly: MonthlyReportResponse | undefined, month
 
 // KPI Stat card
 const StatCard = ({ label, value, unit, icon, accent }: { label: string; value: string | number; unit?: string; icon: React.ReactNode; accent: string }) => (
-    <div className="bg-white dark:bg-[#1c1c1e] border border-gray-100 dark:border-white/8 rounded-2xl p-5 flex items-center gap-4 shadow-xs">
-        <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${accent}18`, color: accent }}>
+    <div className="bg-card border border-border rounded-2xl p-5 flex items-center gap-4 shadow-xs">
+        <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${accent}`}>
             {icon}
         </div>
         <div className="min-w-0">
-            <p className="text-xs font-medium text-gray-400 dark:text-gray-500 mb-0.5">{label}</p>
-            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 leading-none tabular-nums">
-                {value}<span className="text-sm font-normal text-gray-400 ml-1">{unit}</span>
+            <p className="text-xs font-medium text-muted-foreground mb-0.5">{label}</p>
+            <p className="text-2xl font-bold text-foreground leading-none tabular-nums">
+                {value}<span className="text-sm font-normal text-muted-foreground ml-1">{unit}</span>
             </p>
         </div>
     </div>
@@ -216,10 +216,10 @@ export const ReportsAnalytics = () => {
             {/* Page Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">
+                    <h1 className="text-xl font-bold text-foreground tracking-tight">
                         Reports &amp; Analytics
                     </h1>
-                    <p className="text-sm text-gray-400 dark:text-gray-500 mt-0.5">
+                    <p className="text-sm text-muted-foreground mt-0.5">
                         {year}{month ? ` · ${MONTH_FULL[month - 1]}` : ' · Full Year'} · {dateTime.date}
                     </p>
                 </div>
@@ -228,21 +228,21 @@ export const ReportsAnalytics = () => {
                     <select
                         value={year}
                         onChange={e => setYear(Number(e.target.value))}
-                        className="px-3 py-2 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#1c1c1e] text-gray-800 dark:text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 shadow-xs"
+                        className="px-3 py-2 rounded-xl border border-border bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 shadow-xs"
                     >
                         {reportYears.map(selectedYear => <option key={selectedYear} value={selectedYear}>{selectedYear}</option>)}
                     </select>
                     <select
                         value={month}
                         onChange={e => setMonth(Number(e.target.value))}
-                        className="px-3 py-2 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#1c1c1e] text-gray-800 dark:text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 shadow-xs"
+                        className="px-3 py-2 rounded-xl border border-border bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 shadow-xs"
                     >
                         <option value={0}>All Months</option>
                         {MONTH_FULL.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
                     </select>
                     <button
                         onClick={() => downloadCSV(monthly, clients, turnaround, year, month)}
-                        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 active:bg-blue-800 transition-colors shadow-sm"
+                        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 active:bg-primary/80 transition-colors shadow-sm"
                     >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -255,8 +255,8 @@ export const ReportsAnalytics = () => {
             {isLoading ? (
                 <div className="py-24 flex items-center justify-center">
                     <div className="flex flex-col items-center gap-3">
-                        <div className="w-8 h-8 rounded-full border-2 border-blue-500/30 border-t-blue-500 animate-spin" />
-                        <p className="text-sm text-gray-400">Loading report data…</p>
+                        <div className="w-8 h-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+                        <p className="text-sm text-muted-foreground">Loading report data…</p>
                     </div>
                 </div>
             ) : (
@@ -267,27 +267,27 @@ export const ReportsAnalytics = () => {
                             label="Total Transactions"
                             value={totalVol}
                             icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>}
-                            accent="#38bdf8"
+                            accent="bg-chart-1/[9%] text-chart-1"
                         />
                         <StatCard
                             label="Active Clients"
                             value={clients?.clients.length || 0}
                             icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>}
-                            accent="#a78bfa"
+                            accent="bg-chart-2/[9%] text-chart-2"
                         />
                         <StatCard
                             label="Avg Import Speed"
                             value={turnaround?.imports.avg_days ?? '—'}
                             unit={turnaround?.imports.avg_days ? 'days' : ''}
                             icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
-                            accent="#34d399"
+                            accent="bg-chart-3/[9%] text-chart-3"
                         />
                         <StatCard
                             label="Avg Export Speed"
                             value={turnaround?.exports.avg_days ?? '—'}
                             unit={turnaround?.exports.avg_days ? 'days' : ''}
                             icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>}
-                            accent="#fb923c"
+                            accent="bg-chart-4/[9%] text-chart-4"
                         />
                     </div>
 
@@ -295,46 +295,46 @@ export const ReportsAnalytics = () => {
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
                         {/* Monthly Volume Chart */}
-                        <div className="bg-white dark:bg-[#1c1c1e] border border-gray-100 dark:border-white/8 rounded-2xl p-6 shadow-xs flex flex-col">
+                        <div className="bg-card border border-border rounded-2xl p-6 shadow-xs flex flex-col">
                             <div className="flex items-start justify-between mb-6">
                                 <div>
-                                    <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200">Monthly Volume</h2>
-                                    <p className="text-xs text-gray-400 mt-0.5">Imports &amp; exports per month</p>
+                                    <h2 className="text-sm font-semibold text-foreground">Monthly Volume</h2>
+                                    <p className="text-xs text-muted-foreground mt-0.5">Imports &amp; exports per month</p>
                                 </div>
-                                <div className="flex items-center gap-3 text-xs text-gray-400 mt-0.5">
-                                    <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: '#38bdf8' }} />Imports</span>
-                                    <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: '#a78bfa' }} />Exports</span>
+                                <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
+                                    <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: 'var(--chart-1)' }} />Imports</span>
+                                    <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: 'var(--chart-2)' }} />Exports</span>
                                 </div>
                             </div>
 
                             {monthlyData.length > 0 ? (
                                 <MonthlyBars data={monthlyData} selectedMonth={month} />
                             ) : (
-                                <div className="h-24 flex items-center justify-center text-sm text-gray-400">No data for this period</div>
+                                <div className="h-24 flex items-center justify-center text-sm text-muted-foreground">No data for this period</div>
                             )}
 
                             {/* Summary row below bars */}
-                            <div className="grid grid-cols-3 items-center gap-4 mt-5 pt-4 border-t border-gray-100 dark:border-white/5">
+                            <div className="grid grid-cols-3 items-center gap-4 mt-5 pt-4 border-t border-border">
                                 <div className="text-center">
-                                    <p className="text-xs text-gray-400 mb-0.5">Imports</p>
-                                    <p className="text-base font-bold" style={{ color: '#38bdf8' }}>{impVol}</p>
+                                    <p className="text-xs text-muted-foreground mb-0.5">Imports</p>
+                                    <p className="text-base font-bold" style={{ color: 'var(--chart-1)' }}>{impVol}</p>
                                 </div>
                                 <div className="text-center">
-                                    <p className="text-xs text-gray-400 mb-0.5">Exports</p>
-                                    <p className="text-base font-bold" style={{ color: '#a78bfa' }}>{expVol}</p>
+                                    <p className="text-xs text-muted-foreground mb-0.5">Exports</p>
+                                    <p className="text-base font-bold" style={{ color: 'var(--chart-2)' }}>{expVol}</p>
                                 </div>
                                 <div className="text-center">
-                                    <p className="text-xs text-gray-400 mb-0.5">Total</p>
-                                    <p className="text-base font-bold text-gray-800 dark:text-gray-100">{totalVol}</p>
+                                    <p className="text-xs text-muted-foreground mb-0.5">Total</p>
+                                    <p className="text-base font-bold text-foreground">{totalVol}</p>
                                 </div>
                             </div>
                         </div>
 
                         {/* Transaction Flow */}
-                        <div className="bg-white dark:bg-[#1c1c1e] border border-gray-100 dark:border-white/8 rounded-2xl p-6 shadow-xs flex flex-col">
+                        <div className="bg-card border border-border rounded-2xl p-6 shadow-xs flex flex-col">
                             <div className="mb-6">
-                                <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200">Transaction Flow</h2>
-                                <p className="text-xs text-gray-400 mt-0.5">Import vs. export distribution</p>
+                                <h2 className="text-sm font-semibold text-foreground">Transaction Flow</h2>
+                                <p className="text-xs text-muted-foreground mt-0.5">Import vs. export distribution</p>
                             </div>
 
                             <div className="flex-1 flex items-center gap-6">
@@ -348,37 +348,37 @@ export const ReportsAnalytics = () => {
                                     {/* Imports */}
                                     <div>
                                         <div className="flex justify-between items-center mb-2">
-                                            <span className="text-xs font-medium text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
-                                                <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: '#38bdf8' }} />Imports
+                                            <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                                                <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: 'var(--chart-1)' }} />Imports
                                             </span>
-                                            <span className="text-xs font-bold text-gray-700 dark:text-gray-200">{impVol}</span>
+                                            <span className="text-xs font-bold text-foreground">{impVol}</span>
                                         </div>
-                                        <div className="h-5 bg-gray-100 dark:bg-white/5 rounded-full">
-                                            <div className="h-full rounded-full transition-all duration-700" style={{ width: `${totalVol ? (impVol / totalVol) * 100 : 0}%`, backgroundColor: '#38bdf8' }} />
+                                        <div className="h-5 bg-muted rounded-full">
+                                            <div className="h-full rounded-full transition-all duration-700" style={{ width: `${totalVol ? (impVol / totalVol) * 100 : 0}%`, backgroundColor: 'var(--chart-1)' }} />
                                         </div>
                                     </div>
                                     {/* Exports */}
                                     <div>
                                         <div className="flex justify-between items-center mb-2">
-                                            <span className="text-xs font-medium text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
-                                                <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: '#a78bfa' }} />Exports
+                                            <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                                                <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: 'var(--chart-2)' }} />Exports
                                             </span>
-                                            <span className="text-xs font-bold text-gray-700 dark:text-gray-200">{expVol}</span>
+                                            <span className="text-xs font-bold text-foreground">{expVol}</span>
                                         </div>
-                                        <div className="h-5 bg-gray-100 dark:bg-white/5 rounded-full">
-                                            <div className="h-full rounded-full transition-all duration-700" style={{ width: `${totalVol ? (expVol / totalVol) * 100 : 0}%`, backgroundColor: '#a78bfa' }} />
+                                        <div className="h-5 bg-muted rounded-full">
+                                            <div className="h-full rounded-full transition-all duration-700" style={{ width: `${totalVol ? (expVol / totalVol) * 100 : 0}%`, backgroundColor: 'var(--chart-2)' }} />
                                         </div>
                                     </div>
                                     {/* Completed */}
                                     <div>
                                         <div className="flex justify-between items-center mb-2">
-                                            <span className="text-xs font-medium text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
-                                                <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: '#34d399' }} />Completed
+                                            <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                                                <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: 'var(--chart-3)' }} />Completed
                                             </span>
-                                            <span className="text-xs font-bold text-gray-700 dark:text-gray-200">{completionRatio}%</span>
+                                            <span className="text-xs font-bold text-foreground">{completionRatio}%</span>
                                         </div>
-                                        <div className="h-5 bg-gray-100 dark:bg-white/5 rounded-full">
-                                            <div className="h-full rounded-full transition-all duration-700" style={{ width: `${completionRatio}%`, backgroundColor: '#34d399' }} />
+                                        <div className="h-5 bg-muted rounded-full">
+                                            <div className="h-full rounded-full transition-all duration-700" style={{ width: `${completionRatio}%`, backgroundColor: 'var(--chart-3)' }} />
                                         </div>
                                     </div>
                                 </div>
@@ -390,10 +390,10 @@ export const ReportsAnalytics = () => {
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
                         {/* Client Distribution */}
-                        <div className="bg-white dark:bg-[#1c1c1e] border border-gray-100 dark:border-white/8 rounded-2xl p-6 shadow-xs">
+                        <div className="bg-card border border-border rounded-2xl p-6 shadow-xs">
                             <div className="mb-5">
-                                <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200">Client Distribution</h2>
-                                <p className="text-xs text-gray-400 mt-0.5">Top clients by transaction volume</p>
+                                <h2 className="text-sm font-semibold text-foreground">Client Distribution</h2>
+                                <p className="text-xs text-muted-foreground mt-0.5">Top clients by transaction volume</p>
                             </div>
 
                             {sortedClients.length > 0 ? (
@@ -401,18 +401,18 @@ export const ReportsAnalytics = () => {
                                     data={sortedClients.map((c, i) => ({
                                         label: c.client_name,
                                         value: c.total,
-                                        color: ['#38bdf8', '#a78bfa', '#34d399', '#fb923c', '#f472b6'][i] || '#94a3b8',
+                                        color: ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)', 'var(--chart-5)'][i] || 'var(--muted-foreground)',
                                     }))}
                                 />
                             ) : (
-                                <div className="py-8 flex items-center justify-center text-sm text-gray-400">No client data for this period</div>
+                                <div className="py-8 flex items-center justify-center text-sm text-muted-foreground">No client data for this period</div>
                             )}
 
                             {sortedClients.length > 0 && (
-                                <div className="mt-5 pt-4 border-t border-gray-100 dark:border-white/5">
-                                    <div className="flex justify-between text-xs text-gray-400">
+                                <div className="mt-5 pt-4 border-t border-border">
+                                    <div className="flex justify-between text-xs text-muted-foreground">
                                         <span>Most active client</span>
-                                        <span className="font-medium truncate max-w-[180px]" style={{ color: '#38bdf8' }} title={sortedClients[0]?.client_name}>
+                                        <span className="font-medium truncate max-w-[180px]" style={{ color: 'var(--chart-1)' }} title={sortedClients[0]?.client_name}>
                                             {sortedClients[0]?.client_name || '—'}
                                         </span>
                                     </div>
@@ -421,75 +421,75 @@ export const ReportsAnalytics = () => {
                         </div>
 
                         {/* Turnaround Times */}
-                        <div className="bg-white dark:bg-[#1c1c1e] border border-gray-100 dark:border-white/8 rounded-2xl p-6 shadow-xs">
+                        <div className="bg-card border border-border rounded-2xl p-6 shadow-xs">
                             <div className="mb-5">
-                                <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200">Turnaround Performance</h2>
-                                <p className="text-xs text-gray-400 mt-0.5">Average processing speed by type</p>
+                                <h2 className="text-sm font-semibold text-foreground">Turnaround Performance</h2>
+                                <p className="text-xs text-muted-foreground mt-0.5">Average processing speed by type</p>
                             </div>
 
                             <div className="space-y-5">
                                 {/* Import Turnaround */}
                                 <div className="flex items-center gap-4">
-                                    <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#38bdf820' }}>
-                                        <svg className="w-5 h-5" style={{ color: '#38bdf8' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-chart-1/[13%]">
+                                        <svg className="w-5 h-5" style={{ color: 'var(--chart-1)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4" />
                                         </svg>
                                     </div>
                                     <div className="flex-1">
                                         <div className="flex justify-between items-center mb-1.5">
-                                            <span className="text-xs font-medium text-gray-600 dark:text-gray-300">Imports</span>
-                                            <span className="text-xs font-bold text-gray-800 dark:text-gray-100">
+                                            <span className="text-xs font-medium text-muted-foreground">Imports</span>
+                                            <span className="text-xs font-bold text-foreground">
                                                 {turnaround?.imports.avg_days ?? '—'} days avg
                                             </span>
                                         </div>
-                                        <div className="h-1.5 bg-gray-100 dark:bg-white/5 rounded-full">
+                                        <div className="h-1.5 bg-muted rounded-full">
                                             <div className="h-full rounded-full transition-all duration-700"
-                                                style={{ width: `${Math.min(((turnaround?.imports.avg_days || 0) / 20) * 100, 100)}%`, backgroundColor: '#38bdf8' }} />
+                                                style={{ width: `${Math.min(((turnaround?.imports.avg_days || 0) / 20) * 100, 100)}%`, backgroundColor: 'var(--chart-1)' }} />
                                         </div>
                                         <div className="flex justify-between mt-1">
-                                            <span className="text-[10px] text-gray-400">{turnaround?.imports.completed_count ?? 0} completed</span>
-                                            <span className="text-[10px] text-gray-400">{turnaround?.imports.min_days ?? '—'}–{turnaround?.imports.max_days ?? '—'} days range</span>
+                                            <span className="text-[10px] text-muted-foreground">{turnaround?.imports.completed_count ?? 0} completed</span>
+                                            <span className="text-[10px] text-muted-foreground">{turnaround?.imports.min_days ?? '—'}–{turnaround?.imports.max_days ?? '—'} days range</span>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="h-px bg-gray-100 dark:bg-white/5" />
+                                <div className="h-px bg-border" />
 
                                 {/* Export Turnaround */}
                                 <div className="flex items-center gap-4">
-                                    <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#fb923c20' }}>
-                                        <svg className="w-5 h-5" style={{ color: '#fb923c' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-chart-4/[13%]">
+                                        <svg className="w-5 h-5" style={{ color: 'var(--chart-4)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
                                         </svg>
                                     </div>
                                     <div className="flex-1">
                                         <div className="flex justify-between items-center mb-1.5">
-                                            <span className="text-xs font-medium text-gray-600 dark:text-gray-300">Exports</span>
-                                            <span className="text-xs font-bold text-gray-800 dark:text-gray-100">
+                                            <span className="text-xs font-medium text-muted-foreground">Exports</span>
+                                            <span className="text-xs font-bold text-foreground">
                                                 {turnaround?.exports.avg_days ?? '—'} days avg
                                             </span>
                                         </div>
-                                        <div className="h-1.5 bg-gray-100 dark:bg-white/5 rounded-full">
+                                        <div className="h-1.5 bg-muted rounded-full">
                                             <div className="h-full rounded-full transition-all duration-700"
-                                                style={{ width: `${Math.min(((turnaround?.exports.avg_days || 0) / 20) * 100, 100)}%`, backgroundColor: '#fb923c' }} />
+                                                style={{ width: `${Math.min(((turnaround?.exports.avg_days || 0) / 20) * 100, 100)}%`, backgroundColor: 'var(--chart-4)' }} />
                                         </div>
                                         <div className="flex justify-between mt-1">
-                                            <span className="text-[10px] text-gray-400">{turnaround?.exports.completed_count ?? 0} completed</span>
-                                            <span className="text-[10px] text-gray-400">{turnaround?.exports.min_days ?? '—'}–{turnaround?.exports.max_days ?? '—'} days range</span>
+                                            <span className="text-[10px] text-muted-foreground">{turnaround?.exports.completed_count ?? 0} completed</span>
+                                            <span className="text-[10px] text-muted-foreground">{turnaround?.exports.min_days ?? '—'}–{turnaround?.exports.max_days ?? '—'} days range</span>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="h-px bg-gray-100 dark:bg-white/5" />
+                                <div className="h-px bg-border" />
 
                                 {/* Completion ratio summary */}
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <p className="text-xs font-medium text-gray-600 dark:text-gray-300">Completion Rate</p>
-                                        <p className="text-[11px] text-gray-400 mt-0.5">{completedCount} of {totalVol} transactions completed</p>
+                                        <p className="text-xs font-medium text-muted-foreground">Completion Rate</p>
+                                        <p className="text-[11px] text-muted-foreground mt-0.5">{completedCount} of {totalVol} transactions completed</p>
                                     </div>
-                                    <div className="text-2xl font-bold tabular-nums" style={{ color: '#34d399' }}>
-                                        {completionRatio}<span className="text-sm font-normal text-gray-400">%</span>
+                                    <div className="text-2xl font-bold tabular-nums" style={{ color: 'var(--chart-3)' }}>
+                                        {completionRatio}<span className="text-sm font-normal text-muted-foreground">%</span>
                                     </div>
                                 </div>
                             </div>

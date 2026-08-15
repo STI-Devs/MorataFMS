@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 
+import { useSidebar } from '@/components/ui/sidebar';
 import type { NavItemData } from './NavItem';
 
 type SettingsItem = NavItemData;
@@ -8,7 +9,6 @@ type Props = {
     isOpen: boolean;
     onToggleOpen: () => void;
     onClose: () => void;
-    isSidebarDark: boolean;
     user: {
         name?: string;
         email?: string;
@@ -27,7 +27,6 @@ export const AccountMenu = ({
     isOpen,
     onToggleOpen,
     onClose,
-    isSidebarDark,
     user,
     roleLabel,
     settingsItems,
@@ -39,6 +38,8 @@ export const AccountMenu = ({
     onLogout,
 }: Props) => {
     const containerRef = useRef<HTMLDivElement>(null);
+    const { state, isMobile } = useSidebar();
+    const collapsed = state === 'collapsed' && !isMobile;
 
     useEffect(() => {
         if (!isOpen) {
@@ -58,12 +59,12 @@ export const AccountMenu = ({
     return (
         <div ref={containerRef} className="relative">
             {isOpen && (
-                <div className={`absolute bottom-full left-0 right-0 mb-2 mx-2 rounded-xl border shadow-xl overflow-hidden z-50 animate-dropdown-up-in ${isSidebarDark ? 'bg-[#1c1c1e] border-white/10' : 'bg-white border-black/8'}`}>
-                    <div className={`px-4 py-3 border-b ${isSidebarDark ? 'border-white/8' : 'border-black/6'}`}>
-                        <p className={`text-sm font-semibold truncate ${isSidebarDark ? 'text-white' : 'text-gray-900'}`}>
+                <div className={`absolute bottom-full ${collapsed ? 'left-0 w-64' : 'left-0 right-0 mx-2'} mb-2 rounded-xl border border-sidebar-accent shadow-xl overflow-hidden z-50 animate-dropdown-up-in bg-sidebar text-sidebar-foreground`}>
+                    <div className="px-4 py-3 border-b border-sidebar-accent/60">
+                        <p className="text-sm font-semibold truncate text-sidebar-foreground">
                             {user?.name || 'User'}
                         </p>
-                        <p className={`text-xs capitalize truncate ${isSidebarDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                        <p className="text-xs capitalize truncate text-sidebar-foreground/60">
                             {roleLabel} &middot; {user?.email || ''}
                         </p>
                     </div>
@@ -76,10 +77,11 @@ export const AccountMenu = ({
                                     onNavigate(item.path);
                                     onClose();
                                 }}
-                                className={`w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors ${activePathname === item.path
-                                    ? isSidebarDark ? 'text-white bg-white/8' : 'text-black bg-black/6'
-                                    : isSidebarDark ? 'text-gray-300 hover:bg-white/6 hover:text-white' : 'text-gray-700 hover:bg-black/4 hover:text-black'
-                                    }`}
+                                className={`w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors ${
+                                    activePathname === item.path
+                                        ? 'text-sidebar-accent-foreground bg-sidebar-accent/60'
+                                        : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground'
+                                }`}
                             >
                                 <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={item.icon} />
@@ -89,7 +91,7 @@ export const AccountMenu = ({
                         ))}
                     </div>
 
-                    <div className={`mx-3 h-px ${isSidebarDark ? 'bg-white/8' : 'bg-black/6'}`} />
+                    <div className="mx-3 h-px bg-sidebar-accent/60" />
 
                     <div className="py-1">
                         <button
@@ -97,7 +99,7 @@ export const AccountMenu = ({
                                 onToggleTheme();
                                 onClose();
                             }}
-                            className={`w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors ${isSidebarDark ? 'text-gray-300 hover:bg-white/6 hover:text-white' : 'text-gray-700 hover:bg-black/4 hover:text-black'}`}
+                            className="w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
                         >
                             <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={themeIcon} />
@@ -106,7 +108,7 @@ export const AccountMenu = ({
                         </button>
                         <button
                             onClick={onLogout}
-                            className={`w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors ${isSidebarDark ? 'text-red-400 hover:bg-white/6' : 'text-red-500 hover:bg-red-50'}`}
+                            className="w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors text-danger hover:bg-sidebar-accent/50"
                         >
                             <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -119,23 +121,23 @@ export const AccountMenu = ({
 
             <button
                 onClick={onToggleOpen}
-                className={`w-full flex items-center gap-3 px-4 py-3 border-t transition-colors group ${isSidebarDark ? 'border-white/10 hover:bg-white/5' : 'border-black/8 hover:bg-black/4'}`}
+                className={`w-full flex items-center gap-3 py-3 border-t border-sidebar-accent transition-colors group hover:bg-sidebar-accent/50 ${collapsed ? 'justify-center px-2' : 'px-4'}`}
             >
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${isSidebarDark ? 'bg-white/10 text-white' : 'bg-black/5 text-black'}`}>
+                <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0 bg-sidebar-accent/60 text-sidebar-accent-foreground">
                     {user?.name?.charAt(0).toUpperCase() || 'U'}
                 </div>
-                <div className="flex flex-col overflow-hidden flex-1 text-left">
-                    <span className={`text-sm font-semibold truncate ${isSidebarDark ? 'text-white' : 'text-black'}`}>
+                <div className={`flex-col overflow-hidden flex-1 text-left ${collapsed ? 'hidden' : 'flex'}`}>
+                    <span className="text-sm font-semibold truncate text-sidebar-foreground">
                         {user?.name || 'User'}
                     </span>
-                    <span className={`text-xs capitalize truncate ${isSidebarDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                    <span className="text-xs capitalize truncate text-sidebar-foreground/60">
                         {roleLabel}
                     </span>
                 </div>
                 <svg
-                    className={`w-4 h-4 shrink-0 transition-all duration-200 ${isOpen
-                        ? isSidebarDark ? 'text-white rotate-180' : 'text-black rotate-180'
-                        : isSidebarDark ? 'text-gray-600 group-hover:text-gray-400' : 'text-gray-300 group-hover:text-gray-500'
+                    className={`w-4 h-4 shrink-0 transition-all duration-200 ${collapsed ? 'hidden' : ''} ${isOpen
+                        ? 'text-sidebar-foreground rotate-180'
+                        : 'text-sidebar-foreground/40 group-hover:text-sidebar-foreground/70'
                         }`}
                     fill="none" stroke="currentColor" viewBox="0 0 24 24"
                 >

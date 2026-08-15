@@ -14,9 +14,9 @@ type KpiCard = {
 };
 
 const statusStyles: Record<EncoderDashboardAttentionItem['status'], string> = {
-    needs_update: 'border-red-500/20 bg-red-500/10 text-red-500',
-    remark: 'border-amber-500/20 bg-amber-500/10 text-amber-500',
-    missing: 'border-blue-500/20 bg-blue-500/10 text-blue-500',
+    needs_update: 'border-danger/20 bg-danger/10 text-danger',
+    remark: 'border-warning/20 bg-warning/10 text-warning',
+    missing: 'border-info/20 bg-info/10 text-info',
 };
 
 const statusLabels: Record<EncoderDashboardAttentionItem['status'], string> = {
@@ -26,8 +26,8 @@ const statusLabels: Record<EncoderDashboardAttentionItem['status'], string> = {
 };
 
 const typeStyles: Record<EncoderDashboardAttentionItem['type'], string> = {
-    import: 'border-blue-500/20 bg-blue-500/10 text-blue-500',
-    export: 'border-amber-500/20 bg-amber-500/10 text-amber-500',
+    import: 'border-info/20 bg-info/10 text-info',
+    export: 'border-warning/20 bg-warning/10 text-warning',
 };
 
 const typeLabels: Record<EncoderDashboardAttentionItem['type'], string> = {
@@ -38,15 +38,15 @@ const typeLabels: Record<EncoderDashboardAttentionItem['type'], string> = {
 const toneStyles: Record<KpiCard['tone'], { value: string; surface: string }> = {
     neutral: {
         value: 'text-text-primary',
-        surface: 'bg-blue-500/10 text-blue-500',
+        surface: 'bg-info/10 text-info',
     },
     warning: {
-        value: 'text-amber-500',
-        surface: 'bg-amber-500/10 text-amber-500',
+        value: 'text-warning',
+        surface: 'bg-warning/10 text-warning',
     },
     danger: {
-        value: 'text-red-500',
-        surface: 'bg-red-500/10 text-red-500',
+        value: 'text-danger',
+        surface: 'bg-danger/10 text-danger',
     },
 };
 
@@ -72,12 +72,12 @@ const MonthlyVolumePreview = ({ data }: { data: EncoderDashboardMonthlyVolumePoi
                     <div key={point.month} className="flex flex-1 flex-col items-center gap-1">
                         <div className="flex h-28 w-full flex-col justify-end gap-0.5">
                             <div
-                                className="w-full rounded-t-sm bg-blue-500 transition-all duration-500"
+                                className="w-full rounded-t-sm bg-chart-1 transition-all duration-500"
                                 style={{ height: `${importsHeight}%`, minHeight: point.imports > 0 ? 4 : 0 }}
                                 title={`Imports: ${point.imports}`}
                             />
                             <div
-                                className="w-full rounded-b-sm bg-violet-500 transition-all duration-500"
+                                className="w-full rounded-b-sm bg-chart-2 transition-all duration-500"
                                 style={{ height: `${exportsHeight}%`, minHeight: point.exports > 0 ? 4 : 0 }}
                                 title={`Exports: ${point.exports}`}
                             />
@@ -178,13 +178,13 @@ export const EncoderDashboard = () => {
 
             <div className="grid gap-6 xl:grid-cols-2">
                 {/* LEFT COLUMN: ASSIGNED TO YOU */}
-                <div className="flex flex-col gap-6 rounded-[2rem] border-2 border-blue-500/10 bg-blue-500/[0.02] p-6 lg:p-8">
+                <div className="flex flex-col gap-6 rounded-[2rem] border-2 border-primary/10 bg-primary/[0.02] p-6 lg:p-8">
                     <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10 text-blue-500">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
                             <Icon name="archive" className="h-5 w-5" />
                         </div>
                         <div>
-                            <h2 className="text-xs font-black uppercase tracking-[0.2em] text-blue-500">Records Currently Assigned To You</h2>
+                            <h2 className="text-xs font-black uppercase tracking-[0.2em] text-primary">Records Currently Assigned To You</h2>
                             <p className="text-sm font-medium text-text-secondary">Track your active obligations</p>
                         </div>
                     </div>
@@ -256,13 +256,13 @@ export const EncoderDashboard = () => {
                 </div>
 
                 {/* RIGHT COLUMN: COMPLETED BY YOU */}
-                <div className="flex flex-col gap-6 rounded-[2rem] border-2 border-emerald-500/10 bg-emerald-500/[0.02] p-6 lg:p-8">
+                <div className="flex flex-col gap-6 rounded-[2rem] border-2 border-success/10 bg-success/[0.02] p-6 lg:p-8">
                     <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-success/10 text-success">
                             <Icon name="check-circle" className="h-5 w-5" />
                         </div>
                         <div>
-                            <h2 className="text-xs font-black uppercase tracking-[0.2em] text-emerald-600">Work Completed By You</h2>
+                            <h2 className="text-xs font-black uppercase tracking-[0.2em] text-success">Work Completed By You</h2>
                             <p className="text-sm font-medium text-text-secondary">Measure your operational output</p>
                         </div>
                     </div>
@@ -272,19 +272,19 @@ export const EncoderDashboard = () => {
                         <h3 className="mb-4 text-base font-bold text-text-primary">Monthly Output</h3>
                         <div className="grid gap-3 sm:grid-cols-3">
                             <div className="rounded-2xl border border-border bg-surface p-4 shadow-sm text-center">
-                                <Icon name="check-circle" className="h-6 w-6 mx-auto mb-2 text-emerald-500" />
+                                <Icon name="check-circle" className="h-6 w-6 mx-auto mb-2 text-success" />
                                 <p className="text-3xl font-black text-text-primary">{dashboardQuery.isLoading ? '—' : (analytics?.activity.transactions_completed.this_month.total ?? 0)}</p>
                                 <p className="text-[10px] font-black uppercase tracking-widest text-text-muted mt-1">Transactions Completed</p>
                                 <p className="text-xs text-text-secondary mt-1">Assigned transactions closed this month</p>
                             </div>
                             <div className="rounded-2xl border border-border bg-surface p-4 shadow-sm text-center">
-                                <Icon name="file-text" className="h-6 w-6 mx-auto mb-2 text-emerald-500" />
+                                <Icon name="file-text" className="h-6 w-6 mx-auto mb-2 text-success" />
                                 <p className="text-3xl font-black text-text-primary">{dashboardQuery.isLoading ? '—' : (analytics?.activity.documents_uploaded.this_month.total ?? 0)}</p>
                                 <p className="text-[10px] font-black uppercase tracking-widest text-text-muted mt-1">Documents Added</p>
                                 <p className="text-xs text-text-secondary mt-1">Files you attached this month</p>
                             </div>
                             <div className="rounded-2xl border border-border bg-surface p-4 shadow-sm text-center">
-                                <Icon name="archive" className="h-6 w-6 mx-auto mb-2 text-emerald-500" />
+                                <Icon name="archive" className="h-6 w-6 mx-auto mb-2 text-success" />
                                 <p className="text-3xl font-black text-text-primary">{dashboardQuery.isLoading ? '—' : (analytics?.activity.records_finalized.this_month.total ?? 0)}</p>
                                 <p className="text-[10px] font-black uppercase tracking-widest text-text-muted mt-1">Records Finalized</p>
                                 <p className="text-xs text-text-secondary mt-1">This Month</p>
@@ -298,7 +298,7 @@ export const EncoderDashboard = () => {
                             <button
                                 type="button"
                                 onClick={() => navigate(appRoutes.encoderReportsAnalytics)}
-                                className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 transition-colors hover:text-emerald-700"
+                                className="inline-flex items-center gap-1 text-xs font-bold text-success transition-colors hover:text-success/80"
                             >
                                 View full
                                 <Icon name="chevron-right" className="h-3 w-3" />
@@ -310,11 +310,11 @@ export const EncoderDashboard = () => {
                                     <h4 className="text-sm font-bold text-text-primary">Volume Processed</h4>
                                     <div className="flex gap-2">
                                         <span className="flex items-center gap-1 text-[10px] font-medium text-text-muted">
-                                            <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+                                            <span className="h-1.5 w-1.5 rounded-full bg-chart-1" />
                                             Imports
                                         </span>
                                         <span className="flex items-center gap-1 text-[10px] font-medium text-text-muted">
-                                            <span className="h-1.5 w-1.5 rounded-full bg-violet-500" />
+                                            <span className="h-1.5 w-1.5 rounded-full bg-chart-2" />
                                             Exports
                                         </span>
                                     </div>
@@ -336,7 +336,7 @@ export const EncoderDashboard = () => {
                                                 <span className="text-xs font-black text-text-primary">{client.total}</span>
                                             </div>
                                             <div className="h-1.5 overflow-hidden rounded-full bg-border">
-                                                <div className="h-full rounded-full bg-emerald-500" style={{ width: `${(client.total / previewClientMax) * 100}%` }} />
+                                                <div className="h-full rounded-full bg-success" style={{ width: `${(client.total / previewClientMax) * 100}%` }} />
                                             </div>
                                         </div>
                                     ))}

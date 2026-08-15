@@ -24,12 +24,12 @@ const MonthlyVolumeChart = ({ data }: { data: EncoderDashboardMonthlyVolumePoint
                     <div key={point.month} className="flex flex-1 flex-col items-center gap-2">
                         <div className="flex h-44 w-full flex-col justify-end gap-1">
                             <div
-                                className="w-full rounded-t-md bg-blue-500 transition-all duration-500"
+                                className="w-full rounded-t-md bg-chart-1 transition-all duration-500"
                                 style={{ height: `${importsHeight}%`, minHeight: point.imports > 0 ? 6 : 0 }}
                                 title={`Imports: ${point.imports}`}
                             />
                             <div
-                                className="w-full rounded-b-md bg-violet-500 transition-all duration-500"
+                                className="w-full rounded-b-md bg-chart-2 transition-all duration-500"
                                 style={{ height: `${exportsHeight}%`, minHeight: point.exports > 0 ? 6 : 0 }}
                                 title={`Exports: ${point.exports}`}
                             />
@@ -63,7 +63,7 @@ const ClientVolumeList = ({ clients }: { clients: EncoderDashboardClientVolumeIt
                         <span className="text-lg font-black text-text-primary">{client.total}</span>
                     </div>
                     <div className="h-2 overflow-hidden rounded-full bg-border">
-                        <div className="h-full rounded-full bg-emerald-500" style={{ width: `${(client.total / max) * 100}%` }} />
+                        <div className="h-full rounded-full bg-success" style={{ width: `${(client.total / max) * 100}%` }} />
                     </div>
                 </div>
             ))}
@@ -123,7 +123,7 @@ export const EncoderReportsAnalytics = () => {
                             <p className="text-xs font-black uppercase tracking-[0.18em] text-text-muted">Transactions Completed</p>
                             <p className="mt-1 text-sm font-medium text-text-secondary">Assigned transactions closed this month</p>
                         </div>
-                        <Icon name="check-circle" className="h-5 w-5 text-emerald-500" />
+                        <Icon name="check-circle" className="h-5 w-5 text-success" />
                     </div>
                     <p className="mt-5 text-4xl font-black text-text-primary">
                         {dashboardQuery.isLoading ? '—' : compactNumber(thisMonthActivity?.transactions_completed.this_month.total)}
@@ -135,7 +135,7 @@ export const EncoderReportsAnalytics = () => {
                             <p className="text-xs font-black uppercase tracking-[0.18em] text-text-muted">Documents Added</p>
                             <p className="mt-1 text-sm font-medium text-text-secondary">Files attached this month</p>
                         </div>
-                        <Icon name="file-text" className="h-5 w-5 text-emerald-500" />
+                        <Icon name="file-text" className="h-5 w-5 text-success" />
                     </div>
                     <p className="mt-5 text-4xl font-black text-text-primary">
                         {dashboardQuery.isLoading ? '—' : compactNumber(thisMonthActivity?.documents_uploaded.this_month.total)}
@@ -147,7 +147,7 @@ export const EncoderReportsAnalytics = () => {
                             <p className="text-xs font-black uppercase tracking-[0.18em] text-text-muted">Records Finalized</p>
                             <p className="mt-1 text-sm font-medium text-text-secondary">This month</p>
                         </div>
-                        <Icon name="archive" className="h-5 w-5 text-emerald-500" />
+                        <Icon name="archive" className="h-5 w-5 text-success" />
                     </div>
                     <p className="mt-5 text-4xl font-black text-text-primary">
                         {dashboardQuery.isLoading ? '—' : compactNumber(thisMonthActivity?.records_finalized.this_month.total)}
@@ -156,7 +156,7 @@ export const EncoderReportsAnalytics = () => {
             </section>
 
             <section className="grid gap-6 xl:grid-cols-[minmax(0,1.25fr)_minmax(360px,0.75fr)]">
-                <article className="rounded-[2rem] border-2 border-blue-500/10 bg-blue-500/[0.02] p-6 shadow-sm">
+                <article className="rounded-[2rem] border-2 border-primary/10 bg-primary/[0.02] p-6 shadow-sm">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div>
                             <h2 className="text-lg font-black text-text-primary">Volume Processed</h2>
@@ -165,14 +165,14 @@ export const EncoderReportsAnalytics = () => {
                             </p>
                         </div>
                         <div className="flex gap-3">
-                            <span className="flex items-center gap-1 text-xs font-semibold text-text-muted"><span className="h-2 w-2 rounded-full bg-blue-500" />Imports</span>
-                            <span className="flex items-center gap-1 text-xs font-semibold text-text-muted"><span className="h-2 w-2 rounded-full bg-violet-500" />Exports</span>
+                            <span className="flex items-center gap-1 text-xs font-semibold text-text-muted"><span className="h-2 w-2 rounded-full bg-chart-1" />Imports</span>
+                            <span className="flex items-center gap-1 text-xs font-semibold text-text-muted"><span className="h-2 w-2 rounded-full bg-chart-2" />Exports</span>
                         </div>
                     </div>
                     <MonthlyVolumeChart data={reports?.monthly_volume.months ?? []} />
                 </article>
 
-                <article className="rounded-[2rem] border-2 border-emerald-500/10 bg-emerald-500/[0.02] p-6 shadow-sm">
+                <article className="rounded-[2rem] border-2 border-success/10 bg-success/[0.02] p-6 shadow-sm">
                     <h2 className="text-lg font-black text-text-primary">Top Clients Handled</h2>
                     <p className="mt-1 text-sm font-medium text-text-secondary">Current-month assigned record distribution.</p>
                     <ClientVolumeList clients={reports?.client_volume.clients ?? []} />
@@ -190,7 +190,7 @@ export const EncoderReportsAnalytics = () => {
                                 <span className="text-xl font-black text-text-primary">{reports?.turnaround.imports.avg_days ?? '—'} <span className="text-xs font-medium text-text-muted">days avg</span></span>
                             </div>
                             <div className="h-2 overflow-hidden rounded-full bg-border">
-                                <div className="h-full rounded-full bg-blue-500" style={{ width: `${Math.min(((reports?.turnaround.imports.avg_days ?? 0) / 14) * 100, 100)}%` }} />
+                                <div className="h-full rounded-full bg-chart-1" style={{ width: `${Math.min(((reports?.turnaround.imports.avg_days ?? 0) / 14) * 100, 100)}%` }} />
                             </div>
                         </div>
                         <div>
@@ -199,7 +199,7 @@ export const EncoderReportsAnalytics = () => {
                                 <span className="text-xl font-black text-text-primary">{reports?.turnaround.exports.avg_days ?? '—'} <span className="text-xs font-medium text-text-muted">days avg</span></span>
                             </div>
                             <div className="h-2 overflow-hidden rounded-full bg-border">
-                                <div className="h-full rounded-full bg-violet-500" style={{ width: `${Math.min(((reports?.turnaround.exports.avg_days ?? 0) / 14) * 100, 100)}%` }} />
+                                <div className="h-full rounded-full bg-chart-2" style={{ width: `${Math.min(((reports?.turnaround.exports.avg_days ?? 0) / 14) * 100, 100)}%` }} />
                             </div>
                         </div>
                     </div>

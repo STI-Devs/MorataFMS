@@ -1,4 +1,3 @@
-import { useTheme } from '../../../../context/ThemeContext';
 import type { ExportStages, ImportStages, OversightTransaction } from '../../types/transaction.types';
 
 const IMPORT_STAGE_LABELS: Record<keyof ImportStages, string> = {
@@ -22,9 +21,9 @@ const EXPORT_STAGE_LABELS: Record<keyof ExportStages, string> = {
 };
 
 const STATUS_CFG: Record<string, { color: string; bg: string; icon: string }> = {
-    completed:   { color: '#30d158', bg: 'rgba(48,209,88,0.15)', icon: '✓' },
-    in_progress: { color: '#0a84ff', bg: 'rgba(10,132,255,0.15)', icon: '⟳' },
-    pending:     { color: '#636366', bg: 'rgba(99,99,102,0.10)', icon: '○' },
+    completed:   { color: 'var(--success)', bg: 'color-mix(in srgb, var(--success) 15%, transparent)', icon: '✓' },
+    in_progress: { color: 'var(--info)', bg: 'color-mix(in srgb, var(--info) 15%, transparent)', icon: '⟳' },
+    pending:     { color: 'var(--muted-foreground)', bg: 'color-mix(in srgb, var(--muted-foreground) 10%, transparent)', icon: '○' },
 };
 
 interface StagePipelineProps {
@@ -32,11 +31,8 @@ interface StagePipelineProps {
 }
 
 export const StagePipeline = ({ transaction }: StagePipelineProps) => {
-    const { theme } = useTheme();
-    const isDark = theme === 'dark';
-
     if (!transaction.stages) {
-        return <span className={`text-xs ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>No stage data</span>;
+        return <span className="text-xs text-muted-foreground">No stage data</span>;
     }
 
     const entries = transaction.type === 'import'
@@ -65,7 +61,7 @@ export const StagePipeline = ({ transaction }: StagePipelineProps) => {
                                 style={{
                                     backgroundColor: stage.status === 'completed' || entries[i - 1]?.status === 'completed'
                                         ? cfg.color
-                                        : isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+                                        : 'color-mix(in srgb, var(--foreground) 8%, transparent)',
                                 }}
                             />
                         )}

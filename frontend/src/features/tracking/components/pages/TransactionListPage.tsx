@@ -182,10 +182,10 @@ export function TransactionListPage<T>({
     }, [baseParams, page, queryClient, response?.meta, type]);
 
     const statCards = [
-        { label: 'Active Shipments', value: total, dot: '#0a84ff', sub: 'Total active' },
-        { label: 'Pending Action', value: pendingCount, dot: '#ff9f0a', sub: 'Needs attention' },
-        { label: 'In Progress', value: inProgressCount, dot: '#64d2ff', sub: 'Currently moving' },
-        ...(type === 'import' ? [{ label: 'Overdue Shipments', value: overdueCount, dot: '#ef4444', sub: 'Past target dates' }] : []),
+        { label: 'Active Shipments', value: total, dot: 'var(--info)', sub: 'Total active' },
+        { label: 'Pending Action', value: pendingCount, dot: 'var(--warning)', sub: 'Needs attention' },
+        { label: 'In Progress', value: inProgressCount, dot: 'var(--sky)', sub: 'Currently moving' },
+        ...(type === 'import' ? [{ label: 'Overdue Shipments', value: overdueCount, dot: 'var(--danger)', sub: 'Past target dates' }] : []),
     ];
 
     return (
@@ -249,7 +249,7 @@ export function TransactionListPage<T>({
                                 placeholder={`Search ${type}s…`}
                                 value={searchQuery}
                                 onChange={(event) => handleSearchChange(event.target.value)}
-                                className="w-full pl-9 pr-3 h-9 rounded-lg border border-border-strong bg-input-bg text-text-primary text-sm placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/60 transition-colors"
+                                className="w-full pl-9 pr-3 h-9 rounded-lg border border-border-strong bg-input-bg text-text-primary text-sm placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/60 transition-colors"
                             />
                         </div>
 
@@ -324,7 +324,7 @@ export function TransactionListPage<T>({
                     {/* Encode button */}
                     <button
                         onClick={() => setIsEncodeOpen(true)}
-                        className="flex items-center gap-1.5 px-3.5 h-9 rounded-lg text-xs font-bold text-white shadow-sm bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-90 transition-opacity shrink-0"
+                        className="flex items-center gap-1.5 px-3.5 h-9 rounded-lg text-xs font-bold text-primary-foreground shadow-sm bg-gradient-to-r from-primary to-primary hover:opacity-90 transition-opacity shrink-0"
                     >
                         <Icon name="plus" className="w-3.5 h-3.5" />
                         {encodeButtonLabel}

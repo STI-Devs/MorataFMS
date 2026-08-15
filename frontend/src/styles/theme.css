@@ -1,0 +1,197 @@
+/* ============================================
+   SEMANTIC DESIGN TOKENS (shadcn/ui convention)
+   Source of truth for every color in the app.
+   Change once here → all components update.
+
+   Three themes:
+   - light (default)
+   - dark  (.dark on <html>)
+   - mix   (.mix on <html>) — dark sidebar, light content.
+           Encoded purely via --sidebar-* overrides.
+   ============================================ */
+
+:root {
+  --radius: 0.625rem;
+
+  /* Brand accent — iOS blue */
+  --primary: #0a84ff;
+  --primary-foreground: #ffffff;
+
+  /* Status palette (iOS) — shared across themes */
+  --success: #30d158;
+  --warning: #ff9f0a;
+  --danger: #ff453a;
+  --info: #0a84ff;
+  --violet: #bf5af2;
+  --sky: #64d2ff;
+
+  /* Surfaces */
+  --background: #ffffff;
+  --foreground: #111827;
+  --card: #ffffff;
+  --card-foreground: #111827;
+  --popover: #ffffff;
+  --popover-foreground: #111827;
+
+  --secondary: #f9fafb;
+  --secondary-foreground: #111827;
+  --muted: #f9fafb;
+  --muted-foreground: #64748b;
+  --accent: #f9fafb;
+  --accent-foreground: #111827;
+  --destructive: #ff453a;
+
+  /* Borders & focus */
+  --border: #f3f4f6;
+  --input: #e5e7eb;
+  --ring: #0a84ff;
+
+  /* Chart / series palette (used by reports & analytics) */
+  --chart-1: #38bdf8;
+  --chart-2: #a78bfa;
+  --chart-3: #34d399;
+  --chart-4: #fb923c;
+  --chart-5: #f472b6;
+
+  /* Sidebar (light) */
+  --sidebar: #f3f4f6;
+  --sidebar-foreground: #111827;
+  --sidebar-primary: #0a84ff;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: rgba(0, 0, 0, 0.08);
+  --sidebar-accent-foreground: #111827;
+  --sidebar-border: #e5e7eb;
+  --sidebar-ring: #0a84ff;
+
+  /* App-specific legacy surfaces (kept for backward compat) */
+  --surface-tint: #eff6ff;
+  --border-tint: #dbeafe;
+  --skeleton: #e5e7eb;
+  --skeleton-shine: #f3f4f6;
+
+  color-scheme: light;
+}
+
+.dark {
+  color-scheme: dark;
+
+  /* Surfaces */
+  --background: #111111;
+  --foreground: #f5f5f5;
+  --card: #1c1c1e;
+  --card-foreground: #f5f5f5;
+  --popover: #1c1c1e;
+  --popover-foreground: #f5f5f5;
+
+  --secondary: #222222;
+  --secondary-foreground: #f5f5f5;
+  --muted: #222222;
+  --muted-foreground: #a1a1aa;
+  --accent: #2a2a2a;
+  --accent-foreground: #f5f5f5;
+  --destructive: #ff453a;
+
+  /* Borders & focus */
+  --border: #2a2a2a;
+  --input: #333333;
+  --ring: #0a84ff;
+
+  /* Sidebar (dark) */
+  --sidebar: #0d0d0d;
+  --sidebar-foreground: #f5f5f5;
+  --sidebar-primary: #0a84ff;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: rgba(255, 255, 255, 0.1);
+  --sidebar-accent-foreground: #f5f5f5;
+  --sidebar-border: transparent;
+  --sidebar-ring: #0a84ff;
+
+  /* App-specific legacy surfaces */
+  --surface-tint: #1e1e1e;
+  --border-tint: #2a2a2a;
+  --skeleton: #2e2e2e;
+  --skeleton-shine: #383838;
+}
+
+.mix {
+  /* Mix mode: dark sidebar, light content.
+     Content inherits :root (light) tokens — only the sidebar flips. */
+  --sidebar: #0a0a0a;
+  --sidebar-foreground: #f5f5f5;
+  --sidebar-primary: #0a84ff;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: rgba(255, 255, 255, 0.1);
+  --sidebar-accent-foreground: #f5f5f5;
+  --sidebar-border: transparent;
+  --sidebar-ring: #0a84ff;
+}
+
+/* Register tokens with Tailwind v4 so they generate utility classes.
+   `inline` emits the underlying var() so light/dark/mix resolve at runtime. */
+@theme inline {
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Status colors */
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+  --color-violet: var(--violet);
+  --color-sky: var(--sky);
+
+  /* Legacy app tokens → aliased to canonical tokens so existing
+     classes (bg-surface, text-text-primary, …) keep working. */
+  --color-surface: var(--background);
+  --color-surface-secondary: var(--secondary);
+  --color-surface-elevated: var(--card);
+  --color-border-strong: var(--input);
+  --color-text-primary: var(--foreground);
+  --color-text-secondary: var(--muted-foreground);
+  --color-text-muted: var(--muted-foreground);
+  --color-hover: var(--accent);
+  --color-input-bg: var(--card);
+  --color-sidebar-bg: var(--sidebar);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-surface-tint: var(--surface-tint);
+  --color-border-tint: var(--border-tint);
+  --color-skeleton: var(--skeleton);
+  --color-skeleton-shine: var(--skeleton-shine);
+}

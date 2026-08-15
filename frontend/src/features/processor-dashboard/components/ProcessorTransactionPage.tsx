@@ -61,7 +61,7 @@ export const ProcessorTransactionPage = () => {
                             value={search}
                             onChange={(event) => setSearch(event.target.value)}
                             placeholder="Search BL, ref, client, vessel, blocker..."
-                            className="h-10 w-full rounded-xl border border-border bg-surface pl-10 pr-3 text-sm text-text-primary placeholder:text-text-muted focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            className="h-10 w-full rounded-xl border border-border bg-surface pl-10 pr-3 text-sm text-text-primary placeholder:text-text-muted focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                         />
                     </div>
 
@@ -92,20 +92,20 @@ export const ProcessorTransactionPage = () => {
                     <SummaryCard
                         label="Ready Now"
                         value={queueSummary.ready}
-                        accent="border-blue-200 bg-blue-50/70"
-                        valueTone="text-blue-700"
+                        accent="border-info/20 bg-info/10"
+                        valueTone="text-info"
                     />
                     <SummaryCard
                         label="Blocked"
                         value={queueSummary.waiting}
-                        accent="border-slate-200 bg-slate-50/80"
-                        valueTone="text-slate-700"
+                        accent="border-border bg-muted/80"
+                        valueTone="text-muted-foreground"
                     />
                     <SummaryCard
                         label="Overdue"
                         value={queueSummary.overdue}
-                        accent="border-amber-200 bg-amber-50/80"
-                        valueTone="text-amber-700"
+                        accent="border-warning/20 bg-warning/10"
+                        valueTone="text-warning"
                     />
                 </div>
             </div>
@@ -191,13 +191,13 @@ const QueueViewButton = ({
         onClick={onClick}
         className={`flex items-center gap-2 border-b-2 px-2 pb-3 text-sm font-bold transition-colors ${
             isActive
-                ? 'border-blue-600 text-blue-600'
+                ? 'border-primary text-primary'
                 : 'border-transparent text-text-secondary hover:text-text-primary'
         }`}
     >
         {label}
         {count > 0 && (
-            <span className="rounded-full bg-blue-100 px-1.5 py-0.5 text-[10px] font-bold leading-none text-blue-600">
+            <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold leading-none text-primary">
                 {count}
             </span>
         )}
@@ -220,12 +220,12 @@ const FilterChip = ({
         onClick={onClick}
         className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
             isActive
-                ? 'border-blue-200 bg-blue-50 text-blue-700'
+                ? 'border-primary/20 bg-primary/10 text-primary'
                 : 'border-border bg-surface text-text-secondary hover:text-text-primary'
         }`}
     >
         {label}
-        <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${isActive ? 'bg-blue-100 text-blue-700' : 'bg-surface-secondary text-text-muted'}`}>
+        <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${isActive ? 'bg-primary/15 text-primary' : 'bg-surface-secondary text-text-muted'}`}>
             {count}
         </span>
     </button>
@@ -265,7 +265,7 @@ const QueueSection = ({
 }) => (
     <section className="space-y-3">
         <div className="flex flex-wrap items-center gap-3">
-            <div className={`h-5 w-1 rounded-full ${tone === 'ready' ? 'bg-blue-500' : 'bg-slate-400'}`} />
+            <div className={`h-5 w-1 rounded-full ${tone === 'ready' ? 'bg-info' : 'bg-muted-foreground'}`} />
             <h2 className="text-sm font-bold uppercase tracking-[0.22em] text-text-secondary">{title}</h2>
             <span className="rounded-full border border-border bg-surface px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-text-muted">
                 {rows.length}
@@ -311,7 +311,7 @@ const QueueRow = ({
         className={`grid gap-3 px-4 py-4 lg:items-center ${
             row.state === 'ready'
                 ? 'bg-surface'
-                : 'bg-slate-50/70'
+                : 'bg-muted/70'
         }`}
         style={{ gridTemplateColumns: '1fr', }}
     >
@@ -321,13 +321,13 @@ const QueueRow = ({
                     <p className="truncate text-base font-bold tracking-tight text-text-primary">{row.ref}</p>
                     <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em] ${
                         row.selectedTransaction.type === 'import'
-                            ? 'border-blue-200 bg-blue-50 text-blue-700'
-                            : 'border-teal-200 bg-teal-50 text-teal-700'
+                            ? 'border-info/20 bg-info/10 text-info'
+                            : 'border-success/20 bg-success/10 text-success'
                     }`}>
                         {row.typeLabel}
                     </span>
                     {row.isOverdue && (
-                        <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-amber-700">
+                        <span className="rounded-full border border-warning/20 bg-warning/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-warning">
                             Overdue
                         </span>
                     )}
@@ -346,7 +346,7 @@ const QueueRow = ({
                     {row.state === 'ready' ? row.nextActionLabel : (row.blocker ?? 'Waiting for encoder progress.')}
                 </p>
                 {row.waitingLabel && (
-                    <span className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-amber-700">
+                    <span className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-warning/20 bg-warning/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-warning">
                         <Icon name="alert-circle" className="h-3 w-3" />
                         {row.waitingLabel}
                     </span>
@@ -378,8 +378,8 @@ const QueueRow = ({
                     onClick={onOpen}
                     className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold transition-colors ${
                         row.state === 'ready'
-                            ? 'bg-blue-50 text-blue-700 hover:bg-blue-100'
-                            : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                            ? 'bg-primary/10 text-primary hover:bg-primary/20'
+                            : 'bg-muted text-muted-foreground hover:bg-foreground/10'
                     }`}
                 >
                     {row.state === 'ready' ? 'Open Upload Tasks' : 'View Details'}

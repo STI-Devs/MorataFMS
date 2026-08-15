@@ -64,7 +64,7 @@ function TrackingPanelHeader({
     return (
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
             <div className="flex items-center gap-2.5">
-                <span className={`h-2.5 w-2.5 rounded-full ${badgeTone === 'green' ? 'bg-emerald-500' : 'bg-blue-500'}`} />
+                <span className={`h-2.5 w-2.5 rounded-full ${badgeTone === 'green' ? 'bg-success' : 'bg-primary'}`} />
                 <div>
                     <h2 className="text-sm font-bold text-text-primary">{title}</h2>
                     <p className="text-xs text-text-muted">Expanded voyage view · active transactions only</p>
@@ -134,7 +134,7 @@ function ImportGroupsPanel({
                                             onClick={() => navigate(appRoutes.trackingDetail.replace(':referenceId', encodeURIComponent(transaction.customs_ref_no)))}
                                             className={`grid w-full gap-3 border-b border-border/40 px-4 py-4 text-left transition-colors hover:bg-hover/60 last:border-0 lg:grid-cols-[1.35fr_1.1fr_108px_1.2fr_110px] lg:items-center lg:py-3 ${
                                                 index % 2 !== 0 ? 'bg-surface-secondary/15' : ''
-                                            } ${transaction.open_remarks_count > 0 ? 'border-l-4 border-red-500 bg-red-50/20 dark:bg-red-950/10' : 'border-l-4 border-transparent'}`}
+                                            } ${transaction.open_remarks_count > 0 ? 'border-l-4 border-danger bg-danger/10' : 'border-l-4 border-transparent'}`}
                                         >
                                             <div className="min-w-0">
                                                 <span className="mb-1 block text-[10px] font-bold uppercase text-text-muted lg:hidden">Customs Ref</span>
@@ -227,7 +227,7 @@ function ExportGroupsPanel({
                                                 onClick={() => navigate(appRoutes.trackingDetail.replace(':referenceId', encodeURIComponent(reference)))}
                                                 className={`grid w-full gap-3 border-b border-border/40 px-4 py-4 text-left transition-colors hover:bg-hover/60 last:border-0 lg:grid-cols-[1.15fr_1.25fr_108px_1fr_120px] lg:items-center lg:py-3 ${
                                                     index % 2 !== 0 ? 'bg-surface-secondary/15' : ''
-                                                } ${transaction.open_remarks_count > 0 ? 'border-l-4 border-red-500 bg-red-50/20 dark:bg-red-950/10' : 'border-l-4 border-transparent'}`}
+                                                } ${transaction.open_remarks_count > 0 ? 'border-l-4 border-danger bg-danger/10' : 'border-l-4 border-transparent'}`}
                                             >
                                                 <div className="min-w-0">
                                                     <span className="mb-1 block text-[10px] font-bold uppercase text-text-muted lg:hidden">BL No.</span>

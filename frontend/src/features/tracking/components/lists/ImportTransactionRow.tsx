@@ -85,7 +85,7 @@ export function ImportTransactionRow({ transaction, onNavigate, onCancel, onRema
                     <div className="flex min-w-0 items-center gap-1.5">
                         <span
                             className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm"
-                            style={{ backgroundColor: transaction.selective_color === 'green' ? '#22c55e' : transaction.selective_color === 'yellow' ? '#eab308' : transaction.selective_color === 'red' ? '#ef4444' : '#f97316' }}
+                            style={{ backgroundColor: transaction.selective_color === 'green' ? 'var(--success)' : transaction.selective_color === 'yellow' ? 'var(--warning)' : transaction.selective_color === 'red' ? 'var(--danger)' : 'var(--warning)' }}
                         />
                         <div className="truncate text-sm font-semibold text-text-primary lg:text-xs">{transaction.customs_ref_no}</div>
                     </div>
@@ -96,7 +96,7 @@ export function ImportTransactionRow({ transaction, onNavigate, onCancel, onRema
                                 event.stopPropagation();
                                 onRemarks(transaction);
                             }}
-                            className="mt-1 inline-flex w-fit items-center gap-1 rounded-full border border-red-500/25 bg-red-50 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.08em] text-red-600 transition-colors hover:bg-red-100 dark:border-red-500/30 dark:bg-red-950/25 dark:text-red-300 dark:hover:bg-red-950/40 lg:mt-0"
+                            className="mt-1 inline-flex w-fit items-center gap-1 rounded-full border border-danger/25 bg-danger/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.08em] text-danger transition-colors hover:bg-danger/15 lg:mt-0"
                         >
                             <Icon name="flag" className="h-3 w-3" />
                             {openRemarksCount} remark{openRemarksCount === 1 ? '' : 's'}
@@ -136,7 +136,7 @@ export function ImportTransactionRow({ transaction, onNavigate, onCancel, onRema
                 <div className="lg:mx-auto">
                     {assigneeName ? (
                         <span
-                            className="flex h-7 w-7 items-center justify-center rounded-full border border-blue-200 bg-blue-600 text-[9px] font-bold text-white shadow-sm"
+                            className="flex h-7 w-7 items-center justify-center rounded-full border border-primary/20 bg-primary text-[9px] font-bold text-primary-foreground shadow-sm"
                             title={assigneeName}
                         >
                             {initials}
@@ -159,7 +159,7 @@ export function ImportTransactionRow({ transaction, onNavigate, onCancel, onRema
                     <button
                         type="button"
                         onClick={() => onRemarks(transaction)}
-                        className="inline-flex min-w-8 items-center justify-center gap-1 rounded-lg border border-red-200 bg-red-50 px-2 py-1.5 text-[10px] font-black text-red-600 shadow-sm transition-colors hover:bg-red-100 dark:border-red-900 dark:bg-red-950/25 dark:text-red-300 dark:hover:bg-red-900/30 lg:min-w-7 lg:border-transparent lg:bg-transparent lg:px-1 lg:py-1 lg:shadow-none"
+                        className="inline-flex min-w-8 items-center justify-center gap-1 rounded-lg border border-danger/20 bg-danger/10 px-2 py-1.5 text-[10px] font-black text-danger shadow-sm transition-colors hover:bg-danger/15 lg:min-w-7 lg:border-transparent lg:bg-transparent lg:px-1 lg:py-1 lg:shadow-none"
                         title={`${transaction.open_remarks_count} open remark(s)`}
                     >
                         <Icon name="flag" className="w-3.5 h-3.5" />
@@ -169,7 +169,7 @@ export function ImportTransactionRow({ transaction, onNavigate, onCancel, onRema
                 <button
                     type="button"
                     onClick={() => onNavigate(path)}
-                    className="rounded-lg border border-border bg-surface p-2 text-blue-600 shadow-sm transition-colors hover:bg-blue-50 dark:hover:bg-blue-900/30 lg:border-transparent lg:bg-transparent lg:p-1 lg:shadow-none"
+                    className="rounded-lg border border-border bg-surface p-2 text-primary shadow-sm transition-colors hover:bg-primary/10 lg:border-transparent lg:bg-transparent lg:p-1 lg:shadow-none"
                     title="View details"
                 >
                     <Icon name="eye" className="w-3.5 h-3.5" />
@@ -178,7 +178,7 @@ export function ImportTransactionRow({ transaction, onNavigate, onCancel, onRema
                     type="button"
                     onClick={() => { if (canCancel) onCancel(transaction.id, transaction.customs_ref_no); }}
                     disabled={!canCancel}
-                    className={`rounded-lg p-2 transition-colors lg:p-1 ${canCancel ? 'border border-transparent text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 cursor-pointer' : 'text-text-muted/30 cursor-not-allowed'}`}
+                    className={`rounded-lg p-2 transition-colors lg:p-1 ${canCancel ? 'border border-transparent text-danger hover:bg-danger/10 cursor-pointer' : 'text-text-muted/30 cursor-not-allowed'}`}
                     title={canCancel ? 'Cancel transaction' : 'Cannot cancel'}
                 >
                     <Icon name="x" className="w-3.5 h-3.5" />

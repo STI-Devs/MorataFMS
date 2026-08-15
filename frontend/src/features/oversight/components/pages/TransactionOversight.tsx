@@ -72,28 +72,32 @@ export const TransactionOversight = () => {
                             label: 'Total Transactions',
                             value: stats.total,
                             detail: 'Across current oversight scope',
-                            color: '#0a84ff',
+                            color: 'text-primary',
+                            bg: 'bg-primary/10',
                             icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2',
                         },
                         {
                             label: 'Imports',
                             value: stats.imports,
                             detail: 'Import-side records',
-                            color: '#30d158',
+                            color: 'text-success',
+                            bg: 'bg-success/10',
                             icon: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12',
                         },
                         {
                             label: 'Exports',
                             value: stats.exports,
                             detail: 'Export-side records',
-                            color: '#ff9f0a',
+                            color: 'text-warning',
+                            bg: 'bg-warning/10',
                             icon: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4',
                         },
                         {
                             label: 'Needs Attention',
                             value: visibleBlocked,
                             detail: 'Transactions with open remarks',
-                            color: '#ff453a',
+                            color: 'text-danger',
+                            bg: 'bg-danger/10',
                             icon: 'M12 9v4m0 4h.01M10.29 3.86l-7.47 13A1 1 0 003.68 18h16.64a1 1 0 00.86-1.5l-7.47-13a1 1 0 00-1.72 0z',
                         },
                     ].map((card) => (
@@ -105,10 +109,9 @@ export const TransactionOversight = () => {
                                     <p className="mt-1 text-xs font-medium text-text-secondary">{card.detail}</p>
                                 </div>
                                 <div
-                                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
-                                    style={{ backgroundColor: `${card.color}15`, color: card.color }}
+                                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${card.bg}`}
                                 >
-                                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                    <svg className={`h-5 w-5 ${card.color}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                                         <path strokeLinecap="round" strokeLinejoin="round" d={card.icon} />
                                     </svg>
                                 </div>
@@ -167,12 +170,12 @@ export const TransactionOversight = () => {
 
                     {isLoading ? (
                         <div className="p-16 flex items-center justify-center">
-                            <div className="w-8 h-8 rounded-full border-[3px] border-border animate-spin" style={{ borderTopColor: '#0a84ff' }} />
+                            <div className="w-8 h-8 rounded-full border-[3px] border-border animate-spin" style={{ borderTopColor: 'var(--primary)' }} />
                         </div>
                     ) : isError ? (
                         <div className="p-16 text-center">
-                            <p className="text-sm text-red-500 font-medium">Failed to load transactions. Please try again.</p>
-                            <button onClick={() => refetch()} className="mt-3 text-xs text-blue-500 hover:underline">Retry</button>
+                            <p className="text-sm text-destructive font-medium">Failed to load transactions. Please try again.</p>
+                            <button onClick={() => refetch()} className="mt-3 text-xs text-primary hover:underline">Retry</button>
                         </div>
                     ) : transactions.length === 0 ? (
                         <div className="p-12 text-center">
@@ -277,8 +280,7 @@ export const TransactionOversight = () => {
                                                                 {t.open_remarks_count > 0 ? (
                                                                     <button
                                                                         onClick={(e) => { e.stopPropagation(); setRemarkTarget(t); }}
-                                                                        className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold transition-colors"
-                                                                        style={{ color: '#ff453a', backgroundColor: 'rgba(255,69,58,0.12)' }}
+                                                                        className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold transition-colors text-danger bg-danger/12"
                                                                     >
                                                                         <Icon name="flag" className="w-3 h-3" />
                                                                         {t.open_remarks_count}
@@ -297,7 +299,7 @@ export const TransactionOversight = () => {
                                                                     {t.open_remarks_count > 0 && (
                                                                         <button
                                                                             onClick={(e) => { e.stopPropagation(); setRemarkTarget(t); }}
-                                                                            className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-1 text-[10px] font-semibold text-red-600 dark:bg-red-900/30 dark:text-red-300"
+                                                                            className="inline-flex items-center gap-1 rounded-full bg-danger/10 px-2.5 py-1 text-[10px] font-semibold text-danger"
                                                                             title={`${t.open_remarks_count} open remark(s)`}
                                                                         >
                                                                             <Icon name="flag" className="w-3 h-3" />
@@ -308,7 +310,7 @@ export const TransactionOversight = () => {
                                                                 {canManageActiveTransaction && (
                                                                     <button
                                                                         onClick={(e) => { e.stopPropagation(); setStatusTarget(t); }}
-                                                                        className="rounded-lg border border-border bg-surface p-2 text-orange-500 shadow-sm hover:bg-orange-50 dark:hover:bg-orange-900/30 lg:border-transparent lg:bg-transparent lg:p-1.5 lg:shadow-none"
+                                                                        className="rounded-lg border border-border bg-surface p-2 text-warning shadow-sm hover:bg-warning/10 lg:border-transparent lg:bg-transparent lg:p-1.5 lg:shadow-none"
                                                                         title="Override Status"
                                                                     >
                                                                         <Icon name="alert-circle" className="w-4 h-4" />
@@ -318,7 +320,7 @@ export const TransactionOversight = () => {
                                                                     <>
                                                                         <button
                                                                             onClick={(e) => { e.stopPropagation(); setStatusTarget(t); }}
-                                                                            className="rounded-lg border border-border bg-surface p-2 text-emerald-500 shadow-sm hover:bg-emerald-50 dark:hover:bg-emerald-900/30 lg:border-transparent lg:bg-transparent lg:p-1.5 lg:shadow-none"
+                                                                            className="rounded-lg border border-border bg-surface p-2 text-success shadow-sm hover:bg-success/10 lg:border-transparent lg:bg-transparent lg:p-1.5 lg:shadow-none"
                                                                             title="Restore Transaction"
                                                                         >
                                                                             <Icon name="check-circle" className="w-4 h-4" />
@@ -326,7 +328,7 @@ export const TransactionOversight = () => {
                                                                         <button
                                                                             onClick={(e) => { e.stopPropagation(); handleDelete(t); }}
                                                                             disabled={deletingTargetKey === rowKey}
-                                                                            className="rounded-lg border border-border bg-surface p-2 text-red-500 shadow-sm hover:bg-red-50 dark:hover:bg-red-900/30 disabled:opacity-50 lg:border-transparent lg:bg-transparent lg:p-1.5 lg:shadow-none"
+                                                                            className="rounded-lg border border-border bg-surface p-2 text-danger shadow-sm hover:bg-danger/10 disabled:opacity-50 lg:border-transparent lg:bg-transparent lg:p-1.5 lg:shadow-none"
                                                                             title="Delete Cancelled Transaction"
                                                                         >
                                                                             <Icon name="trash" className="w-4 h-4" />
@@ -335,7 +337,7 @@ export const TransactionOversight = () => {
                                                                 )}
                                                                 <button
                                                                     onClick={(e) => { e.stopPropagation(); setRemarkTarget(t); }}
-                                                                    className="hidden lg:block rounded-lg p-1.5 text-red-500 hover:bg-red-50"
+                                                                    className="hidden lg:block rounded-lg p-1.5 text-danger hover:bg-danger/10"
                                                                     title="Flag / Remarks"
                                                                 >
                                                                     <Icon name="flag" className="w-4 h-4" />

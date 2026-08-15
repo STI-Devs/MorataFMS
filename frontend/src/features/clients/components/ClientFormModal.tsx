@@ -13,7 +13,7 @@ interface ClientFormModalProps {
 
 const CLIENT_TYPES: ClientType[] = ['importer', 'exporter', 'both'];
 
-const inputCls = 'w-full px-4 py-3 rounded-xl border border-border bg-input-bg text-text-primary placeholder:text-text-muted focus:outline-none focus:border-blue-500/50 transition-colors';
+const inputCls = 'w-full px-4 py-3 rounded-xl border border-border bg-input-bg text-text-primary placeholder:text-text-muted focus:outline-none focus:border-primary/50 transition-colors';
 const labelCls = 'block text-sm font-medium mb-2 text-text-secondary';
 
 export const ClientFormModal = ({ isOpen, onClose, onSubmit, client, mode }: ClientFormModalProps) => {
@@ -88,7 +88,7 @@ export const ClientFormModal = ({ isOpen, onClose, onSubmit, client, mode }: Cli
                 </h2>
 
                 {error && (
-                    <div className="mb-4 p-3 rounded-xl text-sm" style={{ backgroundColor: 'rgba(255,69,58,0.1)', color: '#ff453a' }}>
+                    <div className="mb-4 p-3 rounded-xl text-sm bg-danger/10 text-danger">
                         {error}
                     </div>
                 )}
@@ -187,7 +187,7 @@ export const ClientFormModal = ({ isOpen, onClose, onSubmit, client, mode }: Cli
                         <button
                             type="submit"
                             disabled={isSubmitting}
-                            className="flex-1 px-6 py-3 rounded-xl font-bold bg-gradient-to-br from-blue-600 to-indigo-700 text-white hover:opacity-90 transition-opacity disabled:opacity-50"
+                            className="flex-1 px-6 py-3 rounded-xl font-bold bg-primary text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50"
                         >
                             {isSubmitting ? 'Saving...' : mode === 'create' ? 'Create Brokerage Client' : 'Save Changes'}
                         </button>

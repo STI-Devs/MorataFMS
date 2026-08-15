@@ -11,10 +11,10 @@ interface StatusOverrideModalProps {
 }
 
 const STATUS_OPTIONS = [
-    { value: 'pending', label: 'Pending', dot: '#ff9f0a' },
-    { value: 'in_progress', label: 'In Progress', dot: '#64d2ff' },
-    { value: 'completed', label: 'Completed', dot: '#30d158' },
-    { value: 'cancelled', label: 'Cancelled', dot: '#ff453a' },
+    { value: 'pending', label: 'Pending', dot: 'var(--warning)' },
+    { value: 'in_progress', label: 'In Progress', dot: 'var(--sky)' },
+    { value: 'completed', label: 'Completed', dot: 'var(--success)' },
+    { value: 'cancelled', label: 'Cancelled', dot: 'var(--danger)' },
 ];
 
 function normalizeStatus(status: string): string {
@@ -122,7 +122,7 @@ export const StatusOverrideModal = ({ isOpen, onClose, transaction, onSuccess }:
                 </div>
 
                 {error && (
-                    <div className="mb-4 p-3 rounded-lg text-sm" style={{ backgroundColor: 'rgba(255,69,58,0.1)', color: '#ff453a' }}>
+                    <div className="mb-4 p-3 rounded-lg text-sm bg-danger/10 text-danger">
                         {error}
                     </div>
                 )}
@@ -138,8 +138,7 @@ export const StatusOverrideModal = ({ isOpen, onClose, transaction, onSuccess }:
                     <button
                         onClick={handleSubmit}
                         disabled={isLoading || selectedStatus === currentStatus}
-                        className="px-4 py-2 rounded-lg text-sm font-semibold transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-                        style={{ backgroundColor: '#0a84ff', color: '#fff' }}
+                        className="px-4 py-2 rounded-lg text-sm font-semibold transition-opacity disabled:opacity-50 disabled:cursor-not-allowed bg-primary text-primary-foreground"
                     >
                         {isLoading ? 'Saving...' : isRestoreMode ? 'Restore' : 'Apply'}
                     </button>

@@ -5,28 +5,28 @@
 
 const STATUS_MAP: Record<string, StatusStyle> = {
     // Shared workflow labels
-    Completed: { color: '#30d158', bg: 'rgba(48,209,88,0.13)' },
-    Cleared: { color: '#30d158', bg: 'rgba(48,209,88,0.13)' },
-    Pending: { color: '#ff9f0a', bg: 'rgba(255,159,10,0.13)' },
-    Delayed: { color: '#ff453a', bg: 'rgba(255,69,58,0.13)' },
-    'Vessel Arrived': { color: '#0a84ff', bg: 'rgba(10,132,255,0.13)' },
-    'In Transit': { color: '#0a84ff', bg: 'rgba(10,132,255,0.13)' },
-    'In Progress': { color: '#0a84ff', bg: 'rgba(10,132,255,0.13)' },
-    Departure: { color: '#bf5af2', bg: 'rgba(191,90,242,0.13)' },
-    Shipped: { color: '#30d158', bg: 'rgba(48,209,88,0.13)' },
-    Processing: { color: '#ff9f0a', bg: 'rgba(255,159,10,0.13)' },
+    Completed: { color: 'var(--success)', bg: 'color-mix(in srgb, var(--success) 13%, transparent)' },
+    Cleared: { color: 'var(--success)', bg: 'color-mix(in srgb, var(--success) 13%, transparent)' },
+    Pending: { color: 'var(--warning)', bg: 'color-mix(in srgb, var(--warning) 13%, transparent)' },
+    Delayed: { color: 'var(--danger)', bg: 'color-mix(in srgb, var(--danger) 13%, transparent)' },
+    'Vessel Arrived': { color: 'var(--info)', bg: 'color-mix(in srgb, var(--info) 13%, transparent)' },
+    'In Transit': { color: 'var(--info)', bg: 'color-mix(in srgb, var(--info) 13%, transparent)' },
+    'In Progress': { color: 'var(--info)', bg: 'color-mix(in srgb, var(--info) 13%, transparent)' },
+    Departure: { color: 'var(--violet)', bg: 'color-mix(in srgb, var(--violet) 13%, transparent)' },
+    Shipped: { color: 'var(--success)', bg: 'color-mix(in srgb, var(--success) 13%, transparent)' },
+    Processing: { color: 'var(--warning)', bg: 'color-mix(in srgb, var(--warning) 13%, transparent)' },
 
     // Cancelled (shared)
-    Cancelled: { color: '#ff453a', bg: 'rgba(255,69,58,0.13)' },
+    Cancelled: { color: 'var(--danger)', bg: 'color-mix(in srgb, var(--danger) 13%, transparent)' },
 
     // Raw backend values (admin / TransactionOversight / legacy payloads)
-    completed: { color: '#30d158', bg: 'rgba(48,209,88,0.13)' },
-    in_progress: { color: '#0a84ff', bg: 'rgba(10,132,255,0.13)' },
-    cancelled: { color: '#ff453a', bg: 'rgba(255,69,58,0.13)' },
-    pending: { color: '#ff9f0a', bg: 'rgba(255,159,10,0.13)' },
+    completed: { color: 'var(--success)', bg: 'color-mix(in srgb, var(--success) 13%, transparent)' },
+    in_progress: { color: 'var(--info)', bg: 'color-mix(in srgb, var(--info) 13%, transparent)' },
+    cancelled: { color: 'var(--danger)', bg: 'color-mix(in srgb, var(--danger) 13%, transparent)' },
+    pending: { color: 'var(--warning)', bg: 'color-mix(in srgb, var(--warning) 13%, transparent)' },
 };
 
-const FALLBACK: StatusStyle = { color: '#0a84ff', bg: 'rgba(10,132,255,0.13)' };
+const FALLBACK: StatusStyle = { color: 'var(--info)', bg: 'color-mix(in srgb, var(--info) 13%, transparent)' };
 
 export function getStatusStyle(status: string): StatusStyle {
     return STATUS_MAP[status] ?? FALLBACK;

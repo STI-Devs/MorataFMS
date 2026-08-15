@@ -77,13 +77,13 @@ export const LocationOfGoodsManagement = () => {
             label: 'Active',
             value: active,
             sub: total > 0 ? `${Math.round((active / total) * 100)}% usable in import forms` : '—',
-            dot: '#22c55e' as string | null,
+            dot: 'var(--success)' as string | null,
         },
         {
             label: 'Inactive',
             value: inactive,
             sub: inactive === 0 ? 'No archived entries' : `${inactive} hidden from encoder dropdowns`,
-            dot: inactive > 0 ? '#ef4444' as string | null : null,
+            dot: inactive > 0 ? 'var(--danger)' as string | null : null,
         },
     ];
 
@@ -134,12 +134,12 @@ export const LocationOfGoodsManagement = () => {
                             placeholder="Search locations..."
                             value={searchTerm}
                             onChange={(event) => setSearchTerm(event.target.value)}
-                            className="w-full pl-9 pr-3 h-9 rounded-md border border-border-strong bg-input-bg text-text-primary text-sm placeholder:text-text-muted focus:outline-none focus:border-blue-500/50 transition-colors"
+                            className="w-full pl-9 pr-3 h-9 rounded-md border border-border-strong bg-input-bg text-text-primary text-sm placeholder:text-text-muted focus:outline-none focus:border-primary/50 transition-colors"
                         />
                     </div>
                     <button
                         onClick={handleCreate}
-                        className="flex items-center gap-1.5 px-3.5 h-9 rounded-lg text-xs font-bold transition-all shadow-sm bg-gradient-to-br from-blue-600 to-indigo-700 text-white"
+                        className="flex items-center gap-1.5 px-3.5 h-9 rounded-lg text-xs font-bold transition-all shadow-sm bg-primary text-primary-foreground"
                     >
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
@@ -150,11 +150,11 @@ export const LocationOfGoodsManagement = () => {
 
                 {isLoading ? (
                     <div className="p-16 flex items-center justify-center">
-                        <div className="w-8 h-8 rounded-full border-2 border-transparent animate-spin" style={{ borderTopColor: '#0a84ff' }} />
+                        <div className="w-8 h-8 rounded-full border-2 border-transparent animate-spin" style={{ borderTopColor: 'var(--primary)' }} />
                     </div>
                 ) : isError ? (
                     <div className="p-16 text-center">
-                        <p className="text-sm text-red-500 font-medium">Failed to load locations of goods. Please try again.</p>
+                        <p className="text-sm text-destructive font-medium">Failed to load locations of goods. Please try again.</p>
                     </div>
                 ) : filteredLocations.length === 0 ? (
                     <div className="p-16 text-center">
@@ -185,7 +185,7 @@ export const LocationOfGoodsManagement = () => {
                                     >
                                         <td className="px-5 py-3.5">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0 bg-gradient-to-br from-blue-600 to-indigo-700">
+                                                <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-primary-foreground flex-shrink-0 bg-primary">
                                                     {location.name.charAt(0).toUpperCase()}
                                                 </div>
                                                 <div className="text-sm font-semibold text-text-primary">{location.name}</div>
@@ -193,12 +193,9 @@ export const LocationOfGoodsManagement = () => {
                                         </td>
                                         <td className="px-5 py-3.5 text-center">
                                             <span
-                                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold"
-                                                style={location.is_active
-                                                    ? { color: '#30d158', backgroundColor: 'rgba(48,209,88,0.12)' }
-                                                    : { color: '#ff453a', backgroundColor: 'rgba(255,69,58,0.12)' }}
+                                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold ${location.is_active ? 'text-success bg-success/12' : 'text-danger bg-danger/12'}`}
                                             >
-                                                <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ backgroundColor: location.is_active ? '#30d158' : '#ff453a' }} />
+                                                <span className={`w-1.5 h-1.5 rounded-full inline-block ${location.is_active ? 'bg-success' : 'bg-danger'}`} />
                                                 {location.is_active ? 'Active' : 'Inactive'}
                                             </span>
                                         </td>
@@ -217,10 +214,7 @@ export const LocationOfGoodsManagement = () => {
                                                     title={location.is_active ? 'Deactivate Location' : 'Activate Location'}
                                                     onClick={() => handleToggleActive(location.id)}
                                                     disabled={toggleLocationOfGoods.isPending}
-                                                    className="p-1.5 rounded-lg transition-colors disabled:opacity-50"
-                                                    style={location.is_active
-                                                        ? { backgroundColor: 'rgba(255,69,58,0.12)', color: '#ff453a' }
-                                                        : { backgroundColor: 'rgba(48,209,88,0.12)', color: '#30d158' }}
+                                                    className={`p-1.5 rounded-lg transition-colors disabled:opacity-50 ${location.is_active ? 'bg-danger/12 text-danger' : 'bg-success/12 text-success'}`}
                                                 >
                                                     {location.is_active ? (
                                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>

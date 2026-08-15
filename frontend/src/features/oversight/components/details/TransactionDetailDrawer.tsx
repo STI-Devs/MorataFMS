@@ -13,9 +13,9 @@ import { StagePipeline } from './StagePipeline';
 // ─── Config ──────────────────────────────────────────────────────────────────
 
 const SEVERITY_CFG = {
-    info:     { label: 'Info',     color: '#0a84ff', bg: 'rgba(10,132,255,0.12)' },
-    warning:  { label: 'Warning',  color: '#ff9f0a', bg: 'rgba(255,159,10,0.12)' },
-    critical: { label: 'Critical', color: '#ff453a', bg: 'rgba(255,69,58,0.12)' },
+    info:     { label: 'Info',     color: 'var(--info)', bg: 'color-mix(in srgb, var(--info) 12%, transparent)' },
+    warning:  { label: 'Warning',  color: 'var(--warning)', bg: 'color-mix(in srgb, var(--warning) 12%, transparent)' },
+    critical: { label: 'Critical', color: 'var(--danger)', bg: 'color-mix(in srgb, var(--danger) 12%, transparent)' },
 } as const;
 
 const TABS = ['Documents', 'Stages', 'Remarks'] as const;
@@ -136,16 +136,15 @@ export const TransactionDetailDrawer = ({ transaction, onClose }: Props) => {
                                     <span
                                         className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-bold capitalize"
                                         style={{
-                                            color: transaction.type === 'import' ? '#0a84ff' : '#ff9f0a',
-                                            backgroundColor: transaction.type === 'import' ? 'rgba(10,132,255,0.13)' : 'rgba(255,159,10,0.13)',
+                                            color: transaction.type === 'import' ? 'var(--info)' : 'var(--warning)',
+                                            backgroundColor: transaction.type === 'import' ? 'color-mix(in srgb, var(--info) 13%, transparent)' : 'color-mix(in srgb, var(--warning) 13%, transparent)',
                                         }}
                                     >
-                                        <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: transaction.type === 'import' ? '#0a84ff' : '#ff9f0a' }} />
+                                        <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: transaction.type === 'import' ? 'var(--info)' : 'var(--warning)' }} />
                                         {transaction.type}
                                     </span>
                                     {transaction.open_remarks_count > 0 && (
-                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold"
-                                            style={{ color: '#ff453a', backgroundColor: 'rgba(255,69,58,0.12)' }}>
+                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold text-danger bg-danger/12">
                                             <Icon name="flag" className="w-3 h-3" />
                                             {transaction.open_remarks_count} open
                                         </span>
@@ -173,13 +172,13 @@ export const TransactionDetailDrawer = ({ transaction, onClose }: Props) => {
                                     onClick={() => setActiveTab(tab)}
                                     className={`px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors mr-1 ${
                                         activeTab === tab
-                                            ? 'border-blue-500 text-blue-500'
+                                            ? 'border-primary text-primary'
                                             : 'border-transparent text-text-muted hover:text-text-primary'
                                     }`}
                                 >
                                     {tab}
                                     {tab === 'Remarks' && transaction.open_remarks_count > 0 && (
-                                        <span className="ml-1.5 text-[10px] font-bold text-red-500">
+                                        <span className="ml-1.5 text-[10px] font-bold text-danger">
                                             ({transaction.open_remarks_count})
                                         </span>
                                     )}
@@ -195,7 +194,7 @@ export const TransactionDetailDrawer = ({ transaction, onClose }: Props) => {
                                 <div className="p-6 space-y-2">
                                     {docsLoading ? (
                                         <div className="flex items-center justify-center py-16">
-                                            <div className="w-6 h-6 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
+                                            <div className="w-6 h-6 rounded-full border-2 border-primary border-t-transparent animate-spin" />
                                         </div>
                                     ) : documents.length === 0 ? (
                                         <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -215,7 +214,7 @@ export const TransactionDetailDrawer = ({ transaction, onClose }: Props) => {
                                                     key={doc.id}
                                                     className="flex items-center gap-3 p-3 rounded-xl border border-border bg-surface-secondary/30 hover:bg-hover transition-colors group"
                                                 >
-                                                    <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 shrink-0">
+                                                    <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
                                                         <Icon name="file-text" className="w-4 h-4" />
                                                     </div>
                                                     <div className="flex-1 min-w-0">
@@ -226,11 +225,11 @@ export const TransactionDetailDrawer = ({ transaction, onClose }: Props) => {
                                                         <button
                                                             onClick={() => handlePreview(doc.id, doc.filename)}
                                                             disabled={previewLoading === doc.id}
-                                                            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors disabled:opacity-50"
+                                                            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-primary/10 text-primary hover:bg-primary/20 transition-colors disabled:opacity-50"
                                                             title="Preview"
                                                         >
                                                             {previewLoading === doc.id ? (
-                                                                <div className="w-3 h-3 rounded-full border border-blue-500 border-t-transparent animate-spin" />
+                                                                <div className="w-3 h-3 rounded-full border border-primary border-t-transparent animate-spin" />
                                                             ) : (
                                                                 <Icon name="eye" className="w-3.5 h-3.5" />
                                                             )}
@@ -283,7 +282,7 @@ export const TransactionDetailDrawer = ({ transaction, onClose }: Props) => {
                                                     className="px-3 py-1.5 rounded-lg text-xs font-bold border-2 transition-all"
                                                     style={severity === key
                                                         ? { color: cfg.color, backgroundColor: cfg.bg, borderColor: cfg.color }
-                                                        : { color: 'var(--text-muted)', backgroundColor: 'transparent', borderColor: 'var(--border)' }
+                                                        : { color: 'var(--muted-foreground)', backgroundColor: 'transparent', borderColor: 'var(--border)' }
                                                     }
                                                 >
                                                     {cfg.label}
@@ -301,7 +300,7 @@ export const TransactionDetailDrawer = ({ transaction, onClose }: Props) => {
                                                 <select
                                                     value={documentId ?? ''}
                                                     onChange={e => setDocumentId(e.target.value ? Number(e.target.value) : null)}
-                                                    className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                    className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
                                                 >
                                                     <option value="">No specific document</option>
                                                     {documents.map(doc => (
@@ -321,14 +320,13 @@ export const TransactionDetailDrawer = ({ transaction, onClose }: Props) => {
                                             onChange={e => setMessage(e.target.value)}
                                             placeholder="Describe the issue clearly for the encoder…"
                                             rows={3}
-                                            className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                                            className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary resize-none"
                                         />
 
                                         <button
                                             onClick={handleCreateRemark}
                                             disabled={!message.trim() || createRemark.isPending}
-                                            className="w-full py-2 rounded-lg text-sm font-bold transition-all disabled:opacity-50"
-                                            style={{ backgroundColor: '#ff453a', color: '#fff' }}
+                                            className="w-full py-2 rounded-lg text-sm font-bold transition-all disabled:opacity-50 bg-danger text-primary-foreground"
                                         >
                                             {createRemark.isPending ? 'Submitting…' : '🚩 Flag this Transaction'}
                                         </button>
@@ -339,7 +337,7 @@ export const TransactionDetailDrawer = ({ transaction, onClose }: Props) => {
                                         <p className="text-xs font-bold uppercase tracking-wider text-text-muted mb-3">Remark History</p>
                                         {remarksLoading ? (
                                             <div className="flex items-center justify-center py-8">
-                                                <div className="w-5 h-5 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
+                                                <div className="w-5 h-5 rounded-full border-2 border-primary border-t-transparent animate-spin" />
                                             </div>
                                         ) : remarks.length === 0 ? (
                                             <p className="text-sm text-text-muted text-center py-6">No remarks yet.</p>
@@ -357,8 +355,7 @@ export const TransactionDetailDrawer = ({ transaction, onClose }: Props) => {
                                                                         {scfg.label}
                                                                     </span>
                                                                     {r.is_resolved && (
-                                                                        <span className="text-xs font-semibold px-2 py-0.5 rounded-md"
-                                                                            style={{ color: '#30d158', backgroundColor: 'rgba(48,209,88,0.12)' }}>
+                                                                        <span className="text-xs font-semibold px-2 py-0.5 rounded-md text-success bg-success/12">
                                                                             ✓ Resolved
                                                                         </span>
                                                                     )}

@@ -125,36 +125,18 @@ export const DocumentsTable = ({
 
                                         <div className="flex justify-center">
                                             {normalizedStatus === 'cancelled' ? (
-                                                <span
-                                                    className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold"
-                                                    style={{
-                                                        color: '#ff453a',
-                                                        backgroundColor: 'rgba(255,69,58,0.13)',
-                                                    }}
-                                                >
+                                                <span className="inline-flex items-center gap-1.5 rounded-full bg-danger/10 px-2.5 py-1 text-xs font-bold text-danger">
                                                     <span
-                                                        className="inline-block h-1.5 w-1.5 rounded-full"
-                                                        style={{
-                                                            backgroundColor: '#ff453a',
-                                                            boxShadow: '0 0 4px #ff453a',
-                                                        }}
+                                                        className="inline-block h-1.5 w-1.5 rounded-full bg-danger"
+                                                        style={{ boxShadow: '0 0 4px var(--danger)' }}
                                                     />
                                                     Cancelled
                                                 </span>
                                             ) : (
-                                                <span
-                                                    className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold"
-                                                    style={{
-                                                        color: '#30d158',
-                                                        backgroundColor: 'rgba(48,209,88,0.13)',
-                                                    }}
-                                                >
+                                                <span className="inline-flex items-center gap-1.5 rounded-full bg-success/10 px-2.5 py-1 text-xs font-bold text-success">
                                                     <span
-                                                        className="inline-block h-1.5 w-1.5 rounded-full"
-                                                        style={{
-                                                            backgroundColor: '#30d158',
-                                                            boxShadow: '0 0 4px #30d158',
-                                                        }}
+                                                        className="inline-block h-1.5 w-1.5 rounded-full bg-success"
+                                                        style={{ boxShadow: '0 0 4px var(--success)' }}
                                                     />
                                                     {row.type === 'import' ? 'Cleared' : 'Shipped'}
                                                 </span>
@@ -163,7 +145,7 @@ export const DocumentsTable = ({
 
                                         <div className="flex justify-center">
                                             {isMissingDocs ? (
-                                                <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-600 dark:bg-amber-900/20 dark:text-amber-400">
+                                                <span className="inline-flex items-center gap-1 rounded-full bg-warning/10 px-2.5 py-1 text-xs font-bold text-warning">
                                                     <svg
                                                         className="h-3 w-3"
                                                         fill="none"
@@ -180,7 +162,7 @@ export const DocumentsTable = ({
                                                     Missing
                                                 </span>
                                             ) : (
-                                                <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-600 dark:bg-blue-900/20 dark:text-blue-400">
+                                                <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary">
                                                     <svg
                                                         className="h-3 w-3"
                                                         fill="none"
