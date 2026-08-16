@@ -1,6 +1,18 @@
-import { useEffect, useRef } from 'react';
-
-import { useSidebar } from '@/components/ui/sidebar';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuGroup,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+    SidebarMenu,
+    SidebarMenuButton,
+    SidebarMenuItem,
+    useSidebar,
+} from '@/components/ui/sidebar';
 import type { NavItemData } from './NavItem';
 
 type SettingsItem = NavItemData;
@@ -24,126 +36,106 @@ type Props = {
 };
 
 export const AccountMenu = ({
-    isOpen,
-    onToggleOpen,
-    onClose,
     user,
     roleLabel,
     settingsItems,
-    activePathname,
     themeIcon,
     themeLabel,
     onNavigate,
     onToggleTheme,
     onLogout,
 }: Props) => {
-    const containerRef = useRef<HTMLDivElement>(null);
     const { state, isMobile } = useSidebar();
-    const collapsed = state === 'collapsed' && !isMobile;
-
-    useEffect(() => {
-        if (!isOpen) {
-            return;
-        }
-
-        const handler = (event: MouseEvent) => {
-            if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-                onClose();
-            }
-        };
-
-        document.addEventListener('mousedown', handler);
-        return () => document.removeEventListener('mousedown', handler);
-    }, [isOpen, onClose]);
+    const isCollapsed = state === 'collapsed' && !isMobile;
 
     return (
-        <div ref={containerRef} className="relative">
-            {isOpen && (
-                <div className={`absolute bottom-full ${collapsed ? 'left-0 w-64' : 'left-0 right-0 mx-2'} mb-2 rounded-xl border border-sidebar-accent shadow-xl overflow-hidden z-50 animate-dropdown-up-in bg-sidebar text-sidebar-foreground`}>
-                    <div className="px-4 py-3 border-b border-sidebar-accent/60">
-                        <p className="text-sm font-semibold truncate text-sidebar-foreground">
-                            {user?.name || 'User'}
-                        </p>
-                        <p className="text-xs capitalize truncate text-sidebar-foreground/60">
-                            {roleLabel} &middot; {user?.email || ''}
-                        </p>
-                    </div>
-
-                    <div className="py-1">
-                        {settingsItems.map((item) => (
-                            <button
-                                key={item.label}
-                                onClick={() => {
-                                    onNavigate(item.path);
-                                    onClose();
-                                }}
-                                className={`w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors ${
-                                    activePathname === item.path
-                                        ? 'text-sidebar-accent-foreground bg-sidebar-accent/60'
-                                        : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground'
-                                }`}
-                            >
-                                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={item.icon} />
-                                </svg>
-                                {item.label}
-                            </button>
-                        ))}
-                    </div>
-
-                    <div className="mx-3 h-px bg-sidebar-accent/60" />
-
-                    <div className="py-1">
-                        <button
-                            onClick={() => {
-                                onToggleTheme();
-                                onClose();
-                            }}
-                            className="w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+        <SidebarMenu>
+            <SidebarMenuItem>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <SidebarMenuButton
+                            size="lg"
+                            className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground cursor-pointer"
                         >
-                            <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-sidebar-accent/80 font-bold text-sm text-sidebar-foreground">
+                                {user?.name?.charAt(0).toUpperCase() || 'U'}
+                            </div>
+                            <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
+                                <span className="truncate font-semibold text-sidebar-foreground">
+                                    {user?.name || 'User'}
+                                </span>
+                                <span className="truncate text-xs capitalize text-muted-foreground">
+                                    {roleLabel}
+                                </span>
+                            </div>
+                            <svg
+                                className="ml-auto size-4 shrink-0 text-muted-foreground group-data-[collapsible=icon]:hidden"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4" />
+                            </svg>
+                        </SidebarMenuButton>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                        className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-xl border border-sidebar-accent/60 bg-sidebar text-sidebar-foreground shadow-2xl p-1.5 z-50"
+                        side={isCollapsed ? 'right' : 'top'}
+                        align={isCollapsed ? 'end' : 'center'}
+                        sideOffset={8}
+                    >
+                        <DropdownMenuLabel className="p-0 font-normal">
+                            <div className="flex items-center gap-2.5 px-3 py-2 text-left text-sm border-b border-sidebar-accent/40 mb-1">
+                                <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-sidebar-accent/80 font-bold text-sm text-sidebar-foreground">
+                                    {user?.name?.charAt(0).toUpperCase() || 'U'}
+                                </div>
+                                <div className="grid flex-1 text-left text-sm leading-tight">
+                                    <span className="truncate font-semibold text-sidebar-foreground">
+                                        {user?.name || 'User'}
+                                    </span>
+                                    <span className="truncate text-xs text-sidebar-foreground/60">
+                                        {roleLabel} · {user?.email || ''}
+                                    </span>
+                                </div>
+                            </div>
+                        </DropdownMenuLabel>
+                        <DropdownMenuGroup>
+                            {settingsItems.map((item) => (
+                                <DropdownMenuItem
+                                    key={item.label}
+                                    onClick={() => onNavigate(item.path)}
+                                    className="cursor-pointer gap-2.5 px-3 py-2 text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus:bg-sidebar-accent focus:text-sidebar-accent-foreground rounded-lg"
+                                >
+                                    <svg className="size-4 shrink-0 text-sidebar-foreground/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={item.icon} />
+                                    </svg>
+                                    <span>{item.label}</span>
+                                </DropdownMenuItem>
+                            ))}
+                        </DropdownMenuGroup>
+                        <DropdownMenuSeparator className="bg-sidebar-accent/60 my-1" />
+                        <DropdownMenuItem
+                            onClick={onToggleTheme}
+                            className="cursor-pointer gap-2.5 px-3 py-2 text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus:bg-sidebar-accent focus:text-sidebar-accent-foreground rounded-lg"
+                        >
+                            <svg className="size-4 shrink-0 text-sidebar-foreground/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={themeIcon} />
                             </svg>
-                            {themeLabel}
-                        </button>
-                        <button
+                            <span>{themeLabel}</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator className="bg-sidebar-accent/60 my-1" />
+                        <DropdownMenuItem
                             onClick={onLogout}
-                            className="w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors text-danger hover:bg-sidebar-accent/50"
+                            className="cursor-pointer gap-2.5 px-3 py-2 text-sm text-danger hover:bg-danger/10 hover:text-danger focus:bg-danger/10 focus:text-danger rounded-lg"
                         >
-                            <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="size-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                             </svg>
-                            Sign Out
-                        </button>
-                    </div>
-                </div>
-            )}
-
-            <button
-                onClick={onToggleOpen}
-                className={`w-full flex items-center gap-3 py-3 border-t border-sidebar-accent transition-colors group hover:bg-sidebar-accent/50 ${collapsed ? 'justify-center px-2' : 'px-4'}`}
-            >
-                <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0 bg-sidebar-accent/60 text-sidebar-accent-foreground">
-                    {user?.name?.charAt(0).toUpperCase() || 'U'}
-                </div>
-                <div className={`flex-col overflow-hidden flex-1 text-left ${collapsed ? 'hidden' : 'flex'}`}>
-                    <span className="text-sm font-semibold truncate text-sidebar-foreground">
-                        {user?.name || 'User'}
-                    </span>
-                    <span className="text-xs capitalize truncate text-sidebar-foreground/60">
-                        {roleLabel}
-                    </span>
-                </div>
-                <svg
-                    className={`w-4 h-4 shrink-0 transition-all duration-200 ${collapsed ? 'hidden' : ''} ${isOpen
-                        ? 'text-sidebar-foreground rotate-180'
-                        : 'text-sidebar-foreground/40 group-hover:text-sidebar-foreground/70'
-                        }`}
-                    fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7" />
-                </svg>
-            </button>
-        </div>
+                            <span>Sign Out</span>
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </SidebarMenuItem>
+        </SidebarMenu>
     );
 };

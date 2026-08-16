@@ -13,10 +13,10 @@ import {
     SidebarGroupLabel,
     SidebarHeader,
     SidebarMenu,
+    SidebarMenuButton,
+    SidebarMenuItem,
     SidebarRail,
-    useSidebar,
 } from '../ui/sidebar';
-import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { useMainLayoutNavigation } from './hooks/useMainLayoutNavigation';
 import { AccountMenu } from './nav/AccountMenu';
 import { ModuleSwitcher } from './nav/ModuleSwitcher';
@@ -32,9 +32,6 @@ type AppSidebarProps = {
 };
 
 export const AppSidebar = ({ nav, themeIcon, themeLabel, onToggleTheme }: AppSidebarProps) => {
-    const { state, isMobile } = useSidebar();
-    const isCollapsed = state === 'collapsed' && !isMobile;
-
     const {
         user,
         isAdmin,
@@ -62,28 +59,28 @@ export const AppSidebar = ({ nav, themeIcon, themeLabel, onToggleTheme }: AppSid
     return (
         <Sidebar collapsible="icon" variant="sidebar">
             <SidebarHeader>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <button
-                            type="button"
-                            onClick={() => navigate(activeModuleHomePath)}
-                            aria-label="F.M Morata"
-                            className="flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-start hover:bg-sidebar-accent/50 group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:mx-auto"
-                        >
-                            <img
-                                src={logoImage}
-                                alt="F.M Morata Logo"
-                                className="size-7 min-w-7 min-h-7 shrink-0 rounded-full object-cover aspect-square"
-                            />
-                            <div className="group-data-[collapsible=icon]:hidden">
-                                <p className="text-sm font-bold leading-tight text-sidebar-foreground">F.M Morata</p>
-                            </div>
-                        </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="right" align="center" hidden={!isCollapsed}>
-                        F.M Morata
-                    </TooltipContent>
-                </Tooltip>
+                <SidebarMenu>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton size="lg" asChild tooltip="F.M Morata" className="cursor-pointer">
+                            <button
+                                type="button"
+                                onClick={() => navigate(activeModuleHomePath)}
+                                aria-label="F.M Morata"
+                                className="flex w-full items-center gap-2.5"
+                            >
+                                <img
+                                    src={logoImage}
+                                    alt="F.M Morata Logo"
+                                    className="size-7 min-w-7 min-h-7 shrink-0 rounded-full object-cover aspect-square"
+                                />
+                                <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
+                                    <span className="truncate font-bold text-sidebar-foreground">F.M Morata</span>
+                                    <span className="truncate text-xs text-muted-foreground">Operations System</span>
+                                </div>
+                            </button>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                </SidebarMenu>
 
                 {(isMultiDept || isAdmin) && (
                     <ModuleSwitcher
