@@ -1,5 +1,14 @@
 import { useEffect, useState } from 'react';
 import { getApiError } from '../../../../lib/apiErrors';
+import { Button } from '../../../../components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '../../../../components/ui/dialog';
 import { transactionApi } from '../../api/transactionApi';
 import type { OversightTransaction } from '../../types/transaction.types';
 
@@ -61,41 +70,24 @@ export const StatusOverrideModal = ({ isOpen, onClose, transaction, onSuccess }:
 
     if (!isOpen || !transaction) return null;
 
+    const currentOption = STATUS_OPTIONS.find((statusOption) => statusOption.value === currentStatus);
+
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-backdrop-in" onClick={onClose}>
-            <div
-                className="w-full max-w-md rounded-xl p-6 shadow-xl bg-surface border border-border animate-modal-in"
-                onClick={(e) => e.stopPropagation()}
-            >
-                {/* Header */}
-                <div className="flex justify-between items-start mb-5">
-                    <div>
-                        <h2 className="text-lg font-bold mb-0.5 text-text-primary">
-                            {isRestoreMode ? 'Restore Transaction' : 'Override Status'}
-                        </h2>
-                        <p className="text-sm text-text-secondary">
-                            {transaction.type === 'import' ? transaction.reference_no || transaction.bl_no : transaction.bl_no} · {transaction.client || 'Unknown Client'}
-                        </p>
-                    </div>
-                    <button
-                        onClick={onClose}
-                        className="p-1.5 rounded-lg transition-colors hover:bg-hover text-text-muted hover:text-text-primary"
-                    >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-                </div>
+        <Dialog open={isOpen} onOpenChange={(o) => { if (!o) onClose(); }}>
+            <DialogContent className="max-w-md sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>{isRestoreMode ? 'Restore Transaction' : 'Override Status'}</DialogTitle>
+                    <DialogDescription>
+                        {transaction.type === 'import' ? transaction.reference_no || transaction.bl_no : transaction.bl_no} · {transaction.client || 'Unknown Client'}
+                    </DialogDescription>
+                </DialogHeader>
 
                 {/* Current Status */}
                 <div className="mb-4 p-3 rounded-lg bg-surface-tint border border-border-tint">
                     <p className="text-[10px] font-bold uppercase tracking-wider mb-2 text-text-muted">Current Status</p>
                     <span className="inline-flex items-center gap-1.5 text-sm font-semibold capitalize text-text-primary">
-                        {(() => {
-                            const opt = STATUS_OPTIONS.find((statusOption) => statusOption.value === currentStatus);
-                            return opt ? <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: opt.dot }} /> : null;
-                        })()}
-                        {(STATUS_OPTIONS.find((statusOption) => statusOption.value === currentStatus)?.label ?? transaction.status).replace('_', ' ')}
+                        {currentOption ? <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: currentOption.dot }} /> : null}
+                        {(currentOption?.label ?? transaction.status).replace('_', ' ')}
                     </span>
                 </div>
 
@@ -127,23 +119,18 @@ export const StatusOverrideModal = ({ isOpen, onClose, transaction, onSuccess }:
                     </div>
                 )}
 
-                {/* Actions */}
-                <div className="flex gap-2 justify-end">
-                    <button
-                        onClick={onClose}
-                        className="px-4 py-2 rounded-lg text-sm font-semibold border border-border text-text-secondary hover:text-text-primary hover:border-border-strong transition-colors bg-surface"
-                    >
+                <DialogFooter>
+                    <Button variant="outline" onClick={onClose}>
                         Cancel
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                         onClick={handleSubmit}
                         disabled={isLoading || selectedStatus === currentStatus}
-                        className="px-4 py-2 rounded-lg text-sm font-semibold transition-opacity disabled:opacity-50 disabled:cursor-not-allowed bg-primary text-primary-foreground"
                     >
                         {isLoading ? 'Saving...' : isRestoreMode ? 'Restore' : 'Apply'}
-                    </button>
-                </div>
-            </div>
-        </div>
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     );
 };

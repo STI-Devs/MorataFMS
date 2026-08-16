@@ -1,407 +1,182 @@
-
-import { Icon } from '../../../../components/Icon';
-import { Pagination } from '../../../../components/Pagination';
-import { VesselGroupHeader } from '../../../tracking/components/vessel-groups/VesselGroupHeader';
+import { useMemo, useState } from 'react';
+import { RefreshCcw } from 'lucide-react';
+import type { SortDirection } from '../../../../components/data-table/DataTableColumnHeader';
+import { EmptyState } from '../../../../components/EmptyState';
+import { Button } from '../../../../components/ui/button';
+import { Card } from '../../../../components/ui/card';
 import { useOversightWorkspace } from '../../hooks/useOversightWorkspace';
-import {
-    CANCELLED_STATUS,
-    COMPLETED_STATUS,
-    STATUS_CFG,
-    TYPE_CFG,
-    formatCompactDate,
-    getTransactionPrimaryRef,
-    getTransactionSecondaryRef,
-    normalizeStatus,
-    type TypeFilter,
-} from '../../utils/oversightTransaction.utils';
+import { TransactionDetailDrawer } from '../details/TransactionDetailDrawer';
 import { DeleteCancelledTransactionModal } from '../modals/DeleteCancelledTransactionModal';
 import { RemarkModal } from '../modals/RemarkModal';
 import { StatusOverrideModal } from '../modals/StatusOverrideModal';
-import { TransactionDetailDrawer } from '../details/TransactionDetailDrawer';
+import { OversightHeader } from './OversightHeader';
+import { OversightKpiCards } from './OversightKpiCards';
+import { OversightPagination } from './OversightPagination';
+import { OversightSkeleton } from './OversightSkeleton';
+import { OversightTable } from './OversightTable';
+import { OversightToolbar, type ViewMode } from './OversightToolbar';
 
 export const TransactionOversight = () => {
-    const {
-        isLoading,
-        isError,
-        refetch,
-        setPage,
-        setPerPage,
-        meta,
-        searchTerm,
-        setSearchTerm,
-        typeFilter,
-        setTypeFilter,
-        statusFilter,
-        setStatusFilter,
-        transactions,
-        groups,
-        stats,
-        visibleBlocked,
-        expandedGroups,
-        toggleGroup,
-        statusTarget,
-        setStatusTarget,
-        remarkTarget,
-        setRemarkTarget,
-        detailTarget,
-        setDetailTarget,
-        deleteTarget,
-        setDeleteTarget,
-        deletingTargetKey,
-        handleStatusSuccess,
-        handleDelete,
-        confirmDelete,
-    } = useOversightWorkspace();
+    const ws = useOversightWorkspace();
+    const [viewMode, setViewMode] = useState<ViewMode>('table');
+    const [sortKey, setSortKey] = useState<string | null>(null);
+    const [sortDir, setSortDir] = useState<SortDirection>(null);
+
+    const sortedTransactions = useMemo(() => {
+        if (!sortKey || !sortDir) return ws.transactions;
+        return [...ws.transactions].sort((a, b) => {
+            let valA = '';
+            let valB = '';
+            if (sortKey === 'reference') {
+                valA = a.reference_no || a.bl_no || '';
+                valB = b.reference_no || b.bl_no || '';
+            } else if (sortKey === 'client') {
+                valA = a.client || '';
+                valB = b.client || '';
+            } else if (sortKey === 'vessel') {
+                valA = a.vessel || '';
+                valB = b.vessel || '';
+            } else if (sortKey === 'status') {
+                valA = a.status || '';
+                valB = b.status || '';
+            } else if (sortKey === 'date') {
+                valA = a.date || a.created_at || '';
+                valB = b.date || b.created_at || '';
+            }
+            const cmp = valA.localeCompare(valB);
+            return sortDir === 'asc' ? cmp : -cmp;
+        });
+    }, [ws.transactions, sortKey, sortDir]);
+
+    const handleSort = (key: string, dir: SortDirection) => {
+        setSortKey(dir ? key : null);
+        setSortDir(dir);
+    };
+
+    if (ws.isLoading) {
+        return <OversightSkeleton />;
+    }
+
+    if (ws.isError) {
+        return (
+            <div className="flex w-full flex-col items-center justify-center gap-3 py-16 text-center">
+                <p className="text-sm text-muted-foreground">
+                    Failed to load transactions. Please try again.
+                </p>
+                <Button variant="outline" onClick={() => ws.refetch()}>
+                    <RefreshCcw className="h-4 w-4" />
+                    Retry
+                </Button>
+            </div>
+        );
+    }
+
+    if (ws.transactions.length === 0) {
+        const hasActiveFilters =
+            ws.searchTerm.trim() !== '' || ws.typeFilter !== 'all' || ws.statusFilter !== 'all';
+        return (
+            <Card>
+                <EmptyState
+                    label="transactions"
+                    message={
+                        hasActiveFilters
+                            ? 'No transactions match your filters.'
+                            : 'No transactions found.'
+                    }
+                />
+            </Card>
+        );
+    }
 
     return (
-        <div className="w-full space-y-6 pb-8 pt-1">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                <div className="space-y-2">
-                    <div>
-                        <h1 className="text-3xl font-black tracking-tight text-text-primary md:text-4xl">Transaction Oversight</h1>
-                        <p className="mt-1.5 max-w-2xl text-[15px] leading-relaxed text-text-secondary">
-                            Monitor imports and exports by vessel while keeping transaction-level control over status, remarks, and encoder ownership.
-                        </p>
-                    </div>
-                </div>
-            </div>
+        <div className="w-full space-y-4 pb-6">
+            <OversightHeader />
+            <OversightKpiCards stats={ws.stats} />
 
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                    {[
-                        {
-                            label: 'Total Transactions',
-                            value: stats.total,
-                            detail: 'Across current oversight scope',
-                            color: 'text-primary',
-                            bg: 'bg-primary/10',
-                            icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2',
-                        },
-                        {
-                            label: 'Imports',
-                            value: stats.imports,
-                            detail: 'Import-side records',
-                            color: 'text-success',
-                            bg: 'bg-success/10',
-                            icon: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12',
-                        },
-                        {
-                            label: 'Exports',
-                            value: stats.exports,
-                            detail: 'Export-side records',
-                            color: 'text-warning',
-                            bg: 'bg-warning/10',
-                            icon: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4',
-                        },
-                        {
-                            label: 'Needs Attention',
-                            value: visibleBlocked,
-                            detail: 'Transactions with open remarks',
-                            color: 'text-danger',
-                            bg: 'bg-danger/10',
-                            icon: 'M12 9v4m0 4h.01M10.29 3.86l-7.47 13A1 1 0 003.68 18h16.64a1 1 0 00.86-1.5l-7.47-13a1 1 0 00-1.72 0z',
-                        },
-                    ].map((card) => (
-                        <div key={card.label} className="rounded-xl border border-border bg-surface p-5 shadow-sm transition-shadow hover:shadow-md">
-                            <div className="flex items-start justify-between gap-4">
-                                <div>
-                                    <p className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-text-muted">{card.label}</p>
-                                    <p className="text-3xl font-black tabular-nums tracking-tight text-text-primary">{card.value}</p>
-                                    <p className="mt-1 text-xs font-medium text-text-secondary">{card.detail}</p>
-                                </div>
-                                <div
-                                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${card.bg}`}
-                                >
-                                    <svg className={`h-5 w-5 ${card.color}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                                        <path strokeLinecap="round" strokeLinejoin="round" d={card.icon} />
-                                    </svg>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
+            <div className="flex flex-col gap-3">
+                <OversightToolbar
+                    searchTerm={ws.searchTerm}
+                    onSearchChange={ws.setSearchTerm}
+                    typeFilter={ws.typeFilter}
+                    onTypeChange={ws.setTypeFilter}
+                    statusFilter={ws.statusFilter}
+                    onStatusChange={ws.setStatusFilter}
+                    viewMode={viewMode}
+                    onViewModeChange={setViewMode}
+                    resultCount={ws.stats.total}
+                    onReset={() => {
+                        ws.setSearchTerm('');
+                        ws.setTypeFilter('all');
+                        ws.setStatusFilter('all');
+                        setSortKey(null);
+                        setSortDir(null);
+                    }}
+                />
 
-                <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
-                    <div className="border-b border-border bg-surface px-5 py-4">
-                        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-                            <div className="relative max-w-md flex-1">
-                                <svg className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                </svg>
-                                <input
-                                    type="text"
-                                    placeholder="Search vessel, voyage, BL, entry, client..."
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="h-10 w-full rounded-lg border border-border bg-surface-secondary/50 pl-10 pr-4 text-sm text-text-primary outline-none transition-colors placeholder:text-text-muted focus:border-border focus:bg-surface focus:ring-1 focus:ring-border"
-                                />
-                            </div>
-
-                            <div className="flex flex-wrap items-center gap-3">
-                                <div className="flex h-10 shrink-0 items-center rounded-lg bg-surface-secondary/50 p-1">
-                                    {(['all', 'import', 'export'] as TypeFilter[]).map((t) => (
-                                        <button
-                                            key={t}
-                                            onClick={() => setTypeFilter(t)}
-                                            className={`rounded-md px-4 py-1.5 text-xs font-semibold capitalize transition-all ${
-                                                typeFilter === t
-                                                    ? 'bg-surface text-text-primary shadow-sm ring-1 ring-border/50'
-                                                    : 'text-text-secondary hover:text-text-primary'
-                                            }`}
-                                        >
-                                            {t === 'all' ? 'All' : t === 'import' ? 'Imports' : 'Exports'}
-                                        </button>
-                                    ))}
-                                </div>
-
-                                <select
-                                    value={statusFilter}
-                                    onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
-                                    className="h-10 shrink-0 cursor-pointer rounded-lg border border-border bg-surface px-3 text-sm font-medium text-text-primary outline-none transition-colors focus:border-border focus:ring-1 focus:ring-border"
-                                >
-                                    <option value="all">All Statuses</option>
-                                    <option value="pending">Pending</option>
-                                    <option value="in_progress">In Progress</option>
-                                    <option value="completed">Completed</option>
-                                    <option value="cancelled">Cancelled</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    {isLoading ? (
-                        <div className="p-16 flex items-center justify-center">
-                            <div className="w-8 h-8 rounded-full border-[3px] border-border animate-spin" style={{ borderTopColor: 'var(--primary)' }} />
-                        </div>
-                    ) : isError ? (
-                        <div className="p-16 text-center">
-                            <p className="text-sm text-destructive font-medium">Failed to load transactions. Please try again.</p>
-                            <button onClick={() => refetch()} className="mt-3 text-xs text-primary hover:underline">Retry</button>
-                        </div>
-                    ) : transactions.length === 0 ? (
-                        <div className="p-12 text-center">
-                            <p className="text-text-muted text-sm">
-                                {searchTerm || typeFilter !== 'all' || statusFilter !== 'all'
-                                    ? 'No transactions match your filters.'
-                                    : 'No transactions found.'}
-                            </p>
+                <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
+                    <OversightTable
+                        transactions={sortedTransactions}
+                        groups={ws.groups}
+                        expandedGroups={ws.expandedGroups}
+                        toggleGroup={ws.toggleGroup}
+                        viewMode={viewMode}
+                        sortKey={sortKey}
+                        sortDir={sortDir}
+                        onSort={handleSort}
+                        onSelectTransaction={ws.setDetailTarget}
+                        onStatus={ws.setStatusTarget}
+                        onRemarks={ws.setRemarkTarget}
+                        onDelete={ws.handleDelete}
+                        onVesselFilter={(vessel) => ws.setSearchTerm(vessel)}
+                        deletingTargetKey={ws.deletingTargetKey}
+                    />
+                    {ws.meta && ws.meta.last_page > 1 ? (
+                        <div className="border-t border-border">
+                            <OversightPagination
+                                currentPage={ws.page}
+                                totalPages={ws.meta.last_page}
+                                perPage={ws.perPage}
+                                totalRecords={ws.meta.total_records}
+                                onPageChange={ws.setPage}
+                                onPerPageChange={(value) => {
+                                    ws.setPerPage(value);
+                                    ws.setPage(1);
+                                }}
+                            />
                         </div>
                     ) : (
-                        <div className="w-full">
-                            <div>
-                                {groups.map((group) => (
-                                    <div key={group.vesselKey} className="border-b border-border last:border-0 bg-surface">
-                                        <VesselGroupHeader
-                                            group={group}
-                                            isExpanded={expandedGroups.has(group.vesselKey)}
-                                            onToggle={() => toggleGroup(group.vesselKey)}
-                                        />
-
-                                        {expandedGroups.has(group.vesselKey) && (
-                                            <div>
-                                                <div className="hidden border-b border-border/60 bg-surface px-4 py-2.5 lg:grid lg:grid-cols-[88px_1.5fr_1.2fr_110px_96px_88px_96px_88px] lg:gap-x-3">
-                                                    <span className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">Type</span>
-                                                    <span className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">Primary Identifier</span>
-                                                    <span className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">Client / Vessel</span>
-                                                    <span className="text-center text-[10px] font-semibold uppercase tracking-wider text-text-muted">Status</span>
-                                                    <span className="text-center text-[10px] font-semibold uppercase tracking-wider text-text-muted">Encoder</span>
-                                                    <span className="text-center text-[10px] font-semibold uppercase tracking-wider text-text-muted">Remarks</span>
-                                                    <span className="text-right text-[10px] font-semibold uppercase tracking-wider text-text-muted">Created</span>
-                                                    <span className="text-[10px] font-semibold uppercase tracking-wider text-text-muted" />
-                                                </div>
-                                                {group.transactions.map((t) => {
-                                                    const normalizedStatus = normalizeStatus(t.status);
-                                                    const isCompleted = normalizedStatus === COMPLETED_STATUS;
-                                                    const isCancelled = normalizedStatus === CANCELLED_STATUS;
-                                                    const canManageActiveTransaction = !isCompleted && !isCancelled;
-                                                    const sc = STATUS_CFG[normalizedStatus] ?? STATUS_CFG.pending;
-                                                    const tc = TYPE_CFG[t.type] ?? TYPE_CFG.import;
-                                                    const rowKey = `${t.type}-${t.id}`;
-                                                    const primaryRef = getTransactionPrimaryRef(t);
-                                                    const secondaryRef = getTransactionSecondaryRef(t);
-                                                    return (
-                                                        <div
-                                                            key={rowKey}
-                                                            onClick={() => setDetailTarget(t)}
-                                                            className="relative grid cursor-pointer gap-x-3 gap-y-3 border-b border-border/40 p-4 text-xs transition-colors last:border-0 hover:bg-hover/60 lg:grid-cols-[88px_1.5fr_1.2fr_110px_96px_88px_96px_88px] lg:items-center lg:gap-y-0 lg:px-4 lg:py-3.5"
-                                                            role="row"
-                                                        >
-                                                            <div className="flex items-center justify-between lg:block">
-                                                                <span
-                                                                    className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em]"
-                                                                    style={{ color: tc.color, backgroundColor: tc.bg }}
-                                                                >
-                                                                    {t.type}
-                                                                </span>
-                                                                <div className="lg:hidden">
-                                                                    <span
-                                                                        className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold capitalize whitespace-nowrap"
-                                                                        style={{ color: sc.color, backgroundColor: sc.bg }}
-                                                                    >
-                                                                        {t.status.replace('_', ' ')}
-                                                                    </span>
-                                                                </div>
-                                                            </div>
-
-                                                            <div className="min-w-0">
-                                                                <span className="mb-1 block text-[10px] font-bold uppercase text-text-muted lg:hidden">Reference</span>
-                                                                <p className="truncate text-sm font-semibold text-text-primary lg:text-xs">{primaryRef}</p>
-                                                                {secondaryRef && (
-                                                                    <p className="mt-0.5 truncate text-[11px] text-text-muted">{secondaryRef}</p>
-                                                                )}
-                                                            </div>
-
-                                                            <div className="min-w-0">
-                                                                <span className="mb-1 block text-[10px] font-bold uppercase text-text-muted lg:hidden">Client</span>
-                                                                <p className="truncate text-sm font-medium text-text-secondary lg:text-xs">{t.client || '—'}</p>
-                                                                {t.vessel && (
-                                                                    <p className="mt-0.5 truncate text-[11px] text-text-muted">{t.vessel}</p>
-                                                                )}
-                                                            </div>
-
-                                                            <div className="hidden lg:flex justify-center">
-                                                                <span
-                                                                    className="inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-bold capitalize whitespace-nowrap"
-                                                                    style={{ color: sc.color, backgroundColor: sc.bg }}
-                                                                >
-                                                                    {t.status.replace('_', ' ')}
-                                                                </span>
-                                                            </div>
-
-                                                            <div className="flex items-center gap-4 border-t border-border/50 pt-2 lg:justify-center lg:border-t-0 lg:pt-0">
-                                                                <div className="min-w-0">
-                                                                    <span className="mb-1 block text-[10px] font-bold uppercase text-text-muted lg:hidden">Encoder</span>
-                                                                    <p className="truncate text-xs text-text-secondary lg:text-[11px]">
-                                                                        {t.assigned_to || <span className="italic text-text-muted">Unassigned</span>}
-                                                                    </p>
-                                                                </div>
-                                                            </div>
-
-                                                            <div className="hidden lg:flex justify-center">
-                                                                {t.open_remarks_count > 0 ? (
-                                                                    <button
-                                                                        onClick={(e) => { e.stopPropagation(); setRemarkTarget(t); }}
-                                                                        className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold transition-colors text-danger bg-danger/12"
-                                                                    >
-                                                                        <Icon name="flag" className="w-3 h-3" />
-                                                                        {t.open_remarks_count}
-                                                                    </button>
-                                                                ) : (
-                                                                    <span className="text-text-muted text-[10px]">—</span>
-                                                                )}
-                                                            </div>
-
-                                                            <div className="hidden truncate text-right text-[10px] text-text-muted lg:block">
-                                                                {formatCompactDate(t.date ?? t.created_at)}
-                                                            </div>
-
-                                                            <div className="col-span-full flex items-center justify-between gap-2 border-t border-border/50 pt-2 lg:col-span-1 lg:justify-end lg:border-t-0 lg:pt-0" onClick={e => e.stopPropagation()}>
-                                                                <div className="lg:hidden">
-                                                                    {t.open_remarks_count > 0 && (
-                                                                        <button
-                                                                            onClick={(e) => { e.stopPropagation(); setRemarkTarget(t); }}
-                                                                            className="inline-flex items-center gap-1 rounded-full bg-danger/10 px-2.5 py-1 text-[10px] font-semibold text-danger"
-                                                                            title={`${t.open_remarks_count} open remark(s)`}
-                                                                        >
-                                                                            <Icon name="flag" className="w-3 h-3" />
-                                                                            {t.open_remarks_count} remark{t.open_remarks_count > 1 ? 's' : ''}
-                                                                        </button>
-                                                                    )}
-                                                                </div>
-                                                                {canManageActiveTransaction && (
-                                                                    <button
-                                                                        onClick={(e) => { e.stopPropagation(); setStatusTarget(t); }}
-                                                                        className="rounded-lg border border-border bg-surface p-2 text-warning shadow-sm hover:bg-warning/10 lg:border-transparent lg:bg-transparent lg:p-1.5 lg:shadow-none"
-                                                                        title="Override Status"
-                                                                    >
-                                                                        <Icon name="alert-circle" className="w-4 h-4" />
-                                                                    </button>
-                                                                )}
-                                                                {isCancelled && (
-                                                                    <>
-                                                                        <button
-                                                                            onClick={(e) => { e.stopPropagation(); setStatusTarget(t); }}
-                                                                            className="rounded-lg border border-border bg-surface p-2 text-success shadow-sm hover:bg-success/10 lg:border-transparent lg:bg-transparent lg:p-1.5 lg:shadow-none"
-                                                                            title="Restore Transaction"
-                                                                        >
-                                                                            <Icon name="check-circle" className="w-4 h-4" />
-                                                                        </button>
-                                                                        <button
-                                                                            onClick={(e) => { e.stopPropagation(); handleDelete(t); }}
-                                                                            disabled={deletingTargetKey === rowKey}
-                                                                            className="rounded-lg border border-border bg-surface p-2 text-danger shadow-sm hover:bg-danger/10 disabled:opacity-50 lg:border-transparent lg:bg-transparent lg:p-1.5 lg:shadow-none"
-                                                                            title="Delete Cancelled Transaction"
-                                                                        >
-                                                                            <Icon name="trash" className="w-4 h-4" />
-                                                                        </button>
-                                                                    </>
-                                                                )}
-                                                                <button
-                                                                    onClick={(e) => { e.stopPropagation(); setRemarkTarget(t); }}
-                                                                    className="hidden lg:block rounded-lg p-1.5 text-danger hover:bg-danger/10"
-                                                                    title="Flag / Remarks"
-                                                                >
-                                                                    <Icon name="flag" className="w-4 h-4" />
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                            {meta && meta.last_page > 1 ? (
-                                <div className="mt-auto border-t border-border p-2 bg-surface">
-                                    <Pagination
-                                        currentPage={meta.current_page}
-                                        totalPages={meta.last_page}
-                                        perPage={meta.per_page}
-                                        perPageOptions={[50, 75, 100]}
-                                        onPageChange={setPage}
-                                        onPerPageChange={(value) => {
-                                            setPerPage(value);
-                                            setPage(1);
-                                        }}
-                                    />
-                                </div>
-                            ) : (
-                                <div className="mt-auto border-t border-border px-5 py-3 text-xs text-text-muted bg-surface">
-                                    Showing {transactions.length} of {stats.total} transactions
-                                </div>
-                            )}
+                        <div className="border-t border-border px-4 py-3 text-xs text-muted-foreground">
+                            Showing {ws.transactions.length} of {ws.stats.total} transactions
                         </div>
                     )}
                 </div>
+            </div>
 
-                {/* Modals */}
-                <StatusOverrideModal
-                    isOpen={!!statusTarget}
-                    onClose={() => setStatusTarget(null)}
-                    transaction={statusTarget}
-                    onSuccess={handleStatusSuccess}
+            <StatusOverrideModal
+                isOpen={!!ws.statusTarget}
+                onClose={() => ws.setStatusTarget(null)}
+                transaction={ws.statusTarget}
+                onSuccess={ws.handleStatusSuccess}
+            />
+            <RemarkModal
+                isOpen={!!ws.remarkTarget}
+                onClose={() => ws.setRemarkTarget(null)}
+                transactionType={ws.remarkTarget?.type ?? 'import'}
+                transactionId={ws.remarkTarget?.id ?? null}
+                transactionLabel={`${ws.remarkTarget?.type === 'import' ? 'Import' : 'Export'} — ${ws.remarkTarget?.bl_no || ws.remarkTarget?.reference_no || `#${ws.remarkTarget?.id}`}`}
+            />
+            <TransactionDetailDrawer
+                transaction={ws.detailTarget}
+                onClose={() => ws.setDetailTarget(null)}
+            />
+            {ws.deleteTarget && (
+                <DeleteCancelledTransactionModal
+                    transaction={ws.deleteTarget}
+                    open={!!ws.deleteTarget}
+                    onCancel={() => ws.setDeleteTarget(null)}
+                    onConfirm={() => ws.confirmDelete()}
                 />
-
-                <RemarkModal
-                    isOpen={!!remarkTarget}
-                    onClose={() => setRemarkTarget(null)}
-                    transactionType={remarkTarget?.type ?? 'import'}
-                    transactionId={remarkTarget?.id ?? null}
-                    transactionLabel={`${remarkTarget?.type === 'import' ? 'Import' : 'Export'} — ${remarkTarget?.bl_no || remarkTarget?.reference_no || `#${remarkTarget?.id}`}`}
-                />
-
-                <TransactionDetailDrawer
-                    transaction={detailTarget}
-                    onClose={() => setDetailTarget(null)}
-                />
-
-                {deleteTarget && (
-                    <DeleteCancelledTransactionModal
-                        transaction={deleteTarget}
-                        onCancel={() => setDeleteTarget(null)}
-                        onConfirm={() => void confirmDelete()}
-                    />
-                )}
+            )}
         </div>
     );
 };

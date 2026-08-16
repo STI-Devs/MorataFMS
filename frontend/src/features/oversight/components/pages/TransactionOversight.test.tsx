@@ -32,18 +32,50 @@ vi.mock('../../../../components/CurrentDateTime', () => ({
     CurrentDateTime: () => null,
 }));
 
-vi.mock('../../../../components/Pagination', () => ({
-    Pagination: ({
-        perPage,
-        perPageOptions,
-    }: {
-        perPage: number;
-        perPageOptions?: number[];
-    }) => (
+vi.mock('./OversightPagination', () => ({
+    OversightPagination: ({ perPage }: { perPage: number }) => (
         <div data-testid="pagination">
-            {perPage}:{perPageOptions?.join(',')}
+            {perPage}:{[50, 75, 100].join(',')}
         </div>
     ),
+}));
+
+vi.mock('./OversightRowActions', () => ({
+    OversightRowActions: ({
+        transaction,
+        onOverride,
+        onRestore,
+        onDelete,
+    }: {
+        transaction: { status: string };
+        onOverride: () => void;
+        onRestore: () => void;
+        onDelete: () => void;
+    }) => {
+        const normalized = transaction.status.trim().toLowerCase().replace(/\s+/g, '_');
+        const isCancelled = normalized === 'cancelled';
+        const isActive = normalized !== 'cancelled' && normalized !== 'completed';
+
+        return (
+            <>
+                {isActive && (
+                    <button title="Override Status" onClick={onOverride}>
+                        Override Status
+                    </button>
+                )}
+                {isCancelled && (
+                    <>
+                        <button title="Restore Transaction" onClick={onRestore}>
+                            Restore Transaction
+                        </button>
+                        <button title="Delete Cancelled Transaction" onClick={onDelete}>
+                            Delete Cancelled Transaction
+                        </button>
+                    </>
+                )}
+            </>
+        );
+    },
 }));
 
 vi.mock('../modals/RemarkModal', () => ({
@@ -158,7 +190,7 @@ describe('TransactionOversight', () => {
     it('keeps vessel headers aligned with the selected transaction type filter', async () => {
         renderWithProviders(<TransactionOversight />);
 
-        fireEvent.click(screen.getByRole('button', { name: 'Exports' }));
+        fireEvent.mouseDown(screen.getByRole('tab', { name: 'Exports' }));
 
         await waitFor(() => {
             expect(mockUseAllTransactions).toHaveBeenLastCalledWith({

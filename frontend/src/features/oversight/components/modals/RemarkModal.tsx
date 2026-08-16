@@ -1,4 +1,19 @@
 import { useState } from 'react';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from '../../../../components/ui/dialog';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '../../../../components/ui/select';
+import { Textarea } from '../../../../components/ui/textarea';
 import { useTransactionSyncSubscription } from '../../../../hooks/useTransactionSyncSubscription';
 import { useCreateRemark, useDocuments, useRemarks, useResolveRemark } from '../../hooks/useRemarks';
 import type { CreateRemarkData } from '../../types/remark.types';
@@ -29,9 +44,6 @@ interface RemarkModalProps {
 }
 
 export const RemarkModal = ({ isOpen, onClose, transactionType, transactionId, transactionLabel }: RemarkModalProps) => {
-    const documentSelectClassName = 'w-full px-3 py-2 rounded-lg text-sm border transition-colors focus:outline-none [color-scheme:light] dark:[color-scheme:dark] bg-muted border-border text-foreground focus:border-primary/50';
-    const documentOptionClassName = 'bg-card text-foreground';
-
     const [severity, setSeverity] = useState<CreateRemarkData['severity']>('warning');
     const [message, setMessage] = useState('');
     const [documentId, setDocumentId] = useState<number | null>(null);
@@ -69,23 +81,13 @@ export const RemarkModal = ({ isOpen, onClose, transactionType, transactionId, t
 
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-backdrop-in" onClick={onClose}>
-            <div
-                className="w-full max-w-2xl rounded-2xl max-h-[85vh] flex flex-col animate-modal-in bg-card"
-                onClick={e => e.stopPropagation()}
-            >
+        <Dialog open={isOpen} onOpenChange={(o) => { if (!o) onClose(); }}>
+            <DialogContent className="max-w-2xl flex max-h-[85vh] flex-col gap-0 p-0 sm:max-w-2xl">
                 {/* Header */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-                    <div>
-                        <h2 className="text-lg font-bold text-foreground">Transaction Remarks</h2>
-                        <p className="text-xs mt-0.5 text-muted-foreground">{transactionLabel}</p>
-                    </div>
-                    <button onClick={onClose} className="p-1.5 rounded-lg transition-colors hover:bg-foreground/10">
-                        <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-                </div>
+                <DialogHeader className="px-6 py-4 border-b border-border">
+                    <DialogTitle>Transaction Remarks</DialogTitle>
+                    <DialogDescription>{transactionLabel}</DialogDescription>
+                </DialogHeader>
 
                 {/* Create remark form */}
                 <div className="px-6 py-4 border-b border-border">
@@ -118,29 +120,33 @@ export const RemarkModal = ({ isOpen, onClose, transactionType, transactionId, t
                     {/* Pin to Document */}
                     {documentsData?.data && documentsData.data.length > 0 && (
                         <div className="mb-3">
-                            <select
-                                value={documentId ?? ''}
-                                onChange={e => setDocumentId(e.target.value ? Number(e.target.value) : null)}
-                                className={documentSelectClassName}
+                            <Select
+                                value={documentId !== null ? String(documentId) : 'none'}
+                                onValueChange={(value) => setDocumentId(value === 'none' ? null : Number(value))}
                             >
-                                <option value="" className={documentOptionClassName}>Do not pin to a document</option>
-                                {documentsData.data.map(doc => (
-                                    <option key={doc.id} value={doc.id} className={documentOptionClassName}>
-                                        {doc.type}: {doc.filename}
-                                    </option>
-                                ))}
-                            </select>
+                                <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="Do not pin to a document" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="none">Do not pin to a document</SelectItem>
+                                    {documentsData.data.map(doc => (
+                                        <SelectItem key={doc.id} value={String(doc.id)}>
+                                            {doc.type}: {doc.filename}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
                     )}
 
                     {/* Message */}
-                    <textarea
+                    <Textarea
                         value={message}
-                        onChange={e => setMessage(e.target.value)}
+                        onChange={(e) => setMessage(e.target.value)}
                         placeholder="Describe the issue (e.g., 'BL No. is incorrect, please revise PPA docs')..."
                         rows={3}
                         maxLength={1000}
-                        className="w-full px-3 py-2 rounded-lg text-sm resize-none border transition-colors focus:outline-none bg-muted border-border text-foreground placeholder:text-muted-foreground focus:border-primary/50"
+                        className="resize-none"
                     />
                     <div className="flex items-center justify-between mt-2">
                         <span className="text-xs text-muted-foreground">
@@ -252,7 +258,7 @@ export const RemarkModal = ({ isOpen, onClose, transactionType, transactionId, t
                         </>
                     )}
                 </div>
-            </div>
-        </div>
+            </DialogContent>
+        </Dialog>
     );
 };
