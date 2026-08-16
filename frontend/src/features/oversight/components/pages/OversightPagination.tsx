@@ -43,10 +43,10 @@ export const OversightPagination = ({
                         value={String(perPage)}
                         onValueChange={(value) => onPerPageChange(Number(value))}
                     >
-                        <SelectTrigger className="h-8 w-[72px] text-xs">
+                        <SelectTrigger className="h-8 w-[76px] text-xs">
                             <SelectValue />
                         </SelectTrigger>
-                        <SelectContent side="top">
+                        <SelectContent side="top" className="min-w-[76px]">
                             {PER_PAGE_OPTIONS.map((option) => (
                                 <SelectItem key={option} value={String(option)} className="text-xs">
                                     {option}

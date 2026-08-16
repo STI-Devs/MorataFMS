@@ -130,11 +130,11 @@ export const TransactionOversight = () => {
                         onVesselFilter={(vessel) => ws.setSearchTerm(vessel)}
                         deletingTargetKey={ws.deletingTargetKey}
                     />
-                    {ws.meta && ws.meta.last_page > 1 ? (
+                    {ws.meta ? (
                         <div className="border-t border-border">
                             <OversightPagination
                                 currentPage={ws.page}
-                                totalPages={ws.meta.last_page}
+                                totalPages={Math.max(ws.meta.last_page, 1)}
                                 perPage={ws.perPage}
                                 totalRecords={ws.meta.total_records}
                                 onPageChange={ws.setPage}
