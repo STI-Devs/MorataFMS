@@ -235,6 +235,14 @@ export const AdminDashboard = () => {
 
     // Derived analytics values
     const volumeMax = analytics ? Math.max(...analytics.monthly_volume.months.map((m) => m.total), 1) : 1;
+    const currentMonthIndex = new Date().getMonth();
+    const currentMonthPoint = analytics?.monthly_volume.months[currentMonthIndex]
+        ?? analytics?.monthly_volume.months.find((m) => m.month === currentMonthIndex + 1);
+    const currentMonthName = monthNames[currentMonthIndex] ?? 'Current';
+    const currentMonthTotal = currentMonthPoint?.total ?? 0;
+    const currentMonthImports = currentMonthPoint?.imports ?? 0;
+    const currentMonthExports = currentMonthPoint?.exports ?? 0;
+
     const importsPercentage = analytics?.transaction_flow.total
         ? Math.round((analytics.transaction_flow.imports / analytics.transaction_flow.total) * 100)
         : 0;
@@ -273,10 +281,10 @@ export const AdminDashboard = () => {
     ];
 
     const statusColors: Record<string, string> = {
-        pending: 'var(--warning)',
-        in_progress: 'var(--info)',
-        completed: 'var(--success)',
-        cancelled: 'var(--danger)',
+        pending: '#f59e0b',
+        in_progress: '#3b82f6',
+        completed: '#10b981',
+        cancelled: '#f43f5e',
     };
 
     // Donut SVG calculations for Live Status Mix
@@ -337,7 +345,7 @@ export const AdminDashboard = () => {
                 <section className="grid gap-4 lg:grid-cols-3">
                     {/* 2.1 Monthly Volume */}
                     <Card data-chart="monthly-volume" className="flex flex-col">
-                        <CardHeader className="pb-2">
+                        <CardHeader className="pb-2 space-y-1">
                             <div className="flex items-center justify-between">
                                 <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                                     Monthly Volume
@@ -356,17 +364,18 @@ export const AdminDashboard = () => {
                             <CardDescription className="text-xs text-muted-foreground">
                                 Imports vs exports, year to date
                             </CardDescription>
-                            <div className="flex items-baseline gap-2 pt-1">
-                                <span className="text-2xl font-bold tracking-tight tabular-nums text-foreground">
-                                    {analytics?.monthly_volume.total ?? '—'}
-                                </span>
-                                <span className="text-xs text-muted-foreground font-medium">
-                                    Total Files YTD
-                                </span>
-                            </div>
+                            {currentMonthPoint && (
+                                <div className="pt-0.5">
+                                    <Badge variant="outline" className="text-[11px] font-medium py-0.5 px-2 bg-muted/40 text-foreground border-border/60">
+                                        <span className="font-semibold text-primary mr-1">{currentMonthName}:</span>
+                                        <span className="font-semibold tabular-nums text-foreground">{currentMonthTotal}</span>
+                                        <span className="text-muted-foreground ml-1">({currentMonthImports} Imp · {currentMonthExports} Exp)</span>
+                                    </Badge>
+                                </div>
+                            )}
                         </CardHeader>
-                        <CardContent className="mt-auto pt-2">
-                            <div className="flex h-36 items-end justify-between gap-1.5 pt-4">
+                        <CardContent className="mt-auto pt-4">
+                            <div className="flex h-44 items-end justify-between gap-1.5">
                                 {analytics ? (
                                     analytics.monthly_volume.months.map((month) => (
                                         <div
@@ -463,8 +472,8 @@ export const AdminDashboard = () => {
                                     <span className="text-xl font-bold tracking-tight text-foreground">
                                         {liveStatusTotal}
                                     </span>
-                                    <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
-                                        Active
+                                    <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
+                                        Total
                                     </span>
                                 </div>
                             </div>
