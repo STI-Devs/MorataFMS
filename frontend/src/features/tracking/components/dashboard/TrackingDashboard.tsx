@@ -1,25 +1,60 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CurrentDateTime } from '../../../../components/CurrentDateTime';
+import {
+    Truck,
+    Flag,
+    Ship,
+    AlertCircle,
+    ChevronDown,
+    ChevronUp,
+    ChevronLeft,
+    ChevronRight,
+    ChevronsLeft,
+    ChevronsRight,
+    Search,
+    MoreHorizontal,
+} from 'lucide-react';
+import { Badge } from '../../../../components/ui/badge';
+import { Button } from '../../../../components/ui/button';
+import {
+    Card,
+    CardDescription,
+    CardFooter,
+    CardHeader,
+    CardTitle,
+} from '../../../../components/ui/card';
+import { Input } from '../../../../components/ui/input';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '../../../../components/ui/select';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '../../../../components/ui/table';
+import {
+    Tabs,
+    TabsContent,
+    TabsList,
+    TabsTrigger,
+} from '../../../../components/ui/tabs';
 import { EmptyState } from '../../../../components/EmptyState';
 import { StatusBadge } from '../../../../components/StatusBadge';
 import { appRoutes } from '../../../../lib/appRoutes';
 import { useAllExportsData, useAllImportsData } from '../../hooks/useAllTransactionRecords';
 import { useExportVesselGroups, useImportVesselGroups } from '../../hooks/useVesselGrouping';
 import type { ApiExportTransaction, ApiImportTransaction, VesselGroup } from '../../types';
-import { VesselGroupHeader } from '../vessel-groups/VesselGroupHeader';
 
 const LIVE_PARAMS = { exclude_statuses: 'completed,cancelled' };
-
-function SectionColumnHeader({ children, align = 'left' }: { children: React.ReactNode; align?: 'left' | 'center' | 'right' }) {
-    const alignClass = align === 'center' ? 'text-center' : align === 'right' ? 'text-right' : 'text-left';
-
-    return (
-        <span className={`text-[10px] font-bold uppercase tracking-wider text-text-secondary ${alignClass}`}>
-            {children}
-        </span>
-    );
-}
+const PER_PAGE_OPTIONS = [15, 20, 50];
+const DEFAULT_PER_PAGE = 20;
 
 function formatDateLabel(dateString: string | null | undefined): string {
     if (!dateString) return '—';
@@ -34,217 +69,525 @@ function formatDateLabel(dateString: string | null | undefined): string {
     });
 }
 
-function TrackingPanelHeader({
-    title,
-    badgeTone,
-    vesselCount,
-}: {
-    title: string;
-    badgeTone: 'green' | 'blue';
-    vesselCount: number;
-}) {
-    return (
-        <div className="flex items-center justify-between px-5 py-4">
-            <div className="flex items-center gap-3">
-                <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${badgeTone === 'green' ? 'bg-success/10' : 'bg-primary/10'}`}>
-                    <span className={`h-2.5 w-2.5 rounded-full ${badgeTone === 'green' ? 'bg-success' : 'bg-primary'}`} />
-                </div>
-                <div>
-                    <h2 className="text-sm font-bold tracking-tight text-text-primary">{title}</h2>
-                    <p className="text-[11px] font-medium text-text-muted">Expanded view · Active transactions</p>
-                </div>
-            </div>
-            <span className="rounded-lg border border-border bg-surface-secondary/50 px-3 py-1 text-[11px] font-bold text-text-secondary shadow-sm">
-                {vesselCount} vessels
-            </span>
-        </div>
-    );
+function toTitleCase(str: string | null | undefined): string {
+    if (!str) return '—';
+    return str
+        .toLowerCase()
+        .replace(/\b([a-z])/g, (match) => match.toUpperCase())
+        .replace(/\b([a-z0-9]*\d[a-z0-9]*)\b/gi, (match) => match.toUpperCase())
+        .replace(/\bCma\b/gi, 'CMA')
+        .replace(/\bCgm\b/gi, 'CGM')
+        .replace(/\bMsc\b/gi, 'MSC')
+        .replace(/\bApl\b/gi, 'APL')
+        .replace(/\bOne\b/gi, 'ONE')
+        .replace(/\bInc\b\.?/gi, 'Inc.')
+        .replace(/\bCo\b\.?/gi, 'Co.')
+        .replace(/\bCorp\b\.?/gi, 'Corp.')
+        .replace(/\bLlc\b/gi, 'LLC')
+        .replace(/\bLtd\b\.?/gi, 'Ltd.')
+        .replace(/\.{2,}/g, '.');
 }
 
-function ImportGroupsPanel({
+type AnyVesselGroup = VesselGroup<ApiImportTransaction> | VesselGroup<ApiExportTransaction>;
+
+interface VesselListViewProps {
+    groups: AnyVesselGroup[];
+    isLoading: boolean;
+    typeLabel: string;
+    emptyLabel: string;
+    searchQuery: string;
+    statusFilter: string;
+}
+
+function VesselListView({
     groups,
     isLoading,
-    expandedGroups,
-    onToggle,
-}: {
-    groups: VesselGroup<ApiImportTransaction>[];
-    isLoading: boolean;
-    expandedGroups: Set<string>;
-    onToggle: (key: string) => void;
-}) {
+    typeLabel,
+    emptyLabel,
+    searchQuery,
+    statusFilter,
+}: VesselListViewProps) {
     const navigate = useNavigate();
+    const [page, setPage] = useState(1);
+    const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE);
+    const [expandedGroups, setExpandedGroups] = useState<Set<string>>(
+        () => new Set(groups.map((g) => g.vesselKey))
+    );
 
-    return (
-        <div className="flex min-h-[520px] flex-col">
-            <div className="mb-4 rounded-xl border border-border bg-surface shadow-sm">
-                <TrackingPanelHeader title="Import Workload" badgeTone="green" vesselCount={groups.length} />
-            </div>
+    // Synchronize expansion set when new groups arrive
+    useMemo(() => {
+        setExpandedGroups((prev) => {
+            const next = new Set(prev);
+            for (const g of groups) {
+                if (!prev.has(g.vesselKey)) {
+                    next.add(g.vesselKey);
+                }
+            }
+            return next;
+        });
+    }, [groups]);
 
-            <div className="flex-1 flex flex-col gap-4">
-                {isLoading ? (
-                    <div className="flex flex-col gap-4">
-                        {Array.from({ length: 5 }).map((_, index) => (
-                            <div key={index} className="flex items-center gap-3 rounded-xl border border-border bg-surface px-5 py-5 shadow-sm">
-                                <div className="h-5 w-32 rounded skeleton-shimmer" />
-                                <div className="h-4 w-24 rounded skeleton-shimmer" />
-                                <div className="ml-auto h-5 w-20 rounded skeleton-shimmer" />
-                            </div>
-                        ))}
-                    </div>
-                ) : groups.length === 0 ? (
-                    <div className="flex h-full items-center justify-center rounded-xl border border-border bg-surface shadow-sm">
-                        <EmptyState label="imports" />
-                    </div>
-                ) : (
-                    groups.map((group) => (
-                        <div key={group.vesselKey} className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm transition-shadow hover:shadow-md">
-                            <VesselGroupHeader
-                                group={group}
-                                isExpanded={expandedGroups.has(group.vesselKey)}
-                                onToggle={() => onToggle(group.vesselKey)}
-                            />
+    // Filter groups based on search query and status filter
+    const filteredGroups = useMemo<AnyVesselGroup[]>(() => {
+        const result: AnyVesselGroup[] = [];
+        for (const group of groups) {
+            if (group.type === 'import') {
+                let txns = group.transactions as ApiImportTransaction[];
+                if (statusFilter !== 'all') {
+                    txns = txns.filter(
+                        (t) => (t.status ?? '').toLowerCase() === statusFilter.toLowerCase()
+                    );
+                }
+                if (searchQuery.trim()) {
+                    const q = searchQuery.toLowerCase();
+                    const matchesVessel = group.vesselName.toLowerCase().includes(q);
+                    const matchingTxns = txns.filter((t) => {
+                        const ref = t.customs_ref_no;
+                        const clientName = t.importer?.name;
+                        const blNo = t.bl_no;
+                        return (
+                            (ref && ref.toLowerCase().includes(q)) ||
+                            (blNo && blNo.toLowerCase().includes(q)) ||
+                            (clientName && clientName.toLowerCase().includes(q))
+                        );
+                    });
+                    if (matchesVessel && txns.length > 0) {
+                        result.push({ ...group, transactions: txns });
+                    } else if (matchingTxns.length > 0) {
+                        result.push({ ...group, transactions: matchingTxns });
+                    }
+                } else if (txns.length > 0) {
+                    result.push({ ...group, transactions: txns });
+                }
+            } else {
+                let txns = group.transactions as ApiExportTransaction[];
+                if (statusFilter !== 'all') {
+                    txns = txns.filter(
+                        (t) => (t.status ?? '').toLowerCase() === statusFilter.toLowerCase()
+                    );
+                }
+                if (searchQuery.trim()) {
+                    const q = searchQuery.toLowerCase();
+                    const matchesVessel = group.vesselName.toLowerCase().includes(q);
+                    const matchingTxns = txns.filter((t) => {
+                        const ref = t.bl_no;
+                        const clientName = t.shipper?.name;
+                        return (
+                            (ref && ref.toLowerCase().includes(q)) ||
+                            (clientName && clientName.toLowerCase().includes(q))
+                        );
+                    });
+                    if (matchesVessel && txns.length > 0) {
+                        result.push({ ...group, transactions: txns });
+                    } else if (matchingTxns.length > 0) {
+                        result.push({ ...group, transactions: matchingTxns });
+                    }
+                } else if (txns.length > 0) {
+                    result.push({ ...group, transactions: txns });
+                }
+            }
+        }
+        return result;
+    }, [groups, searchQuery, statusFilter]);
 
-                            {expandedGroups.has(group.vesselKey) && (
-                                <div>
-                                    <div className="hidden border-b border-border bg-surface-secondary/40 px-5 py-2.5 lg:grid lg:grid-cols-[1.35fr_1.1fr_108px_1.2fr_110px] lg:gap-x-3">
-                                        <SectionColumnHeader>Customs Ref</SectionColumnHeader>
-                                        <SectionColumnHeader>Bill of Lading</SectionColumnHeader>
-                                        <SectionColumnHeader align="center">Status</SectionColumnHeader>
-                                        <SectionColumnHeader>Importer</SectionColumnHeader>
-                                        <SectionColumnHeader align="right">Arrival</SectionColumnHeader>
-                                    </div>
-                                    {group.transactions.map((transaction, index) => (
-                                        <button
-                                            key={transaction.id}
-                                            type="button"
-                                            onClick={() => navigate(appRoutes.trackingDetail.replace(':referenceId', encodeURIComponent(transaction.customs_ref_no)))}
-                                            className={`grid w-full gap-3 border-b border-border/40 px-5 py-4 text-left transition-all hover:bg-hover/80 last:border-0 lg:grid-cols-[1.35fr_1.1fr_108px_1.2fr_110px] lg:items-center lg:py-3.5 ${
-                                                index % 2 !== 0 ? 'bg-surface/30' : 'bg-surface'
-                                            } ${transaction.open_remarks_count > 0 ? 'border-l-[3px] border-l-danger bg-danger/10' : 'border-l-[3px] border-l-transparent'}`}
-                                        >
-                                            <div className="min-w-0 pl-1">
-                                                <span className="mb-1 block text-[10px] font-bold uppercase text-text-muted lg:hidden">Customs Ref</span>
-                                                <p className="truncate font-mono text-[13px] font-bold text-text-primary">{transaction.customs_ref_no}</p>
-                                            </div>
-                                            <div className="min-w-0">
-                                                <span className="mb-1 block text-[10px] font-bold uppercase text-text-muted lg:hidden">BL No.</span>
-                                                <p className="truncate font-mono text-xs font-semibold text-text-secondary">{transaction.bl_no || '—'}</p>
-                                            </div>
-                                            <div className="flex lg:justify-center">
-                                                <StatusBadge status={transaction.status ?? ''} />
-                                            </div>
-                                            <div className="min-w-0">
-                                                <span className="mb-1 block text-[10px] font-bold uppercase text-text-muted lg:hidden">Importer</span>
-                                                <p className="truncate text-[13px] text-text-secondary">{transaction.importer?.name ?? '—'}</p>
-                                            </div>
-                                            <div className="min-w-0 lg:text-right">
-                                                <span className="mb-1 block text-[10px] font-bold uppercase text-text-muted lg:hidden">Arrival</span>
-                                                <p className="truncate text-[12px] font-medium text-text-muted">{formatDateLabel(transaction.arrival_date)}</p>
-                                            </div>
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
+    const totalVessels = filteredGroups.length;
+    const totalPages = Math.max(1, Math.ceil(totalVessels / perPage));
+    const paginatedGroups = filteredGroups.slice(
+        (page - 1) * perPage,
+        page * perPage
+    );
+    const startItem = totalVessels === 0 ? 0 : (page - 1) * perPage + 1;
+    const endItem = Math.min(page * perPage, totalVessels);
+
+    const allExpanded =
+        paginatedGroups.length > 0 &&
+        paginatedGroups.every((g) => expandedGroups.has(g.vesselKey));
+
+    const toggleGroup = (key: string) => {
+        setExpandedGroups((prev) => {
+            const next = new Set(prev);
+            if (next.has(key)) {
+                next.delete(key);
+            } else {
+                next.add(key);
+            }
+            return next;
+        });
+    };
+
+    const toggleAll = () => {
+        if (allExpanded) {
+            setExpandedGroups((prev) => {
+                const next = new Set(prev);
+                for (const g of paginatedGroups) {
+                    next.delete(g.vesselKey);
+                }
+                return next;
+            });
+        } else {
+            setExpandedGroups((prev) => {
+                const next = new Set(prev);
+                for (const g of paginatedGroups) {
+                    next.add(g.vesselKey);
+                }
+                return next;
+            });
+        }
+    };
+
+    if (isLoading) {
+        return (
+            <div className="space-y-4">
+                {Array.from({ length: 3 }).map((_, index) => (
+                    <div
+                        key={index}
+                        className="skeleton-shimmer flex items-center justify-between rounded-xl border border-border/60 bg-muted/30 p-5 animate-pulse"
+                    >
+                        <div className="space-y-2">
+                            <div className="h-5 w-44 rounded bg-muted" />
+                            <div className="h-3 w-28 rounded bg-muted/60" />
                         </div>
-                    ))
-                )}
+                        <div className="h-7 w-20 rounded bg-muted" />
+                    </div>
+                ))}
             </div>
-        </div>
-    );
-}
+        );
+    }
 
-function ExportGroupsPanel({
-    groups,
-    isLoading,
-    expandedGroups,
-    onToggle,
-}: {
-    groups: VesselGroup<ApiExportTransaction>[];
-    isLoading: boolean;
-    expandedGroups: Set<string>;
-    onToggle: (key: string) => void;
-}) {
-    const navigate = useNavigate();
+    if (filteredGroups.length === 0) {
+        return (
+            <div className="flex h-64 flex-col items-center justify-center rounded-xl border border-dashed border-border/80 bg-muted/10 p-8 text-center">
+                <EmptyState label={emptyLabel} />
+            </div>
+        );
+    }
 
     return (
-        <div className="flex min-h-[520px] flex-col">
-            <div className="mb-4 rounded-xl border border-border bg-surface shadow-sm">
-                <TrackingPanelHeader title="Export Workload" badgeTone="blue" vesselCount={groups.length} />
+        <div className="space-y-4">
+            {/* Action Bar / Toggle Header */}
+            <div className="flex items-center justify-between px-1">
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    {totalVessels} {totalVessels === 1 ? 'vessel group' : 'vessel groups'} · Expanded view · Active transactions
+                </span>
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={toggleAll}
+                    className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground gap-1.5"
+                >
+                    {allExpanded ? (
+                        <>
+                            <span>Collapse all</span>
+                            <ChevronUp className="size-3.5" />
+                        </>
+                    ) : (
+                        <>
+                            <span>Expand all</span>
+                            <ChevronDown className="size-3.5" />
+                        </>
+                    )}
+                </Button>
             </div>
 
-            <div className="flex-1 flex flex-col gap-4">
-                {isLoading ? (
-                    <div className="flex flex-col gap-4">
-                        {Array.from({ length: 5 }).map((_, index) => (
-                            <div key={index} className="flex items-center gap-3 rounded-xl border border-border bg-surface px-5 py-5 shadow-sm">
-                                <div className="h-5 w-28 rounded skeleton-shimmer" />
-                                <div className="h-4 w-32 rounded skeleton-shimmer" />
-                                <div className="ml-auto h-5 w-20 rounded skeleton-shimmer" />
-                            </div>
-                        ))}
-                    </div>
-                ) : groups.length === 0 ? (
-                    <div className="flex h-full items-center justify-center rounded-xl border border-border bg-surface shadow-sm">
-                        <EmptyState label="exports" />
-                    </div>
-                ) : (
-                    groups.map((group) => (
-                        <div key={group.vesselKey} className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm transition-shadow hover:shadow-md">
-                            <VesselGroupHeader
-                                group={group}
-                                isExpanded={expandedGroups.has(group.vesselKey)}
-                                onToggle={() => onToggle(group.vesselKey)}
-                            />
+            {/* Vessel Groups */}
+            <div className="space-y-3.5">
+                {paginatedGroups.map((group) => {
+                    const isExpanded = expandedGroups.has(group.vesselKey);
 
-                            {expandedGroups.has(group.vesselKey) && (
-                                <div>
-                                    <div className="hidden border-b border-border bg-surface-secondary/40 px-5 py-2.5 lg:grid lg:grid-cols-[1.15fr_1.25fr_108px_1fr_120px] lg:gap-x-3">
-                                        <SectionColumnHeader>BL No.</SectionColumnHeader>
-                                        <SectionColumnHeader>Shipper</SectionColumnHeader>
-                                        <SectionColumnHeader align="center">Status</SectionColumnHeader>
-                                        <SectionColumnHeader>Destination</SectionColumnHeader>
-                                        <SectionColumnHeader align="right">Departure</SectionColumnHeader>
+                    return (
+                        <div
+                            key={group.vesselKey}
+                            className="overflow-hidden rounded-xl border border-border/80 bg-card shadow-2xs transition-all hover:border-border"
+                        >
+                            {/* Vessel Accordion Header */}
+                            <button
+                                type="button"
+                                onClick={() => toggleGroup(group.vesselKey)}
+                                className="flex w-full items-center justify-between p-3.5 sm:p-4 bg-muted/30 hover:bg-muted/50 text-left transition-colors border-b border-border/60 gap-3 cursor-pointer"
+                            >
+                                <div className="flex items-center gap-3 min-w-0 flex-1">
+                                    <div className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-card text-foreground">
+                                        <Ship className="size-4 text-primary" />
                                     </div>
-                                    {group.transactions.map((transaction, index) => {
-                                        const reference = transaction.bl_no || `EXP-${String(transaction.id).padStart(4, '0')}`;
-
-                                        return (
-                                            <button
-                                                key={transaction.id}
-                                                type="button"
-                                                onClick={() => navigate(appRoutes.trackingDetail.replace(':referenceId', encodeURIComponent(reference)))}
-                                                className={`grid w-full gap-3 border-b border-border/40 px-5 py-4 text-left transition-all hover:bg-hover/80 last:border-0 lg:grid-cols-[1.15fr_1.25fr_108px_1fr_120px] lg:items-center lg:py-3.5 ${
-                                                    index % 2 !== 0 ? 'bg-surface/30' : 'bg-surface'
-                                                } ${transaction.open_remarks_count > 0 ? 'border-l-[3px] border-l-danger bg-danger/10' : 'border-l-[3px] border-l-transparent'}`}
+                                    <div className="min-w-0 flex-1">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <span className="font-bold text-sm text-foreground truncate">
+                                                {group.vesselName}
+                                            </span>
+                                            {group.voyage && (
+                                                <span className="font-mono text-[11px] font-medium px-2 py-0.5 rounded-md border border-border/80 bg-card text-muted-foreground">
+                                                    Voy. {group.voyage}
+                                                </span>
+                                            )}
+                                            <Badge
+                                                variant="outline"
+                                                className={`text-[10px] font-bold uppercase tracking-wider ${
+                                                    group.type === 'import'
+                                                        ? 'border-blue-500/20 bg-blue-500/10 text-blue-600 dark:text-blue-400'
+                                                        : 'border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                                                }`}
                                             >
-                                                <div className="min-w-0 pl-1">
-                                                    <span className="mb-1 block text-[10px] font-bold uppercase text-text-muted lg:hidden">BL No.</span>
-                                                    <p className="truncate font-mono text-[13px] font-bold text-text-primary">{reference}</p>
-                                                </div>
-                                                <div className="min-w-0">
-                                                    <span className="mb-1 block text-[10px] font-bold uppercase text-text-muted lg:hidden">Shipper</span>
-                                                    <p className="truncate text-[13px] text-text-secondary">{transaction.shipper?.name ?? '—'}</p>
-                                                </div>
-                                                <div className="flex lg:justify-center">
-                                                    <StatusBadge status={transaction.status ?? ''} />
-                                                </div>
-                                                <div className="min-w-0">
-                                                    <span className="mb-1 block text-[10px] font-bold uppercase text-text-muted lg:hidden">Destination</span>
-                                                    <p className="truncate text-[13px] text-text-secondary">{transaction.destination_country?.name ?? '—'}</p>
-                                                </div>
-                                                <div className="min-w-0 lg:text-right">
-                                                    <span className="mb-1 block text-[10px] font-bold uppercase text-text-muted lg:hidden">Departure</span>
-                                                    <p className="truncate text-[12px] font-medium text-text-muted">{formatDateLabel(transaction.export_date)}</p>
-                                                </div>
-                                            </button>
-                                        );
-                                    })}
+                                                {group.type}
+                                            </Badge>
+                                            {group.isDelayed && (
+                                                <Badge
+                                                    variant="outline"
+                                                    className="border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-400 text-[10px] font-bold uppercase tracking-wider"
+                                                >
+                                                    Late
+                                                </Badge>
+                                            )}
+                                        </div>
+                                        <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                                            <span className="font-semibold text-foreground/80">
+                                                {group.type === 'import' ? 'ETA' : 'ETD'}:
+                                            </span>{' '}
+                                            {formatDateLabel(group.eta)} ·{' '}
+                                            <span className="font-semibold text-foreground">
+                                                {group.stats.total}
+                                            </span>{' '}
+                                            shipments
+                                            {group.stats.blocked > 0 && (
+                                                <span className="text-destructive font-semibold ml-2">
+                                                    ({group.stats.blocked} need review)
+                                                </span>
+                                            )}
+                                        </p>
+                                    </div>
                                 </div>
+
+                                <div className="flex items-center gap-2 shrink-0">
+                                    <Badge variant="secondary" className="text-xs font-semibold">
+                                        {group.transactions.length} total
+                                    </Badge>
+                                    <span className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:text-foreground">
+                                        {isExpanded ? (
+                                            <ChevronUp className="size-4" />
+                                        ) : (
+                                            <ChevronDown className="size-4" />
+                                        )}
+                                    </span>
+                                </div>
+                            </button>
+
+                            {/* Transactions Table */}
+                            {isExpanded && (
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow className="hover:bg-transparent border-b">
+                                            <TableHead className="h-9 text-xs font-semibold uppercase tracking-wider text-muted-foreground w-[160px]">
+                                                {group.type === 'import' ? 'Customs Ref' : 'BL No.'}
+                                            </TableHead>
+                                            <TableHead className="h-9 text-xs font-semibold uppercase tracking-wider text-muted-foreground w-[180px]">
+                                                Vessel
+                                            </TableHead>
+                                            <TableHead className="h-9 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                                {group.type === 'import' ? 'Importer' : 'Shipper'}
+                                            </TableHead>
+                                            <TableHead className="h-9 text-xs font-semibold uppercase tracking-wider text-muted-foreground w-[130px] text-center">
+                                                Status
+                                            </TableHead>
+                                            <TableHead className="h-9 text-xs font-semibold uppercase tracking-wider text-muted-foreground w-[150px]">
+                                                Destination
+                                            </TableHead>
+                                            <TableHead className="h-9 text-xs font-semibold uppercase tracking-wider text-muted-foreground w-[120px] text-end">
+                                                {group.type === 'import' ? 'Arrival' : 'Departure'}
+                                            </TableHead>
+                                            <TableHead className="h-9 text-xs font-semibold uppercase tracking-wider text-muted-foreground w-[50px] text-end">
+                                                Actions
+                                            </TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {group.transactions.map((transaction) => {
+                                            const isImport = group.type === 'import';
+                                            const refNo = isImport
+                                                ? (transaction as ApiImportTransaction).customs_ref_no
+                                                : (transaction as ApiExportTransaction).bl_no ||
+                                                  `EXP-${String(transaction.id).padStart(4, '0')}`;
+                                            const clientName = isImport
+                                                ? (transaction as ApiImportTransaction).importer?.name
+                                                : (transaction as ApiExportTransaction).shipper?.name;
+                                            const destination = isImport
+                                                ? (transaction as ApiImportTransaction).origin_country?.name ||
+                                                  (transaction as ApiImportTransaction).location_of_goods?.name ||
+                                                  '—'
+                                                : (transaction as ApiExportTransaction).destination_country
+                                                      ?.name || '—';
+                                            const dateLabel = isImport
+                                                ? formatDateLabel(
+                                                      (transaction as ApiImportTransaction).arrival_date
+                                                  )
+                                                : formatDateLabel(
+                                                      (transaction as ApiExportTransaction).export_date
+                                                  );
+
+                                            return (
+                                                <TableRow
+                                                    key={transaction.id}
+                                                    onClick={() =>
+                                                        navigate(
+                                                            appRoutes.trackingDetail.replace(
+                                                                ':referenceId',
+                                                                encodeURIComponent(refNo)
+                                                            )
+                                                        )
+                                                    }
+                                                    className="group cursor-pointer hover:bg-muted/50 transition-colors border-b border-border/40"
+                                                >
+                                                    {/* 1. BL NO. / CUSTOMS REF */}
+                                                    <TableCell className="py-3 font-mono">
+                                                        <span className="font-semibold text-xs text-foreground group-hover:text-primary transition-colors">
+                                                            {refNo}
+                                                        </span>
+                                                    </TableCell>
+
+                                                    {/* 2. VESSEL */}
+                                                    <TableCell className="py-3">
+                                                        <span className="text-xs font-semibold text-foreground group-hover:text-primary transition-colors truncate block max-w-[180px]">
+                                                            {toTitleCase(group.vesselName)}
+                                                        </span>
+                                                    </TableCell>
+
+                                                    {/* 3. SHIPPER / IMPORTER */}
+                                                    <TableCell className="py-3">
+                                                        <span
+                                                            className="text-xs font-medium text-foreground truncate block max-w-[240px]"
+                                                            title={toTitleCase(clientName)}
+                                                        >
+                                                            {toTitleCase(clientName)}
+                                                        </span>
+                                                    </TableCell>
+
+                                                    {/* 4. STATUS */}
+                                                    <TableCell className="py-3 text-center">
+                                                        <StatusBadge status={transaction.status ?? ''} />
+                                                    </TableCell>
+
+                                                    {/* 5. DESTINATION */}
+                                                    <TableCell className="py-3">
+                                                        <span className="text-xs text-muted-foreground truncate block max-w-[150px]">
+                                                            {toTitleCase(destination)}
+                                                        </span>
+                                                    </TableCell>
+
+                                                    {/* 6. DEPARTURE / ARRIVAL */}
+                                                    <TableCell className="py-3 text-end text-xs text-muted-foreground tabular-nums whitespace-nowrap">
+                                                        {dateLabel}
+                                                    </TableCell>
+
+                                                    {/* 7. ACTIONS */}
+                                                    <TableCell
+                                                        className="py-3 text-end"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                    >
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="size-7 text-muted-foreground hover:text-foreground cursor-pointer"
+                                                            onClick={() =>
+                                                                navigate(
+                                                                    appRoutes.trackingDetail.replace(
+                                                                        ':referenceId',
+                                                                        encodeURIComponent(refNo)
+                                                                    )
+                                                                )
+                                                            }
+                                                            title="View details"
+                                                        >
+                                                            <MoreHorizontal className="size-4" />
+                                                        </Button>
+                                                    </TableCell>
+                                                </TableRow>
+                                            );
+                                        })}
+                                    </TableBody>
+                                </Table>
                             )}
                         </div>
-                    ))
-                )}
+                    );
+                })}
             </div>
+
+            {/* Pagination Controls */}
+            {totalVessels > 0 && (
+                <div className="flex flex-col gap-3 px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between rounded-xl border border-border/80 bg-card shadow-xs">
+                    <span className="text-xs font-medium text-muted-foreground">
+                        Showing <strong className="font-semibold text-foreground">{startItem}–{endItem}</strong> of{' '}
+                        <strong className="font-semibold text-foreground">{totalVessels}</strong> {typeLabel.toLowerCase()}
+                    </span>
+
+                    <div className="flex flex-wrap items-center gap-4">
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground">Vessels per page</span>
+                            <Select
+                                value={String(perPage)}
+                                onValueChange={(value) => {
+                                    setPerPage(Number(value));
+                                    setPage(1);
+                                }}
+                            >
+                                <SelectTrigger className="h-8 w-[76px] text-xs">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent side="top" className="min-w-[76px]">
+                                    {PER_PAGE_OPTIONS.map((option) => (
+                                        <SelectItem key={option} value={String(option)} className="text-xs">
+                                            {option}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="flex items-center gap-1">
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                aria-label="First page"
+                                onClick={() => setPage(1)}
+                                disabled={page <= 1}
+                                className="size-8"
+                            >
+                                <ChevronsLeft className="size-3.5" />
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                aria-label="Previous page"
+                                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                                disabled={page <= 1}
+                                className="size-8"
+                            >
+                                <ChevronLeft className="size-3.5" />
+                            </Button>
+                            <span className="px-2 text-xs font-medium text-muted-foreground">
+                                Page {page} of {totalPages}
+                            </span>
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                aria-label="Next page"
+                                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                                disabled={page >= totalPages}
+                                className="size-8"
+                            >
+                                <ChevronRight className="size-3.5" />
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                aria-label="Last page"
+                                onClick={() => setPage(totalPages)}
+                                disabled={page >= totalPages}
+                                className="size-8"
+                            >
+                                <ChevronsRight className="size-3.5" />
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
@@ -259,48 +602,238 @@ export const TrackingDashboard = () => {
     const importGroups = useImportVesselGroups(rawImports);
     const exportGroups = useExportVesselGroups(rawExports);
 
-    const [expandedImports, setExpandedImports] = useState<Set<string>>(() => new Set(importGroups.map(g => g.vesselKey)));
-    const [expandedExports, setExpandedExports] = useState<Set<string>>(() => new Set(exportGroups.map(g => g.vesselKey)));
+    const [searchQuery, setSearchQuery] = useState('');
+    const [statusFilter, setStatusFilter] = useState('all');
 
-    const toggleImport = (key: string) => setExpandedImports(prev => {
-        const n = new Set(prev);
-        if (n.has(key)) { n.delete(key); } else { n.add(key); }
-        return n;
-    });
-    const toggleExport = (key: string) => setExpandedExports(prev => {
-        const n = new Set(prev);
-        if (n.has(key)) { n.delete(key); } else { n.add(key); }
-        return n;
-    });
+    const importsWithAttention = rawImports.filter((t) => t.open_remarks_count > 0).length;
+    const exportsWithAttention = rawExports.filter((t) => t.open_remarks_count > 0).length;
+    const totalVessels = importGroups.length + exportGroups.length;
+    const totalAttention = importsWithAttention + exportsWithAttention;
+
+    // All combined groups
+    const allGroups = useMemo(() => {
+        return [...importGroups, ...exportGroups].sort((a, b) => {
+            if (!a.eta) return 1;
+            if (!b.eta) return -1;
+            return new Date(a.eta).getTime() - new Date(b.eta).getTime();
+        });
+    }, [importGroups, exportGroups]);
+
+    const attentionGroups = useMemo(() => {
+        return allGroups.filter((g) => g.stats.blocked > 0);
+    }, [allGroups]);
 
     return (
-        <div className="flex flex-col gap-5 pb-6">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-text-primary">Live Tracking Overview</h1>
-                    <p className="mt-1 text-sm text-text-secondary">Your assigned transactions · Grouped by vessel</p>
-                </div>
-                <CurrentDateTime
-                    className="hidden shrink-0 text-right sm:block"
-                    timeClassName="text-2xl font-bold tabular-nums text-text-primary leading-none"
-                    dateClassName="mt-1 text-sm text-text-secondary leading-none"
-                />
+        <div className="w-full space-y-6 pb-8">
+            {/* Header */}
+            <div className="flex flex-col gap-1">
+                <h1 className="text-2xl font-bold tracking-tight text-foreground">
+                    Live Tracking Overview
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                    Your assigned active transactions grouped by voyage and vessel schedule.
+                </p>
             </div>
 
-            <div className="grid gap-4 xl:grid-cols-2">
-                <ImportGroupsPanel
-                    groups={importGroups}
-                    isLoading={importsLoading}
-                    expandedGroups={expandedImports}
-                    onToggle={toggleImport}
-                />
-                <ExportGroupsPanel
-                    groups={exportGroups}
-                    isLoading={exportsLoading}
-                    expandedGroups={expandedExports}
-                    onToggle={toggleExport}
-                />
-            </div>
+            {/* Section 1: KPI Metrics Row */}
+            <section className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
+                <Card className="py-4">
+                    <CardHeader className="p-4 pb-2 space-y-1.5">
+                        <CardDescription className="text-xs font-semibold text-muted-foreground">
+                            Active Imports
+                        </CardDescription>
+                        <div className="flex items-center justify-between gap-2">
+                            <CardTitle className="text-2xl font-bold tabular-nums text-foreground">
+                                {rawImports.length}
+                            </CardTitle>
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 font-medium shrink-0 gap-1">
+                                <Truck className="size-3 text-info" /> In Transit
+                            </Badge>
+                        </div>
+                    </CardHeader>
+                    <CardFooter className="p-4 pt-0 text-xs text-muted-foreground">
+                        <span>Assigned import shipments</span>
+                    </CardFooter>
+                </Card>
+
+                <Card className="py-4">
+                    <CardHeader className="p-4 pb-2 space-y-1.5">
+                        <CardDescription className="text-xs font-semibold text-muted-foreground">
+                            Active Exports
+                        </CardDescription>
+                        <div className="flex items-center justify-between gap-2">
+                            <CardTitle className="text-2xl font-bold tabular-nums text-foreground">
+                                {rawExports.length}
+                            </CardTitle>
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 font-medium shrink-0 gap-1">
+                                <Flag className="size-3 text-success" /> Outbound
+                            </Badge>
+                        </div>
+                    </CardHeader>
+                    <CardFooter className="p-4 pt-0 text-xs text-muted-foreground">
+                        <span>Assigned export shipments</span>
+                    </CardFooter>
+                </Card>
+
+                <Card className="py-4">
+                    <CardHeader className="p-4 pb-2 space-y-1.5">
+                        <CardDescription className="text-xs font-semibold text-muted-foreground">
+                            Vessels Tracked
+                        </CardDescription>
+                        <div className="flex items-center justify-between gap-2">
+                            <CardTitle className="text-2xl font-bold tabular-nums text-foreground">
+                                {totalVessels}
+                            </CardTitle>
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 font-medium shrink-0 gap-1">
+                                <Ship className="size-3 text-primary" /> Active
+                            </Badge>
+                        </div>
+                    </CardHeader>
+                    <CardFooter className="p-4 pt-0 text-xs text-muted-foreground">
+                        <span>{importGroups.length} import · {exportGroups.length} export</span>
+                    </CardFooter>
+                </Card>
+
+                <Card className="py-4">
+                    <CardHeader className="p-4 pb-2 space-y-1.5">
+                        <CardDescription className="text-xs font-semibold text-muted-foreground">
+                            Needs Attention
+                        </CardDescription>
+                        <div className="flex items-center justify-between gap-2">
+                            <CardTitle
+                                className={`text-2xl font-bold tabular-nums ${
+                                    totalAttention > 0 ? 'text-destructive' : 'text-foreground'
+                                }`}
+                            >
+                                {totalAttention}
+                            </CardTitle>
+                            <Badge
+                                variant={totalAttention > 0 ? 'destructive' : 'outline'}
+                                className="text-[10px] px-1.5 py-0.5 font-medium shrink-0 gap-1"
+                            >
+                                <AlertCircle className="size-3" /> Blockers
+                            </Badge>
+                        </div>
+                    </CardHeader>
+                    <CardFooter className="p-4 pt-0 text-xs text-muted-foreground">
+                        <span>{totalAttention === 0 ? 'No blockers reported' : 'Shipments with open remarks'}</span>
+                    </CardFooter>
+                </Card>
+            </section>
+
+            {/* Section 2: Tabbed Tracking Workspace with Toolbar */}
+            <Tabs defaultValue="all" className="w-full space-y-4">
+                {/* Toolbar */}
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                    <TabsList className="h-9 p-1 bg-muted/60">
+                        <TabsTrigger value="all" className="gap-2 px-3 text-xs">
+                            <span>All Vessels</span>
+                            <Badge variant="secondary" className="px-1.5 py-0 text-[10px] font-semibold">
+                                {totalVessels}
+                            </Badge>
+                        </TabsTrigger>
+                        <TabsTrigger value="imports" className="gap-1.5 px-3 text-xs">
+                            <Truck className="size-3.5" />
+                            <span>Imports</span>
+                            <Badge variant="secondary" className="px-1.5 py-0 text-[10px] font-semibold">
+                                {importGroups.length}
+                            </Badge>
+                        </TabsTrigger>
+                        <TabsTrigger value="exports" className="gap-1.5 px-3 text-xs">
+                            <Flag className="size-3.5" />
+                            <span>Exports</span>
+                            <Badge variant="secondary" className="px-1.5 py-0 text-[10px] font-semibold">
+                                {exportGroups.length}
+                            </Badge>
+                        </TabsTrigger>
+                        <TabsTrigger value="attention" className="gap-1.5 px-3 text-xs">
+                            <AlertCircle className="size-3.5 text-destructive" />
+                            <span>Attention</span>
+                            {totalAttention > 0 && (
+                                <Badge variant="destructive" className="px-1.5 py-0 text-[10px] font-semibold">
+                                    {totalAttention}
+                                </Badge>
+                            )}
+                        </TabsTrigger>
+                    </TabsList>
+
+                    {/* Search and Filters */}
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                        <div className="relative flex-1 sm:w-64 sm:flex-initial">
+                            <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
+                            <Input
+                                placeholder="Filter vessel, BL, ref..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="h-9 pl-9 text-xs"
+                            />
+                        </div>
+
+                        <Select value={statusFilter} onValueChange={setStatusFilter}>
+                            <SelectTrigger className="h-9 w-36 text-xs">
+                                <SelectValue placeholder="All Statuses" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Statuses</SelectItem>
+                                <SelectItem value="Processing">Processing</SelectItem>
+                                <SelectItem value="In Transit">In Transit</SelectItem>
+                                <SelectItem value="Vessel Arrived">Vessel Arrived</SelectItem>
+                                <SelectItem value="Cleared">Cleared</SelectItem>
+                                <SelectItem value="Completed">Completed</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
+
+                {/* Tab: All Vessels */}
+                <TabsContent value="all" className="mt-0">
+                    <VesselListView
+                        groups={allGroups}
+                        isLoading={importsLoading || exportsLoading}
+                        typeLabel="Vessels"
+                        emptyLabel="vessels"
+                        searchQuery={searchQuery}
+                        statusFilter={statusFilter}
+                    />
+                </TabsContent>
+
+                {/* Tab: Imports */}
+                <TabsContent value="imports" className="mt-0">
+                    <VesselListView
+                        groups={importGroups}
+                        isLoading={importsLoading}
+                        typeLabel="Imports"
+                        emptyLabel="imports"
+                        searchQuery={searchQuery}
+                        statusFilter={statusFilter}
+                    />
+                </TabsContent>
+
+                {/* Tab: Exports */}
+                <TabsContent value="exports" className="mt-0">
+                    <VesselListView
+                        groups={exportGroups}
+                        isLoading={exportsLoading}
+                        typeLabel="Exports"
+                        emptyLabel="exports"
+                        searchQuery={searchQuery}
+                        statusFilter={statusFilter}
+                    />
+                </TabsContent>
+
+                {/* Tab: Attention */}
+                <TabsContent value="attention" className="mt-0">
+                    <VesselListView
+                        groups={attentionGroups}
+                        isLoading={importsLoading || exportsLoading}
+                        typeLabel="Flagged Vessels"
+                        emptyLabel="flagged transactions"
+                        searchQuery={searchQuery}
+                        statusFilter={statusFilter}
+                    />
+                </TabsContent>
+            </Tabs>
         </div>
     );
 };
+
