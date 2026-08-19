@@ -21,7 +21,7 @@ describe('UserFormModal', () => {
         fireEvent.change(screen.getByLabelText('Email'), {
             target: { value: 'ichihara@morata.com' },
         });
-        fireEvent.change(screen.getByLabelText('Job Title'), {
+        fireEvent.change(screen.getByLabelText('Position'), {
             target: { value: 'Developer' },
         });
         fireEvent.change(screen.getByLabelText('Role'), {

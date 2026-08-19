@@ -276,7 +276,7 @@ describe('TrackingDetails', () => {
             path: appRoutes.trackingDetail,
             routes: [
                 {
-                    path: appRoutes.documentDetail,
+                    path: appRoutes.documents,
                     element: <div>Documents detail route</div>,
                 },
             ],
@@ -556,7 +556,7 @@ describe('TrackingDetails', () => {
             path: appRoutes.trackingDetail,
             routes: [
                 {
-                    path: appRoutes.documentDetail,
+                    path: appRoutes.documents,
                     element: <div>Documents detail route</div>,
                 },
             ],

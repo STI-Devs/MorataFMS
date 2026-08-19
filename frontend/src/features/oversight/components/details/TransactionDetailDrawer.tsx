@@ -31,8 +31,7 @@ const SEVERITY_CFG = {
     critical: { label: 'Critical', variant: 'destructive' as const, className: '' },
 } as const;
 
-const TABS = ['Documents', 'Stages', 'Remarks'] as const;
-type Tab = typeof TABS[number];
+type Tab = 'Documents' | 'Stages' | 'Remarks';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 

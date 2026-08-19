@@ -19,7 +19,7 @@ import {
   ClientManagement,
   CountryManagement,
   Documents,
-  DocumentsDetail,
+  DocumentDetailBridge,
   DocumentGeneratorPage,
   EncoderArchivePage,
   EncoderDashboard,
@@ -110,7 +110,7 @@ function AppContent() {
               <Route path={appRoutes.exports} element={<ExportList />} />
               <Route path={appRoutes.exportAlias} element={<ExportList />} />
               <Route path={appRoutes.documents} element={<DocumentsIndexRoute />} />
-              <Route path={appRoutes.documentDetail} element={<DocumentsDetail />} />
+              <Route path={appRoutes.documentDetail} element={<DocumentDetailBridge />} />
             </Route>
 
             {/* Encoder-only brokerage routes */}

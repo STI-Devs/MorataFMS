@@ -8,13 +8,13 @@ import type {
 } from '../../types/document.types';
 
 export const STATUS_TONES: Record<string, { text: string; bg: string }> = {
-    completed: { text: 'text-emerald-600', bg: 'bg-emerald-500/10 border-emerald-500/20' },
-    cancelled: { text: 'text-red-600', bg: 'bg-red-500/10 border-red-500/20' },
+    completed: { text: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20' },
+    cancelled: { text: 'text-rose-600 dark:text-rose-400', bg: 'bg-rose-500/10 border-rose-500/20' },
 };
 
 export const TYPE_TONES: Record<string, { text: string; bg: string }> = {
-    import: { text: 'text-blue-600', bg: 'bg-blue-500/10 border-blue-500/20' },
-    export: { text: 'text-amber-600', bg: 'bg-amber-500/10 border-amber-500/20' },
+    import: { text: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20' },
+    export: { text: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20' },
 };
 
 export const READINESS_TONES: Record<
@@ -22,21 +22,26 @@ export const READINESS_TONES: Record<
     { text: string; bg: string; label: string }
 > = {
     ready: {
-        text: 'text-emerald-600',
+        text: 'text-emerald-600 dark:text-emerald-400',
         bg: 'bg-emerald-500/10 border-emerald-500/20',
         label: 'Ready for Records',
     },
     missing_docs: {
-        text: 'text-amber-600',
+        text: 'text-amber-600 dark:text-amber-400',
         bg: 'bg-amber-500/10 border-amber-500/20',
         label: 'Missing Docs',
     },
     flagged: {
-        text: 'text-red-600',
-        bg: 'bg-red-500/10 border-red-500/20',
+        text: 'text-rose-600 dark:text-rose-400',
+        bg: 'bg-rose-500/10 border-rose-500/20',
         label: 'Flagged',
     },
 };
+
+export function toTitleCase(str: string | null | undefined): string {
+    if (!str) return '—';
+    return str.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+}
 
 export type ReviewSelection = {
     id: number;

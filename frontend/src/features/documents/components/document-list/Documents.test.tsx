@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { appRoutes } from '../../../../lib/appRoutes';
 import {
@@ -23,6 +23,12 @@ vi.mock('../../hooks/useDocumentTransactions', () => ({
 
 vi.mock('../../../../components/CurrentDateTime', () => ({
     CurrentDateTime: () => <div data-testid="current-date-time" />,
+}));
+
+vi.mock('../document-detail/DocumentDetailPane', () => ({
+    DocumentDetailPane: ({ ref }: { ref: string | null }) => (
+        <div data-testid="detail-pane">{ref ?? 'none'}</div>
+    ),
 }));
 
 describe('Documents', () => {
@@ -144,8 +150,12 @@ describe('Documents', () => {
             });
         });
 
-        fireEvent.click(screen.getByRole('button', { name: /All Types/i }));
-        fireEvent.click(screen.getByRole('button', { name: 'Export' }));
+        const typeSelect = screen.getAllByRole('combobox').find((el) => el.textContent?.includes('All Types'));
+        expect(typeSelect).toBeTruthy();
+        typeSelect!.focus();
+        fireEvent.keyDown(typeSelect!, { key: 'ArrowDown' });
+        const listbox = await screen.findByRole('listbox');
+        fireEvent.click(await within(listbox).findByText('Export'));
 
         await waitFor(() => {
             expect(mockUseDocumentTransactions).toHaveBeenLastCalledWith({
@@ -157,7 +167,7 @@ describe('Documents', () => {
         });
     });
 
-    it('navigates to the selected document detail route when a row is clicked', () => {
+    it('selects a document when a row is clicked and syncs the ref to the URL', async () => {
         mockUseDocumentTransactions.mockReturnValue({
             data: makeDocumentTransactionsResponse({
                 data: [
@@ -174,16 +184,36 @@ describe('Documents', () => {
         renderWithProviders(<Documents />, {
             route: appRoutes.documents,
             path: appRoutes.documents,
-            routes: [
-                {
-                    path: appRoutes.documentDetail,
-                    element: <div>Document detail route</div>,
-                },
-            ],
         });
+
+        expect(screen.getByTestId('detail-pane')).toHaveTextContent('none');
 
         fireEvent.click(screen.getByText('Alpha Trading'));
 
-        expect(screen.getByText('Document detail route')).toBeInTheDocument();
+        await waitFor(() => {
+            expect(screen.getByTestId('detail-pane')).toHaveTextContent('IMP-2026-ALPHA');
+        });
+    });
+
+    it('opens the detail pane from a ?ref= deep link', () => {
+        mockUseDocumentTransactions.mockReturnValue({
+            data: makeDocumentTransactionsResponse({
+                data: [
+                    makeDocumentTransactionRow({
+                        ref: 'IMP-2026-ALPHA',
+                        client: 'ALPHA TRADING',
+                    }),
+                ],
+            }),
+            isLoading: false,
+            isError: false,
+        });
+
+        renderWithProviders(<Documents />, {
+            route: `${appRoutes.documents}?ref=IMP-2026-ALPHA`,
+            path: appRoutes.documents,
+        });
+
+        expect(screen.getByTestId('detail-pane')).toHaveTextContent('IMP-2026-ALPHA');
     });
 });

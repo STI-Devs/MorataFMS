@@ -1,20 +1,21 @@
-import { generatePath, useNavigate } from 'react-router-dom';
-import { Icon } from '../../../../components/Icon';
+import { FileText, TriangleAlert } from 'lucide-react';
 import { Pagination } from '../../../../components/Pagination';
-import { appRoutes } from '../../../../lib/appRoutes';
-import type { DocumentTransactionListResponse } from '../../types/document.types';
+import { Badge } from '../../../../components/ui/badge';
+import { Skeleton } from '../../../../components/ui/skeleton';
 import {
-    formatDate,
-    TABLE_GRID,
-    toTitleCase,
-    TYPE_CONFIG,
-    type DocumentRow,
-} from './documentsList.utils';
-import { TableSkeleton } from './DocumentsShared';
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '../../../../components/ui/table';
+import type { DocumentTransactionListResponse } from '../../types/document.types';
+import { formatDate, toTitleCase, TYPE_CONFIG, type DocumentRow } from './documentsList.utils';
 
-const EmptyState = ({ isFullyEmpty }: { isFullyEmpty: boolean }) => (
-    <div className="flex flex-col items-center gap-3 py-16 text-text-muted">
-        <Icon name="file-text" className="h-10 w-10 opacity-30" />
+const TableEmptyState = ({ isFullyEmpty }: { isFullyEmpty: boolean }) => (
+    <div className="flex flex-col items-center gap-3 py-16 text-muted-foreground">
+        <FileText className="size-10 opacity-30" />
         <p className="text-sm font-semibold">
             {isFullyEmpty ? 'No completed transactions yet' : 'No transactions match your filter'}
         </p>
@@ -29,174 +30,157 @@ const EmptyState = ({ isFullyEmpty }: { isFullyEmpty: boolean }) => (
 export const DocumentsTable = ({
     rows,
     response,
+    selectedRef,
     isLoading,
+    onSelect,
     onPageChange,
     onPerPageChange,
 }: {
     rows: DocumentRow[];
     response: DocumentTransactionListResponse | undefined;
+    selectedRef: string | null;
     isLoading: boolean;
+    onSelect: (ref: string) => void;
     onPageChange: (page: number) => void;
     onPerPageChange: (perPage: number) => void;
 }) => {
-    const navigate = useNavigate();
     const meta = response?.meta;
 
     return (
         <>
-            <div
-                className="grid gap-4 border-b border-border bg-surface-secondary px-6 py-3"
-                style={{ gridTemplateColumns: TABLE_GRID }}
-            >
-                {['Type', 'BL No.', 'Client', 'Date', 'Status', 'Docs'].map((header, index) => (
-                    <span
-                        key={header}
-                        className={`text-xs font-bold uppercase tracking-wider text-text-secondary ${
-                            index >= 4 ? 'text-center' : ''
-                        }`}
-                    >
-                        {header}
-                    </span>
-                ))}
-            </div>
-
-            {isLoading ? (
-                <TableSkeleton />
-            ) : (
-                <>
-                    <div>
-                        {rows.length === 0 ? (
-                            <EmptyState isFullyEmpty={(response?.meta?.total ?? 0) === 0} />
+            <div className="overflow-x-auto">
+                <Table>
+                    <TableHeader className="bg-muted/50">
+                        <TableRow className="hover:bg-transparent">
+                            <TableHead>Type</TableHead>
+                            <TableHead>BL No.</TableHead>
+                            <TableHead>Client</TableHead>
+                            <TableHead>Date</TableHead>
+                            <TableHead className="text-center">Status</TableHead>
+                            <TableHead className="text-center">Docs</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {isLoading ? (
+                            Array.from({ length: 6 }).map((_, index) => (
+                                <TableRow key={index}>
+                                    <TableCell><Skeleton className="h-6 w-16 rounded-full" /></TableCell>
+                                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                                    <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                                    <TableCell><Skeleton className="mx-auto h-6 w-20 rounded-full" /></TableCell>
+                                    <TableCell><Skeleton className="mx-auto h-6 w-14 rounded-full" /></TableCell>
+                                </TableRow>
+                            ))
+                        ) : rows.length === 0 ? (
+                            <TableRow className="hover:bg-transparent">
+                                <TableCell colSpan={6} className="h-24 text-center">
+                                    <TableEmptyState isFullyEmpty={(response?.meta?.total ?? 0) === 0} />
+                                </TableCell>
+                            </TableRow>
                         ) : (
-                            rows.map((row, index) => {
+                            rows.map((row) => {
+                                const isSelected = selectedRef === row.ref;
                                 const typeConfig = TYPE_CONFIG[row.type];
                                 const isMissingDocs = row.docCount === 0;
                                 const normalizedStatus = row.status.toLowerCase();
 
                                 return (
-                                    <div
+                                    <TableRow
                                         key={row.id}
-                                        onClick={() =>
-                                            navigate(
-                                                generatePath(appRoutes.documentDetail, {
-                                                    ref: row.ref,
-                                                }),
-                                            )
-                                        }
-                                        className={`relative grid cursor-pointer items-center gap-4 border-b border-border/50 px-6 py-3 transition-all duration-150 hover:bg-hover ${
-                                            index % 2 !== 0 ? 'bg-surface-secondary/40' : ''
-                                        }`}
-                                        style={{ gridTemplateColumns: TABLE_GRID }}
+                                        data-state={isSelected ? 'selected' : undefined}
+                                        onClick={() => onSelect(row.ref)}
+                                        className="cursor-pointer"
                                     >
-                                        <span
-                                            className="inline-flex w-fit items-center rounded-full px-2.5 py-1 text-xs font-bold"
-                                            style={{
-                                                color: typeConfig.color,
-                                                backgroundColor: typeConfig.bg,
-                                            }}
-                                        >
-                                            {typeConfig.label}
-                                        </span>
-
-                                        <p className="truncate font-mono text-sm font-bold tracking-tight text-text-primary">
+                                        <TableCell>
+                                            <Badge
+                                                className="rounded-full px-2.5 py-1 text-xs font-bold"
+                                                style={{ color: typeConfig.color, backgroundColor: typeConfig.bg }}
+                                            >
+                                                {typeConfig.label}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell className="font-mono text-sm font-bold tracking-tight text-foreground">
                                             {row.blNo}
-                                        </p>
-
-                                        <div className="min-w-0">
-                                            <p className="truncate text-sm font-semibold text-text-primary">
+                                        </TableCell>
+                                        <TableCell>
+                                            <p className="truncate text-sm font-semibold text-foreground">
                                                 {toTitleCase(row.client)}
                                             </p>
                                             {row.port !== '—' ? (
-                                                <p className="mt-0.5 truncate text-xs text-text-muted">
+                                                <p className="mt-0.5 truncate text-xs text-muted-foreground">
                                                     {row.vessel !== '—' ? `${row.vessel} · ` : ''}
                                                     {row.port}
                                                 </p>
                                             ) : null}
-                                        </div>
-
-                                        <div>
-                                            <p className="text-sm font-semibold text-text-secondary">
+                                        </TableCell>
+                                        <TableCell>
+                                            <p className="text-sm font-semibold text-muted-foreground">
                                                 {formatDate(row.date)}
                                             </p>
-                                            <p className="mt-0.5 text-xs text-text-muted">
-                                                {row.dateLabel} date
-                                            </p>
-                                        </div>
-
-                                        <div className="flex justify-center">
+                                            <p className="mt-0.5 text-xs text-muted-foreground">{row.dateLabel} date</p>
+                                        </TableCell>
+                                        <TableCell className="text-center">
                                             {normalizedStatus === 'cancelled' ? (
-                                                <span className="inline-flex items-center gap-1.5 rounded-full bg-danger/10 px-2.5 py-1 text-xs font-bold text-danger">
+                                                <Badge
+                                                    variant="destructive"
+                                                    className="gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold"
+                                                >
                                                     <span
-                                                        className="inline-block h-1.5 w-1.5 rounded-full bg-danger"
+                                                        className="size-1.5 rounded-full bg-danger"
                                                         style={{ boxShadow: '0 0 4px var(--danger)' }}
                                                     />
                                                     Cancelled
-                                                </span>
+                                                </Badge>
                                             ) : (
-                                                <span className="inline-flex items-center gap-1.5 rounded-full bg-success/10 px-2.5 py-1 text-xs font-bold text-success">
+                                                <Badge
+                                                    variant="success"
+                                                    className="gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold"
+                                                >
                                                     <span
-                                                        className="inline-block h-1.5 w-1.5 rounded-full bg-success"
+                                                        className="size-1.5 rounded-full bg-success"
                                                         style={{ boxShadow: '0 0 4px var(--success)' }}
                                                     />
                                                     {row.type === 'import' ? 'Cleared' : 'Shipped'}
-                                                </span>
+                                                </Badge>
                                             )}
-                                        </div>
-
-                                        <div className="flex justify-center">
+                                        </TableCell>
+                                        <TableCell className="text-center">
                                             {isMissingDocs ? (
-                                                <span className="inline-flex items-center gap-1 rounded-full bg-warning/10 px-2.5 py-1 text-xs font-bold text-warning">
-                                                    <svg
-                                                        className="h-3 w-3"
-                                                        fill="none"
-                                                        stroke="currentColor"
-                                                        viewBox="0 0 24 24"
-                                                    >
-                                                        <path
-                                                            strokeLinecap="round"
-                                                            strokeLinejoin="round"
-                                                            strokeWidth={2.5}
-                                                            d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
-                                                        />
-                                                    </svg>
+                                                <Badge
+                                                    variant="warning"
+                                                    className="gap-1 rounded-full px-2.5 py-1 text-xs font-bold"
+                                                >
+                                                    <TriangleAlert className="size-3" />
                                                     Missing
-                                                </span>
+                                                </Badge>
                                             ) : (
-                                                <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary">
-                                                    <svg
-                                                        className="h-3 w-3"
-                                                        fill="none"
-                                                        stroke="currentColor"
-                                                        viewBox="0 0 24 24"
-                                                    >
-                                                        <path
-                                                            strokeLinecap="round"
-                                                            strokeLinejoin="round"
-                                                            strokeWidth={2}
-                                                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                                                        />
-                                                    </svg>
+                                                <Badge
+                                                    variant="info"
+                                                    className="gap-1 rounded-full px-2.5 py-1 text-xs font-bold"
+                                                >
+                                                    <FileText className="size-3" />
                                                     {row.docCount}
-                                                </span>
+                                                </Badge>
                                             )}
-                                        </div>
-                                    </div>
+                                        </TableCell>
+                                    </TableRow>
                                 );
                             })
                         )}
-                    </div>
+                    </TableBody>
+                </Table>
+            </div>
 
-                    {meta && meta.last_page > 1 ? (
-                        <Pagination
-                            currentPage={meta.current_page}
-                            totalPages={meta.last_page}
-                            perPage={meta.per_page}
-                            onPageChange={onPageChange}
-                            onPerPageChange={onPerPageChange}
-                        />
-                    ) : null}
-                </>
-            )}
+            {!isLoading && meta && meta.last_page > 1 ? (
+                <Pagination
+                    currentPage={meta.current_page}
+                    totalPages={meta.last_page}
+                    perPage={meta.per_page}
+                    onPageChange={onPageChange}
+                    onPerPageChange={onPerPageChange}
+                />
+            ) : null}
         </>
     );
 };

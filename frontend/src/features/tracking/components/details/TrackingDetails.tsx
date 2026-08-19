@@ -69,7 +69,7 @@ export const TrackingDetails = () => {
                 referenceId={referenceId}
                 finalizedStatus={finalizedStatus}
                 onBack={() => navigate(-1)}
-                onOpenDocuments={() => navigate(appRoutes.documentDetail.replace(':ref', encodeURIComponent(referenceId)))}
+                onOpenDocuments={() => navigate(`${appRoutes.documents}?ref=${encodeURIComponent(referenceId)}`)}
             />
         );
     }
@@ -195,7 +195,7 @@ export const TrackingDetails = () => {
                     countdown={completionCountdown}
                     label={completionRedirectTarget?.label ?? (txDetail?.isImport ? 'Import' : 'Export')}
                     onOpenDocuments={() =>
-                        navigate(appRoutes.documentDetail.replace(':ref', encodeURIComponent(transaction.ref)))
+                        navigate(`${appRoutes.documents}?ref=${encodeURIComponent(transaction.ref)}`)
                     }
                 />
             )}

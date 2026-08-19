@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { AlertCircle, UserPlus, X } from 'lucide-react';
 import { getApiError } from '../../../lib/apiErrors';
 import type { CreateUserData, UpdateUserData, User, UserRole } from '../types/user.types';
 
@@ -18,8 +19,9 @@ const ROLES: { value: UserRole; label: string }[] = [
     { value: 'admin', label: 'Admin' },
 ];
 
-const inputCls = 'w-full px-4 py-3 rounded-xl border border-border bg-input-bg text-text-primary placeholder:text-text-muted focus:outline-none focus:border-primary/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed';
-const labelCls = 'block text-sm font-medium mb-2 text-text-secondary';
+const inputCls =
+    'w-full rounded-lg border border-border bg-background py-2 px-3 text-xs font-medium text-foreground placeholder:font-normal placeholder:text-muted-foreground transition-colors hover:bg-muted/30 focus:border-blue-500/50 focus:bg-background focus:outline-none focus:ring-1 focus:ring-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed shadow-2xs';
+const labelCls = 'block text-xs font-semibold text-foreground mb-1.5';
 
 export const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode }: UserFormModalProps) => {
     const [formData, setFormData] = useState({
@@ -94,22 +96,42 @@ export const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode }: UserFor
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-backdrop-in" onClick={onClose}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-backdrop-in" onClick={onClose}>
             <div
-                className="w-full max-w-md rounded-2xl p-8 bg-surface border border-border shadow-xl animate-modal-in"
+                className="w-full max-w-md rounded-xl p-6 bg-card border border-border shadow-xl animate-modal-in"
                 onClick={(e) => e.stopPropagation()}
             >
-                <h2 className="text-2xl font-bold mb-6 text-text-primary">
-                    {mode === 'create' ? 'Create New User' : 'Edit User'}
-                </h2>
-
-                {error && (
-                    <div className="mb-4 p-3 rounded-xl text-sm bg-danger/10 text-danger">
-                        {error}
+                <div className="flex items-center justify-between pb-4 border-b border-border/80">
+                    <div className="flex items-center gap-2.5">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+                            <UserPlus className="h-4 w-4" />
+                        </div>
+                        <div>
+                            <h2 className="text-sm font-semibold text-foreground">
+                                {mode === 'create' ? 'Create New User' : 'Edit User Profile'}
+                            </h2>
+                            <p className="text-[11px] text-muted-foreground">
+                                {mode === 'create' ? 'Add a new member to the operations team' : 'Update account metadata and role access'}
+                            </p>
+                        </div>
                     </div>
-                )}
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="rounded-lg p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+                    >
+                        <X className="h-4 w-4" />
+                    </button>
+                </div>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
+                {error ? (
+                    <div className="mt-4 flex items-start gap-2 rounded-lg border border-rose-500/20 bg-rose-500/10 p-3 text-xs text-rose-600 dark:text-rose-400">
+                        <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                        <span>{error}</span>
+                    </div>
+                ) : null}
+
+                <form onSubmit={handleSubmit} className="mt-4 space-y-3.5">
                     <div>
                         <label htmlFor="user-name" className={labelCls}>Name</label>
                         <input
@@ -117,6 +139,7 @@ export const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode }: UserFor
                             type="text"
                             value={formData.name}
                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                            placeholder="e.g. Maria Santos"
                             required
                             className={inputCls}
                             disabled={mode === 'edit'}
@@ -130,6 +153,7 @@ export const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode }: UserFor
                             type="email"
                             value={formData.email}
                             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                            placeholder="e.g. maria.santos@morata.com"
                             required
                             className={inputCls}
                             disabled={mode === 'edit'}
@@ -137,18 +161,18 @@ export const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode }: UserFor
                     </div>
 
                     <div>
-                        <label htmlFor="user-job-title" className={labelCls}>Job Title</label>
+                        <label htmlFor="user-job-title" className={labelCls}>Position</label>
                         <input
                             id="user-job-title"
                             type="text"
                             value={formData.job_title}
                             onChange={(e) => setFormData({ ...formData, job_title: e.target.value })}
-                            placeholder="e.g. Lawyer, Office Admin"
+                            placeholder="e.g. Lawyer, Office Admin, Senior Broker"
                             className={inputCls}
                         />
                     </div>
 
-                    {mode === 'create' && (
+                    {mode === 'create' ? (
                         <>
                             <div>
                                 <label htmlFor="user-password" className={labelCls}>Password</label>
@@ -159,6 +183,7 @@ export const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode }: UserFor
                                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                                     required
                                     minLength={8}
+                                    placeholder="Minimum 8 characters"
                                     className={inputCls}
                                 />
                             </div>
@@ -172,11 +197,12 @@ export const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode }: UserFor
                                     onChange={(e) => setFormData({ ...formData, password_confirmation: e.target.value })}
                                     required
                                     minLength={8}
+                                    placeholder="Re-enter password"
                                     className={inputCls}
                                 />
                             </div>
                         </>
-                    )}
+                    ) : null}
 
                     <div>
                         <label htmlFor="user-role" className={labelCls}>Role</label>
@@ -193,19 +219,19 @@ export const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode }: UserFor
                         </select>
                     </div>
 
-                    <div className="flex gap-3 pt-4">
+                    <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-border/80">
                         <button
                             type="button"
                             onClick={onClose}
                             disabled={isSubmitting}
-                            className="flex-1 px-6 py-3 rounded-xl font-bold border border-border text-text-secondary hover:text-text-primary hover:border-border-strong transition-colors disabled:opacity-50"
+                            className="rounded-lg border border-border bg-card px-4 py-2 text-xs font-semibold text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer disabled:opacity-50 shadow-2xs"
                         >
                             Cancel
                         </button>
                         <button
                             type="submit"
                             disabled={isSubmitting}
-                            className="flex-1 px-6 py-3 rounded-xl font-bold bg-primary text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50"
+                            className="inline-flex items-center justify-center rounded-lg border border-emerald-600 bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-700 transition-colors cursor-pointer disabled:opacity-50 shadow-2xs"
                         >
                             {isSubmitting ? 'Saving...' : mode === 'create' ? 'Create User' : 'Save Changes'}
                         </button>
@@ -215,4 +241,3 @@ export const UserFormModal = ({ isOpen, onClose, onSubmit, user, mode }: UserFor
         </div>
     );
 };
-

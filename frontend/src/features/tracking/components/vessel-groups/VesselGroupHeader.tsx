@@ -79,8 +79,8 @@ export function VesselGroupHeader<T>({
                             variant="outline"
                             className={`hidden shrink-0 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 sm:inline-flex ${
                                 group.type === 'import'
-                                    ? 'border-primary/20 bg-primary/10 text-primary'
-                                    : 'border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300'
+                                    ? 'border-blue-500/20 bg-blue-500/10 text-blue-600 dark:text-blue-400'
+                                    : 'border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
                             }`}
                         >
                             {group.type}
