@@ -246,6 +246,57 @@ describe('EncoderDashboard', () => {
         expect(screen.getByText('Encoder reports route')).toBeInTheDocument();
     });
 
+    it('navigates to tracking list when clicking View all on operation queue', () => {
+        renderWithProviders(<EncoderDashboard />, {
+            route: appRoutes.encoderDashboard,
+            path: appRoutes.encoderDashboard,
+            routes: [
+                {
+                    path: appRoutes.tracking,
+                    element: <div>Tracking list route</div>,
+                },
+            ],
+        });
+
+        fireEvent.click(screen.getByRole('button', { name: /View all \(2\)/i }));
+
+        expect(screen.getByText('Tracking list route')).toBeInTheDocument();
+    });
+
+    it('paginates attention items when exceeding page size', () => {
+        mockUseEncoderDashboard.mockReturnValue({
+            data: {
+                kpis: { active_imports: 10, active_exports: 10, needs_update: 6, upcoming_eta_etd: 0, open_remarks: 0, document_gaps: 0 },
+                attention_items: [
+                    { id: '1', ref: 'REF-001', type: 'import', status: 'needs_update', title: 'Task 1', detail: 'Detail 1', age: '1d ago', destination: 'tracking' },
+                    { id: '2', ref: 'REF-002', type: 'import', status: 'needs_update', title: 'Task 2', detail: 'Detail 2', age: '2d ago', destination: 'tracking' },
+                    { id: '3', ref: 'REF-003', type: 'import', status: 'needs_update', title: 'Task 3', detail: 'Detail 3', age: '3d ago', destination: 'tracking' },
+                    { id: '4', ref: 'REF-004', type: 'import', status: 'needs_update', title: 'Task 4', detail: 'Detail 4', age: '4d ago', destination: 'tracking' },
+                    { id: '5', ref: 'REF-005', type: 'import', status: 'needs_update', title: 'Task 5', detail: 'Detail 5', age: '5d ago', destination: 'tracking' },
+                ],
+                reports: null,
+                analytics: null,
+            },
+        });
+
+        renderWithProviders(<EncoderDashboard />, {
+            route: appRoutes.encoderDashboard,
+            path: appRoutes.encoderDashboard,
+        });
+
+        expect(screen.getByText('REF-001')).toBeInTheDocument();
+        expect(screen.getByText('REF-004')).toBeInTheDocument();
+        expect(screen.queryByText('REF-005')).not.toBeInTheDocument();
+        expect(screen.getByText(/Showing/i)).toHaveTextContent('Showing 1–4 of 5 items');
+
+        // Click next page
+        fireEvent.click(screen.getByRole('button', { name: /Next page/i }));
+
+        expect(screen.queryByText('REF-001')).not.toBeInTheDocument();
+        expect(screen.getByText('REF-005')).toBeInTheDocument();
+        expect(screen.getByText(/Showing/i)).toHaveTextContent('Showing 5–5 of 5 items');
+    });
+
     it('renders the separate encoder reports and analytics page', () => {
         renderWithProviders(<EncoderReportsAnalytics />, {
             route: appRoutes.encoderReportsAnalytics,
