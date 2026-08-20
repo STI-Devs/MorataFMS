@@ -1,6 +1,15 @@
 import { FilePreviewModal } from '../../../../components/modals/FilePreviewModal';
 import { UploadModal } from '../../../../components/modals/UploadModal';
-import { Icon } from '../../../../components/Icon';
+import { Badge } from '../../../../components/ui/badge';
+import { Button } from '../../../../components/ui/button';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '../../../../components/ui/card';
+import { Flag } from 'lucide-react';
 import { appRoutes } from '../../../../lib/appRoutes';
 import { trackingApi } from '../../api/trackingApi';
 import { useTrackingDetails } from '../../hooks/useTrackingDetails';
@@ -69,7 +78,9 @@ export const TrackingDetails = () => {
                 referenceId={referenceId}
                 finalizedStatus={finalizedStatus}
                 onBack={() => navigate(-1)}
-                onOpenDocuments={() => navigate(`${appRoutes.documents}?ref=${encodeURIComponent(referenceId)}`)}
+                onOpenDocuments={() =>
+                    navigate(`${appRoutes.documents}?ref=${encodeURIComponent(referenceId)}`)
+                }
             />
         );
     }
@@ -114,7 +125,8 @@ export const TrackingDetails = () => {
     const openRemarksCount = transaction.open_remarks_count ?? 0;
 
     return (
-        <div className="flex flex-col space-y-5 pb-6">
+        <div className="flex flex-col space-y-4 pb-8">
+            {/* Header */}
             <TrackingHeader
                 transaction={{ ...transaction, status: displayStatus }}
                 onBack={() => navigate(-1)}
@@ -124,31 +136,35 @@ export const TrackingDetails = () => {
                 statusBg={s.bg}
             />
 
+            {/* Admin Remarks Notice Banner */}
             {openRemarksCount > 0 && (
-                <button
+                <Button
                     type="button"
+                    variant="destructive"
                     onClick={() => setIsRemarkModalOpen(true)}
-                    className="group flex w-full items-center justify-between gap-4 rounded-2xl border border-red-500/25 bg-red-50 px-5 py-4 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-red-500/45 hover:bg-red-50/80 dark:border-red-500/30 dark:bg-red-950/20 dark:hover:bg-red-950/30"
+                    className="h-auto w-full items-center justify-between gap-4 rounded-xl border border-destructive/30 p-4 text-left shadow-2xs cursor-pointer"
                 >
-                    <div className="flex min-w-0 items-start gap-3">
-                        <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-500/10 text-red-600 ring-1 ring-red-500/20 dark:text-red-300">
-                            <Icon name="flag" className="h-5 w-5" />
+                    <span className="flex min-w-0 items-start gap-3">
+                        <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg bg-white/15 ring-1 ring-white/25">
+                            <Flag className="size-4" />
                         </span>
                         <span className="min-w-0">
-                            <span className="block text-sm font-black text-red-700 dark:text-red-200">
-                                Action required: {openRemarksCount} open admin remark{openRemarksCount === 1 ? '' : 's'}
+                            <span className="block text-sm font-bold">
+                                Action required: {openRemarksCount} open admin remark
+                                {openRemarksCount === 1 ? '' : 's'}
                             </span>
-                            <span className="mt-1 block text-sm text-red-700/80 dark:text-red-200/75">
+                            <span className="mt-0.5 block text-xs text-white/80">
                                 Review the admin notes before continuing document uploads or status updates.
                             </span>
                         </span>
-                    </div>
-                    <span className="hidden shrink-0 rounded-lg border border-red-500/25 bg-white/70 px-3 py-1.5 text-xs font-bold text-red-700 transition-colors group-hover:bg-white dark:bg-red-950/30 dark:text-red-200 sm:inline-flex">
+                    </span>
+                    <span className="hidden shrink-0 rounded-lg bg-white/20 px-3 py-1.5 text-xs font-bold shadow-2xs sm:inline-flex">
                         Review remarks
                     </span>
-                </button>
+                </Button>
             )}
 
+            {/* Metric KPI Cards (4-Card Grid) */}
             <TransactionInfoCard
                 transaction={transaction}
                 isImport={isImport}
@@ -159,14 +175,21 @@ export const TrackingDetails = () => {
                 statusColor={s.color}
             />
 
-            <div className="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden">
-                <div className="px-5 py-4 border-b border-border flex items-center justify-between">
-                    <h2 className="text-sm font-bold text-text-primary">Processing Stages</h2>
-                    <span className="text-[10px] font-bold text-text-muted bg-surface-secondary border border-border px-2 py-0.5 rounded-full uppercase tracking-wider">
-                        {isImport ? 'Import' : 'Export'} workflow
-                    </span>
-                </div>
-                <div className="divide-y divide-border/60">
+            {/* Processing Stages Card */}
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 border-b">
+                    <div>
+                        <CardTitle className="text-lg font-bold">Processing Stages</CardTitle>
+                        <CardDescription className="text-xs text-muted-foreground mt-0.5">
+                            Manage customs milestones, required document attachments, and stage clearances.
+                        </CardDescription>
+                    </div>
+                    <Badge variant="outline" className="font-semibold">
+                        {isImport ? 'Import' : 'Export'} Workflow
+                    </Badge>
+                </CardHeader>
+
+                <CardContent className="p-0 divide-y">
                     {displayStages.map((stage, i) => (
                         <StageRow
                             key={i}
@@ -187,40 +210,58 @@ export const TrackingDetails = () => {
                             onNotApplicableChange={handleStageApplicabilityChange}
                         />
                     ))}
-                </div>
-            </div>
+                </CardContent>
+            </Card>
 
+            {/* Completion Banner */}
             {completionCountdown !== null && (
                 <CompletionBanner
                     countdown={completionCountdown}
-                    label={completionRedirectTarget?.label ?? (txDetail?.isImport ? 'Import' : 'Export')}
+                    label={
+                        completionRedirectTarget?.label ??
+                        (txDetail?.isImport ? 'Import' : 'Export')
+                    }
                     onOpenDocuments={() =>
-                        navigate(`${appRoutes.documents}?ref=${encodeURIComponent(transaction.ref)}`)
+                        navigate(
+                            `${appRoutes.documents}?ref=${encodeURIComponent(transaction.ref)}`,
+                        )
                     }
                 />
             )}
 
+            {/* Upload Modal */}
             <UploadModal
                 isOpen={isUploadOpen}
-                onClose={() => { setIsUploadOpen(false); setUploadError(null); }}
+                onClose={() => {
+                    setIsUploadOpen(false);
+                    setUploadError(null);
+                }}
                 onUpload={handleUpload}
-                title={selectedStageIndex !== null ? displayStages[selectedStageIndex].title : ''}
+                title={
+                    selectedStageIndex !== null ? displayStages[selectedStageIndex].title : ''
+                }
                 isLoading={uploadingStage !== null}
                 errorMessage={uploadError ?? undefined}
             />
 
+            {/* Preview Modal */}
             <FilePreviewModal
                 isOpen={!!previewFile}
                 onClose={() => setPreviewFile(null)}
                 file={previewFile?.file ?? null}
                 fileName={previewFile?.name ?? ''}
-                onDownload={previewFile ? () => {
-                    const allDocs = Object.values(displayStageDocuments).flat();
-                    const doc = allDocs.find((d) => d.filename === previewFile.name);
-                    if (doc) trackingApi.downloadDocument(doc.id, doc.filename);
-                } : undefined}
+                onDownload={
+                    previewFile
+                        ? () => {
+                              const allDocs = Object.values(displayStageDocuments).flat();
+                              const doc = allDocs.find((d) => d.filename === previewFile.name);
+                              if (doc) trackingApi.downloadDocument(doc.id, doc.filename);
+                          }
+                        : undefined
+                }
             />
 
+            {/* Edit Modal */}
             <EditTransactionModal
                 key={`${isImport ? 'import' : 'export'}-${displayTxDetail.raw?.id ?? 'new'}-${isEditModalOpen ? 'open' : 'closed'}`}
                 isOpen={isEditModalOpen}
@@ -232,6 +273,7 @@ export const TrackingDetails = () => {
                 transaction={displayTxDetail.raw ?? null}
             />
 
+            {/* Remark Viewer Modal */}
             {isRemarkModalOpen && (
                 <RemarkViewerModal
                     isOpen={isRemarkModalOpen}

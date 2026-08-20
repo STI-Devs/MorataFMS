@@ -34,7 +34,7 @@ describe('TrackingDashboard', () => {
             path: appRoutes.liveTracking,
         });
 
-        expect(screen.getByText('Live Tracking Overview')).toBeInTheDocument();
+        expect(screen.getByText('Tracking Overview')).toBeInTheDocument();
         expect(container.querySelectorAll('.skeleton-shimmer').length).toBeGreaterThan(0);
     });
 

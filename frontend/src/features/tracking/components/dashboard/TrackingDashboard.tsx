@@ -16,13 +16,7 @@ import {
 } from 'lucide-react';
 import { Badge } from '../../../../components/ui/badge';
 import { Button } from '../../../../components/ui/button';
-import {
-    Card,
-    CardDescription,
-    CardFooter,
-    CardHeader,
-    CardTitle,
-} from '../../../../components/ui/card';
+import { Card, CardContent } from '../../../../components/ui/card';
 import { Input } from '../../../../components/ui/input';
 import {
     Select,
@@ -376,10 +370,10 @@ function VesselListView({
                                     <TableHeader>
                                         <TableRow className="hover:bg-transparent border-b">
                                             <TableHead className="h-9 text-xs font-semibold uppercase tracking-wider text-muted-foreground w-[160px]">
-                                                {group.type === 'import' ? 'Customs Ref' : 'BL No.'}
+                                                {group.type === 'import' ? 'Customs Ref' : 'Customs Ref'}
                                             </TableHead>
-                                            <TableHead className="h-9 text-xs font-semibold uppercase tracking-wider text-muted-foreground w-[180px]">
-                                                Vessel
+                                            <TableHead className="h-9 text-xs font-semibold uppercase tracking-wider text-muted-foreground w-[170px]">
+                                                Bill of Lading
                                             </TableHead>
                                             <TableHead className="h-9 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                                                 {group.type === 'import' ? 'Importer' : 'Shipper'}
@@ -405,6 +399,10 @@ function VesselListView({
                                                 ? (transaction as ApiImportTransaction).customs_ref_no
                                                 : (transaction as ApiExportTransaction).bl_no ||
                                                   `EXP-${String(transaction.id).padStart(4, '0')}`;
+                                            const blNo =
+                                                (transaction as ApiImportTransaction).bl_no ||
+                                                (transaction as ApiExportTransaction).bl_no ||
+                                                '—';
                                             const clientName = isImport
                                                 ? (transaction as ApiImportTransaction).importer?.name
                                                 : (transaction as ApiExportTransaction).shipper?.name;
@@ -436,21 +434,24 @@ function VesselListView({
                                                     className="group cursor-pointer hover:bg-muted/50 transition-colors border-b border-border/40"
                                                 >
                                                     {/* 1. BL NO. / CUSTOMS REF */}
-                                                    <TableCell className="py-3 font-mono">
+                                                    <TableCell className="py-2.5 font-mono">
                                                         <span className="font-semibold text-xs text-foreground group-hover:text-primary transition-colors">
                                                             {refNo}
                                                         </span>
                                                     </TableCell>
 
-                                                    {/* 2. VESSEL */}
-                                                    <TableCell className="py-3">
-                                                        <span className="text-xs font-semibold text-foreground group-hover:text-primary transition-colors truncate block max-w-[180px]">
-                                                            {toTitleCase(group.vesselName)}
+                                                    {/* 2. BILL OF LADING */}
+                                                    <TableCell className="py-2.5 font-mono">
+                                                        <span
+                                                            className="text-xs font-medium text-foreground group-hover:text-primary transition-colors truncate block max-w-[160px]"
+                                                            title={blNo}
+                                                        >
+                                                            {blNo}
                                                         </span>
                                                     </TableCell>
 
                                                     {/* 3. SHIPPER / IMPORTER */}
-                                                    <TableCell className="py-3">
+                                                    <TableCell className="py-2.5">
                                                         <span
                                                             className="text-xs font-medium text-foreground truncate block max-w-[240px]"
                                                             title={toTitleCase(clientName)}
@@ -628,7 +629,7 @@ export const TrackingDashboard = () => {
             {/* Header */}
             <div className="flex flex-col gap-1">
                 <h1 className="text-2xl font-bold tracking-tight text-foreground">
-                    Live Tracking Overview
+                    Tracking Overview
                 </h1>
                 <p className="text-sm text-muted-foreground">
                     Your assigned active transactions grouped by voyage and vessel schedule.
@@ -636,88 +637,80 @@ export const TrackingDashboard = () => {
             </div>
 
             {/* Section 1: KPI Metrics Row */}
-            <section className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
-                <Card className="py-4">
-                    <CardHeader className="p-4 pb-2 space-y-1.5">
-                        <CardDescription className="text-xs font-semibold text-muted-foreground">
-                            Active Imports
-                        </CardDescription>
-                        <div className="flex items-center justify-between gap-2">
-                            <CardTitle className="text-2xl font-bold tabular-nums text-foreground">
-                                {rawImports.length}
-                            </CardTitle>
-                            <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 font-medium shrink-0 gap-1">
+            <section className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+                <Card className="shadow-2xs">
+                    <CardContent className="p-3 sm:p-3.5 space-y-1">
+                        <div className="flex items-center justify-between text-muted-foreground text-[10px] font-semibold uppercase tracking-wider">
+                            <span>Active Imports</span>
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-medium shrink-0 gap-1">
                                 <Truck className="size-3 text-info" /> In Transit
                             </Badge>
                         </div>
-                    </CardHeader>
-                    <CardFooter className="p-4 pt-0 text-xs text-muted-foreground">
-                        <span>Assigned import shipments</span>
-                    </CardFooter>
+                        <div className="text-xl sm:text-2xl font-bold tabular-nums text-foreground">
+                            {rawImports.length}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground truncate">
+                            Assigned import shipments
+                        </p>
+                    </CardContent>
                 </Card>
 
-                <Card className="py-4">
-                    <CardHeader className="p-4 pb-2 space-y-1.5">
-                        <CardDescription className="text-xs font-semibold text-muted-foreground">
-                            Active Exports
-                        </CardDescription>
-                        <div className="flex items-center justify-between gap-2">
-                            <CardTitle className="text-2xl font-bold tabular-nums text-foreground">
-                                {rawExports.length}
-                            </CardTitle>
-                            <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 font-medium shrink-0 gap-1">
+                <Card className="shadow-2xs">
+                    <CardContent className="p-3 sm:p-3.5 space-y-1">
+                        <div className="flex items-center justify-between text-muted-foreground text-[10px] font-semibold uppercase tracking-wider">
+                            <span>Active Exports</span>
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-medium shrink-0 gap-1">
                                 <Flag className="size-3 text-success" /> Outbound
                             </Badge>
                         </div>
-                    </CardHeader>
-                    <CardFooter className="p-4 pt-0 text-xs text-muted-foreground">
-                        <span>Assigned export shipments</span>
-                    </CardFooter>
+                        <div className="text-xl sm:text-2xl font-bold tabular-nums text-foreground">
+                            {rawExports.length}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground truncate">
+                            Assigned export shipments
+                        </p>
+                    </CardContent>
                 </Card>
 
-                <Card className="py-4">
-                    <CardHeader className="p-4 pb-2 space-y-1.5">
-                        <CardDescription className="text-xs font-semibold text-muted-foreground">
-                            Vessels Tracked
-                        </CardDescription>
-                        <div className="flex items-center justify-between gap-2">
-                            <CardTitle className="text-2xl font-bold tabular-nums text-foreground">
-                                {totalVessels}
-                            </CardTitle>
-                            <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 font-medium shrink-0 gap-1">
+                <Card className="shadow-2xs">
+                    <CardContent className="p-3 sm:p-3.5 space-y-1">
+                        <div className="flex items-center justify-between text-muted-foreground text-[10px] font-semibold uppercase tracking-wider">
+                            <span>Vessels Tracked</span>
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-medium shrink-0 gap-1">
                                 <Ship className="size-3 text-primary" /> Active
                             </Badge>
                         </div>
-                    </CardHeader>
-                    <CardFooter className="p-4 pt-0 text-xs text-muted-foreground">
-                        <span>{importGroups.length} import · {exportGroups.length} export</span>
-                    </CardFooter>
+                        <div className="text-xl sm:text-2xl font-bold tabular-nums text-foreground">
+                            {totalVessels}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground truncate">
+                            {importGroups.length} import · {exportGroups.length} export
+                        </p>
+                    </CardContent>
                 </Card>
 
-                <Card className="py-4">
-                    <CardHeader className="p-4 pb-2 space-y-1.5">
-                        <CardDescription className="text-xs font-semibold text-muted-foreground">
-                            Needs Attention
-                        </CardDescription>
-                        <div className="flex items-center justify-between gap-2">
-                            <CardTitle
-                                className={`text-2xl font-bold tabular-nums ${
-                                    totalAttention > 0 ? 'text-destructive' : 'text-foreground'
-                                }`}
-                            >
-                                {totalAttention}
-                            </CardTitle>
+                <Card className="shadow-2xs">
+                    <CardContent className="p-3 sm:p-3.5 space-y-1">
+                        <div className="flex items-center justify-between text-muted-foreground text-[10px] font-semibold uppercase tracking-wider">
+                            <span>Needs Attention</span>
                             <Badge
                                 variant={totalAttention > 0 ? 'destructive' : 'outline'}
-                                className="text-[10px] px-1.5 py-0.5 font-medium shrink-0 gap-1"
+                                className="text-[10px] px-1.5 py-0 font-medium shrink-0 gap-1"
                             >
                                 <AlertCircle className="size-3" /> Blockers
                             </Badge>
                         </div>
-                    </CardHeader>
-                    <CardFooter className="p-4 pt-0 text-xs text-muted-foreground">
-                        <span>{totalAttention === 0 ? 'No blockers reported' : 'Shipments with open remarks'}</span>
-                    </CardFooter>
+                        <div
+                            className={`text-xl sm:text-2xl font-bold tabular-nums ${
+                                totalAttention > 0 ? 'text-destructive' : 'text-foreground'
+                            }`}
+                        >
+                            {totalAttention}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground truncate">
+                            {totalAttention === 0 ? 'No blockers reported' : 'Shipments with open remarks'}
+                        </p>
+                    </CardContent>
                 </Card>
             </section>
 

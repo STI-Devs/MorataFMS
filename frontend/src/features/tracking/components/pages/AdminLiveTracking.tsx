@@ -324,7 +324,7 @@ export const AdminLiveTracking = () => {
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                     <div className="space-y-2">
                         <div>
-                            <h1 className="text-4xl font-bold tracking-tight text-text-primary">Live Tracking Overview</h1>
+                            <h1 className="text-4xl font-bold tracking-tight text-text-primary">Tracking Overview</h1>
                             <p className="mt-1 max-w-2xl text-sm text-text-secondary">
                                 Vessel-first monitoring for active import and export workloads, without losing the underlying transaction record detail.
                             </p>
