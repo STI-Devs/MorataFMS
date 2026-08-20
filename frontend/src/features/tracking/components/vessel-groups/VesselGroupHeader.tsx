@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import { Badge } from '@/components/ui/badge';
+import { ChevronDown, ChevronUp, Ship } from 'lucide-react';
+import { Badge } from '../../../../components/ui/badge';
 import type { VesselGroup } from '../../types';
 
 interface VesselGroupHeaderProps<T> {
@@ -42,36 +43,23 @@ export function VesselGroupHeader<T>({
     const isDelayed = group.isDelayed;
 
     return (
-        <div
-            className={`
-                w-full flex items-center gap-3 px-5 py-3.5 border-b border-border/80
-                transition-colors duration-150 select-none bg-muted/40 hover:bg-muted/70
-            `}
-        >
+        <div className="flex w-full items-center justify-between p-3.5 sm:p-4 bg-muted/30 hover:bg-muted/50 text-left transition-colors border-b border-border/60 gap-3">
             <button
                 type="button"
                 onClick={onToggle}
                 className="flex min-w-0 flex-1 items-center gap-3 text-left cursor-pointer"
             >
-                <span className="flex size-6 shrink-0 items-center justify-center rounded-md border border-border/80 bg-background shadow-2xs">
-                    <svg
-                        className={`size-3.5 text-muted-foreground transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth={2.5}
-                    >
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                    </svg>
-                </span>
+                <div className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-card text-foreground shadow-2xs">
+                    <Ship className="size-4 text-primary" />
+                </div>
 
                 <div className="min-w-0 flex-1">
-                    <div className="flex min-w-0 items-center gap-2">
+                    <div className="flex min-w-0 items-center gap-2 flex-wrap">
                         <span className="truncate text-sm font-bold tracking-tight text-foreground">
                             {group.vesselName}
                         </span>
                         {group.voyage && (
-                            <span className="shrink-0 rounded-md border border-border/80 bg-background px-2 py-0.5 text-[11px] font-mono font-medium text-muted-foreground shadow-2xs">
+                            <span className="shrink-0 rounded-md border border-border/80 bg-card px-2 py-0.5 text-[11px] font-mono font-medium text-muted-foreground shadow-2xs">
                                 Voy. {group.voyage}
                             </span>
                         )}
@@ -85,29 +73,34 @@ export function VesselGroupHeader<T>({
                         >
                             {group.type}
                         </Badge>
+                        {isDelayed && (
+                            <Badge variant="outline" className="border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-400 text-[10px] font-bold uppercase tracking-wider">
+                                Late
+                            </Badge>
+                        )}
                     </div>
                     <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
                         {isReviewMode ? (
                             <span className="font-medium text-foreground/80">{reviewSubtitle}</span>
                         ) : (
                             <span>
-                                <span className="mr-1 font-semibold uppercase tracking-wider text-muted-foreground/70">{etaLabel}</span>
+                                <span className="mr-1 font-semibold uppercase tracking-wider text-muted-foreground/70">{etaLabel}:</span>
                                 <span className="font-medium text-foreground/80">{formattedEta || '—'}</span>
                             </span>
                         )}
-                        <span className="sm:hidden">
-                            <span className="font-semibold text-foreground">{group.stats.total}</span> total
+                        <span>
+                            · <span className="font-semibold text-foreground">{group.stats.total}</span> {group.stats.total === 1 ? 'shipment' : 'shipments'}
                         </span>
+                        {hasBlocked && (
+                            <span className="text-destructive font-semibold">
+                                ({group.stats.blocked} {reviewLabel})
+                            </span>
+                        )}
                     </div>
                 </div>
 
-                <div className="hidden shrink-0 items-center gap-2 sm:flex">
-                    {isDelayed && (
-                        <Badge variant="outline" className="border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-400 text-[10px] font-bold uppercase tracking-wider">
-                            Late
-                        </Badge>
-                    )}
-                    <span className="rounded-lg border border-border bg-card px-2.5 py-1 text-[11px] text-muted-foreground shadow-2xs font-semibold">
+                <div className="flex shrink-0 items-center gap-2">
+                    <span className="rounded-lg border border-border bg-card px-2.5 py-1 text-xs text-muted-foreground shadow-2xs font-semibold">
                         <span className="font-bold text-foreground">{group.stats.total}</span> total
                     </span>
                     {isReviewMode && group.stats.in_progress > 0 && (
@@ -115,16 +108,18 @@ export function VesselGroupHeader<T>({
                             <span className="font-bold mr-1">{group.stats.in_progress}</span> {progressLabel}
                         </Badge>
                     )}
-                    {hasBlocked && (
-                        <Badge variant="destructive" className="text-xs font-medium">
-                            <span className="font-bold mr-1">{group.stats.blocked}</span> {reviewLabel}
-                        </Badge>
-                    )}
                     {!isReviewMode && group.stats.completed > 0 && (
                         <Badge variant="outline" className="border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-xs font-medium">
                             <span className="font-bold mr-1">{group.stats.completed}</span> done
                         </Badge>
                     )}
+                    <span className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:text-foreground">
+                        {isExpanded ? (
+                            <ChevronUp className="size-4" />
+                        ) : (
+                            <ChevronDown className="size-4" />
+                        )}
+                    </span>
                 </div>
             </button>
 
@@ -132,3 +127,4 @@ export function VesselGroupHeader<T>({
         </div>
     );
 }
+

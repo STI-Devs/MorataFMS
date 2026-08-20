@@ -1,8 +1,23 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import * as React from 'react';
-import { Icon } from '../../../../components/Icon';
-import { Pagination } from '../../../../components/Pagination';
+import {
+    ChevronDown,
+    ChevronUp,
+    ChevronLeft,
+    ChevronRight,
+    ChevronsLeft,
+    ChevronsRight,
+} from 'lucide-react';
+import { EmptyState } from '../../../../components/EmptyState';
+import { Button } from '../../../../components/ui/button';
+import { Card } from '../../../../components/ui/card';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '../../../../components/ui/select';
 import { useExports } from '../../hooks/useExports';
 import { useExportVesselGroups } from '../../hooks/useVesselGrouping';
 import type { ApiExportTransaction, VesselGroup } from '../../types';
@@ -78,12 +93,12 @@ function filterGroups(
 
 const COL_HEADERS = [
     { label: 'BL No.', className: '' },
+    { label: 'Vessel', className: '' },
     { label: 'Shipper', className: '' },
     { label: 'Current Stage', className: '' },
     { label: 'Status', className: '' },
-    { label: 'Assignee', className: 'text-center' },
     { label: 'Updated', className: 'text-left' },
-    { label: '', className: '' },
+    { label: 'Actions', className: 'text-end' },
 ];
 
 export function VesselGroupedExportList({ filters, onCancel }: Props) {
@@ -91,7 +106,7 @@ export function VesselGroupedExportList({ filters, onCancel }: Props) {
     
     const [searchParams, setSearchParams] = useSearchParams();
     const page = parseInt(searchParams.get('page') || '1');
-    const perPage = parseInt(searchParams.get('per_page') || '10');
+    const perPage = parseInt(searchParams.get('per_page') || '20');
 
     const setPage = (nextPage: number) => {
         setSearchParams((prev) => { const next = new URLSearchParams(prev); next.set('page', String(nextPage)); return next; });
@@ -125,42 +140,46 @@ export function VesselGroupedExportList({ filters, onCancel }: Props) {
     const groups = useExportVesselGroups(allExports);
     const filteredGroups = useMemo(() => filterGroups(groups, filters), [groups, filters]);
 
-    const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => new Set(groups.map(g => g.vesselKey)));
-    const seenGroupsRef = React.useRef<Set<string>>(new Set(groups.map(g => g.vesselKey)));
-
-    useEffect(() => {
-        setExpandedGroups(prev => {
-            let hasNew = false;
-            const next = new Set(prev);
-            for (const g of groups) {
-                if (!seenGroupsRef.current.has(g.vesselKey)) {
-                    seenGroupsRef.current.add(g.vesselKey);
-                    next.add(g.vesselKey);
-                    hasNew = true;
-                }
-            }
-            return hasNew ? next : prev;
-        });
-    }, [groups]);
-
+    const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
     const [remarkTarget, setRemarkTarget] = useState<ApiExportTransaction | null>(null);
 
+    const totalVessels = filteredGroups.length;
+    const totalPages = response?.meta?.last_page ?? 1;
+    const allExpanded = filteredGroups.length > 0 && filteredGroups.every(g => !collapsedGroups.has(g.vesselKey));
+
     const toggleGroup = (key: string) => {
-        setExpandedGroups(prev => {
+        setCollapsedGroups(prev => {
             const next = new Set(prev);
-            if (next.has(key)) { next.delete(key); } else { next.add(key); }
+            if (next.has(key)) {
+                next.delete(key);
+            } else {
+                next.add(key);
+            }
             return next;
         });
     };
 
+    const toggleAll = () => {
+        if (allExpanded) {
+            setCollapsedGroups(new Set(filteredGroups.map(g => g.vesselKey)));
+        } else {
+            setCollapsedGroups(new Set());
+        }
+    };
+
     if (isLoading) {
         return (
-            <div className="space-y-2 p-2">
+            <div className="space-y-3.5">
                 {Array.from({ length: 4 }).map((_, i) => (
-                    <div key={i} className="flex items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-4 shadow-sm">
-                        <div className="w-3.5 h-3.5 skeleton-shimmer rounded" />
-                        <div className="h-4 w-48 skeleton-shimmer rounded" />
-                        <div className="ml-auto h-4 w-24 skeleton-shimmer rounded" />
+                    <div key={i} className="skeleton-shimmer flex items-center justify-between rounded-xl border border-border bg-card p-5 animate-pulse">
+                        <div className="flex items-center gap-3">
+                            <div className="size-8 rounded-lg skeleton-shimmer" />
+                            <div className="space-y-1.5">
+                                <div className="h-4 w-48 skeleton-shimmer rounded" />
+                                <div className="h-3 w-28 skeleton-shimmer rounded" />
+                            </div>
+                        </div>
+                        <div className="h-6 w-20 skeleton-shimmer rounded" />
                     </div>
                 ))}
             </div>
@@ -169,62 +188,96 @@ export function VesselGroupedExportList({ filters, onCancel }: Props) {
 
     if (filteredGroups.length === 0) {
         return (
-            <div className="p-4">
-                <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border bg-surface-secondary/20 px-6 py-20 text-text-muted">
-                    <Icon name="search" className="w-8 h-8 opacity-30" />
-                    <p className="text-sm font-semibold">No vessel groups match the current filters</p>
-                    <p className="text-xs">Try adjusting your search or filter settings</p>
-                </div>
-            </div>
+            <Card>
+                <EmptyState
+                    label="vessel groups"
+                    message="No vessel groups match your current filter settings."
+                />
+            </Card>
         );
     }
 
-    return (
-        <>
-            <div>
-                {filteredGroups.map(group => (
-                <div key={group.vesselKey} className="border-b border-border last:border-0">
-                    <VesselGroupHeader
-                        group={group}
-                        isExpanded={expandedGroups.has(group.vesselKey)}
-                        onToggle={() => toggleGroup(group.vesselKey)}
-                    />
+    const totalRecords = response?.meta?.total ?? allExports.length;
+    const startItem = totalRecords === 0 ? 0 : (page - 1) * perPage + 1;
+    const endItem = Math.min(page * perPage, totalRecords);
 
-                    {expandedGroups.has(group.vesselKey) && (
-                        <div
-                            className="bg-surface-secondary/10 px-0 pb-1 pt-0 dark:bg-transparent sm:pb-1.5"
-                            data-testid="tracking-vessel-group-panel"
-                        >
-                            <div
-                                className="ml-5 border-l-2 border-slate-300 pl-2 dark:border-border/55 sm:ml-6 sm:pl-2.5"
-                                data-testid="tracking-vessel-group-guide"
-                            >
-                                <div className="overflow-hidden rounded-lg bg-surface-secondary/15 dark:bg-surface/60">
-                                    <div
-                                        className="hidden border-b border-border bg-surface-secondary/35 px-4 py-2.5 lg:grid lg:gap-x-3"
-                                        style={{ gridTemplateColumns: '1.25fr 1.25fr 1.45fr 100px 80px 92px 104px' }}
-                                    >
-                                        {COL_HEADERS.map(h => (
-                                            <span key={h.label} className={`text-[9px] font-bold text-text-muted uppercase tracking-[0.1em] ${h.className}`}>
-                                                {h.label}
-                                            </span>
-                                        ))}
-                                    </div>
-                                    {group.transactions.map(t => (
-                                        <ExportTransactionRow
-                                            key={t.id}
-                                            transaction={t}
-                                            onNavigate={navigate}
-                                            onCancel={onCancel}
-                                            onRemarks={setRemarkTarget}
-                                        />
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
+    return (
+        <div className="space-y-4">
+            {/* Action Bar / Toggle Header */}
+            <div className="flex items-center justify-between px-1">
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    {totalVessels} {totalVessels === 1 ? 'vessel group' : 'vessel groups'} · Active shipments
+                </span>
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={toggleAll}
+                    className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground gap-1.5 cursor-pointer"
+                >
+                    {allExpanded ? (
+                        <>
+                            <span>Collapse all</span>
+                            <ChevronUp className="size-3.5" />
+                        </>
+                    ) : (
+                        <>
+                            <span>Expand all</span>
+                            <ChevronDown className="size-3.5" />
+                        </>
                     )}
-                </div>
-            ))}
+                </Button>
+            </div>
+
+            {/* Individual Vessel Cards */}
+            <div className="space-y-3.5">
+                {filteredGroups.map(group => {
+                    const isExpanded = !collapsedGroups.has(group.vesselKey);
+                    return (
+                        <div
+                            key={group.vesselKey}
+                            className="overflow-hidden rounded-xl border border-border/80 bg-card shadow-2xs transition-all hover:border-border"
+                        >
+                            <VesselGroupHeader
+                                group={group}
+                                isExpanded={isExpanded}
+                                onToggle={() => toggleGroup(group.vesselKey)}
+                            />
+
+                            {isExpanded && (
+                                <div
+                                    className="bg-card px-0 pb-0 pt-0"
+                                    data-testid="tracking-vessel-group-panel"
+                                >
+                                    <div
+                                        className="border-l-2 border-slate-300 dark:border-border/55"
+                                        data-testid="tracking-vessel-group-guide"
+                                    >
+                                        <div className="overflow-hidden bg-card">
+                                            <div
+                                                className="hidden border-b border-border/80 bg-muted/40 px-4 py-2 lg:grid lg:grid-cols-[1.3fr_1.2fr_1.4fr_1.3fr_100px_90px_90px] lg:gap-x-3"
+                                            >
+                                                {COL_HEADERS.map(h => (
+                                                    <span key={h.label} className={`text-[11px] font-semibold text-muted-foreground uppercase tracking-wider ${h.className}`}>
+                                                        {h.label}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                            {group.transactions.map(t => (
+                                                <ExportTransactionRow
+                                                    key={t.id}
+                                                    transaction={t}
+                                                    onNavigate={navigate}
+                                                    onCancel={onCancel}
+                                                    onRemarks={setRemarkTarget}
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
             </div>
 
             {remarkTarget && (
@@ -237,15 +290,84 @@ export function VesselGroupedExportList({ filters, onCancel }: Props) {
                 />
             )}
 
-            <div className="border-t border-border bg-surface-secondary/20 px-4 py-3">
-                <Pagination
-                    currentPage={response?.meta?.current_page ?? 1}
-                    totalPages={response?.meta?.last_page ?? 1}
-                    perPage={perPage}
-                    onPageChange={setPage}
-                    onPerPageChange={setPerPage}
-                />
-            </div>
-        </>
+            {/* Pagination Controls */}
+            {totalRecords > 0 && (
+                <div className="flex flex-col gap-3 px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between rounded-xl border border-border/80 bg-card shadow-xs">
+                    <span className="text-xs font-medium text-muted-foreground">
+                        Showing <strong className="font-semibold text-foreground">{startItem}–{endItem}</strong> of{' '}
+                        <strong className="font-semibold text-foreground">{totalRecords}</strong> transactions
+                    </span>
+
+                    <div className="flex flex-wrap items-center gap-4">
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground">Rows per page</span>
+                            <Select
+                                value={String(perPage)}
+                                onValueChange={(value) => {
+                                    setPerPage(Number(value));
+                                }}
+                            >
+                                <SelectTrigger className="h-8 w-[76px] text-xs bg-background">
+                                    <SelectValue placeholder={String(perPage)} />
+                                </SelectTrigger>
+                                <SelectContent side="top" className="min-w-[76px]">
+                                    {[15, 20, 50].map((option) => (
+                                        <SelectItem key={option} value={String(option)} className="text-xs">
+                                            {option}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="flex items-center gap-1">
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                aria-label="First page"
+                                onClick={() => setPage(1)}
+                                disabled={page <= 1}
+                                className="size-8"
+                            >
+                                <ChevronsLeft className="size-3.5" />
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                aria-label="Previous page"
+                                onClick={() => setPage(Math.max(1, page - 1))}
+                                disabled={page <= 1}
+                                className="size-8"
+                            >
+                                <ChevronLeft className="size-3.5" />
+                            </Button>
+                            <span className="px-2 text-xs font-medium text-muted-foreground">
+                                Page {page} of {totalPages}
+                            </span>
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                aria-label="Next page"
+                                onClick={() => setPage(Math.min(totalPages, page + 1))}
+                                disabled={page >= totalPages}
+                                className="size-8"
+                            >
+                                <ChevronRight className="size-3.5" />
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                aria-label="Last page"
+                                onClick={() => setPage(totalPages)}
+                                disabled={page >= totalPages}
+                                className="size-8"
+                            >
+                                <ChevronsRight className="size-3.5" />
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
     );
 }
