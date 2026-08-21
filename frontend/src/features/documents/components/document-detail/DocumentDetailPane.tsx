@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, FileText, Loader2, TriangleAlert, Upload } from 'lucide-react';
 
+import { Badge } from '../../../../components/ui/badge';
 import { Button } from '../../../../components/ui/button';
+import { Separator } from '../../../../components/ui/separator';
 import { FilePreviewModal } from '../../../../components/modals/FilePreviewModal';
 import { UploadModal } from '../../../../components/modals/UploadModal';
 import { useTransactionSyncSubscription } from '../../../../hooks/useTransactionSyncSubscription';
@@ -18,11 +20,15 @@ import type {
 } from '../../../tracking/types';
 import { useDocuments } from '../../hooks/useDocuments';
 import { useUploadDocument } from '../../hooks/useUploadDocument';
-import { mapDocument, type TransactionDoc } from '../../utils/documentsDetail.utils';
+import { mapDocument, toTitleCase, formatDate, type TransactionDoc } from '../../utils/documentsDetail.utils';
 import { DocumentRow } from '../detail/DocumentRow';
-import { DocumentsDetailHeader } from '../detail/DocumentsDetailHeader';
 
-export const DocumentDetailPane = ({ ref }: { ref: string | null }) => {
+export const DocumentDetailPane = ({
+    ref,
+}: {
+    ref: string | null;
+    onClose?: () => void;
+}) => {
     const navigate = useNavigate();
     const { user } = useAuth();
 
@@ -30,7 +36,9 @@ export const DocumentDetailPane = ({ ref }: { ref: string | null }) => {
     const [uploadError, setUploadError] = useState<string | undefined>();
 
     const { previewFile, setPreviewFile, handlePreviewDoc } = useDocumentPreview();
-    const { data: txDetail, isLoading: txnLoading } = useTransactionDetail(ref ?? undefined, { scope: 'record' });
+    const { data: txDetail, isLoading: txnLoading } = useTransactionDetail(ref ?? undefined, {
+        scope: 'record',
+    });
 
     const txnFound = !!txDetail;
     const isImport = txDetail?.isImport ?? true;
@@ -51,11 +59,13 @@ export const DocumentDetailPane = ({ ref }: { ref: string | null }) => {
     const rawImport: ApiImportTransaction | null = txDetail?.isImport
         ? (txDetail.raw as ApiImportTransaction)
         : null;
-    const rawExport: ApiExportTransaction | null = txDetail && !txDetail.isImport
-        ? (txDetail.raw as ApiExportTransaction)
-        : null;
+    const rawExport: ApiExportTransaction | null =
+        txDetail && !txDetail.isImport ? (txDetail.raw as ApiExportTransaction) : null;
 
     const displayRef = ref ?? '';
+    const displayTitle = isImport
+        ? (rawImport?.customs_ref_no || displayRef)
+        : (rawExport?.bl_no || txDetail?.mapped.bl || displayRef);
     const displayClient = rawImport?.importer?.name ?? rawExport?.shipper?.name ?? '—';
     const displayDate = rawImport?.arrival_date ?? rawExport?.export_date ?? '—';
     const displayStatus = txDetail?.mapped.status ?? '—';
@@ -95,7 +105,7 @@ export const DocumentDetailPane = ({ ref }: { ref: string | null }) => {
 
     if (!ref) {
         return (
-            <div className="flex h-full min-h-[24rem] items-center justify-center p-8">
+            <div data-testid="detail-pane" className="flex h-full min-h-[24rem] items-center justify-center p-8">
                 <div className="text-center text-muted-foreground">
                     <FileText className="mx-auto size-10 opacity-30" />
                     <p className="mt-3 text-sm font-semibold">Select a document to view details</p>
@@ -107,7 +117,7 @@ export const DocumentDetailPane = ({ ref }: { ref: string | null }) => {
 
     if (txnLoading) {
         return (
-            <div className="flex items-center justify-center gap-3 p-16 text-muted-foreground">
+            <div data-testid="detail-pane" className="flex items-center justify-center gap-3 p-16 text-muted-foreground">
                 <Loader2 className="size-5 animate-spin" />
                 <span className="text-sm font-semibold">Loading transaction…</span>
             </div>
@@ -116,7 +126,7 @@ export const DocumentDetailPane = ({ ref }: { ref: string | null }) => {
 
     if (!txnFound) {
         return (
-            <div className="flex flex-col items-center justify-center gap-3 p-16 text-muted-foreground">
+            <div data-testid="detail-pane" className="flex flex-col items-center justify-center gap-3 p-16 text-muted-foreground">
                 <FileText className="size-10 opacity-30" />
                 <p className="text-sm font-semibold">
                     {ref ? `Transaction "${ref}" not found` : 'No transaction selected'}
@@ -131,8 +141,8 @@ export const DocumentDetailPane = ({ ref }: { ref: string | null }) => {
 
     if (!isFinalized) {
         return (
-            <div className="flex flex-col items-center justify-center gap-4 p-16 text-center">
-                <div className="flex size-12 items-center justify-center rounded-full bg-warning/10 text-warning">
+            <div data-testid="detail-pane" className="flex flex-col items-center justify-center gap-4 p-8 text-center">
+                <div className="flex size-12 items-center justify-center rounded-full bg-amber-500/10 text-amber-600">
                     <TriangleAlert className="size-6" />
                 </div>
                 <div>
@@ -142,7 +152,7 @@ export const DocumentDetailPane = ({ ref }: { ref: string | null }) => {
                         Documents for active transactions are managed from the Tracking view.
                     </p>
                 </div>
-                <Button size="sm" onClick={() => navigate(`/tracking/${ref}`)}>
+                <Button size="sm" onClick={() => navigate(`/tracking/${ref}`)} className="cursor-pointer">
                     Go to Tracking
                     <ArrowRight className="ml-2 size-3.5" />
                 </Button>
@@ -151,63 +161,91 @@ export const DocumentDetailPane = ({ ref }: { ref: string | null }) => {
     }
 
     return (
-        <div className="space-y-4 p-4 sm:p-6">
-            <DocumentsDetailHeader
-                displayRef={displayRef}
-                displayClient={displayClient}
-                displayDate={displayDate}
-                displayStatus={displayStatus}
-                displayType={displayType}
-            />
-
-            <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-                <div className="flex items-center justify-between border-b border-border px-6 py-4">
-                    <div className="flex items-center gap-2">
-                        <FileText className="size-4 text-muted-foreground" />
-                        <span className="text-sm font-bold text-foreground">
-                            {docsLoading ? 'Loading…' : `${documents.length} Document${documents.length !== 1 ? 's' : ''}`}
-                        </span>
-                    </div>
-                    {canUpload ? (
-                        <Button
-                            type="button"
-                            size="sm"
-                            onClick={() => {
-                                setUploadError(undefined);
-                                setIsUploadOpen(true);
-                            }}
+        <div data-testid="detail-pane" className="flex flex-col h-full space-y-4 p-4 sm:p-6 overflow-y-auto">
+            {/* Sheet Top Header */}
+            <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                        <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+                            {displayTitle}
+                        </h2>
+                        <Badge variant="secondary" className="font-semibold text-xs">
+                            {displayType === 'import' ? 'Import' : 'Export'}
+                        </Badge>
+                        <Badge
+                            variant="outline"
+                            className="border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
                         >
-                            <Upload className="mr-1.5 size-3.5" />
-                            Upload
-                        </Button>
+                            <span className="size-1.5 rounded-full bg-emerald-500" />
+                            {displayStatus}
+                        </Badge>
+                    </div>
+                </div>
+
+                <p className="text-xs text-muted-foreground">
+                    {isImport && rawImport?.bl_no ? (
+                        <>
+                            BL No.: <strong className="font-semibold text-foreground">{rawImport.bl_no}</strong> ·{' '}
+                        </>
                     ) : null}
+                    Client: <strong className="font-semibold text-foreground">{toTitleCase(displayClient)}</strong> · {formatDate(displayDate)}
+                </p>
+            </div>
+
+            {/* Quick Actions Bar */}
+            {canUpload && (
+                <div className="flex items-center gap-2 pt-1">
+                    <Button
+                        size="sm"
+                        onClick={() => {
+                            setUploadError(undefined);
+                            setIsUploadOpen(true);
+                        }}
+                        className="cursor-pointer"
+                    >
+                        <Upload className="mr-1.5 size-3.5" />
+                        Upload
+                    </Button>
+                </div>
+            )}
+
+            <Separator />
+
+            {/* Attached Documents List */}
+            <div className="space-y-3 flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-bold text-foreground">
+                        Attached Files ({docsLoading ? '…' : documents.length})
+                    </h3>
                 </div>
 
-                <div className="grid gap-4 border-b border-border bg-muted/40 px-6 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground"
-                    style={{ gridTemplateColumns: '40px 2.5fr 1fr 1.4fr 80px 90px' }}
-                >
-                    <span />
-                    <span>File Name</span>
-                    <span>Date</span>
-                    <span>Uploaded By</span>
-                    <span>Size</span>
-                    <span className="text-center">Actions</span>
-                </div>
-
-                <div>
-                    {docsLoading ? (
-                        <div className="flex items-center justify-center gap-3 py-16 text-muted-foreground">
-                            <Loader2 className="size-5 animate-spin" />
-                            <span className="text-sm font-semibold">Loading documents…</span>
-                        </div>
-                    ) : documents.length === 0 ? (
-                        <div className="flex flex-col items-center gap-3 py-16 text-muted-foreground">
-                            <FileText className="size-10 opacity-30" />
-                            <p className="text-sm font-semibold">No documents yet</p>
-                            <p className="text-xs">Upload the first document for this transaction.</p>
-                        </div>
-                    ) : (
-                        documents.map((doc, i) => (
+                {docsLoading ? (
+                    <div className="flex items-center justify-center gap-3 py-12 text-muted-foreground">
+                        <Loader2 className="size-5 animate-spin" />
+                        <span className="text-sm font-semibold">Loading documents…</span>
+                    </div>
+                ) : documents.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center gap-2.5 rounded-xl border border-dashed p-8 text-center text-muted-foreground">
+                        <FileText className="size-8 opacity-30" />
+                        <p className="text-xs font-semibold">No files attached to this transaction</p>
+                        {canUpload && (
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                    setUploadError(undefined);
+                                    setIsUploadOpen(true);
+                                }}
+                                className="mt-1 text-xs cursor-pointer"
+                            >
+                                <Upload className="mr-1.5 size-3" />
+                                Upload First Document
+                            </Button>
+                        )}
+                    </div>
+                ) : (
+                    <div className="space-y-2">
+                        {documents.map((doc, i) => (
                             <DocumentRow
                                 key={doc.id}
                                 doc={doc}
@@ -218,31 +256,37 @@ export const DocumentDetailPane = ({ ref }: { ref: string | null }) => {
                                     if (apiDoc) handlePreviewDoc(apiDoc);
                                 }}
                             />
-                        ))
-                    )}
-                </div>
+                        ))}
+                    </div>
+                )}
             </div>
 
-            {canUpload ? (
+            {/* Upload Modal */}
+            {canUpload && (
                 <UploadModal
                     isOpen={isUploadOpen}
                     onClose={() => setIsUploadOpen(false)}
-                    title={displayRef}
+                    title={`Upload to ${displayRef}`}
                     onUpload={handleUpload}
                     isLoading={isUploading}
                     errorMessage={uploadError}
                 />
-            ) : null}
+            )}
 
+            {/* Preview Modal */}
             <FilePreviewModal
                 isOpen={!!previewFile}
                 onClose={() => setPreviewFile(null)}
                 file={previewFile?.file ?? null}
                 fileName={previewFile?.name ?? ''}
-                onDownload={previewFile ? () => {
-                    const doc = apiDocuments.find((d) => d.filename === previewFile.name);
-                    if (doc) trackingApi.downloadDocument(doc.id, doc.filename);
-                } : undefined}
+                onDownload={
+                    previewFile
+                        ? () => {
+                              const doc = apiDocuments.find((d) => d.filename === previewFile.name);
+                              if (doc) trackingApi.downloadDocument(doc.id, doc.filename);
+                          }
+                        : undefined
+                }
             />
         </div>
     );

@@ -20,7 +20,7 @@ export const DocumentsToolbar = ({
     onSearchChange: (value: string) => void;
     onTypeFilterChange: (value: TypeFilter) => void;
 }) => (
-    <div className="flex flex-col items-stretch justify-between gap-3 border-b border-border bg-card p-3 sm:flex-row sm:items-center">
+    <div className="flex flex-col gap-3 border-b border-border bg-card p-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative max-w-sm flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -28,21 +28,27 @@ export const DocumentsToolbar = ({
                 placeholder="Search by BL No. or client…"
                 value={searchQuery}
                 onChange={(event) => onSearchChange(event.target.value)}
-                className="pl-9"
+                className="pl-9 h-9 text-xs"
             />
         </div>
 
-        <Select value={typeFilter} onValueChange={(value) => onTypeFilterChange(value as TypeFilter)}>
-            <SelectTrigger className="w-full sm:w-[140px]">
-                <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-                {(Object.keys(FILTER_LABELS) as TypeFilter[]).map((category) => (
-                    <SelectItem key={category} value={category}>
-                        {FILTER_LABELS[category]}
-                    </SelectItem>
-                ))}
-            </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground hidden sm:inline-block">Filter Type:</span>
+            <Select
+                value={typeFilter}
+                onValueChange={(value) => onTypeFilterChange(value as TypeFilter)}
+            >
+                <SelectTrigger className="w-full sm:w-[140px] h-9 text-xs">
+                    <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                    {(Object.keys(FILTER_LABELS) as TypeFilter[]).map((category) => (
+                        <SelectItem key={category} value={category} className="text-xs">
+                            {FILTER_LABELS[category]}
+                        </SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+        </div>
     </div>
 );

@@ -9,6 +9,7 @@ export type TypeFilter = 'all' | TransactionType;
 export interface DocumentRow {
     id: number;
     ref: string;
+    customsRef: string;
     blNo: string;
     client: string;
     type: TransactionType;
@@ -71,6 +72,7 @@ export const mapDocumentRows = (rows: DocumentTransactionListRow[]): DocumentRow
     rows.map((row) => ({
         id: row.id,
         ref: row.ref,
+        customsRef: row.type === 'import' ? (row.ref || '—') : '—',
         blNo: row.bl_no || '—',
         client: row.client || '—',
         type: row.type,

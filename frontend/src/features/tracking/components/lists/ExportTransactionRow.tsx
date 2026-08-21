@@ -100,13 +100,13 @@ export function ExportTransactionRow({
     return (
         <div
             onClick={() => onNavigate(path)}
-            className="group grid gap-x-3 gap-y-3 p-4 lg:min-h-[52px] lg:grid-cols-[1.3fr_1.2fr_1.4fr_1.3fr_100px_90px_90px] lg:items-center lg:gap-y-0 lg:px-4 lg:py-2 cursor-pointer border-b border-border/40 last:border-b-0 text-xs transition-colors hover:bg-muted/50"
+            className="group grid gap-x-4 gap-y-3 p-4 lg:min-h-[52px] lg:grid-cols-[1.2fr_1.1fr_1.4fr_150px_140px_90px_70px] lg:items-center lg:gap-y-0 lg:px-4 lg:py-2 cursor-pointer border-b border-border/40 last:border-b-0 text-xs transition-colors hover:bg-muted/50"
             role="row"
         >
             {/* Primary BL Reference */}
             <div className="flex min-w-0 items-start justify-between lg:block">
                 <div className="min-w-0 flex items-center gap-2">
-                    <span className="truncate font-mono text-xs font-semibold text-foreground group-hover:text-primary transition-colors">
+                    <span className="truncate text-xs font-semibold text-foreground group-hover:text-primary transition-colors">
                         {primary}
                     </span>
                     {isBlocked && (

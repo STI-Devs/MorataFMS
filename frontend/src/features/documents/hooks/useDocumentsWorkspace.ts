@@ -12,7 +12,7 @@ import { useDocumentTransactions } from './useDocumentTransactions';
 export function useDocumentsWorkspace() {
     const [searchParams, setSearchParams] = useSearchParams();
     const page = Number.parseInt(searchParams.get('page') || '1', 10);
-    const perPage = Number.parseInt(searchParams.get('per_page') || '10', 10);
+    const perPage = Number.parseInt(searchParams.get('per_page') || '30', 10);
     const selectedRef = searchParams.get('ref');
 
     const [searchQuery, setSearchQuery] = useState('');

@@ -1,5 +1,6 @@
 import { TriangleAlert } from 'lucide-react';
-import { CurrentDateTime } from '../../../../components/CurrentDateTime';
+import { Card } from '../../../../components/ui/card';
+import { Sheet, SheetContent } from '../../../../components/ui/sheet';
 import { useDocumentsWorkspace } from '../../hooks/useDocumentsWorkspace';
 import { DocumentDetailPane } from '../document-detail/DocumentDetailPane';
 import { DocumentsStats } from './DocumentsStats';
@@ -24,21 +25,16 @@ export const Documents = () => {
     } = useDocumentsWorkspace();
 
     return (
-        <div className="space-y-5">
-            <div className="flex items-end justify-between">
-                <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-foreground">Documents</h1>
-                    <p className="text-sm text-muted-foreground">
-                        Browse cleared shipments &amp; manage files
-                    </p>
-                </div>
-                <CurrentDateTime
-                    className="hidden shrink-0 text-right sm:block"
-                    timeClassName="text-2xl font-bold tabular-nums text-foreground"
-                    dateClassName="text-sm text-muted-foreground"
-                />
+        <div className="space-y-3 pb-6">
+            {/* Page Header */}
+            <div className="flex flex-col gap-0.5">
+                <h1 className="text-xl font-bold tracking-tight text-foreground">Documents</h1>
+                <p className="text-xs text-muted-foreground">
+                    Browse cleared shipments and manage attached stage documents.
+                </p>
             </div>
 
+            {/* Error Banner */}
             {isError ? (
                 <div className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm font-medium text-destructive">
                     <TriangleAlert className="size-4 shrink-0" />
@@ -46,34 +42,42 @@ export const Documents = () => {
                 </div>
             ) : null}
 
+            {/* 4-Card Compact KPI Stats */}
             <DocumentsStats stats={stats} isLoading={isLoading} />
 
-            <div className="flex flex-col gap-4 overflow-hidden lg:grid lg:grid-cols-[minmax(26rem,0.85fr)_minmax(0,1.15fr)] lg:items-start">
-                {/* Left: the document list */}
-                <div className="min-w-0 overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-                    <DocumentsToolbar
-                        searchQuery={searchQuery}
-                        typeFilter={typeFilter}
-                        onSearchChange={handleSearchChange}
-                        onTypeFilterChange={handleTypeFilterChange}
-                    />
+            {/* Full-Width Data Table Card */}
+            <Card className="p-0 py-0 gap-0 overflow-hidden shadow-2xs">
+                <DocumentsToolbar
+                    searchQuery={searchQuery}
+                    typeFilter={typeFilter}
+                    onSearchChange={handleSearchChange}
+                    onTypeFilterChange={handleTypeFilterChange}
+                />
 
-                    <DocumentsTable
-                        rows={rows}
-                        response={response}
-                        selectedRef={selectedRef}
-                        isLoading={isLoading}
-                        onSelect={(ref) => selectRef(ref)}
-                        onPageChange={handlePageChange}
-                        onPerPageChange={handlePerPageChange}
-                    />
-                </div>
+                <DocumentsTable
+                    rows={rows}
+                    response={response}
+                    selectedRef={selectedRef}
+                    isLoading={isLoading}
+                    onSelect={(ref) => selectRef(ref)}
+                    onPageChange={handlePageChange}
+                    onPerPageChange={handlePerPageChange}
+                />
+            </Card>
 
-                {/* Right: the detail pane */}
-                <div className="min-h-0 overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-                    <DocumentDetailPane ref={selectedRef} />
+            {/* Slide-out Document Detail Drawer / Sheet */}
+            <Sheet open={!!selectedRef} onOpenChange={(open) => !open && selectRef(null)}>
+                <SheetContent side="right" className="sm:max-w-xl md:max-w-2xl w-full p-0 overflow-y-auto">
+                    <DocumentDetailPane ref={selectedRef} onClose={() => selectRef(null)} />
+                </SheetContent>
+            </Sheet>
+
+            {/* Hidden fallback pane for closed state */}
+            {!selectedRef && (
+                <div className="hidden" aria-hidden="true">
+                    <DocumentDetailPane ref={null} />
                 </div>
-            </div>
+            )}
         </div>
     );
 };

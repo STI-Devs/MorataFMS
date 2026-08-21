@@ -254,7 +254,7 @@ export function VesselGroupedExportList({ filters, onCancel }: Props) {
                                     >
                                         <div className="overflow-hidden bg-card">
                                             <div
-                                                className="hidden border-b border-border/80 bg-muted/40 px-4 py-2 lg:grid lg:grid-cols-[1.3fr_1.2fr_1.4fr_1.3fr_100px_90px_90px] lg:gap-x-3"
+                                                className="hidden border-b border-border/80 bg-muted/40 px-4 py-2 lg:grid lg:grid-cols-[1.2fr_1.1fr_1.4fr_150px_140px_90px_70px] lg:gap-x-4"
                                             >
                                                 {COL_HEADERS.map(h => (
                                                     <span key={h.label} className={`text-[11px] font-semibold text-muted-foreground uppercase tracking-wider ${h.className}`}>

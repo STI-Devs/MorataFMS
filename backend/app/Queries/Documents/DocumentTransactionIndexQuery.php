@@ -29,7 +29,7 @@ class DocumentTransactionIndexQuery
     {
         $search = trim((string) $request->query('search', ''));
         $type = $request->query('type');
-        $perPage = min(max((int) $request->input('per_page', 10), 1), 50);
+        $perPage = min(max((int) $request->input('per_page', 30), 1), 100);
         $importFinalizedStatuses = [ImportStatusWorkflow::completed(), ImportStatus::Cancelled->value];
         $exportFinalizedStatuses = [ExportStatusWorkflow::completed(), ExportStatus::Cancelled->value];
 

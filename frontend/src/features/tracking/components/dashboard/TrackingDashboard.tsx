@@ -369,25 +369,22 @@ function VesselListView({
                                 <Table>
                                     <TableHeader>
                                         <TableRow className="hover:bg-transparent border-b">
-                                            <TableHead className="h-9 text-xs font-semibold uppercase tracking-wider text-muted-foreground w-[160px]">
-                                                {group.type === 'import' ? 'Customs Ref' : 'Customs Ref'}
-                                            </TableHead>
-                                            <TableHead className="h-9 text-xs font-semibold uppercase tracking-wider text-muted-foreground w-[170px]">
-                                                Bill of Lading
+                                            <TableHead className="h-9 text-xs font-semibold uppercase tracking-wider text-muted-foreground w-[180px]">
+                                                {group.type === 'import' ? 'Customs Ref' : 'Bill of Lading'}
                                             </TableHead>
                                             <TableHead className="h-9 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                                                 {group.type === 'import' ? 'Importer' : 'Shipper'}
                                             </TableHead>
-                                            <TableHead className="h-9 text-xs font-semibold uppercase tracking-wider text-muted-foreground w-[130px] text-center">
+                                            <TableHead className="h-9 text-xs font-semibold uppercase tracking-wider text-muted-foreground w-[135px]">
                                                 Status
                                             </TableHead>
-                                            <TableHead className="h-9 text-xs font-semibold uppercase tracking-wider text-muted-foreground w-[150px]">
-                                                Destination
+                                            <TableHead className="h-9 text-xs font-semibold uppercase tracking-wider text-muted-foreground w-[135px]">
+                                                {group.type === 'import' ? 'Origin' : 'Destination'}
                                             </TableHead>
-                                            <TableHead className="h-9 text-xs font-semibold uppercase tracking-wider text-muted-foreground w-[120px] text-end">
+                                            <TableHead className="h-9 text-xs font-semibold uppercase tracking-wider text-muted-foreground w-[135px]">
                                                 {group.type === 'import' ? 'Arrival' : 'Departure'}
                                             </TableHead>
-                                            <TableHead className="h-9 text-xs font-semibold uppercase tracking-wider text-muted-foreground w-[50px] text-end">
+                                            <TableHead className="h-9 text-xs font-semibold uppercase tracking-wider text-muted-foreground w-[65px] text-end">
                                                 Actions
                                             </TableHead>
                                         </TableRow>
@@ -433,21 +430,30 @@ function VesselListView({
                                                     }
                                                     className="group cursor-pointer hover:bg-muted/50 transition-colors border-b border-border/40"
                                                 >
-                                                    {/* 1. BL NO. / CUSTOMS REF */}
-                                                    <TableCell className="py-2.5 font-mono">
-                                                        <span className="font-semibold text-xs text-foreground group-hover:text-primary transition-colors">
-                                                            {refNo}
-                                                        </span>
-                                                    </TableCell>
-
-                                                    {/* 2. BILL OF LADING */}
-                                                    <TableCell className="py-2.5 font-mono">
-                                                        <span
-                                                            className="text-xs font-medium text-foreground group-hover:text-primary transition-colors truncate block max-w-[160px]"
-                                                            title={blNo}
-                                                        >
-                                                            {blNo}
-                                                        </span>
+                                                    {/* 1. CUSTOMS REF (Import) / BILL OF LADING (Export) */}
+                                                    <TableCell className="py-2.5">
+                                                        {isImport ? (
+                                                            <>
+                                                                <span
+                                                                    className="text-xs font-bold text-foreground group-hover:text-primary transition-colors truncate block max-w-[180px]"
+                                                                    title={(transaction as ApiImportTransaction).customs_ref_no}
+                                                                >
+                                                                    {(transaction as ApiImportTransaction).customs_ref_no}
+                                                                </span>
+                                                                {(transaction as ApiImportTransaction).bl_no ? (
+                                                                    <p className="mt-0.5 text-[11px] text-muted-foreground truncate max-w-[180px]" title={(transaction as ApiImportTransaction).bl_no}>
+                                                                        BL: {(transaction as ApiImportTransaction).bl_no}
+                                                                    </p>
+                                                                ) : null}
+                                                            </>
+                                                        ) : (
+                                                            <span
+                                                                className="text-xs font-semibold text-foreground group-hover:text-primary transition-colors truncate block max-w-[180px]"
+                                                                title={blNo}
+                                                            >
+                                                                {blNo}
+                                                            </span>
+                                                        )}
                                                     </TableCell>
 
                                                     {/* 3. SHIPPER / IMPORTER */}
@@ -461,25 +467,25 @@ function VesselListView({
                                                     </TableCell>
 
                                                     {/* 4. STATUS */}
-                                                    <TableCell className="py-3 text-center">
+                                                    <TableCell className="py-2.5">
                                                         <StatusBadge status={transaction.status ?? ''} />
                                                     </TableCell>
 
                                                     {/* 5. DESTINATION */}
-                                                    <TableCell className="py-3">
-                                                        <span className="text-xs text-muted-foreground truncate block max-w-[150px]">
+                                                    <TableCell className="py-2.5">
+                                                        <span className="text-xs text-muted-foreground truncate block max-w-[125px]">
                                                             {toTitleCase(destination)}
                                                         </span>
                                                     </TableCell>
 
                                                     {/* 6. DEPARTURE / ARRIVAL */}
-                                                    <TableCell className="py-3 text-end text-xs text-muted-foreground tabular-nums whitespace-nowrap">
+                                                    <TableCell className="py-2.5 text-xs text-muted-foreground tabular-nums whitespace-nowrap">
                                                         {dateLabel}
                                                     </TableCell>
 
                                                     {/* 7. ACTIONS */}
                                                     <TableCell
-                                                        className="py-3 text-end"
+                                                        className="py-2.5 text-end"
                                                         onClick={(e) => e.stopPropagation()}
                                                     >
                                                         <Button
