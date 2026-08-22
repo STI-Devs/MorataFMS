@@ -104,22 +104,20 @@ function VesselListView({
     const navigate = useNavigate();
     const [page, setPage] = useState(1);
     const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE);
-    const [expandedGroups, setExpandedGroups] = useState<Set<string>>(
-        () => new Set(groups.map((g) => g.vesselKey))
+    // Track only what the user explicitly collapsed; the expanded set is derived
+    // so newly arrived groups are expanded by default (avoids setState-in-render).
+    const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(
+        () => new Set()
     );
-
-    // Synchronize expansion set when new groups arrive
-    useMemo(() => {
-        setExpandedGroups((prev) => {
-            const next = new Set(prev);
-            for (const g of groups) {
-                if (!prev.has(g.vesselKey)) {
-                    next.add(g.vesselKey);
-                }
-            }
-            return next;
-        });
-    }, [groups]);
+    const expandedGroups = useMemo(
+        () =>
+            new Set(
+                groups
+                    .map((g) => g.vesselKey)
+                    .filter((key) => !collapsedGroups.has(key))
+            ),
+        [groups, collapsedGroups]
+    );
 
     // Filter groups based on search query and status filter
     const filteredGroups = useMemo<AnyVesselGroup[]>(() => {
@@ -198,7 +196,7 @@ function VesselListView({
         paginatedGroups.every((g) => expandedGroups.has(g.vesselKey));
 
     const toggleGroup = (key: string) => {
-        setExpandedGroups((prev) => {
+        setCollapsedGroups((prev) => {
             const next = new Set(prev);
             if (next.has(key)) {
                 next.delete(key);
@@ -210,23 +208,17 @@ function VesselListView({
     };
 
     const toggleAll = () => {
-        if (allExpanded) {
-            setExpandedGroups((prev) => {
-                const next = new Set(prev);
-                for (const g of paginatedGroups) {
-                    next.delete(g.vesselKey);
+        setCollapsedGroups((prev) => {
+            const next = new Set(prev);
+            for (const g of paginatedGroups) {
+                if (allExpanded) {
+                    next.add(g.vesselKey); // collapse all
+                } else {
+                    next.delete(g.vesselKey); // expand all
                 }
-                return next;
-            });
-        } else {
-            setExpandedGroups((prev) => {
-                const next = new Set(prev);
-                for (const g of paginatedGroups) {
-                    next.add(g.vesselKey);
-                }
-                return next;
-            });
-        }
+            }
+            return next;
+        });
     };
 
     if (isLoading) {
