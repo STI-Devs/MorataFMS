@@ -8,15 +8,15 @@ export const COMPLETED_STATUS = 'completed';
 export const CANCELLED_STATUS = 'cancelled';
 
 export const STATUS_CFG: Record<string, { color: string; bg: string }> = {
-    completed: { color: '#30d158', bg: 'rgba(48,209,88,0.13)' },
-    in_progress: { color: '#0a84ff', bg: 'rgba(10,132,255,0.13)' },
-    cancelled: { color: '#ff453a', bg: 'rgba(255,69,58,0.13)' },
-    pending: { color: '#ff9f0a', bg: 'rgba(255,159,10,0.13)' },
+    completed: { color: 'var(--success)', bg: 'color-mix(in srgb, var(--success) 13%, transparent)' },
+    in_progress: { color: 'var(--info)', bg: 'color-mix(in srgb, var(--info) 13%, transparent)' },
+    cancelled: { color: 'var(--danger)', bg: 'color-mix(in srgb, var(--danger) 13%, transparent)' },
+    pending: { color: 'var(--warning)', bg: 'color-mix(in srgb, var(--warning) 13%, transparent)' },
 };
 
 export const TYPE_CFG: Record<string, { color: string; bg: string }> = {
-    import: { color: '#0a84ff', bg: 'rgba(10,132,255,0.13)' },
-    export: { color: '#ff9f0a', bg: 'rgba(255,159,10,0.13)' },
+    import: { color: 'var(--info)', bg: 'color-mix(in srgb, var(--info) 13%, transparent)' },
+    export: { color: 'var(--warning)', bg: 'color-mix(in srgb, var(--warning) 13%, transparent)' },
 };
 
 export function normalizeStatus(status: string): string {

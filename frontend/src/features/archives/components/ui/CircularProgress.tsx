@@ -2,7 +2,7 @@
     const r = 44;
     const circ = 2 * Math.PI * r;
     const dash = (pct / 100) * circ;
-    const color = pct >= 90 ? '#10b981' : pct >= 60 ? '#f59e0b' : '#ef4444';
+    const color = pct >= 90 ? 'var(--success)' : pct >= 60 ? 'var(--warning)' : 'var(--danger)';
     return (
         <div className="relative w-28 h-28 shrink-0 flex items-center justify-center">
             <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100">

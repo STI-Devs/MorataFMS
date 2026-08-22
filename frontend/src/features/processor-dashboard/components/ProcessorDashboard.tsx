@@ -19,14 +19,14 @@ const moduleCards: ModuleCard[] = [
         label: 'Transaction Tasks',
         description: 'Track and manage shared processor-stage queues for imports and exports.',
         path: appRoutes.processorTransaction,
-        accent: '#0a84ff',
+        accent: 'var(--primary)',
         icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4',
     },
     {
         label: 'Documents',
         description: 'Access and view your historical processor documents.',
         path: appRoutes.processorDocuments,
-        accent: '#64d2ff',
+        accent: 'var(--sky)',
         icon: 'M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2',
     },
 ];
@@ -131,7 +131,7 @@ export const ProcessorDashboard = () => {
 
             <section>
                 <div className="mb-4 flex items-center gap-3">
-                    <div className="h-5 w-1 rounded-full bg-blue-500" />
+                    <div className="h-5 w-1 rounded-full bg-primary" />
                     <h2 className="text-sm font-bold uppercase tracking-[0.22em] text-text-secondary">Modules</h2>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -149,7 +149,7 @@ export const ProcessorDashboard = () => {
                             />
                             <div
                                 className="flex h-12 w-12 items-center justify-center rounded-xl"
-                                style={{ backgroundColor: `${card.accent}18` }}
+                                style={{ backgroundColor: `color-mix(in srgb, ${card.accent} 9%, transparent)` }}
                             >
                                 <svg
                                     className="h-6 w-6"

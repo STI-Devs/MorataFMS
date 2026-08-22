@@ -236,17 +236,17 @@ export function getStatusStyle(status: string): { color: string; bg: string } {
         case 'Cleared':
         case 'Shipped':
         case 'completed':
-        case 'Completed':      return { color: '#30d158', bg: 'rgba(48,209,88,0.13)' };
-        case 'Vessel Arrived': return { color: '#0a84ff', bg: 'rgba(10,132,255,0.13)' };
-        case 'In Transit':     return { color: '#64d2ff', bg: 'rgba(100,210,255,0.13)' };
-        case 'Departure':      return { color: '#bf5af2', bg: 'rgba(191,90,242,0.13)' };
+        case 'Completed':      return { color: 'var(--success)', bg: 'color-mix(in srgb, var(--success) 13%, transparent)' };
+        case 'Vessel Arrived': return { color: 'var(--info)', bg: 'color-mix(in srgb, var(--info) 13%, transparent)' };
+        case 'In Transit':     return { color: 'var(--sky)', bg: 'color-mix(in srgb, var(--sky) 13%, transparent)' };
+        case 'Departure':      return { color: 'var(--violet)', bg: 'color-mix(in srgb, var(--violet) 13%, transparent)' };
         case 'in_progress':
         case 'Processing':
         case 'pending':
-        case 'Pending':        return { color: '#ff9f0a', bg: 'rgba(255,159,10,0.13)' };
+        case 'Pending':        return { color: 'var(--warning)', bg: 'color-mix(in srgb, var(--warning) 13%, transparent)' };
         case 'cancelled':
-        case 'Cancelled':      return { color: '#ff453a', bg: 'rgba(255,69,58,0.13)' };
-        default:               return { color: '#8e8e93', bg: 'rgba(142,142,147,0.13)' };
+        case 'Cancelled':      return { color: 'var(--danger)', bg: 'color-mix(in srgb, var(--danger) 13%, transparent)' };
+        default:               return { color: 'var(--muted-foreground)', bg: 'color-mix(in srgb, var(--muted-foreground) 13%, transparent)' };
     }
 }
 

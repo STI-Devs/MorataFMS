@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { Icon } from '../../../../components/Icon';
+import { Flag, Eye, X } from 'lucide-react';
+import { Button } from '../../../../components/ui/button';
 import { StatusBadge } from '../../../../components/StatusBadge';
 import { appRoutes } from '../../../../lib/appRoutes';
 import { useCancelTransaction } from '../../hooks/useCancelTransaction';
 import { useCreateTransaction } from '../../hooks/useCreateTransaction';
+import { useTrackingViewMode } from '../../hooks/useTrackingViewMode';
 import type { ApiImportTransaction, ImportTransaction } from '../../types';
 import { mapImportTransaction } from '../../utils/mappers';
 import { CancelTransactionModal } from '../modals/CancelTransactionModal';
@@ -13,7 +15,6 @@ import { TransactionListPage } from '../pages/TransactionListPage';
 import type { VesselListFilters } from '../vessel-groups/VesselListToolbar';
 import { VesselListToolbar } from '../vessel-groups/VesselListToolbar';
 import { VesselGroupedImportList } from '../vessel-groups/VesselGroupedImportList';
-import { TrackingPageHero } from '../details/TrackingPageHero';
 import type { CreateImportPayload } from '../../types';
 
 const CANCELLABLE_IMPORT_STATUSES = new Set(['Pending', 'Vessel Arrived', 'Processing', 'In Progress']);
@@ -23,8 +24,27 @@ const DEFAULT_FILTERS: VesselListFilters = {
     time: 'all',
 };
 
+function toTitleCase(str: string | null | undefined): string {
+    if (!str) return '—';
+    return str
+        .toLowerCase()
+        .replace(/\b([a-z])/g, (match) => match.toUpperCase())
+        .replace(/\b([a-z0-9]*\d[a-z0-9]*)\b/gi, (match) => match.toUpperCase())
+        .replace(/\bCma\b/gi, 'CMA')
+        .replace(/\bCgm\b/gi, 'CGM')
+        .replace(/\bMsc\b/gi, 'MSC')
+        .replace(/\bApl\b/gi, 'APL')
+        .replace(/\bOne\b/gi, 'ONE')
+        .replace(/\bInc\b\.?/gi, 'Inc.')
+        .replace(/\bCo\b\.?/gi, 'Co.')
+        .replace(/\bCorp\b\.?/gi, 'Corp.')
+        .replace(/\bLlc\b/gi, 'LLC')
+        .replace(/\bLtd\b\.?/gi, 'Ltd.')
+        .replace(/\.{2,}/g, '.');
+}
+
 export const ImportList = () => {
-    const [viewMode, setViewMode] = useState<'grouped' | 'flat'>('grouped');
+    const [viewMode, setViewMode] = useTrackingViewMode();
     const [filters, setFilters] = useState<VesselListFilters>(DEFAULT_FILTERS);
     const [isEncodeOpen, setIsEncodeOpen] = useState(false);
     const [cancelTarget, setCancelTarget] = useState<{ id: number; ref: string } | null>(null);
@@ -34,102 +54,135 @@ export const ImportList = () => {
     const cancelMutation = useCancelTransaction('import');
 
     const handleFiltersChange = (partial: Partial<VesselListFilters>) => {
-        setFilters(prev => ({ ...prev, ...partial }));
+        setFilters((prev) => ({ ...prev, ...partial }));
     };
 
     if (viewMode === 'flat') {
         return (
             <>
-                <div className="space-y-5 p-4">
-                    <TrackingPageHero
-                        title="Import Transactions"
-                        description="Manage active import records with the same transaction workflow, while keeping the list easy to scan by vessel, BL, and customs reference."
+                <div className="w-full space-y-6 pb-8">
+                    <div className="flex flex-col gap-1">
+                        <h1 className="text-2xl font-bold tracking-tight text-foreground">
+                            Import Transactions
+                        </h1>
+                        <p className="text-sm text-muted-foreground">
+                            Manage active import records with full transaction workflow, status updates, and remarks control.
+                        </p>
+                    </div>
+
+                    <VesselListToolbar
+                        type="import"
+                        viewMode={viewMode}
+                        onViewModeChange={setViewMode}
+                        filters={filters}
+                        onFiltersChange={handleFiltersChange}
+                        onEncode={() => setIsEncodeOpen(true)}
+                        encodeLabel="Encode Import"
                     />
-                    <div className="overflow-hidden rounded-2xl border border-border bg-gradient-to-b from-surface to-surface-secondary/20 shadow-sm">
-                        <VesselListToolbar
-                            type="import"
-                            viewMode={viewMode}
-                            onViewModeChange={setViewMode}
-                            filters={filters}
-                            onFiltersChange={handleFiltersChange}
-                            onEncode={() => setIsEncodeOpen(true)}
-                            encodeLabel="Encode Import"
-                        />
-                        <TransactionListPage<ImportTransaction>
-                            type="import"
-                            title=""
-                            subtitle=""
-                            encodeButtonLabel="Encode Import"
-                            gridTemplateColumns="90px 1.2fr 1fr 1fr 1.3fr 120px 1.4fr 1fr 60px"
-                            mapResponseData={data => (data as ApiImportTransaction[]).map(mapImportTransaction)}
-                            renderHeaders={() => (
+
+                    <TransactionListPage<ImportTransaction>
+                        type="import"
+                        filters={filters}
+                        gridTemplateColumns="80px 1.3fr 1.1fr 1.2fr 1.2fr 110px 1.2fr 1.3fr 80px"
+                        mapResponseData={(data) => (data as ApiImportTransaction[]).map(mapImportTransaction)}
+                        renderHeaders={() => (
                                 <>
-                                    <span className="text-[10px] font-bold text-text-muted uppercase tracking-[0.08em] text-center">Selectivity</span>
-                                    <span className="text-[10px] font-bold text-text-muted uppercase tracking-[0.08em] text-left">Customs Ref No.</span>
-                                    <span className="text-[10px] font-bold text-text-muted uppercase tracking-[0.08em] text-left">Bill of Lading</span>
-                                    <span className="text-[10px] font-bold text-text-muted uppercase tracking-[0.08em] text-left">Vessel Name</span>
-                                    <span className="text-[10px] font-bold text-text-muted uppercase tracking-[0.08em] text-left">Location of Goods</span>
-                                    <span className="text-[10px] font-bold text-text-muted uppercase tracking-[0.08em] text-center">Status</span>
-                                    <span className="text-[10px] font-bold text-text-muted uppercase tracking-[0.08em] text-center">Arrival Date</span>
-                                    <span className="text-[10px] font-bold text-text-muted uppercase tracking-[0.08em] text-left pl-4">Importer</span>
-                                    <span className="text-[10px] font-bold text-text-muted uppercase tracking-[0.08em] text-center"></span>
+                                    <span className="text-center">Selectivity</span>
+                                    <span className="text-left">Customs Ref</span>
+                                    <span className="text-left">BL No.</span>
+                                    <span className="text-left">Vessel</span>
+                                    <span className="text-left">Location</span>
+                                    <span className="text-left">Status</span>
+                                    <span className="text-left">Arrival</span>
+                                    <span className="text-left">Importer</span>
+                                    <span className="text-end">Actions</span>
                                 </>
                             )}
                             renderRow={(row, _, navigate, onCancel) => (
                                 <>
                                     <div className="flex justify-center items-center">
-                                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: row.color, boxShadow: `0 0 4px ${row.color}40` }} />
+                                        <span
+                                            className="size-2 rounded-full shrink-0 shadow-xs"
+                                            style={{ backgroundColor: row.color }}
+                                        />
                                     </div>
-                                    <div className="flex items-center justify-start gap-1.5 min-w-0 pr-2">
-                                        <p className="text-sm font-bold text-text-primary truncate" title={row.ref}>{row.ref}</p>
+                                    <div className="flex items-center gap-1.5 min-w-0 pr-2">
+                                        <span className="font-mono text-xs font-semibold text-foreground group-hover:text-primary transition-colors truncate" title={row.ref}>
+                                            {row.ref}
+                                        </span>
                                         {row.open_remarks_count > 0 && (
                                             <button
-                                                onClick={e => { e.stopPropagation(); setRemarkTarget(row); }}
-                                                className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold shrink-0"
-                                                style={{ color: '#ff453a', backgroundColor: 'rgba(255,69,58,0.12)' }}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setRemarkTarget(row);
+                                                }}
+                                                className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold shrink-0 text-destructive bg-destructive/10 border border-destructive/30"
                                                 title={`${row.open_remarks_count} open remark(s)`}
                                             >
-                                                <Icon name="flag" className="w-3 h-3" />
+                                                <Flag className="size-2.5" />
                                                 {row.open_remarks_count}
                                             </button>
                                         )}
                                     </div>
-                                    <p className="text-sm text-text-secondary font-bold truncate text-left" title={row.bl || ''}>{row.bl || '—'}</p>
-                                    <p className="text-sm text-text-secondary font-bold truncate text-left" title={row.vesselName || ''}>{row.vesselName || '—'}</p>
-                                    <p className="text-sm text-text-secondary font-bold truncate text-left" title={row.locationOfGoods || ''}>{row.locationOfGoods || '—'}</p>
-                                    <div className="flex justify-center flex-shrink-0">
+                                    <span className="font-mono text-xs text-muted-foreground truncate text-left" title={row.bl || ''}>
+                                        {row.bl || '—'}
+                                    </span>
+                                    <span className="text-xs text-foreground font-medium truncate text-left" title={toTitleCase(row.vesselName)}>
+                                        {toTitleCase(row.vesselName)}
+                                    </span>
+                                    <span className="text-xs text-muted-foreground truncate text-left" title={row.locationOfGoods || ''}>
+                                        {row.locationOfGoods || '—'}
+                                    </span>
+                                    <div className="flex justify-start shrink-0">
                                         <StatusBadge status={row.status} />
                                     </div>
-                                    <p className="text-sm text-text-muted font-semibold truncate text-center" title={row.date || ''}>{row.date || '—'}</p>
-                                    <p className="text-sm text-text-secondary font-bold truncate text-left pl-4" title={row.importer}>{row.importer}</p>
-                                    <div className="flex justify-center gap-1.5">
-                                        <button
-                                            className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-md transition-colors"
-                                            onClick={e => { e.stopPropagation(); navigate(`${appRoutes.trackingDetail.replace(':referenceId', encodeURIComponent(row.ref))}`); }}
+                                    <span className="text-xs text-muted-foreground tabular-nums truncate text-left" title={row.date || ''}>
+                                        {row.date || '—'}
+                                    </span>
+                                    <span className="text-xs text-foreground font-medium truncate text-left" title={toTitleCase(row.importer)}>
+                                        {toTitleCase(row.importer)}
+                                    </span>
+                                    <div className="flex justify-end gap-1">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="size-7 text-muted-foreground hover:text-foreground cursor-pointer"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                navigate(`${appRoutes.trackingDetail.replace(':referenceId', encodeURIComponent(row.ref))}`);
+                                            }}
                                             title="View Details"
                                         >
-                                            <Icon name="eye" className="w-4 h-4" />
-                                        </button>
-                                        <button
-                                            className={`p-1.5 rounded-md transition-colors ${CANCELLABLE_IMPORT_STATUSES.has(row.status) ? 'text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 cursor-pointer' : 'text-text-muted/30 cursor-not-allowed'}`}
-                                            onClick={e => { e.stopPropagation(); if (CANCELLABLE_IMPORT_STATUSES.has(row.status)) { onCancel(row.id, row.ref); } }}
+                                            <Eye className="size-3.5" />
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
                                             disabled={!CANCELLABLE_IMPORT_STATUSES.has(row.status)}
+                                            className={`size-7 cursor-pointer ${CANCELLABLE_IMPORT_STATUSES.has(row.status) ? 'text-muted-foreground hover:text-destructive' : 'opacity-30 cursor-not-allowed'}`}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (CANCELLABLE_IMPORT_STATUSES.has(row.status)) {
+                                                    onCancel(row.id, row.ref);
+                                                }
+                                            }}
                                             title={CANCELLABLE_IMPORT_STATUSES.has(row.status) ? 'Cancel Transaction' : 'Cannot cancel'}
                                         >
-                                            <Icon name="x" className="w-4 h-4" />
-                                        </button>
+                                            <X className="size-3.5" />
+                                        </Button>
                                     </div>
                                 </>
                             )}
                         />
-                    </div>
                 </div>
 
                 <EncodeModal
                     isOpen={isEncodeOpen}
                     onClose={() => setIsEncodeOpen(false)}
                     type="import"
-                    onSave={async (data) => { await createMutation.mutateAsync(data as CreateImportPayload); }}
+                    onSave={async (data) => {
+                        await createMutation.mutateAsync(data as CreateImportPayload);
+                    }}
                 />
 
                 {remarkTarget && (
@@ -148,33 +201,39 @@ export const ImportList = () => {
     // Grouped view (default)
     return (
         <>
-            <div className="space-y-5 p-4">
-                <TrackingPageHero
-                    title="Import Transactions"
-                    description="Manage each import transaction with full status, document, and remarks control at the record level."
-                />
-                <div className="overflow-hidden rounded-2xl border border-border bg-gradient-to-b from-surface to-surface-secondary/20 shadow-sm">
-                    <VesselListToolbar
-                        type="import"
-                        viewMode={viewMode}
-                        onViewModeChange={setViewMode}
-                        filters={filters}
-                        onFiltersChange={handleFiltersChange}
-                        onEncode={() => setIsEncodeOpen(true)}
-                        encodeLabel="Encode Import"
-                    />
-                    <VesselGroupedImportList
-                        filters={filters}
-                        onCancel={(id, ref) => setCancelTarget({ id, ref })}
-                    />
+            <div className="w-full space-y-6 pb-8">
+                <div className="flex flex-col gap-1">
+                    <h1 className="text-2xl font-bold tracking-tight text-foreground">
+                        Import Transactions
+                    </h1>
+                    <p className="text-sm text-muted-foreground">
+                        Manage each import transaction with full status, document, and remarks control at the record level.
+                    </p>
                 </div>
+
+                <VesselListToolbar
+                    type="import"
+                    viewMode={viewMode}
+                    onViewModeChange={setViewMode}
+                    filters={filters}
+                    onFiltersChange={handleFiltersChange}
+                    onEncode={() => setIsEncodeOpen(true)}
+                    encodeLabel="Encode Import"
+                />
+
+                <VesselGroupedImportList
+                    filters={filters}
+                    onCancel={(id, ref) => setCancelTarget({ id, ref })}
+                />
             </div>
 
             <EncodeModal
                 isOpen={isEncodeOpen}
                 onClose={() => setIsEncodeOpen(false)}
                 type="import"
-                onSave={async (data) => { await createMutation.mutateAsync(data as CreateImportPayload); }}
+                onSave={async (data) => {
+                    await createMutation.mutateAsync(data as CreateImportPayload);
+                }}
             />
 
             <CancelTransactionModal
@@ -194,3 +253,4 @@ export const ImportList = () => {
         </>
     );
 };
+

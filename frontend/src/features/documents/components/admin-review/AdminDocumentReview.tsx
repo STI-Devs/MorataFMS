@@ -219,13 +219,13 @@ export const AdminDocumentReview = () => {
     const isSplitView = selectedTransaction !== null;
 
     return (
-        <div className={`${isSplitView ? 'absolute inset-0 flex flex-col overflow-hidden' : 'min-h-screen'} bg-background font-sans selection:bg-text-primary selection:text-background`}>
+        <div className={`${isSplitView ? 'absolute inset-0 flex flex-col overflow-hidden' : 'min-h-screen'} bg-background font-sans selection:bg-primary selection:text-primary-foreground`}>
             <div className={`relative z-10 ${isSplitView ? 'flex h-full flex-col' : ''}`}>
-                <main className={`${isSplitView ? 'min-h-0 flex flex-1 flex-col' : 'w-full space-y-3 pb-8 pt-1'} p-0 text-text-primary`}>
+                <main className={`${isSplitView ? 'min-h-0 flex flex-1 flex-col' : 'w-full space-y-4 pb-8 pt-1'} p-0 text-foreground`}>
                     {!isSplitView ? (
-                        <div>
-                            <h1 className="text-2xl font-black tracking-tight text-text-primary">Documents</h1>
-                            <p className="mt-0.5 max-w-3xl text-sm text-text-secondary">
+                        <div className="space-y-1">
+                            <h1 className="text-2xl font-bold tracking-tight text-foreground">Documents</h1>
+                            <p className="text-sm text-muted-foreground">
                                 Review finalized brokerage transactions, check document readiness, and send complete records into the archive.
                             </p>
                         </div>

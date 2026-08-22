@@ -1,4 +1,5 @@
-import { useTheme } from '../../../../context/ThemeContext';
+import { Check, Circle, RefreshCw } from 'lucide-react';
+import { Badge } from '../../../../components/ui/badge';
 import type { ExportStages, ImportStages, OversightTransaction } from '../../types/transaction.types';
 
 const IMPORT_STAGE_LABELS: Record<keyof ImportStages, string> = {
@@ -21,10 +22,11 @@ const EXPORT_STAGE_LABELS: Record<keyof ExportStages, string> = {
     billing: 'Billing',
 };
 
-const STATUS_CFG: Record<string, { color: string; bg: string; icon: string }> = {
-    completed:   { color: '#30d158', bg: 'rgba(48,209,88,0.15)', icon: '✓' },
-    in_progress: { color: '#0a84ff', bg: 'rgba(10,132,255,0.15)', icon: '⟳' },
-    pending:     { color: '#636366', bg: 'rgba(99,99,102,0.10)', icon: '○' },
+// Local 3-state map for stage chips
+const STATUS_CFG: Record<string, { color: string; bg: string; border: string; label: string; Icon: typeof Check }> = {
+    completed:   { color: 'text-emerald-700 dark:text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', label: 'Completed', Icon: Check },
+    in_progress: { color: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/20', label: 'In Progress', Icon: RefreshCw },
+    pending:     { color: 'text-muted-foreground', bg: 'bg-muted/40', border: 'border-border/60', label: 'Pending', Icon: Circle },
 };
 
 interface StagePipelineProps {
@@ -32,11 +34,8 @@ interface StagePipelineProps {
 }
 
 export const StagePipeline = ({ transaction }: StagePipelineProps) => {
-    const { theme } = useTheme();
-    const isDark = theme === 'dark';
-
     if (!transaction.stages) {
-        return <span className={`text-xs ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>No stage data</span>;
+        return <span className="text-xs text-muted-foreground">No stage data</span>;
     }
 
     const entries = transaction.type === 'import'
@@ -54,33 +53,48 @@ export const StagePipeline = ({ transaction }: StagePipelineProps) => {
         }));
 
     return (
-        <div className="flex items-center gap-1">
-            {entries.map((stage, i) => {
-                const cfg = STATUS_CFG[stage.status] ?? STATUS_CFG.pending;
-                return (
-                    <div key={stage.key} className="flex items-center">
-                        {i > 0 && (
-                            <div
-                                className="w-3 h-0.5 mx-0.5"
-                                style={{
-                                    backgroundColor: stage.status === 'completed' || entries[i - 1]?.status === 'completed'
-                                        ? cfg.color
-                                        : isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
-                                }}
-                            />
-                        )}
+        <div className="space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {entries.map((stage, i) => {
+                    const cfg = STATUS_CFG[stage.status] ?? STATUS_CFG.pending;
+                    const StatusIcon = cfg.Icon;
+                    const isCompleted = stage.status === 'completed';
+                    const isInProgress = stage.status === 'in_progress';
+
+                    return (
                         <div
-                            className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold"
-                            style={{ color: cfg.color, backgroundColor: cfg.bg }}
+                            key={stage.key}
                             title={`${stage.label}: ${stage.notApplicable ? 'not applicable' : stage.status}`}
+                            className={`flex items-center justify-between p-3 rounded-lg border transition-all ${
+                                isCompleted
+                                    ? 'bg-emerald-500/5 border-emerald-500/20'
+                                    : isInProgress
+                                      ? 'bg-primary/5 border-primary/20 ring-1 ring-primary/20'
+                                      : 'bg-muted/20 border-border/60'
+                            }`}
                         >
-                            <span className="text-[9px]">{cfg.icon}</span>
-                            {stage.label}
-                            {stage.notApplicable ? ' (N/A)' : ''}
+                            <div className="flex items-center gap-2.5">
+                                <span className="flex size-5 items-center justify-center rounded-full bg-muted text-[10px] font-bold text-muted-foreground">
+                                    {i + 1}
+                                </span>
+                                <div>
+                                    <p className="text-xs font-bold text-foreground">
+                                        {stage.label}
+                                        {stage.notApplicable ? ' (N/A)' : ''}
+                                    </p>
+                                </div>
+                            </div>
+                            <Badge
+                                variant="outline"
+                                className={`text-[10px] font-semibold px-2 py-0.5 capitalize gap-1 ${cfg.color} ${cfg.bg} ${cfg.border}`}
+                            >
+                                <StatusIcon className={`size-3 ${isInProgress ? 'animate-spin' : ''}`} />
+                                {stage.notApplicable ? 'N/A' : cfg.label}
+                            </Badge>
                         </div>
-                    </div>
-                );
-            })}
+                    );
+                })}
+            </div>
         </div>
     );
 };

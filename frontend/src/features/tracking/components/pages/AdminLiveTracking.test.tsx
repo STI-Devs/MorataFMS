@@ -36,7 +36,7 @@ describe('AdminLiveTracking', () => {
         });
 
         expect(screen.getByTestId('admin-live-tracking-page')).toHaveClass('bg-surface-secondary');
-        expect(screen.getByText('Live Tracking Overview')).toBeInTheDocument();
+        expect(screen.getByText('Tracking Overview')).toBeInTheDocument();
         expect(screen.getByText('No imports found')).toBeInTheDocument();
         expect(screen.getByText('No exports found')).toBeInTheDocument();
     });

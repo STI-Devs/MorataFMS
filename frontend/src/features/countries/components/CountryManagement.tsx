@@ -5,18 +5,18 @@ import type { Country, CreateCountryData, UpdateCountryData } from '../types/cou
 import { CountryFormModal } from './CountryFormModal';
 
 const typeConfig: Record<string, { label: string; color: string; icon: string }> = {
-    both: { label: 'Both', color: '#ff9f0a', icon: 'M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4' },
-    import_origin: { label: 'Import Origin', color: '#0a84ff', icon: 'M19 14l-7 7m0 0l-7-7m7 7V3' },
-    export_destination: { label: 'Export Destination', color: '#30d158', icon: 'M5 10l7-7m0 0l7 7m-7-7v18' },
+    both: { label: 'Both', color: 'var(--warning)', icon: 'M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4' },
+    import_origin: { label: 'Import Origin', color: 'var(--primary)', icon: 'M19 14l-7 7m0 0l-7-7m7 7V3' },
+    export_destination: { label: 'Export Destination', color: 'var(--success)', icon: 'M5 10l7-7m0 0l7 7m-7-7v18' },
 };
 
 function TypeBadge({ type }: { type: string }) {
-    const config = typeConfig[type] ?? { label: type, color: '#8e8e93', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' };
+    const config = typeConfig[type] ?? { label: type, color: 'var(--muted-foreground)', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' };
 
     return (
         <span
             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold"
-            style={{ color: config.color, backgroundColor: `${config.color}18` }}
+            style={{ color: config.color, backgroundColor: `color-mix(in srgb, ${config.color} 10%, transparent)` }}
         >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d={config.icon} />
@@ -95,13 +95,13 @@ export const CountryManagement = () => {
             label: 'Active',
             value: active,
             sub: total > 0 ? `${Math.round((active / total) * 100)}% usable now` : '—',
-            dot: '#22c55e' as string | null,
+            dot: 'var(--success)' as string | null,
         },
         {
             label: 'Inactive',
             value: inactive,
             sub: inactive === 0 ? 'No archived entries' : `${inactive} hidden from dropdowns`,
-            dot: inactive > 0 ? '#ef4444' as string | null : null,
+            dot: inactive > 0 ? 'var(--danger)' as string | null : null,
         },
         {
             label: 'Both Flows',
@@ -161,12 +161,12 @@ export const CountryManagement = () => {
                             placeholder="Search countries..."
                             value={searchTerm}
                             onChange={(event) => setSearchTerm(event.target.value)}
-                            className="w-full pl-9 pr-3 h-9 rounded-md border border-border-strong bg-input-bg text-text-primary text-sm placeholder:text-text-muted focus:outline-none focus:border-blue-500/50 transition-colors"
+                            className="w-full pl-9 pr-3 h-9 rounded-md border border-border-strong bg-input-bg text-text-primary text-sm placeholder:text-text-muted focus:outline-none focus:border-primary/50 transition-colors"
                         />
                     </div>
                     <button
                         onClick={handleCreate}
-                        className="flex items-center gap-1.5 px-3.5 h-9 rounded-lg text-xs font-bold transition-all shadow-sm bg-gradient-to-br from-blue-600 to-indigo-700 text-white"
+                        className="flex items-center gap-1.5 px-3.5 h-9 rounded-lg text-xs font-bold transition-all shadow-sm bg-primary text-primary-foreground"
                     >
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
@@ -177,11 +177,11 @@ export const CountryManagement = () => {
 
                 {isLoading ? (
                     <div className="p-16 flex items-center justify-center">
-                        <div className="w-8 h-8 rounded-full border-2 border-transparent animate-spin" style={{ borderTopColor: '#0a84ff' }} />
+                        <div className="w-8 h-8 rounded-full border-2 border-transparent animate-spin" style={{ borderTopColor: 'var(--primary)' }} />
                     </div>
                 ) : isError ? (
                     <div className="p-16 text-center">
-                        <p className="text-sm text-red-500 font-medium">Failed to load countries. Please try again.</p>
+                        <p className="text-sm text-destructive font-medium">Failed to load countries. Please try again.</p>
                     </div>
                 ) : filteredCountries.length === 0 ? (
                     <div className="p-16 text-center">
@@ -213,8 +213,8 @@ export const CountryManagement = () => {
                                         <td className="px-5 py-3.5">
                                             <div className="flex items-center gap-3">
                                                 <div
-                                                    className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
-                                                    style={{ backgroundColor: typeConfig[country.type]?.color ?? '#8e8e93' }}
+                                                    className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-primary-foreground flex-shrink-0"
+                                                    style={{ backgroundColor: typeConfig[country.type]?.color ?? 'var(--muted-foreground)' }}
                                                 >
                                                     {country.name.charAt(0).toUpperCase()}
                                                 </div>
@@ -232,12 +232,9 @@ export const CountryManagement = () => {
                                         </td>
                                         <td className="px-5 py-3.5 text-center">
                                             <span
-                                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold"
-                                                style={country.is_active
-                                                    ? { color: '#30d158', backgroundColor: 'rgba(48,209,88,0.12)' }
-                                                    : { color: '#ff453a', backgroundColor: 'rgba(255,69,58,0.12)' }}
+                                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold ${country.is_active ? 'text-success bg-success/12' : 'text-danger bg-danger/12'}`}
                                             >
-                                                <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ backgroundColor: country.is_active ? '#30d158' : '#ff453a' }} />
+                                                <span className={`w-1.5 h-1.5 rounded-full inline-block ${country.is_active ? 'bg-success' : 'bg-danger'}`} />
                                                 {country.is_active ? 'Active' : 'Inactive'}
                                             </span>
                                         </td>
@@ -256,10 +253,7 @@ export const CountryManagement = () => {
                                                     title={country.is_active ? 'Deactivate Country' : 'Activate Country'}
                                                     onClick={() => handleToggleActive(country.id)}
                                                     disabled={toggleCountry.isPending}
-                                                    className="p-1.5 rounded-lg transition-colors disabled:opacity-50"
-                                                    style={country.is_active
-                                                        ? { backgroundColor: 'rgba(255,69,58,0.12)', color: '#ff453a' }
-                                                        : { backgroundColor: 'rgba(48,209,88,0.12)', color: '#30d158' }}
+                                                    className={`p-1.5 rounded-lg transition-colors disabled:opacity-50 ${country.is_active ? 'bg-danger/12 text-danger' : 'bg-success/12 text-success'}`}
                                                 >
                                                     {country.is_active ? (
                                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>

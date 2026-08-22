@@ -31,7 +31,7 @@ describe('ExportTransactionRow', () => {
             />,
         );
 
-        expect(screen.getByRole('row')).toHaveClass('lg:grid-cols-[1.25fr_1.25fr_1.45fr_100px_80px_92px_104px]');
+        expect(screen.getByRole('row')).toHaveClass('lg:grid-cols-[1.2fr_1.1fr_1.4fr_150px_140px_90px_70px]');
         expect(screen.getByText('8d ago')).toBeInTheDocument();
         expect(screen.queryByText('On file')).not.toBeInTheDocument();
         expect(screen.getByTitle(/Apr 20, 2026/)).toBeInTheDocument();

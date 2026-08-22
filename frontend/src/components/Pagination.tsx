@@ -53,11 +53,11 @@ export const Pagination = ({
             }`}
         >
             <div className="flex items-center gap-2">
-                <span className="text-sm font-bold text-text-primary transition-colors">Show</span>
+                <span className="text-xs font-semibold text-muted-foreground transition-colors">Show</span>
                 <select
                     value={perPage}
                     onChange={(e) => onPerPageChange(Number(e.target.value))}
-                    className="cursor-pointer rounded-lg border border-border-strong bg-surface-secondary p-1 px-2 text-xs font-bold text-text-primary outline-none transition-colors focus:border-blue-500 focus:ring-blue-500"
+                    className="cursor-pointer rounded-md border border-border bg-card px-2 py-1 text-xs font-semibold text-foreground outline-none transition-colors focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 shadow-2xs"
                 >
                     {perPageOptions.map((option) => (
                         <option key={option} value={option}>
@@ -65,15 +65,16 @@ export const Pagination = ({
                         </option>
                     ))}
                 </select>
-                <span className="text-sm font-bold text-text-primary transition-colors">of {totalPages} pages</span>
+                <span className="text-xs font-semibold text-muted-foreground transition-colors">of {totalPages} pages</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
                 <button
-                    className="rounded-lg p-2 text-text-muted transition-colors hover:bg-hover hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-50"
+                    className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
                     onClick={() => onPageChange(Math.max(1, currentPage - 1))}
                     disabled={currentPage === 1}
+                    aria-label="Previous page"
                 >
-                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
                     </svg>
                 </button>
@@ -83,12 +84,12 @@ export const Pagination = ({
                             key={index}
                             onClick={() => typeof page === 'number' && onPageChange(page)}
                             disabled={typeof page !== 'number'}
-                            className={`flex h-8 w-8 items-center justify-center rounded-lg text-sm font-bold transition-colors ${
+                            className={`flex h-7 min-w-7 items-center justify-center rounded-md px-2 text-xs font-semibold transition-colors cursor-pointer ${
                                 page === currentPage
-                                    ? 'bg-[#1a2332] text-white shadow-sm'
+                                    ? 'bg-primary text-primary-foreground shadow-2xs'
                                     : typeof page === 'number'
-                                        ? 'text-text-primary hover:bg-hover'
-                                        : 'cursor-default text-text-primary'
+                                        ? 'border border-border bg-card text-foreground hover:bg-muted'
+                                        : 'cursor-default text-muted-foreground'
                             }`}
                         >
                             {page}
@@ -96,11 +97,12 @@ export const Pagination = ({
                     ))}
                 </div>
                 <button
-                    className="rounded-lg p-2 text-text-muted transition-colors hover:bg-hover hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-50"
+                    className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
                     onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
                     disabled={currentPage === totalPages || totalPages === 0}
+                    aria-label="Next page"
                 >
-                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
                     </svg>
                 </button>

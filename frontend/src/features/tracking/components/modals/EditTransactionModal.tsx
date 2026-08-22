@@ -100,7 +100,7 @@ export default function EditTransactionModal({ isOpen, onClose, type, transactio
 
                 <div className="p-4 sm:p-5 overflow-y-auto">
                     {updateMutation.isError && (
-                        <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 text-sm">
+                        <div className="mb-4 p-3 bg-destructive/10 border border-destructive/20 rounded-xl text-destructive text-sm">
                             {errorMessage}
                         </div>
                     )}
@@ -116,7 +116,7 @@ export default function EditTransactionModal({ isOpen, onClose, type, transactio
                                         required
                                         value={refNo}
                                         onChange={(event) => setRefNo(event.target.value)}
-                                        className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                                        className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/50"
                                         placeholder="e.g. REF-2024-001"
                                     />
                                 </div>
@@ -130,7 +130,7 @@ export default function EditTransactionModal({ isOpen, onClose, type, transactio
                                             required
                                             value={blNo}
                                             onChange={(event) => setBlNo(event.target.value)}
-                                            className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                                            className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/50"
                                             placeholder="e.g. BL-12345"
                                         />
                                     </div>
@@ -140,7 +140,7 @@ export default function EditTransactionModal({ isOpen, onClose, type, transactio
                                             id="edit-import-selective-color"
                                             value={blsc}
                                             onChange={(event) => setBlsc(event.target.value as SelectiveColor)}
-                                            className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                                            className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/50"
                                         >
                                             <option value="green">Green</option>
                                             <option value="yellow">Yellow</option>
@@ -157,7 +157,7 @@ export default function EditTransactionModal({ isOpen, onClose, type, transactio
                                         required
                                         value={importerId}
                                         onChange={(event) => setImporterId(event.target.value)}
-                                        className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                                        className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/50"
                                     >
                                         <option value="">Select an importer</option>
                                         {importerClients?.map((client) => (
@@ -173,7 +173,7 @@ export default function EditTransactionModal({ isOpen, onClose, type, transactio
                                             id="edit-import-origin"
                                             value={originCountryId}
                                             onChange={(event) => setOriginCountryId(event.target.value)}
-                                            className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                                            className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/50"
                                         >
                                             <option value="">Select origin</option>
                                             {importCountries?.map((country) => (
@@ -189,7 +189,7 @@ export default function EditTransactionModal({ isOpen, onClose, type, transactio
                                             required
                                             value={arrivalDate}
                                             onChange={(event) => setArrivalDate(event.target.value)}
-                                            className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500/50 [color-scheme:light] dark:[color-scheme:dark]"
+                                            className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/50 [color-scheme:light] dark:[color-scheme:dark]"
                                         />
                                     </div>
                                 </div>
@@ -203,7 +203,7 @@ export default function EditTransactionModal({ isOpen, onClose, type, transactio
                                             required
                                             value={vessel}
                                             onChange={(event) => setVessel(event.target.value)}
-                                            className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                                            className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/50"
                                             placeholder="e.g. MV Pacific Star"
                                         />
                                     </div>
@@ -213,7 +213,7 @@ export default function EditTransactionModal({ isOpen, onClose, type, transactio
                                             id="edit-import-location-of-goods"
                                             value={locationOfGoodsId}
                                             onChange={(event) => setLocationOfGoodsId(event.target.value)}
-                                            className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                                            className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/50"
                                         >
                                             <option value="">Select location of goods</option>
                                             {locationsOfGoods?.map((location) => (
@@ -233,7 +233,7 @@ export default function EditTransactionModal({ isOpen, onClose, type, transactio
                                         required
                                         value={blNo}
                                         onChange={(event) => setBlNo(event.target.value)}
-                                        className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                                        className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/50"
                                         placeholder="e.g. BL-12345"
                                     />
                                 </div>
@@ -244,7 +244,7 @@ export default function EditTransactionModal({ isOpen, onClose, type, transactio
                                         required
                                         value={shipperId}
                                         onChange={(event) => setShipperId(event.target.value)}
-                                        className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                                        className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/50"
                                     >
                                         <option value="">Select a shipper</option>
                                         {exporterClients?.map((client) => (
@@ -260,7 +260,7 @@ export default function EditTransactionModal({ isOpen, onClose, type, transactio
                                         required
                                         value={vessel}
                                         onChange={(event) => setVessel(event.target.value)}
-                                        className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                                        className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/50"
                                         placeholder="e.g. MV Pacific Star"
                                     />
                                 </div>
@@ -272,7 +272,7 @@ export default function EditTransactionModal({ isOpen, onClose, type, transactio
                                         required
                                         value={departureDate}
                                         onChange={(event) => setDepartureDate(event.target.value)}
-                                        className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500/50 [color-scheme:light] dark:[color-scheme:dark]"
+                                        className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/50 [color-scheme:light] dark:[color-scheme:dark]"
                                     />
                                 </div>
                                 <div className="space-y-1.5">
@@ -282,7 +282,7 @@ export default function EditTransactionModal({ isOpen, onClose, type, transactio
                                         required
                                         value={destCountryId}
                                         onChange={(event) => setDestCountryId(event.target.value)}
-                                        className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                                        className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/50"
                                     >
                                         <option value="">Select destination</option>
                                         {exportCountries?.map((country) => (
@@ -308,9 +308,9 @@ export default function EditTransactionModal({ isOpen, onClose, type, transactio
                         type="submit"
                         form="edit-transaction-form"
                         disabled={isPending}
-                        className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl transition-colors flex items-center justify-center min-w-[120px] disabled:opacity-50"
+                        className="px-5 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-bold rounded-xl transition-colors flex items-center justify-center min-w-[120px] disabled:opacity-50"
                     >
-                        {isPending ? <Spinner size={20} color="#fff" /> : 'Save Changes'}
+                        {isPending ? <Spinner size={20} color="var(--primary-foreground)" /> : 'Save Changes'}
                     </button>
                 </div>
             </div>

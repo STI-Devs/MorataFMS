@@ -12,6 +12,9 @@ export const DocumentPreview = ({ template, fields, onFieldChange }: Props) => {
     const set = (id: string) => (v: string) => onFieldChange(id, v);
     const isLandscape = template.id === 'intern-cert';
 
+    /* Intentional carve-out: this preview renders an always-LIGHT paper document
+       (affidavit / certificate) that must print with dark ink on white. It is kept
+       theme-independent on purpose — do NOT swap these colors for theme tokens. */
     return (
         <div className={`bg-white text-gray-900 shadow-xl mx-auto font-serif print:shadow-none print:m-0 print:p-0 ${isLandscape ? 'overflow-hidden' : 'rounded-sm'}`}
             style={{

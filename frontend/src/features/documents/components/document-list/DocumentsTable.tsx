@@ -1,20 +1,22 @@
-import { generatePath, useNavigate } from 'react-router-dom';
-import { Icon } from '../../../../components/Icon';
+import { FileText, TriangleAlert } from 'lucide-react';
 import { Pagination } from '../../../../components/Pagination';
-import { appRoutes } from '../../../../lib/appRoutes';
-import type { DocumentTransactionListResponse } from '../../types/document.types';
+import { Badge } from '../../../../components/ui/badge';
+import { Button } from '../../../../components/ui/button';
+import { Skeleton } from '../../../../components/ui/skeleton';
 import {
-    formatDate,
-    TABLE_GRID,
-    toTitleCase,
-    TYPE_CONFIG,
-    type DocumentRow,
-} from './documentsList.utils';
-import { TableSkeleton } from './DocumentsShared';
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '../../../../components/ui/table';
+import type { DocumentTransactionListResponse } from '../../types/document.types';
+import { formatDate, toTitleCase, TYPE_CONFIG, type DocumentRow } from './documentsList.utils';
 
-const EmptyState = ({ isFullyEmpty }: { isFullyEmpty: boolean }) => (
-    <div className="flex flex-col items-center gap-3 py-16 text-text-muted">
-        <Icon name="file-text" className="h-10 w-10 opacity-30" />
+const TableEmptyState = ({ isFullyEmpty }: { isFullyEmpty: boolean }) => (
+    <div className="flex flex-col items-center gap-3 py-16 text-muted-foreground">
+        <FileText className="size-10 opacity-30" />
         <p className="text-sm font-semibold">
             {isFullyEmpty ? 'No completed transactions yet' : 'No transactions match your filter'}
         </p>
@@ -29,192 +31,187 @@ const EmptyState = ({ isFullyEmpty }: { isFullyEmpty: boolean }) => (
 export const DocumentsTable = ({
     rows,
     response,
+    selectedRef,
     isLoading,
+    onSelect,
     onPageChange,
     onPerPageChange,
 }: {
     rows: DocumentRow[];
     response: DocumentTransactionListResponse | undefined;
+    selectedRef: string | null;
     isLoading: boolean;
+    onSelect: (ref: string) => void;
     onPageChange: (page: number) => void;
     onPerPageChange: (perPage: number) => void;
 }) => {
-    const navigate = useNavigate();
     const meta = response?.meta;
 
     return (
         <>
-            <div
-                className="grid gap-4 border-b border-border bg-surface-secondary px-6 py-3"
-                style={{ gridTemplateColumns: TABLE_GRID }}
-            >
-                {['Type', 'BL No.', 'Client', 'Date', 'Status', 'Docs'].map((header, index) => (
-                    <span
-                        key={header}
-                        className={`text-xs font-bold uppercase tracking-wider text-text-secondary ${
-                            index >= 4 ? 'text-center' : ''
-                        }`}
-                    >
-                        {header}
-                    </span>
-                ))}
-            </div>
-
-            {isLoading ? (
-                <TableSkeleton />
-            ) : (
-                <>
-                    <div>
-                        {rows.length === 0 ? (
-                            <EmptyState isFullyEmpty={(response?.meta?.total ?? 0) === 0} />
+            <div className="overflow-x-auto">
+                <Table>
+                    <TableHeader className="bg-muted/50">
+                        <TableRow className="hover:bg-transparent">
+                            <TableHead className="w-[100px] text-xs font-semibold uppercase tracking-wider text-muted-foreground">Type</TableHead>
+                            <TableHead className="w-[180px] text-xs font-semibold uppercase tracking-wider text-muted-foreground">Reference / BL</TableHead>
+                            <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Client</TableHead>
+                            <TableHead className="w-[140px] text-xs font-semibold uppercase tracking-wider text-muted-foreground">Date</TableHead>
+                            <TableHead className="w-[120px] text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</TableHead>
+                            <TableHead className="w-[100px] text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">Docs</TableHead>
+                            <TableHead className="w-[110px] text-end text-xs font-semibold uppercase tracking-wider text-muted-foreground">Actions</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {isLoading ? (
+                            Array.from({ length: 6 }).map((_, index) => (
+                                <TableRow key={index}>
+                                    <TableCell><Skeleton className="h-5 w-14 rounded-full" /></TableCell>
+                                    <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                                    <TableCell><Skeleton className="h-4 w-36" /></TableCell>
+                                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                                    <TableCell><Skeleton className="mx-auto h-5 w-18 rounded-full" /></TableCell>
+                                    <TableCell><Skeleton className="mx-auto h-5 w-12 rounded-full" /></TableCell>
+                                    <TableCell><Skeleton className="ml-auto h-7 w-20 rounded" /></TableCell>
+                                </TableRow>
+                            ))
+                        ) : rows.length === 0 ? (
+                            <TableRow className="hover:bg-transparent">
+                                <TableCell colSpan={7} className="h-24 text-center">
+                                    <TableEmptyState isFullyEmpty={(response?.meta?.total ?? 0) === 0} />
+                                </TableCell>
+                            </TableRow>
                         ) : (
-                            rows.map((row, index) => {
+                            rows.map((row) => {
+                                const isSelected = selectedRef === row.ref;
                                 const typeConfig = TYPE_CONFIG[row.type];
                                 const isMissingDocs = row.docCount === 0;
                                 const normalizedStatus = row.status.toLowerCase();
 
                                 return (
-                                    <div
+                                    <TableRow
                                         key={row.id}
-                                        onClick={() =>
-                                            navigate(
-                                                generatePath(appRoutes.documentDetail, {
-                                                    ref: row.ref,
-                                                }),
-                                            )
-                                        }
-                                        className={`relative grid cursor-pointer items-center gap-4 border-b border-border/50 px-6 py-3 transition-all duration-150 hover:bg-hover ${
-                                            index % 2 !== 0 ? 'bg-surface-secondary/40' : ''
-                                        }`}
-                                        style={{ gridTemplateColumns: TABLE_GRID }}
+                                        data-state={isSelected ? 'selected' : undefined}
+                                        onClick={() => onSelect(row.ref)}
+                                        className="cursor-pointer hover:bg-muted/50 transition-colors"
                                     >
-                                        <span
-                                            className="inline-flex w-fit items-center rounded-full px-2.5 py-1 text-xs font-bold"
-                                            style={{
-                                                color: typeConfig.color,
-                                                backgroundColor: typeConfig.bg,
-                                            }}
-                                        >
-                                            {typeConfig.label}
-                                        </span>
+                                        {/* Type */}
+                                        <TableCell>
+                                            <Badge
+                                                className="rounded-full px-2 py-0.5 text-[10px] font-bold"
+                                                style={{ color: typeConfig.color, backgroundColor: typeConfig.bg }}
+                                            >
+                                                {typeConfig.label}
+                                            </Badge>
+                                        </TableCell>
 
-                                        <p className="truncate font-mono text-sm font-bold tracking-tight text-text-primary">
-                                            {row.blNo}
-                                        </p>
+                                        {/* Reference / BL */}
+                                        <TableCell>
+                                            {row.type === 'import' && row.customsRef && row.customsRef !== '—' ? (
+                                                <>
+                                                    <span className="text-xs font-bold text-foreground block">{row.customsRef}</span>
+                                                    {row.blNo && row.blNo !== '—' ? (
+                                                        <p className="mt-0.5 text-[11px] text-muted-foreground">BL: {row.blNo}</p>
+                                                    ) : null}
+                                                </>
+                                            ) : (
+                                                <span className="text-xs font-semibold text-foreground">{row.blNo}</span>
+                                            )}
+                                        </TableCell>
 
-                                        <div className="min-w-0">
-                                            <p className="truncate text-sm font-semibold text-text-primary">
+                                        {/* Client */}
+                                        <TableCell>
+                                            <p className="truncate text-xs font-semibold text-foreground max-w-[240px]">
                                                 {toTitleCase(row.client)}
                                             </p>
                                             {row.port !== '—' ? (
-                                                <p className="mt-0.5 truncate text-xs text-text-muted">
+                                                <p className="mt-0.5 truncate text-[11px] text-muted-foreground max-w-[240px]">
                                                     {row.vessel !== '—' ? `${row.vessel} · ` : ''}
                                                     {row.port}
                                                 </p>
                                             ) : null}
-                                        </div>
+                                        </TableCell>
 
-                                        <div>
-                                            <p className="text-sm font-semibold text-text-secondary">
-                                                {formatDate(row.date)}
-                                            </p>
-                                            <p className="mt-0.5 text-xs text-text-muted">
-                                                {row.dateLabel} date
-                                            </p>
-                                        </div>
+                                        {/* Date */}
+                                        <TableCell className="text-xs font-medium text-foreground">
+                                            {formatDate(row.date)}
+                                        </TableCell>
 
-                                        <div className="flex justify-center">
+                                        {/* Status */}
+                                        <TableCell className="text-center">
                                             {normalizedStatus === 'cancelled' ? (
-                                                <span
-                                                    className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold"
-                                                    style={{
-                                                        color: '#ff453a',
-                                                        backgroundColor: 'rgba(255,69,58,0.13)',
-                                                    }}
+                                                <Badge
+                                                    variant="destructive"
+                                                    className="gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold"
                                                 >
-                                                    <span
-                                                        className="inline-block h-1.5 w-1.5 rounded-full"
-                                                        style={{
-                                                            backgroundColor: '#ff453a',
-                                                            boxShadow: '0 0 4px #ff453a',
-                                                        }}
-                                                    />
                                                     Cancelled
-                                                </span>
+                                                </Badge>
                                             ) : (
-                                                <span
-                                                    className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold"
-                                                    style={{
-                                                        color: '#30d158',
-                                                        backgroundColor: 'rgba(48,209,88,0.13)',
-                                                    }}
+                                                <Badge
+                                                    variant="outline"
+                                                    className="border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
                                                 >
-                                                    <span
-                                                        className="inline-block h-1.5 w-1.5 rounded-full"
-                                                        style={{
-                                                            backgroundColor: '#30d158',
-                                                            boxShadow: '0 0 4px #30d158',
-                                                        }}
-                                                    />
+                                                    <span className="size-1.5 rounded-full bg-emerald-500" />
                                                     {row.type === 'import' ? 'Cleared' : 'Shipped'}
-                                                </span>
+                                                </Badge>
                                             )}
-                                        </div>
+                                        </TableCell>
 
-                                        <div className="flex justify-center">
+                                        {/* Docs Count */}
+                                        <TableCell className="text-center">
                                             {isMissingDocs ? (
-                                                <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-600 dark:bg-amber-900/20 dark:text-amber-400">
-                                                    <svg
-                                                        className="h-3 w-3"
-                                                        fill="none"
-                                                        stroke="currentColor"
-                                                        viewBox="0 0 24 24"
-                                                    >
-                                                        <path
-                                                            strokeLinecap="round"
-                                                            strokeLinejoin="round"
-                                                            strokeWidth={2.5}
-                                                            d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
-                                                        />
-                                                    </svg>
-                                                    Missing
-                                                </span>
+                                                <Badge
+                                                    variant="outline"
+                                                    className="border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                                                >
+                                                    <TriangleAlert className="size-3" />
+                                                    0
+                                                </Badge>
                                             ) : (
-                                                <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-600 dark:bg-blue-900/20 dark:text-blue-400">
-                                                    <svg
-                                                        className="h-3 w-3"
-                                                        fill="none"
-                                                        stroke="currentColor"
-                                                        viewBox="0 0 24 24"
-                                                    >
-                                                        <path
-                                                            strokeLinecap="round"
-                                                            strokeLinejoin="round"
-                                                            strokeWidth={2}
-                                                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                                                        />
-                                                    </svg>
+                                                <Badge
+                                                    variant="secondary"
+                                                    className="gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                                                >
+                                                    <FileText className="size-3" />
                                                     {row.docCount}
-                                                </span>
+                                                </Badge>
                                             )}
-                                        </div>
-                                    </div>
+                                        </TableCell>
+
+                                        {/* Actions */}
+                                        <TableCell className="text-end">
+                                            <Button
+                                                size="sm"
+                                                className="h-7 px-2.5 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 shadow-2xs cursor-pointer"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    onSelect(row.ref);
+                                                }}
+                                            >
+                                                View Files
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
                                 );
                             })
                         )}
-                    </div>
+                    </TableBody>
+                </Table>
+            </div>
 
-                    {meta && meta.last_page > 1 ? (
-                        <Pagination
-                            currentPage={meta.current_page}
-                            totalPages={meta.last_page}
-                            perPage={meta.per_page}
-                            onPageChange={onPageChange}
-                            onPerPageChange={onPerPageChange}
-                        />
-                    ) : null}
-                </>
-            )}
+            {!isLoading && meta && meta.total > 0 ? (
+                <div className="p-3 border-t">
+                    <Pagination
+                        currentPage={meta.current_page}
+                        totalPages={meta.last_page}
+                        perPage={meta.per_page}
+                        perPageOptions={[15, 30, 50, 100]}
+                        compact
+                        onPageChange={onPageChange}
+                        onPerPageChange={onPerPageChange}
+                    />
+                </div>
+            ) : null}
         </>
     );
 };

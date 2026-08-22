@@ -68,25 +68,11 @@ export const AuditLogTableRow = ({ log, idx, isOpen, onToggle }: Props) => {
 
                 <td className="px-5 py-3.5 whitespace-nowrap">
                     {isDelete && changeCount > 0 ? (
-                        <span
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border"
-                            style={{
-                                color: '#ff453a',
-                                backgroundColor: 'rgba(255,69,58,0.10)',
-                                borderColor: 'rgba(255,69,58,0.25)',
-                            }}
-                        >
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border border-danger/25 bg-danger/10 text-danger">
                             Snapshot
                         </span>
                     ) : !isDelete && changeCount > 0 ? (
-                        <span
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border"
-                            style={{
-                                color: '#0a84ff',
-                                backgroundColor: 'rgba(10,132,255,0.10)',
-                                borderColor: 'rgba(10,132,255,0.25)',
-                            }}
-                        >
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border border-info/25 bg-info/10 text-info">
                             {changeCount} field{changeCount !== 1 ? 's' : ''}
                         </span>
                     ) : (
@@ -186,7 +172,7 @@ export const AuditLogTableRow = ({ log, idx, isOpen, onToggle }: Props) => {
                                                             transition: `opacity 280ms ease ${80 + fi * 30}ms, transform 280ms ease ${80 + fi * 30}ms`,
                                                         }}
                                                     >
-                                                        <p style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--color-text-muted, #6b7280)', marginBottom: '5px' }}>
+                                                        <p style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--muted-foreground)', marginBottom: '5px' }}>
                                                             {formatKey(key)}
                                                         </p>
                                                         {hasOldVal && (
@@ -195,7 +181,7 @@ export const AuditLogTableRow = ({ log, idx, isOpen, onToggle }: Props) => {
                                                                     fontSize: '10px',
                                                                     fontFamily: 'monospace',
                                                                     textDecoration: 'line-through',
-                                                                    color: 'var(--color-text-muted, #6b7280)',
+                                                                    color: 'var(--muted-foreground)',
                                                                     opacity: 0.55,
                                                                     marginBottom: '2px',
                                                                     overflow: 'hidden',
@@ -211,8 +197,8 @@ export const AuditLogTableRow = ({ log, idx, isOpen, onToggle }: Props) => {
                                                             <span style={{
                                                                 display: 'inline-flex', alignItems: 'center', gap: '5px',
                                                                 padding: '2px 8px', borderRadius: '999px',
-                                                                background: `${scColor}22`,
-                                                                border: `1px solid ${scColor}55`,
+                                                                background: `color-mix(in srgb, ${scColor} 13%, transparent)`,
+                                                                border: `1px solid color-mix(in srgb, ${scColor} 33%, transparent)`,
                                                                 fontSize: '11px', fontWeight: 700, fontFamily: 'monospace',
                                                                 color: scColor,
                                                             }}>
@@ -225,7 +211,7 @@ export const AuditLogTableRow = ({ log, idx, isOpen, onToggle }: Props) => {
                                                                     fontSize: '11px',
                                                                     fontFamily: 'monospace',
                                                                     fontWeight: 600,
-                                                                    color: hasOldVal ? cfg.color : 'var(--color-text-primary, #f0f0f0)',
+                                                                    color: hasOldVal ? cfg.color : 'var(--foreground)',
                                                                     overflow: 'hidden',
                                                                     textOverflow: 'ellipsis',
                                                                     whiteSpace: 'nowrap',
@@ -253,15 +239,15 @@ export const AuditLogTableRow = ({ log, idx, isOpen, onToggle }: Props) => {
                                                             transition: `opacity 280ms ease ${80 + fi * 30}ms, transform 280ms ease ${80 + fi * 30}ms`,
                                                         }}
                                                     >
-                                                        <p style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--color-text-muted, #6b7280)', marginBottom: '5px' }}>
+                                                        <p style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--muted-foreground)', marginBottom: '5px' }}>
                                                             {formatKey(key)}
                                                         </p>
                                                         {isColorField && scColor ? (
                                                             <span style={{
                                                                 display: 'inline-flex', alignItems: 'center', gap: '5px',
                                                                 padding: '2px 8px', borderRadius: '999px',
-                                                                background: `${scColor}22`,
-                                                                border: `1px solid ${scColor}55`,
+                                                                background: `color-mix(in srgb, ${scColor} 13%, transparent)`,
+                                                                border: `1px solid color-mix(in srgb, ${scColor} 33%, transparent)`,
                                                                 fontSize: '11px', fontWeight: 700, fontFamily: 'monospace',
                                                                 color: scColor,
                                                             }}>
@@ -273,7 +259,7 @@ export const AuditLogTableRow = ({ log, idx, isOpen, onToggle }: Props) => {
                                                                 style={{
                                                                     fontSize: '11px',
                                                                     fontFamily: 'monospace',
-                                                                    color: 'var(--color-text-secondary, #9ca3af)',
+                                                                    color: 'var(--muted-foreground)',
                                                                     overflow: 'hidden',
                                                                     textOverflow: 'ellipsis',
                                                                     whiteSpace: 'nowrap',

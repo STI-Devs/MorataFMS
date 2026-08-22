@@ -1,58 +1,21 @@
 import { Suspense } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 
-import { logoImage } from '../../assets/branding';
 import { useTheme } from '../../context/ThemeContext';
-import { isEncoder as isUserEncoder, getRoleLabel } from '../../features/auth/utils/access';
-import {
-    adminBrokerageNavigationGroups,
-    appRoutes,
-    encoderBrokerageNavigationGroups,
-} from '../../lib/appRoutes';
+import { getCookie } from '../../lib/cookies';
 import { PageFallback } from '../PageFallback';
-import { matchesPath } from './utils/mainLayout.utils';
-import { AccountMenu } from './nav/AccountMenu';
-import { ModuleSwitcher } from './nav/ModuleSwitcher';
-import { NavGroupSection } from './nav/NavGroupSection';
-import { NavItem } from './nav/NavItem';
+import { Separator } from '../ui/separator';
+import { SidebarInset, SidebarProvider, SidebarTrigger } from '../ui/sidebar';
+import { AppSidebar } from './AppSidebar';
 import { useMainLayoutNavigation } from './hooks/useMainLayoutNavigation';
 
 export const MainLayout = () => {
     const { theme, toggleTheme } = useTheme();
-    const {
-        user,
-        isAdmin,
-        isProcessor,
-        isAccountant,
-        hasLegal,
-        hasBrokerage,
-        isMultiDept,
-        activeModule,
-        switchModule,
-        activeModuleHomePath,
-        navItems,
-        settingsItems,
-        filteredLegalNavigationGroups,
-        openLegalGroups,
-        openBrokerageGroups,
-        handleToggleLegalGroup,
-        handleToggleBrokerageGroup,
-        isAccountOpen,
-        setIsAccountOpen,
-        pathname,
-        navigate,
-        guardRedirectTarget,
-        handleNavigation,
-        handleLogout,
-    } = useMainLayoutNavigation();
+    const nav = useMainLayoutNavigation();
 
-    if (guardRedirectTarget) {
-        return <Navigate to={guardRedirectTarget} replace />;
+    if (nav.guardRedirectTarget) {
+        return <Navigate to={nav.guardRedirectTarget} replace />;
     }
-
-    const isSidebarDark = theme === 'dark' || theme === 'mix';
-    const isContentDark = theme === 'dark';
-    const isDetailsPage = pathname.startsWith(appRoutes.tracking);
 
     const themeIcon =
         theme === 'light'
@@ -63,167 +26,42 @@ export const MainLayout = () => {
 
     const themeLabel = theme === 'light' ? 'Light Mode' : theme === 'dark' ? 'Dark Mode' : 'Mix Mode';
 
-    const moduleSubtitle = activeModule === 'legal'
-        ? 'Law Firm'
-        : isProcessor
-            ? 'Processor'
-            : isAccountant
-                ? 'Accountant'
-                : 'Customs Brokerage';
+    const moduleSubtitle =
+        nav.activeModule === 'legal'
+            ? 'Law Firm'
+            : nav.isProcessor
+                ? 'Processor'
+                : nav.isAccountant
+                    ? 'Accountant'
+                    : 'Customs Brokerage';
 
     return (
-        <div className={`h-screen flex overflow-hidden ${isContentDark ? 'bg-[#111111]' : 'bg-white'}`}>
-            <aside
-                className={`w-64 h-full flex flex-col shrink-0 py-5 px-3 ${isDetailsPage ? 'fixed z-10' : ''} ${isSidebarDark ? 'bg-[#0d0d0d]' : 'bg-gray-100'}`}
-            >
-                <div
-                    className="flex items-center gap-2.5 px-2 mb-5 cursor-pointer"
-                    onClick={() => navigate(activeModuleHomePath)}
+        <SidebarProvider defaultOpen={getCookie('sidebar_state') !== 'false'}>
+            <AppSidebar
+                nav={nav}
+                themeIcon={themeIcon}
+                themeLabel={themeLabel}
+                onToggleTheme={toggleTheme}
+            />
+
+            <SidebarInset className="h-svh">
+                <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-background px-4">
+                    <SidebarTrigger variant="outline" className="max-md:scale-125" />
+                    <Separator orientation="vertical" className="h-6" />
+                    <p className="truncate text-sm font-semibold text-foreground">{moduleSubtitle}</p>
+                </header>
+
+                <main
+                    id="main-content"
+                    className="relative flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto bg-background px-4 py-4 sm:px-6 sm:py-5"
                 >
-                    <img src={logoImage} alt="F.M Morata Logo" className="w-7 h-7 rounded-full object-cover shrink-0" />
-                    <div>
-                        <p className={`font-bold text-sm leading-tight ${isSidebarDark ? 'text-white' : 'text-black'}`}>F.M Morata</p>
-                        <p className={`text-[10px] font-medium leading-tight ${isSidebarDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                            {moduleSubtitle}
-                        </p>
+                    <div className="flex min-h-0 w-full flex-1 flex-col">
+                        <Suspense fallback={<PageFallback />}>
+                            <Outlet context={{ user: nav.user }} />
+                        </Suspense>
                     </div>
-                </div>
-
-                {(isMultiDept || isAdmin) && (
-                    <ModuleSwitcher
-                        activeModule={activeModule}
-                        hasBrokerage={hasBrokerage}
-                        hasLegal={hasLegal}
-                        isSidebarDark={isSidebarDark}
-                        onSwitch={switchModule}
-                    />
-                )}
-
-                <div className="scrollbar-hidden flex-1 min-h-0 overflow-y-auto">
-                    <div className="mb-4">
-                        <p className={`text-[10px] uppercase tracking-widest px-3 mb-2 font-bold ${isSidebarDark ? 'text-gray-600' : 'text-gray-400'}`}>
-                            Main Menu
-                        </p>
-                        {activeModule === 'legal' ? (
-                            <div className="space-y-3">
-                                {navItems.map((item) => {
-                                    const isActive = item.exact
-                                        ? pathname === item.path
-                                        : matchesPath(pathname, item.path);
-                                    return (
-                                        <NavItem
-                                            key={item.label}
-                                            item={item}
-                                            isActive={isActive}
-                                            isSidebarDark={isSidebarDark}
-                                            onNavigate={handleNavigation}
-                                        />
-                                    );
-                                })}
-
-                                {filteredLegalNavigationGroups.map((group) => (
-                                    <NavGroupSection
-                                        key={group.label}
-                                        group={group}
-                                        isOpen={openLegalGroups[group.label] ?? false}
-                                        isSidebarDark={isSidebarDark}
-                                        pathname={pathname}
-                                        onToggle={handleToggleLegalGroup}
-                                        onNavigate={handleNavigation}
-                                        compactChildren
-                                    />
-                                ))}
-                            </div>
-                        ) : (
-                            <nav className="space-y-0.5">
-                                {navItems.map((item) => {
-                                    const isActive = item.exact
-                                        ? pathname === item.path
-                                        : matchesPath(pathname, item.path);
-                                    const navItem = (
-                                        <NavItem
-                                            key={item.label}
-                                            item={item}
-                                            isActive={isActive}
-                                            isSidebarDark={isSidebarDark}
-                                            onNavigate={handleNavigation}
-                                        />
-                                    );
-
-                                    if (isAdmin && item.path === appRoutes.auditLogs) {
-                                        return (
-                                            <div key={item.label} className="space-y-0.5">
-                                                {adminBrokerageNavigationGroups.map((group) => (
-                                                    <NavGroupSection
-                                                        key={group.label}
-                                                        group={group}
-                                                        isOpen={openBrokerageGroups[group.label] ?? false}
-                                                        isSidebarDark={isSidebarDark}
-                                                        pathname={pathname}
-                                                        onToggle={handleToggleBrokerageGroup}
-                                                        onNavigate={handleNavigation}
-                                                        compactChildren
-                                                    />
-                                                ))}
-                                                {navItem}
-                                            </div>
-                                        );
-                                    }
-
-                                    if (isUserEncoder(user) && item.path === appRoutes.documents) {
-                                        return (
-                                            <div key={item.label} className="space-y-0.5">
-                                                {navItem}
-                                                {encoderBrokerageNavigationGroups.map((group) => (
-                                                    <NavGroupSection
-                                                        key={group.label}
-                                                        group={group}
-                                                        isOpen={openBrokerageGroups[group.label] ?? false}
-                                                        isSidebarDark={isSidebarDark}
-                                                        pathname={pathname}
-                                                        onToggle={handleToggleBrokerageGroup}
-                                                        onNavigate={handleNavigation}
-                                                        compactChildren
-                                                    />
-                                                ))}
-                                            </div>
-                                        );
-                                    }
-
-                                    return navItem;
-                                })}
-                            </nav>
-                        )}
-                    </div>
-                </div>
-
-                <AccountMenu
-                    isOpen={isAccountOpen}
-                    onToggleOpen={() => setIsAccountOpen(!isAccountOpen)}
-                    onClose={() => setIsAccountOpen(false)}
-                    isSidebarDark={isSidebarDark}
-                    user={user ?? null}
-                    roleLabel={getRoleLabel(user)}
-                    settingsItems={settingsItems}
-                    activePathname={pathname}
-                    themeIcon={themeIcon}
-                    themeLabel={themeLabel}
-                    onNavigate={handleNavigation}
-                    onToggleTheme={toggleTheme}
-                    onLogout={() => void handleLogout()}
-                />
-            </aside>
-
-            <main
-                id="main-content"
-                className={`relative flex flex-1 flex-col overflow-x-hidden overflow-y-auto p-6 ${isDetailsPage ? 'ml-64' : ''} ${isContentDark ? 'bg-[#111111]' : 'bg-white'}`}
-            >
-                <div className="max-w-7xl w-full mx-auto flex-1 flex flex-col min-h-0">
-                    <Suspense fallback={<PageFallback />}>
-                        <Outlet context={{ user }} />
-                    </Suspense>
-                </div>
-            </main>
-        </div>
+                </main>
+            </SidebarInset>
+        </SidebarProvider>
     );
 };

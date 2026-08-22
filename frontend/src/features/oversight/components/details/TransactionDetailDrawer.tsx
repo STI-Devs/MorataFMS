@@ -1,5 +1,19 @@
-import { useEffect, useRef, useState } from 'react';
-import { Icon } from '../../../../components/Icon';
+import { useEffect, useState } from 'react';
+import { Download, Eye, FileText, Flag, Loader2, Paperclip, User, Building2 } from 'lucide-react';
+import { Badge } from '../../../../components/ui/badge';
+import { Button } from '../../../../components/ui/button';
+import { Card } from '../../../../components/ui/card';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '../../../../components/ui/select';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '../../../../components/ui/sheet';
+import { Skeleton } from '../../../../components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../../components/ui/tabs';
+import { Textarea } from '../../../../components/ui/textarea';
 import { FilePreviewModal } from '../../../../components/modals/FilePreviewModal';
 import { useTransactionSyncSubscription } from '../../../../hooks/useTransactionSyncSubscription';
 import { trackingApi } from '../../../tracking/api/trackingApi';
@@ -9,17 +23,15 @@ import type { CreateRemarkData, Remark, RemarkDocument } from '../../types/remar
 import type { OversightTransaction } from '../../types/transaction.types';
 import { StagePipeline } from './StagePipeline';
 
-
-// ─── Config ──────────────────────────────────────────────────────────────────
+// ─── Severity Config ────────────────────────────────────────────────────────
 
 const SEVERITY_CFG = {
-    info:     { label: 'Info',     color: '#0a84ff', bg: 'rgba(10,132,255,0.12)' },
-    warning:  { label: 'Warning',  color: '#ff9f0a', bg: 'rgba(255,159,10,0.12)' },
-    critical: { label: 'Critical', color: '#ff453a', bg: 'rgba(255,69,58,0.12)' },
+    info:     { label: 'Info',     variant: 'outline' as const, className: 'border-sky-500/30 text-sky-600 dark:text-sky-400 bg-sky-500/5' },
+    warning:  { label: 'Warning',  variant: 'outline' as const, className: 'border-amber-500/30 text-amber-600 dark:text-amber-400 bg-amber-500/5' },
+    critical: { label: 'Critical', variant: 'destructive' as const, className: '' },
 } as const;
 
-const TABS = ['Documents', 'Stages', 'Remarks'] as const;
-type Tab = typeof TABS[number];
+type Tab = 'Documents' | 'Stages' | 'Remarks';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -34,7 +46,6 @@ export const TransactionDetailDrawer = ({ transaction, onClose }: Props) => {
     const [activeTab, setActiveTab] = useState<Tab>('Documents');
     const { previewFile, setPreviewFile, handlePreviewDoc } = useDocumentPreview();
     const [previewLoading, setPreviewLoading] = useState<number | null>(null);
-    const drawerRef = useRef<HTMLDivElement>(null);
 
     // Remark form state
     const [severity, setSeverity] = useState<CreateRemarkData['severity']>('warning');
@@ -52,7 +63,7 @@ export const TransactionDetailDrawer = ({ transaction, onClose }: Props) => {
         enabled: isOpen && id !== null,
     });
 
-    // Data — use oversight's useDocuments which takes 'import'|'export' directly
+    // Data
     const { data: docsResult, isLoading: docsLoading } = useDocuments(type, id, isOpen);
     const documents: RemarkDocument[] = docsResult?.data ?? [];
     const { data: remarksResult, isLoading: remarksLoading } = useRemarks(type, id, isOpen);
@@ -70,18 +81,11 @@ export const TransactionDetailDrawer = ({ transaction, onClose }: Props) => {
         }
     }, [isOpen, transaction?.id]);
 
-    // Escape key closes drawer
-    useEffect(() => {
-        if (!isOpen) return;
-        const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-        document.addEventListener('keydown', handler);
-        return () => document.removeEventListener('keydown', handler);
-    }, [isOpen, onClose]);
+    if (!transaction) return null;
 
     const handlePreview = async (docId: number, filename: string) => {
         setPreviewLoading(docId);
         try {
-            // Reconstruct the minimal ApiDocument shape required by handlePreviewDoc
             await handlePreviewDoc({ id: docId, filename } as import('../../../tracking/types').ApiDocument);
         } finally {
             setPreviewLoading(null);
@@ -103,299 +107,293 @@ export const TransactionDetailDrawer = ({ transaction, onClose }: Props) => {
         setDocumentId(null);
     };
 
-    const transactionLabel = transaction
-        ? `${transaction.type === 'import' ? 'Import' : 'Export'} — ${transaction.reference_no || transaction.bl_no || `#${transaction.id}`}`
-        : '';
-
-    // ── Render ─────────────────────────────────────────────────────────────────
+    const transactionLabel = `${transaction.type === 'import' ? 'Import' : 'Export'} — ${transaction.reference_no || transaction.bl_no || `#${transaction.id}`}`;
 
     return (
         <>
-            {/* Backdrop */}
-            {isOpen && (
-                <div
-                    className="fixed inset-0 z-40 bg-black/30 backdrop-blur-[2px] transition-opacity"
-                    onClick={onClose}
-                />
-            )}
-
-            {/* Drawer */}
-            <div
-                ref={drawerRef}
-                className={`fixed top-0 right-0 h-full z-50 flex flex-col bg-surface border-l border-border shadow-2xl transition-transform duration-300 ease-in-out
-                    ${isOpen ? 'translate-x-0' : 'translate-x-full'}
-                `}
-                style={{ width: 'min(640px, 100vw)' }}
-            >
-                {transaction && (
-                    <>
-                        {/* ── Header ──────────────────────────────────────────── */}
-                        <div className="flex items-start justify-between gap-4 px-6 py-4 border-b border-border shrink-0">
-                            <div className="min-w-0">
-                                <div className="flex items-center gap-2 mb-1">
-                                    <span
-                                        className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-bold capitalize"
-                                        style={{
-                                            color: transaction.type === 'import' ? '#0a84ff' : '#ff9f0a',
-                                            backgroundColor: transaction.type === 'import' ? 'rgba(10,132,255,0.13)' : 'rgba(255,159,10,0.13)',
-                                        }}
-                                    >
-                                        <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: transaction.type === 'import' ? '#0a84ff' : '#ff9f0a' }} />
-                                        {transaction.type}
-                                    </span>
-                                    {transaction.open_remarks_count > 0 && (
-                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold"
-                                            style={{ color: '#ff453a', backgroundColor: 'rgba(255,69,58,0.12)' }}>
-                                            <Icon name="flag" className="w-3 h-3" />
-                                            {transaction.open_remarks_count} open
-                                        </span>
-                                    )}
-                                </div>
-                                <h2 className="text-lg font-bold text-text-primary leading-tight truncate">{transactionLabel}</h2>
-                                <p className="text-xs text-text-muted mt-0.5">
-                                    {transaction.client || 'No client'} · {transaction.assigned_to || 'Unassigned'} · {transaction.date ? new Date(transaction.date).toLocaleDateString() : '—'}
-                                </p>
-                            </div>
-                            <button
-                                onClick={onClose}
-                                className="p-1.5 rounded-xl text-text-muted hover:text-text-primary hover:bg-hover transition-all shrink-0"
-                                title="Close"
+            <Sheet open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+                <SheetContent side="right" className="w-full sm:max-w-[540px] p-0 flex flex-col gap-0 border-l shadow-2xl bg-card">
+                    {/* Header */}
+                    <SheetHeader className="text-start px-6 pt-6 pb-4 border-b border-border space-y-2 bg-card">
+                        <div className="flex items-center gap-2">
+                            <Badge
+                                variant={transaction.type === 'import' ? 'secondary' : 'outline'}
+                                className="text-[10px] font-bold uppercase tracking-wider font-mono px-2 py-0.5"
                             >
-                                <Icon name="x" className="w-5 h-5" />
-                            </button>
+                                {transaction.type}
+                            </Badge>
+                            {transaction.open_remarks_count > 0 && (
+                                <Badge variant="destructive" className="text-[10px] font-bold px-2 py-0.5 gap-1">
+                                    <Flag className="size-3" />
+                                    {transaction.open_remarks_count} open
+                                </Badge>
+                            )}
+                            <Badge variant="outline" className="capitalize text-[10px] font-medium text-muted-foreground">
+                                {transaction.status?.replace(/_/g, ' ')}
+                            </Badge>
+                        </div>
+                        <div>
+                            <SheetTitle className="text-xl font-bold tracking-tight text-foreground">{transactionLabel}</SheetTitle>
+                            <SheetDescription className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                                <span className="inline-flex items-center gap-1 font-medium text-foreground">
+                                    <Building2 className="size-3.5 text-muted-foreground" />
+                                    {transaction.client || 'No client'}
+                                </span>
+                                <span>&bull;</span>
+                                <span className="inline-flex items-center gap-1">
+                                    <User className="size-3.5 text-muted-foreground" />
+                                    {transaction.assigned_to || 'Unassigned'}
+                                </span>
+                            </SheetDescription>
+                        </div>
+                    </SheetHeader>
+
+                    {/* Tabs */}
+                    <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as Tab)} className="flex-1 flex flex-col overflow-hidden">
+                        <div className="border-b border-border bg-muted/30 px-6 pt-2">
+                            <TabsList className="grid w-full grid-cols-3 h-9 p-1">
+                                <TabsTrigger value="Documents" className="text-xs font-semibold">
+                                    Documents
+                                </TabsTrigger>
+                                <TabsTrigger value="Stages" className="text-xs font-semibold">
+                                    Stages
+                                </TabsTrigger>
+                                <TabsTrigger value="Remarks" className="text-xs font-semibold">
+                                    Remarks {transaction.open_remarks_count > 0 ? `(${transaction.open_remarks_count})` : ''}
+                                </TabsTrigger>
+                            </TabsList>
                         </div>
 
-                        {/* ── Tabs ────────────────────────────────────────────── */}
-                        <div className="flex gap-0 px-6 pt-3 border-b border-border shrink-0">
-                            {TABS.map(tab => (
-                                <button
-                                    key={tab}
-                                    onClick={() => setActiveTab(tab)}
-                                    className={`px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors mr-1 ${
-                                        activeTab === tab
-                                            ? 'border-blue-500 text-blue-500'
-                                            : 'border-transparent text-text-muted hover:text-text-primary'
-                                    }`}
-                                >
-                                    {tab}
-                                    {tab === 'Remarks' && transaction.open_remarks_count > 0 && (
-                                        <span className="ml-1.5 text-[10px] font-bold text-red-500">
-                                            ({transaction.open_remarks_count})
-                                        </span>
-                                    )}
-                                </button>
-                            ))}
-                        </div>
-
-                        {/* ── Tab Content ─────────────────────────────────────── */}
-                        <div className="flex-1 overflow-y-auto">
-
+                        {/* Tab Contents */}
+                        <div className="flex-1 overflow-y-auto p-6 space-y-4">
                             {/* Documents Tab */}
-                            {activeTab === 'Documents' && (
-                                <div className="p-6 space-y-2">
-                                    {docsLoading ? (
-                                        <div className="flex items-center justify-center py-16">
-                                            <div className="w-6 h-6 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
+                            <TabsContent value="Documents" className="mt-0 space-y-4">
+                                {docsLoading ? (
+                                    <div className="space-y-3">
+                                        <Skeleton className="h-14 w-full rounded-lg" />
+                                        <Skeleton className="h-14 w-full rounded-lg" />
+                                    </div>
+                                ) : documents.length === 0 ? (
+                                    <div className="flex flex-col items-center justify-center py-16 text-center">
+                                        <div className="mb-3 flex size-10 items-center justify-center rounded-lg border bg-muted">
+                                            <FileText className="size-5 text-muted-foreground" />
                                         </div>
-                                    ) : documents.length === 0 ? (
-                                        <div className="flex flex-col items-center justify-center py-16 text-center">
-                                            <div className="w-14 h-14 rounded-2xl bg-surface-secondary border border-border flex items-center justify-center mb-3">
-                                                <Icon name="file-text" className="w-7 h-7 text-text-muted" />
-                                            </div>
-                                            <p className="text-sm font-semibold text-text-muted">No documents uploaded yet</p>
-                                            <p className="text-xs text-text-muted mt-1">The encoder has not uploaded any documents for this transaction.</p>
-                                        </div>
-                                    ) : (
-                                        <>
-                                            <p className="text-xs font-semibold uppercase tracking-wider text-text-muted mb-3">
-                                                {documents.length} Document{documents.length !== 1 ? 's' : ''}
-                                            </p>
-                                            {documents.map(doc => (
-                                                <div
-                                                    key={doc.id}
-                                                    className="flex items-center gap-3 p-3 rounded-xl border border-border bg-surface-secondary/30 hover:bg-hover transition-colors group"
-                                                >
-                                                    <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 shrink-0">
-                                                        <Icon name="file-text" className="w-4 h-4" />
+                                        <p className="text-sm font-semibold text-foreground">No documents uploaded yet</p>
+                                        <p className="mt-1 text-xs text-muted-foreground">The encoder has not uploaded any documents for this transaction.</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-2">
+                                        <p className="text-xs font-medium text-muted-foreground">
+                                            {documents.length} Document{documents.length !== 1 ? 's' : ''}
+                                        </p>
+                                        {documents.map(doc => (
+                                            <div
+                                                key={doc.id}
+                                                className="flex items-center justify-between gap-3 rounded-lg border bg-card p-3 transition-colors hover:bg-muted/40"
+                                            >
+                                                <div className="flex items-center gap-3 min-w-0">
+                                                    <div className="flex size-8 shrink-0 items-center justify-center rounded-md border bg-muted text-foreground">
+                                                        <FileText className="size-4 text-muted-foreground" />
                                                     </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-sm font-semibold text-text-primary truncate">{doc.filename}</p>
-                                                        <p className="text-xs text-text-muted capitalize">{doc.type?.replace(/_/g, ' ')}</p>
-                                                    </div>
-                                                    <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <button
-                                                            onClick={() => handlePreview(doc.id, doc.filename)}
-                                                            disabled={previewLoading === doc.id}
-                                                            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors disabled:opacity-50"
-                                                            title="Preview"
-                                                        >
-                                                            {previewLoading === doc.id ? (
-                                                                <div className="w-3 h-3 rounded-full border border-blue-500 border-t-transparent animate-spin" />
-                                                            ) : (
-                                                                <Icon name="eye" className="w-3.5 h-3.5" />
-                                                            )}
-                                                            Preview
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleDownload(doc.id, doc.filename)}
-                                                            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-surface border border-border hover:bg-hover transition-colors"
-                                                            title="Download"
-                                                        >
-                                                            <Icon name="download" className="w-3.5 h-3.5" />
-                                                            Download
-                                                        </button>
+                                                    <div className="min-w-0">
+                                                        <p className="truncate text-xs font-semibold text-foreground font-mono">{doc.filename}</p>
+                                                        <p className="text-[11px] capitalize text-muted-foreground">{doc.type?.replace(/_/g, ' ')}</p>
                                                     </div>
                                                 </div>
-                                            ))}
-                                        </>
-                                    )}
-                                </div>
-                            )}
+                                                <div className="flex items-center gap-1 shrink-0">
+                                                    <Button
+                                                        type="button"
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        onClick={() => handlePreview(doc.id, doc.filename)}
+                                                        disabled={previewLoading === doc.id}
+                                                        className="h-7 px-2 text-xs gap-1"
+                                                        title="Preview"
+                                                    >
+                                                        {previewLoading === doc.id ? (
+                                                            <Loader2 className="size-3 animate-spin" />
+                                                        ) : (
+                                                            <Eye className="size-3" />
+                                                        )}
+                                                        Preview
+                                                    </Button>
+                                                    <Button
+                                                        type="button"
+                                                        size="icon"
+                                                        variant="ghost"
+                                                        onClick={() => handleDownload(doc.id, doc.filename)}
+                                                        className="size-7"
+                                                        title="Download"
+                                                    >
+                                                        <Download className="size-3.5" />
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </TabsContent>
 
                             {/* Stages Tab */}
-                            {activeTab === 'Stages' && (
-                                <div className="p-6">
-                                    <p className="text-xs font-semibold uppercase tracking-wider text-text-muted mb-4">Stage Progress</p>
-                                    {transaction.stages ? (
-                                        <div className="p-4 rounded-xl border border-border bg-surface-secondary/30">
-                                            <StagePipeline transaction={transaction} />
-                                        </div>
-                                    ) : (
-                                        <p className="text-sm text-text-muted">No stage data available.</p>
-                                    )}
-                                </div>
-                            )}
+                            <TabsContent value="Stages" className="mt-0 space-y-4">
+                                <p className="text-xs font-medium text-muted-foreground">Stage Progress</p>
+                                {transaction.stages ? (
+                                    <div className="rounded-lg border bg-card p-4 shadow-xs">
+                                        <StagePipeline transaction={transaction} />
+                                    </div>
+                                ) : (
+                                    <p className="text-sm text-muted-foreground">No stage data available.</p>
+                                )}
+                            </TabsContent>
 
                             {/* Remarks Tab */}
-                            {activeTab === 'Remarks' && (
-                                <div className="p-6 flex flex-col gap-5">
+                            <TabsContent value="Remarks" className="mt-0 space-y-6">
+                                {/* Add Remark Form */}
+                                <Card className="p-4 space-y-3 border shadow-xs bg-card">
+                                    <p className="text-xs font-medium text-foreground">Add Remark</p>
 
-                                    {/* Add Remark Form */}
-                                    <div className="rounded-xl border border-border bg-surface-secondary/30 p-4 space-y-3">
-                                        <p className="text-xs font-bold uppercase tracking-wider text-text-muted">Add Remark</p>
-
-                                        {/* Severity */}
-                                        <div className="flex gap-2">
-                                            {(Object.entries(SEVERITY_CFG) as [string, typeof SEVERITY_CFG['info']][]).map(([key, cfg]) => (
-                                                <button
-                                                    key={key}
-                                                    onClick={() => setSeverity(key as CreateRemarkData['severity'])}
-                                                    className="px-3 py-1.5 rounded-lg text-xs font-bold border-2 transition-all"
-                                                    style={severity === key
-                                                        ? { color: cfg.color, backgroundColor: cfg.bg, borderColor: cfg.color }
-                                                        : { color: 'var(--text-muted)', backgroundColor: 'transparent', borderColor: 'var(--border)' }
-                                                    }
-                                                >
-                                                    {cfg.label}
-                                                </button>
-                                            ))}
-                                        </div>
-
-                                        {/* Optional: Pin to document — always visible so admin knows the feature exists */}
-                                        <div>
-                                            <label className="text-xs text-text-muted mb-1 block">
-                                                Pin to document
-                                                <span className="ml-1 font-normal opacity-60">(optional)</span>
-                                            </label>
-                                            {documents.length > 0 ? (
-                                                <select
-                                                    value={documentId ?? ''}
-                                                    onChange={e => setDocumentId(e.target.value ? Number(e.target.value) : null)}
-                                                    className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                >
-                                                    <option value="">No specific document</option>
-                                                    {documents.map(doc => (
-                                                        <option key={doc.id} value={doc.id}>{doc.filename}</option>
-                                                    ))}
-                                                </select>
-                                            ) : (
-                                                <div className="w-full rounded-lg border border-border border-dashed bg-surface-secondary/40 px-3 py-2 text-xs text-text-muted italic">
-                                                    No documents uploaded yet.
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {/* Message */}
-                                        <textarea
-                                            value={message}
-                                            onChange={e => setMessage(e.target.value)}
-                                            placeholder="Describe the issue clearly for the encoder…"
-                                            rows={3}
-                                            className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                                        />
-
-                                        <button
-                                            onClick={handleCreateRemark}
-                                            disabled={!message.trim() || createRemark.isPending}
-                                            className="w-full py-2 rounded-lg text-sm font-bold transition-all disabled:opacity-50"
-                                            style={{ backgroundColor: '#ff453a', color: '#fff' }}
-                                        >
-                                            {createRemark.isPending ? 'Submitting…' : '🚩 Flag this Transaction'}
-                                        </button>
+                                    {/* Severity */}
+                                    <div className="flex gap-2">
+                                        {(Object.entries(SEVERITY_CFG) as [string, typeof SEVERITY_CFG['info']][]).map(([key, cfg]) => (
+                                            <Button
+                                                key={key}
+                                                type="button"
+                                                size="sm"
+                                                variant={severity === key ? 'default' : 'outline'}
+                                                onClick={() => setSeverity(key as CreateRemarkData['severity'])}
+                                                className="h-7 text-xs font-medium px-2.5"
+                                            >
+                                                {cfg.label}
+                                            </Button>
+                                        ))}
                                     </div>
 
-                                    {/* Existing Remarks */}
-                                    <div>
-                                        <p className="text-xs font-bold uppercase tracking-wider text-text-muted mb-3">Remark History</p>
-                                        {remarksLoading ? (
-                                            <div className="flex items-center justify-center py-8">
-                                                <div className="w-5 h-5 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
-                                            </div>
-                                        ) : remarks.length === 0 ? (
-                                            <p className="text-sm text-text-muted text-center py-6">No remarks yet.</p>
+                                    {/* Pin to document */}
+                                    <div className="space-y-1">
+                                        <label className="block text-xs font-medium text-muted-foreground">
+                                            Pin to document <span className="font-normal opacity-60">(optional)</span>
+                                        </label>
+                                        {documents.length > 0 ? (
+                                            <Select
+                                                value={documentId !== null ? String(documentId) : 'none'}
+                                                onValueChange={(value) => setDocumentId(value === 'none' ? null : Number(value))}
+                                            >
+                                                <SelectTrigger className="w-full h-8 text-xs">
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="none" className="text-xs">No specific document</SelectItem>
+                                                    {documents.map(doc => (
+                                                        <SelectItem key={doc.id} value={String(doc.id)} className="text-xs">{doc.filename}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
                                         ) : (
-                                            <div className="space-y-3">
-                                                {remarks.map((r) => {
-                                                    const scfg = SEVERITY_CFG[r.severity as keyof typeof SEVERITY_CFG] ?? SEVERITY_CFG.info;
-                                                    return (
-                                                        <div key={r.id} className={`p-3.5 rounded-xl border transition-all ${r.is_resolved ? 'border-border opacity-60' : 'border-border'}`}
-                                                            style={!r.is_resolved ? { borderLeftWidth: 3, borderLeftColor: scfg.color } : {}}>
-                                                            <div className="flex items-start justify-between gap-3 mb-1.5">
-                                                                <div className="flex items-center gap-2 flex-wrap">
-                                                                    <span className="text-xs font-bold px-2 py-0.5 rounded-md"
-                                                                        style={{ color: scfg.color, backgroundColor: scfg.bg }}>
-                                                                        {scfg.label}
-                                                                    </span>
-                                                                    {r.is_resolved && (
-                                                                        <span className="text-xs font-semibold px-2 py-0.5 rounded-md"
-                                                                            style={{ color: '#30d158', backgroundColor: 'rgba(48,209,88,0.12)' }}>
-                                                                            ✓ Resolved
-                                                                        </span>
-                                                                    )}
-                                                                    {r.document && (
-                                                                        <span className="text-xs text-text-muted flex items-center gap-1">
-                                                                            <Icon name="paperclip" className="w-3 h-3" />
-                                                                            {r.document.filename}
-                                                                        </span>
-                                                                    )}
-                                                                </div>
-                                                                {!r.is_resolved && (
-                                                                    <button
-                                                                        onClick={() => resolveRemark.mutate(r.id)}
-                                                                        disabled={resolveRemark.isPending}
-                                                                        className="text-xs font-semibold px-2.5 py-1 rounded-lg border border-border hover:bg-hover transition-colors shrink-0 disabled:opacity-50"
-                                                                    >
-                                                                        Mark Done
-                                                                    </button>
-                                                                )}
-                                                            </div>
-                                                            <p className="text-sm text-text-primary">{r.message}</p>
-                                                            <p className="text-[11px] text-text-muted mt-1.5">
-                                                                {r.author?.name ?? 'System'} · {new Date(r.created_at).toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' })}
-                                                                {r.resolved_by && ` · Resolved by ${r.resolved_by.name}`}
-                                                            </p>
-                                                        </div>
-                                                    );
-                                                })}
+                                            <div className="w-full rounded-md border border-dashed px-3 py-1.5 text-xs text-muted-foreground">
+                                                No documents uploaded yet.
                                             </div>
                                         )}
                                     </div>
+
+                                    {/* Message */}
+                                    <div>
+                                        <Textarea
+                                            value={message}
+                                            onChange={(e) => setMessage(e.target.value)}
+                                            placeholder="Describe the issue clearly for the encoder…"
+                                            rows={3}
+                                            maxLength={500}
+                                            className="resize-none text-xs"
+                                        />
+                                        <div className="mt-1 text-right text-[10px] text-muted-foreground">
+                                            {message.length}/500
+                                        </div>
+                                    </div>
+
+                                    <Button
+                                        type="button"
+                                        variant="destructive"
+                                        size="sm"
+                                        onClick={handleCreateRemark}
+                                        disabled={!message.trim() || createRemark.isPending}
+                                        className="w-full font-medium h-8 text-xs"
+                                    >
+                                        {createRemark.isPending ? 'Submitting…' : '🚩 Flag this Transaction'}
+                                    </Button>
+                                </Card>
+
+                                {/* Existing Remarks */}
+                                <div className="space-y-3">
+                                    <p className="text-xs font-medium text-foreground">Remark History</p>
+                                    {remarksLoading ? (
+                                        <div className="space-y-2">
+                                            <Skeleton className="h-16 w-full rounded-lg" />
+                                            <Skeleton className="h-16 w-full rounded-lg" />
+                                        </div>
+                                    ) : remarks.length === 0 ? (
+                                        <p className="py-6 text-center text-xs text-muted-foreground">No remarks yet.</p>
+                                    ) : (
+                                        <div className="space-y-2">
+                                            {remarks.map((r) => {
+                                                const scfg = SEVERITY_CFG[r.severity as keyof typeof SEVERITY_CFG] ?? SEVERITY_CFG.info;
+                                                return (
+                                                    <div
+                                                        key={r.id}
+                                                        className={`rounded-lg border p-3.5 transition-colors ${
+                                                            r.is_resolved
+                                                                ? 'bg-muted/20 border-border/60 opacity-60'
+                                                                : 'bg-card border-border shadow-xs'
+                                                        }`}
+                                                    >
+                                                        <div className="mb-1.5 flex items-start justify-between gap-3">
+                                                            <div className="flex flex-wrap items-center gap-1.5">
+                                                                <Badge
+                                                                    variant={scfg.variant}
+                                                                    className={`px-1.5 py-0 text-[10px] font-semibold ${scfg.className}`}
+                                                                >
+                                                                    {scfg.label}
+                                                                </Badge>
+                                                                {r.is_resolved && (
+                                                                    <Badge variant="outline" className="border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-500/5 px-1.5 py-0 text-[10px] font-semibold">
+                                                                        ✓ Resolved
+                                                                    </Badge>
+                                                                )}
+                                                                {r.document && (
+                                                                    <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground font-mono">
+                                                                        <Paperclip className="size-3" />
+                                                                        {r.document.filename}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            {!r.is_resolved && (
+                                                                <Button
+                                                                    type="button"
+                                                                    size="sm"
+                                                                    variant="outline"
+                                                                    onClick={() => resolveRemark.mutate(r.id)}
+                                                                    disabled={resolveRemark.isPending}
+                                                                    className="h-6 text-[11px] px-2"
+                                                                >
+                                                                    Mark Done
+                                                                </Button>
+                                                            )}
+                                                        </div>
+                                                        <p className="text-xs font-normal text-foreground leading-relaxed">{r.message}</p>
+                                                        <p className="mt-2 text-[10px] text-muted-foreground">
+                                                            {r.author?.name ?? 'System'} &bull; {new Date(r.created_at).toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' })}
+                                                            {r.resolved_by && ` &bull; Resolved by ${r.resolved_by.name}`}
+                                                        </p>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
                                 </div>
-                            )}
+                            </TabsContent>
                         </div>
-                    </>
-                )}
-            </div>
+                    </Tabs>
+                </SheetContent>
+            </Sheet>
 
             {/* File Preview Modal */}
             <FilePreviewModal

@@ -214,7 +214,7 @@ export const NotarialTemplateUploadPage = ({ module = 'notarial' }: Props) => {
         return (
             <div className="flex min-h-full items-center justify-center bg-surface-secondary p-8">
                 <div className="max-w-md rounded-3xl border border-border bg-surface-elevated/80 p-8 text-center shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-xl dark:shadow-none">
-                    <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-50 text-red-500 shadow-inner dark:bg-red-500/10 dark:text-red-300">
+                    <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-danger/10 text-danger shadow-inner">
                         <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                         </svg>
@@ -369,7 +369,7 @@ export const NotarialTemplateUploadPage = ({ module = 'notarial' }: Props) => {
                                     
                                     {draftFile && (
                                         <div className="mt-4 flex items-center gap-3 rounded-full border border-border bg-surface-elevated py-1.5 pl-3 pr-1.5 shadow-sm dark:shadow-none">
-                                            <svg className="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <svg className="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                             </svg>
                                             <span className="max-w-[180px] truncate text-[13px] font-medium text-text-primary">{draftFile.name}</span>
@@ -392,9 +392,9 @@ export const NotarialTemplateUploadPage = ({ module = 'notarial' }: Props) => {
                                 id="template-save"
                                 onClick={() => void handleCreateTemplate()}
                                 disabled={createTemplate.isPending}
-                                className="group relative w-full overflow-hidden rounded-xl bg-neutral-900 px-6 py-3.5 text-[14px] font-medium text-white shadow-sm transition-all hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-neutral-900/20 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-neutral-950 dark:hover:bg-neutral-200 dark:focus:ring-white/20 dark:focus:ring-offset-surface-elevated"
+                                className="group relative w-full overflow-hidden rounded-xl bg-foreground px-6 py-3.5 text-[14px] font-medium text-background shadow-sm transition-all hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-foreground/20 focus:ring-offset-2 focus:ring-offset-card disabled:cursor-not-allowed disabled:opacity-50"
                             >
-                                <div className="absolute inset-0 bg-white/20 translate-y-full transition-transform group-hover:translate-y-0" />
+                                <div className="absolute inset-0 bg-background/20 translate-y-full transition-transform group-hover:translate-y-0" />
                                 <span className="relative z-10 flex items-center justify-center gap-2">
                                     {createTemplate.isPending ? (
                                         <>
@@ -454,13 +454,13 @@ export const NotarialTemplateUploadPage = ({ module = 'notarial' }: Props) => {
                                         <div className="flex shrink-0 items-center gap-2 pl-4">
                                             <div>
                                                 {template.template_status === 'ready' ? (
-                                                    <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200/50 bg-emerald-50 px-2.5 py-1 text-[11px] font-medium text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-500/10 dark:text-emerald-300">
-                                                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                                                    <span className="inline-flex items-center gap-1.5 rounded-full border border-success/20 bg-success/10 px-2.5 py-1 text-[11px] font-medium text-success">
+                                                        <span className="h-1.5 w-1.5 rounded-full bg-success" />
                                                         Ready
                                                     </span>
                                                 ) : (
-                                                    <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200/50 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-700 dark:border-amber-400/20 dark:bg-amber-500/10 dark:text-amber-300">
-                                                        <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                                                    <span className="inline-flex items-center gap-1.5 rounded-full border border-warning/20 bg-warning/10 px-2.5 py-1 text-[11px] font-medium text-warning">
+                                                        <span className="h-1.5 w-1.5 rounded-full bg-warning" />
                                                         Missing
                                                     </span>
                                                 )}
@@ -473,7 +473,7 @@ export const NotarialTemplateUploadPage = ({ module = 'notarial' }: Props) => {
                                                             title="Archive"
                                                             onClick={() => void handleArchiveTemplate(template)}
                                                             disabled={updateTemplate.isPending}
-                                                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-amber-100 bg-surface-elevated text-amber-500 shadow-sm transition-all hover:bg-amber-50 hover:text-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500/10 disabled:cursor-not-allowed disabled:opacity-50 dark:border-amber-400/20 dark:bg-amber-500/10 dark:text-amber-300 dark:hover:bg-amber-500/20 dark:hover:text-amber-200 dark:shadow-none"
+                                                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-warning/20 bg-surface-elevated text-warning shadow-sm transition-all hover:bg-warning/10 hover:text-warning focus:outline-none focus:ring-2 focus:ring-warning/10 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-warning/10 dark:hover:bg-warning/20 dark:shadow-none"
                                                         >
                                                             <Icon name="archive" className="h-3.5 w-3.5" aria-hidden="true" />
                                                         </button>
@@ -484,7 +484,7 @@ export const NotarialTemplateUploadPage = ({ module = 'notarial' }: Props) => {
                                                             title="Delete"
                                                             onClick={() => void handleDeleteTemplate(template)}
                                                             disabled={deleteTemplate.isPending}
-                                                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-red-100 bg-surface-elevated text-red-400 shadow-sm transition-all hover:bg-red-50 hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-red-500/10 disabled:cursor-not-allowed disabled:opacity-50 dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-300 dark:hover:bg-red-500/20 dark:hover:text-red-200 dark:shadow-none"
+                                                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-danger/20 bg-surface-elevated text-danger shadow-sm transition-all hover:bg-danger/10 hover:text-danger focus:outline-none focus:ring-2 focus:ring-danger/10 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-danger/10 dark:hover:bg-danger/20 dark:shadow-none"
                                                         >
                                                             <Icon name="trash" className="h-3.5 w-3.5" aria-hidden="true" />
                                                         </button>

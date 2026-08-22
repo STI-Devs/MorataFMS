@@ -2,10 +2,10 @@
 import type { DocumentTransaction } from '../../../documents/types/document.types';
 
 const STATUS_CONFIG = {
-    pending:     { label: 'Pending',     color: '#ff9f0a', bg: 'rgba(255,159,10,0.13)' },
-    in_progress: { label: 'In Progress', color: '#64d2ff', bg: 'rgba(100,210,255,0.13)' },
-    completed:   { label: 'Completed',   color: '#30d158', bg: 'rgba(48,209,88,0.13)' },
-    cancelled:   { label: 'Cancelled',   color: '#ff453a', bg: 'rgba(255,69,58,0.13)' },
+    pending:     { label: 'Pending',     color: 'var(--warning)', bg: 'color-mix(in srgb, var(--warning) 13%, transparent)' },
+    in_progress: { label: 'In Progress', color: 'var(--sky)', bg: 'color-mix(in srgb, var(--sky) 13%, transparent)' },
+    completed:   { label: 'Completed',   color: 'var(--success)', bg: 'color-mix(in srgb, var(--success) 13%, transparent)' },
+    cancelled:   { label: 'Cancelled',   color: 'var(--danger)', bg: 'color-mix(in srgb, var(--danger) 13%, transparent)' },
 };
 
 interface Props {
@@ -20,17 +20,16 @@ export const TransactionCard = ({ tx, onClick }: Props) => {
     return (
         <div
             onClick={onClick}
-            className="group bg-surface border border-border rounded-lg p-4 flex items-center gap-4 cursor-pointer hover:border-blue-500/40 hover:shadow-sm transition-all duration-200"
+            className="group bg-surface border border-border rounded-lg p-4 flex items-center gap-4 cursor-pointer hover:border-primary/40 hover:shadow-sm transition-all duration-200"
         >
             {/* Type icon */}
             <div
-                className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
-                style={{ backgroundColor: isImport ? 'rgba(48,209,88,0.1)' : 'rgba(10,132,255,0.1)' }}
+                className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${isImport ? 'bg-success/10' : 'bg-primary/10'}`}
             >
                 <Icon
                     name={isImport ? 'download' : 'truck'}
                     className="w-5 h-5"
-                    stroke={isImport ? '#30d158' : '#0a84ff'}
+                    stroke={isImport ? 'var(--success)' : 'var(--primary)'}
                 />
             </div>
 
@@ -61,7 +60,7 @@ export const TransactionCard = ({ tx, onClick }: Props) => {
             <p className="text-xs text-text-muted font-medium shrink-0 hidden sm:block">{tx.date}</p>
 
             {/* Arrow */}
-            <Icon name="chevron-right" className="w-4 h-4 text-text-muted group-hover:text-blue-500 transition-colors shrink-0" />
+            <Icon name="chevron-right" className="w-4 h-4 text-text-muted group-hover:text-primary transition-colors shrink-0" />
         </div>
     );
 };

@@ -88,14 +88,14 @@ export const ArchivesDocumentView = ({
                                     : `Vessel: ${r.documents[0]?.vessel_name ?? '—'} • Destination: ${r.documents[0]?.destination_country ?? '—'}`}
                             </span>
                         </span>
-                        <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-md w-fit ${r.type === 'import' ? 'bg-green-500/10 text-green-600 border border-green-500/30' : 'bg-blue-500/10 text-blue-500 border border-blue-500/30'}`}>
+                        <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-md w-fit ${r.type === 'import' ? 'bg-success/10 text-success border border-success/30' : 'bg-info/10 text-info border border-info/30'}`}>
                             {r.type === 'import' ? 'IMP' : 'EXP'}
                         </span>
-                        <span className={`inline-flex items-center gap-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full border w-fit ${completion.isComplete ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30' : 'bg-amber-500/10 text-amber-500 border-amber-500/30'}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${completion.isComplete ? 'bg-emerald-500' : 'bg-amber-400'}`} />
+                        <span className={`inline-flex items-center gap-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full border w-fit ${completion.isComplete ? 'bg-success/10 text-success border-success/30' : 'bg-warning/10 text-warning border-warning/30'}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${completion.isComplete ? 'bg-success' : 'bg-warning'}`} />
                             {completion.isComplete ? 'Complete' : 'Incomplete'}
                         </span>
-                        <span className={`text-xs font-semibold tabular-nums ${completion.isComplete ? 'text-emerald-500' : 'text-amber-500'}`}>
+                        <span className={`text-xs font-semibold tabular-nums ${completion.isComplete ? 'text-success' : 'text-warning'}`}>
                             {completion.doneCount}/{completion.requiredStages.length}
                         </span>
                     </button>
@@ -113,7 +113,7 @@ export const ArchivesDocumentView = ({
                             onChange={(event) => {
                                 onPerPageChange(Number(event.target.value));
                             }}
-                            className="rounded-lg border border-border bg-surface px-2 py-1 text-xs font-bold text-text-primary outline-none transition-colors focus:border-blue-500"
+                            className="rounded-lg border border-border bg-surface px-2 py-1 text-xs font-bold text-text-primary outline-none transition-colors focus:border-primary"
                         >
                             {[25, 50, 100].map((option) => (
                                 <option key={option} value={option}>{option}</option>
@@ -193,7 +193,7 @@ export const BLFolderRow = ({ blNo, blDocs, drill, nav, COL, color }: BLFolderRo
             </span>
             {isImport ? (
                 <span className="inline-flex items-center gap-1.5 text-xs font-semibold truncate">
-                    <span className={`w-2 h-2 rounded-full shrink-0 ${firstDoc?.selective_color === 'red' ? 'bg-red-500' : firstDoc?.selective_color === 'orange' ? 'bg-orange-500' : firstDoc?.selective_color === 'yellow' ? 'bg-yellow-400' : 'bg-green-500'}`} />
+                    <span className={`w-2 h-2 rounded-full shrink-0 ${firstDoc?.selective_color === 'red' ? 'bg-danger' : firstDoc?.selective_color === 'orange' ? 'bg-warning' : firstDoc?.selective_color === 'yellow' ? 'bg-warning' : 'bg-success'}`} />
                     <span className="capitalize text-text-secondary">{firstDoc?.selective_color ?? 'Green'}</span>
                 </span>
             ) : (
@@ -204,7 +204,7 @@ export const BLFolderRow = ({ blNo, blDocs, drill, nav, COL, color }: BLFolderRo
             <span className="text-xs text-text-muted tabular-nums">
                 {firstDoc?.transaction_date ? formatPeriod(firstDoc.transaction_date) : '—'}
             </span>
-            <span title={tooltip} className={`text-xs font-semibold tabular-nums ${completion.isComplete ? 'text-emerald-500' : completion.doneCount === 0 ? 'text-text-muted' : 'text-amber-500'}`}>
+            <span title={tooltip} className={`text-xs font-semibold tabular-nums ${completion.isComplete ? 'text-success' : completion.doneCount === 0 ? 'text-text-muted' : 'text-warning'}`}>
                 {completion.doneCount}/{completion.requiredStages.length}
             </span>
             <button
@@ -272,7 +272,7 @@ export const ArchivesBLView = ({
     const totalRows = meta?.total ?? 0;
     const from = meta?.from ?? (totalRows > 0 ? 1 : 0);
     const to = meta?.to ?? rows.length;
-    const color = drill.type === 'import' ? '#16a34a' : '#2563eb';
+    const color = drill.type === 'import' ? 'var(--success)' : 'var(--info)';
     const isImport = drill.type === 'import';
     const COL = isImport ? '20px 1fr 1fr 80px 80px 100px 20px' : '20px 1fr 1fr 1fr 100px 100px 20px';
 
@@ -322,7 +322,7 @@ export const ArchivesBLView = ({
                                 setPerPage(Number(event.target.value));
                                 setPage(1);
                             }}
-                            className="rounded-lg border border-border bg-surface px-2 py-1 text-xs font-bold text-text-primary outline-none transition-colors focus:border-blue-500"
+                            className="rounded-lg border border-border bg-surface px-2 py-1 text-xs font-bold text-text-primary outline-none transition-colors focus:border-primary"
                         >
                             {[25, 50, 100].map((option) => (
                                 <option key={option} value={option}>{option}</option>

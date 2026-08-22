@@ -19,42 +19,42 @@ const baseModuleCards: ModuleCard[] = [
         label: 'Create Draft',
         description: 'Select a master, create a working copy, and open it in the editor.',
         path: appRoutes.paralegalGenerator,
-        accent: '#0a84ff',
+        accent: 'var(--primary)',
         icon: 'M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2',
     },
     {
         label: 'Generated Documents',
         description: 'Search and reopen editable Word outputs by party, document type, variant, or file name.',
         path: appRoutes.paralegalGeneratedDocuments,
-        accent: '#30d158',
+        accent: 'var(--success)',
         icon: 'M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4',
     },
     {
         label: 'Legal Create Draft',
         description: 'Create a legal Word draft from the legal document master library.',
         path: appRoutes.paralegalLegalFiles,
-        accent: '#ff9f0a',
+        accent: 'var(--warning)',
         icon: 'M5 4h10l4 4v12a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2zm9 1.5V9h3.5',
     },
     {
         label: 'Legal File Masters',
         description: 'Upload and manage legal DOCX masters for the drafting engine.',
         path: appRoutes.paralegalLegalFileMasters,
-        accent: '#bf5af2',
+        accent: 'var(--violet)',
         icon: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1M12 4v12m0-12l-4 4m4-4l4 4',
     },
     {
         label: 'Legal Generated Documents',
         description: 'Search and reopen legal Word outputs by party, master, or file name.',
         path: appRoutes.paralegalLegalFileRecords,
-        accent: '#ff453a',
+        accent: 'var(--danger)',
         icon: 'M4 6a2 2 0 012-2h8l6 6v8a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm4 7h8m-8 4h8',
     },
     {
         label: 'Legacy Records',
         description: 'Upload and review old notarial and legal folders from the dedicated legacy records workspace.',
         path: appRoutes.paralegalLegacyFolderUpload,
-        accent: '#636366',
+        accent: 'var(--muted-foreground)',
         icon: 'M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4',
     },
 ];
@@ -98,7 +98,7 @@ export const ParalegalDashboard = () => {
 
             <section>
                 <div className="mb-4 flex items-center gap-3">
-                    <div className="h-5 w-1 rounded-full bg-blue-500" />
+                    <div className="h-5 w-1 rounded-full bg-primary" />
                     <h2 className="text-sm font-bold uppercase tracking-[0.22em] text-text-secondary">Overview</h2>
                 </div>
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -127,7 +127,7 @@ export const ParalegalDashboard = () => {
 
             <section>
                 <div className="mb-4 flex items-center gap-3">
-                    <div className="h-5 w-1 rounded-full bg-blue-500" />
+                    <div className="h-5 w-1 rounded-full bg-primary" />
                     <h2 className="text-sm font-bold uppercase tracking-[0.22em] text-text-secondary">Workflows</h2>
                 </div>
                 <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
@@ -145,7 +145,7 @@ export const ParalegalDashboard = () => {
                             />
                             <div
                                 className="flex h-12 w-12 items-center justify-center rounded-xl"
-                                style={{ backgroundColor: `${card.accent}18` }}
+                                style={{ backgroundColor: `color-mix(in srgb, ${card.accent} 10%, transparent)` }}
                             >
                                 <svg
                                     className="h-6 w-6"

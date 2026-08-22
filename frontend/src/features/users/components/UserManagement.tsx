@@ -1,51 +1,72 @@
 import { useState } from 'react';
+import {
+    Pencil,
+    Search,
+    Trash2,
+    UserCheck,
+    UserPlus,
+    UserX,
+    X,
+} from 'lucide-react';
 import { ConfirmationModal } from '../../../components/ConfirmationModal';
-import { CurrentDateTime } from '../../../components/CurrentDateTime';
+import { Button } from '../../../components/ui/button';
+import { Input } from '../../../components/ui/input';
+import { Tabs, TabsList, TabsTrigger } from '../../../components/ui/tabs';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '../../../components/ui/table';
 import { useConfirmationModal } from '../../../hooks/useConfirmationModal';
 import { useAuth } from '../../auth/hooks/useAuth';
-import { isAdmin } from '../../auth/utils/access';
 import { useActivateUser, useCreateUser, useDeactivateUser, useDeleteUser, useUpdateUser, useUsers } from '../hooks/useUsers';
 import type { CreateUserData, UpdateUserData, User } from '../types/user.types';
 import { UserFormModal } from './UserFormModal';
+import { UserManagementKpiCards } from './UserManagementKpiCards';
 
-const roleConfig: Record<string, { label: string; color: string; icon: string }> = {
+const roleConfig: Record<
+    string,
+    { label: string; className: string; avatarBg: string }
+> = {
     admin: {
         label: 'Admin',
-        color: '#bf5af2',
-        icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z',
+        className: 'border-blue-500/20 bg-blue-500/10 text-blue-600 dark:text-blue-400',
+        avatarBg: 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30',
     },
     paralegal: {
         label: 'Paralegal',
-        color: '#ff9f0a',
-        icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01',
+        className: 'border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-400',
+        avatarBg: 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30',
     },
     encoder: {
         label: 'Encoder',
-        color: '#64d2ff',
-        icon: 'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z',
+        className: 'border-sky-500/20 bg-sky-500/10 text-sky-700 dark:text-sky-400',
+        avatarBg: 'bg-sky-500/15 text-sky-700 dark:text-sky-400 border-sky-500/30',
     },
     processor: {
         label: 'Processor',
-        color: '#0a84ff',
-        icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4',
+        className: 'border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
+        avatarBg: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30',
     },
     accounting: {
         label: 'Accountant',
-        color: '#30d158',
-        icon: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4',
+        className: 'border-teal-500/20 bg-teal-500/10 text-teal-700 dark:text-teal-400',
+        avatarBg: 'bg-teal-500/15 text-teal-700 dark:text-teal-400 border-teal-500/30',
     },
 };
 
 function RoleBadge({ role }: { role: string }) {
-    const cfg = roleConfig[role] ?? { label: role, color: '#8e8e93', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' };
+    const cfg = roleConfig[role] ?? {
+        label: role,
+        className: 'border-border bg-muted/50 text-muted-foreground',
+        avatarBg: 'bg-muted text-muted-foreground border-border',
+    };
+
     return (
-        <span
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold"
-            style={{ color: cfg.color, backgroundColor: `${cfg.color}18` }}
-        >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d={cfg.icon} />
-            </svg>
+        <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${cfg.className}`}>
             {cfg.label}
         </span>
     );
@@ -57,6 +78,7 @@ export const UserManagement = () => {
     const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [roleFilter, setRoleFilter] = useState<string>('all');
 
     const { data: users = [], isLoading, isError } = useUsers();
     const createUser = useCreateUser();
@@ -83,7 +105,7 @@ export const UserManagement = () => {
             title: 'Deactivate user?',
             message: `Are you sure you want to deactivate ${user.name}?`,
             confirmText: 'Deactivate',
-            confirmButtonClass: 'bg-red-600 hover:bg-red-700',
+            confirmButtonClass: 'bg-destructive hover:bg-destructive/90',
             onConfirm: async () => {
                 await deactivateUser.mutateAsync(user.id);
             },
@@ -99,7 +121,7 @@ export const UserManagement = () => {
             title: 'Delete user?',
             message: `Are you sure you want to delete ${user.name}?`,
             confirmText: 'Delete user',
-            confirmButtonClass: 'bg-red-600 hover:bg-red-700',
+            confirmButtonClass: 'bg-destructive hover:bg-destructive/90',
             onConfirm: async () => {
                 await deleteUser.mutateAsync(user.id);
             },
@@ -118,259 +140,311 @@ export const UserManagement = () => {
         setIsModalOpen(true);
     };
 
-    const filteredUsers = users.filter(user =>
-        user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.role.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredUsers = users.filter((user) => {
+        const matchesSearch =
+            user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            user.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (user.job_title && user.job_title.toLowerCase().includes(searchTerm.toLowerCase()));
+
+        const matchesRole = roleFilter === 'all' || user.role === roleFilter;
+
+        return matchesSearch && matchesRole;
+    });
+
+    const isFiltered = searchTerm.trim() !== '' || roleFilter !== 'all';
+
+    const roleCounts = {
+        all: users.length,
+        admin: users.filter((u) => u.role === 'admin').length,
+        encoder: users.filter((u) => u.role === 'encoder').length,
+        processor: users.filter((u) => u.role === 'processor').length,
+        accounting: users.filter((u) => u.role === 'accounting').length,
+        paralegal: users.filter((u) => u.role === 'paralegal').length,
+    };
 
     return (
-        <div className="space-y-5 p-4">
+        <div className="w-full space-y-4 pb-6">
             {/* Header */}
-            <div className="flex justify-between items-center">
+            <div className="flex flex-wrap items-end justify-between gap-2">
                 <div>
-                    <h1 className="text-2xl font-bold text-text-primary tracking-tight">User Management</h1>
-                    <p className="text-xs text-text-muted mt-0.5">Create, edit, and manage user accounts</p>
+                    <h2 className="text-2xl font-bold tracking-tight text-foreground">User Management</h2>
+                    <p className="text-sm text-muted-foreground">
+                        Manage team accounts, assign department roles, and configure system permissions.
+                    </p>
                 </div>
-                <CurrentDateTime
-                    className="text-right hidden sm:block"
-                    timeClassName="text-xl font-bold tabular-nums text-text-primary"
-                    dateClassName="text-xs text-text-muted"
-                />
             </div>
 
-            {/* Stat Cards */}
-            {(() => {
-                const total = users.length;
-                const active = users.filter(u => u.is_active).length;
-                const inactive = total - active;
-                const admins = users.filter(u => isAdmin(u)).length;
-                const staff = users.filter(u => !isAdmin(u)).length;
+            {/* KPI Metric Cards */}
+            <UserManagementKpiCards users={users} isLoading={isLoading} />
 
-                const cards = [
-                    {
-                        label: 'Total Users',
-                        value: total,
-                        sub: `${admins} admin · ${staff} staff`,
-                        dot: null as string | null,
-                    },
-                    {
-                        label: 'Active',
-                        value: active,
-                        sub: total > 0 ? `${Math.round((active / total) * 100)}% of total` : '—',
-                        dot: '#22c55e' as string | null,
-                    },
-                    {
-                        label: 'Inactive',
-                        value: inactive,
-                        sub: inactive === 0 ? 'All users active' : `${inactive} deactivated`,
-                        dot: inactive > 0 ? '#ef4444' as string | null : null,
-                    },
-                    {
-                        label: 'Admins',
-                        value: admins,
-                        sub: 'full system access',
-                        dot: null as string | null,
-                    },
-                ];
+            {/* Main Content Area */}
+            <div className="flex flex-col gap-3">
+                {/* Search & Tabs Toolbar */}
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex flex-1 flex-wrap items-center gap-2">
+                        <div className="relative w-full sm:w-[220px] lg:w-[280px]">
+                            <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                                placeholder="Search users…"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="h-8 pl-8 text-xs"
+                            />
+                        </div>
 
-                return (
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                        {cards.map(card => (
-                            <div
-                                key={card.label}
-                                className="bg-surface border border-border rounded-lg px-4 py-3.5"
+                        <Tabs
+                            value={roleFilter}
+                            onValueChange={(val) => setRoleFilter(val)}
+                        >
+                            <TabsList className="h-8 p-0.5">
+                                <TabsTrigger value="all" className="h-7 text-xs px-2.5">
+                                    All ({roleCounts.all})
+                                </TabsTrigger>
+                                <TabsTrigger value="admin" className="h-7 text-xs px-2.5">
+                                    Admin ({roleCounts.admin})
+                                </TabsTrigger>
+                                <TabsTrigger value="encoder" className="h-7 text-xs px-2.5">
+                                    Encoder ({roleCounts.encoder})
+                                </TabsTrigger>
+                                <TabsTrigger value="processor" className="h-7 text-xs px-2.5">
+                                    Processor ({roleCounts.processor})
+                                </TabsTrigger>
+                                <TabsTrigger value="accounting" className="h-7 text-xs px-2.5">
+                                    Accountant ({roleCounts.accounting})
+                                </TabsTrigger>
+                                <TabsTrigger value="paralegal" className="h-7 text-xs px-2.5">
+                                    Paralegal ({roleCounts.paralegal})
+                                </TabsTrigger>
+                            </TabsList>
+                        </Tabs>
+
+                        {isFiltered ? (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                    setSearchTerm('');
+                                    setRoleFilter('all');
+                                }}
+                                className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
                             >
-                                <p className="text-[11px] font-medium text-text-muted uppercase tracking-widest mb-2">
-                                    {card.label}
-                                </p>
-                                <div className="flex items-center gap-2">
-                                    {card.dot && (
-                                        <span
-                                            className="w-2 h-2 rounded-full flex-shrink-0"
-                                            style={{ backgroundColor: card.dot }}
-                                        />
-                                    )}
-                                    <p className="text-[2rem] font-semibold tabular-nums text-text-primary leading-none">
-                                        {card.value}
-                                    </p>
-                                </div>
-                                <p className="text-xs text-text-muted mt-2">{card.sub}</p>
-                            </div>
-                        ))}
+                                Reset
+                                <X className="ml-1 size-3.5" />
+                            </Button>
+                        ) : null}
                     </div>
-                );
-            })()}
 
-            {/* Table */}
-            <div className="bg-surface rounded-xl border border-border overflow-hidden">
-                <div className="p-3 border-b border-border flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between bg-surface-subtle">
-                    <div className="relative flex-1 max-w-sm">
-                        <svg className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                        <input
-                            type="text"
-                            placeholder="Search users..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-9 pr-3 h-9 rounded-md border border-border-strong bg-input-bg text-text-primary text-sm placeholder:text-text-muted focus:outline-none focus:border-blue-500/50 transition-colors"
-                        />
-                    </div>
-                    <button
+                    <Button
+                        size="sm"
                         onClick={handleCreate}
-                        className="flex items-center gap-1.5 px-3.5 h-9 rounded-lg text-xs font-bold transition-all shadow-sm bg-gradient-to-br from-blue-600 to-indigo-700 text-white"
+                        className="h-8 gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-2xs cursor-pointer"
                     >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-                        </svg>
+                        <UserPlus className="size-3.5" />
                         Create User
-                    </button>
+                    </Button>
                 </div>
 
-                {isLoading ? (
-                    <div className="p-16 flex items-center justify-center">
-                        <div className="w-8 h-8 rounded-full border-2 border-transparent animate-spin" style={{ borderTopColor: '#0a84ff' }} />
-                    </div>
-                ) : isError ? (
-                    <div className="p-16 text-center">
-                        <p className="text-sm text-red-500 font-medium">Failed to load users. Please try again.</p>
-                    </div>
-                ) : filteredUsers.length === 0 ? (
-                    <div className="p-16 text-center">
-                        <svg className="w-10 h-10 mx-auto mb-3 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                        </svg>
-                        <p className="text-sm text-text-muted">
-                            {searchTerm ? 'No users match your search' : 'No users found'}
-                        </p>
-                    </div>
-                ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead>
-                                <tr className="border-b border-border">
-                                    {['Name', 'Email', 'Job Title', 'Role', 'Status', 'Actions'].map((h, i) => (
-                                        <th key={h} className={`px-5 py-3 text-xs font-semibold uppercase tracking-wider ${i === 0 ? 'text-left' : 'text-center'
-                                            } text-text-muted`}>
-                                            {h}
-                                        </th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filteredUsers.map((user, idx) => (
-                                    <tr
-                                        key={user.id}
-                                        className={`border-b border-border/50 transition-colors hover:bg-hover ${idx % 2 !== 0 ? 'bg-surface-secondary/40' : ''}`}
-                                    >
-                                        <td className="px-5 py-3.5">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
-                                                    style={{ backgroundColor: roleConfig[user.role]?.color ?? '#8e8e93' }}>
-                                                    {user.name.charAt(0).toUpperCase()}
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-sm font-semibold text-text-primary">{user.name}</span>
-                                                    {currentUser?.id === user.id && (
-                                                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded" style={{ backgroundColor: 'rgba(255,255,255,0.07)', color: '#636366' }}>
-                                                            you
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-5 py-3.5 text-sm text-text-secondary text-center">
-                                            <div className="space-y-1">
-                                                <div>{user.email}</div>
-                                                <div className="text-[11px] uppercase tracking-widest text-text-muted">
-                                                    {user.departments.join(' / ')}
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-5 py-3.5 text-center text-sm text-text-secondary">
-                                            {user.job_title || '—'}
-                                        </td>
-                                        <td className="px-5 py-3.5 text-center"><RoleBadge role={user.role} /></td>
-                                        <td className="px-5 py-3.5 text-center">
-                                            <span
-                                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold"
-                                                style={user.is_active
-                                                    ? { color: '#30d158', backgroundColor: 'rgba(48,209,88,0.12)' }
-                                                    : { color: '#ff453a', backgroundColor: 'rgba(255,69,58,0.12)' }
-                                                }
-                                            >
-                                                <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ backgroundColor: user.is_active ? '#30d158' : '#ff453a' }} />
-                                                {user.is_active ? 'Active' : 'Inactive'}
-                                            </span>
-                                        </td>
-                                        <td className="px-5 py-3.5 text-center">
-                                            <div className="flex items-center justify-center gap-1.5">
-                                                {currentUser?.id === user.id ? (
-                                                    <span className="text-sm text-text-muted">—</span>
-                                                ) : (
-                                                    <>
-                                                        <button
-                                                            title="Edit User"
-                                                            onClick={() => handleEdit(user)}
-                                                            className="p-1.5 rounded-lg transition-colors hover:bg-white/10"
-                                                            style={{ backgroundColor: 'rgba(255,255,255,0.05)', color: '#e5e5ea' }}
-                                                        >
-                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                                            </svg>
-                                                        </button>
-
-                                                        {user.is_active ? (
-                                                            <button
-                                                                title="Deactivate User"
-                                                                onClick={() => handleDeactivate(user)}
-                                                                disabled={deactivateUser.isPending}
-                                                                className="p-1.5 rounded-lg transition-colors disabled:opacity-50 hover:opacity-80"
-                                                                style={{ backgroundColor: 'rgba(255,69,58,0.12)', color: '#ff453a' }}
-                                                            >
-                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                                                                </svg>
-                                                            </button>
-                                                        ) : (
-                                                            <button
-                                                                title="Activate User"
-                                                                onClick={() => handleActivate(user.id)}
-                                                                disabled={activateUser.isPending}
-                                                                className="p-1.5 rounded-lg transition-colors disabled:opacity-50 hover:opacity-80"
-                                                                style={{ backgroundColor: 'rgba(48,209,88,0.12)', color: '#30d158' }}
-                                                            >
-                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                                </svg>
-                                                            </button>
-                                                        )}
-
-                                                        <button
-                                                            title="Delete User"
-                                                            onClick={() => handleDelete(user)}
-                                                            disabled={deleteUser.isPending}
-                                                            className="p-1.5 rounded-lg transition-colors disabled:opacity-50 hover:opacity-80"
-                                                            style={{ backgroundColor: 'rgba(255,69,58,0.18)', color: '#ff453a' }}
-                                                        >
-                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7h6m-7 0a1 1 0 001-1V5a1 1 0 011-1h4a1 1 0 011 1v1a1 1 0 001 1m-7 0h7" />
-                                                            </svg>
-                                                        </button>
-                                                    </>
-                                                )}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                        <div className="px-5 py-3 text-xs text-text-muted border-t border-border">
-                            Showing {filteredUsers.length} of {users.length} users
+                {/* Table Card */}
+                <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
+                    {isLoading ? (
+                        <div className="flex min-h-[280px] flex-col items-center justify-center p-12">
+                            <div className="h-7 w-7 rounded-full border-2 border-border border-t-blue-500 animate-spin" />
+                            <p className="mt-3 text-xs font-medium text-muted-foreground">Loading users...</p>
                         </div>
-                    </div>
-                )}
+                    ) : isError ? (
+                        <div className="p-12 text-center">
+                            <p className="text-sm font-medium text-rose-500">Failed to load users.</p>
+                            <p className="mt-1 text-xs text-muted-foreground">Please check your connection and try again.</p>
+                        </div>
+                    ) : filteredUsers.length === 0 ? (
+                        <div className="flex min-h-[280px] flex-col items-center justify-center p-8 text-center">
+                            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full border border-border bg-muted/30 text-muted-foreground shadow-2xs">
+                                <UserX className="h-5 w-5" />
+                            </div>
+                            <h3 className="text-sm font-semibold text-foreground">No users found</h3>
+                            <p className="mt-1.5 max-w-sm text-xs text-muted-foreground">
+                                {isFiltered
+                                    ? 'No accounts match the current filter criteria.'
+                                    : 'Create your first team user account using the button above.'}
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow className="hover:bg-transparent border-b border-border/80">
+                                        <TableHead className="h-9 px-4 text-xs font-semibold text-muted-foreground w-[28%] min-w-[220px]">
+                                            User / Name
+                                        </TableHead>
+                                        <TableHead className="h-9 px-4 text-xs font-semibold text-muted-foreground w-[22%] min-w-[180px]">
+                                            Email
+                                        </TableHead>
+                                        <TableHead className="h-9 px-4 text-xs font-semibold text-muted-foreground w-[16%] min-w-[130px] hidden sm:table-cell">
+                                            Position
+                                        </TableHead>
+                                        <TableHead className="h-9 px-4 text-xs font-semibold text-muted-foreground w-[14%] min-w-[120px]">
+                                            Role
+                                        </TableHead>
+                                        <TableHead className="h-9 px-4 text-xs font-semibold text-muted-foreground w-[10%] min-w-[100px]">
+                                            Status
+                                        </TableHead>
+                                        <TableHead className="h-9 px-4 text-xs font-semibold text-muted-foreground w-[10%] min-w-[110px] text-right">
+                                            Actions
+                                        </TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {filteredUsers.map((user) => {
+                                        const cfg = roleConfig[user.role] ?? roleConfig.encoder;
+
+                                        return (
+                                            <TableRow key={user.id} className="hover:bg-muted/50 border-b border-border/60 transition-colors">
+                                                {/* Name & Avatar & Departments */}
+                                                <TableCell className="py-3 px-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <div
+                                                            className={`flex h-8 w-8 items-center justify-center rounded-full border text-xs font-bold shrink-0 ${cfg.avatarBg}`}
+                                                        >
+                                                            {user.name.charAt(0).toUpperCase()}
+                                                        </div>
+                                                        <div className="min-w-0">
+                                                            <div className="flex items-center gap-1.5">
+                                                                <span className="font-semibold text-xs text-foreground truncate block" title={user.name}>
+                                                                    {user.name}
+                                                                </span>
+                                                                {currentUser?.id === user.id ? (
+                                                                    <span className="rounded-full border border-blue-500/20 bg-blue-500/10 px-1.5 py-0.2 text-[9px] font-bold text-blue-600 dark:text-blue-400">
+                                                                        you
+                                                                    </span>
+                                                                ) : null}
+                                                            </div>
+                                                            {user.departments && user.departments.length > 0 ? (
+                                                                <div className="flex items-center gap-1 mt-0.5">
+                                                                    {user.departments.map((dept) => (
+                                                                        <span
+                                                                            key={dept}
+                                                                            className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground"
+                                                                        >
+                                                                            {dept}
+                                                                        </span>
+                                                                    ))}
+                                                                </div>
+                                                            ) : null}
+                                                        </div>
+                                                    </div>
+                                                </TableCell>
+
+                                                {/* Email */}
+                                                <TableCell className="py-3 px-4 text-xs font-mono text-muted-foreground">
+                                                    <span className="truncate block" title={user.email}>
+                                                        {user.email}
+                                                    </span>
+                                                </TableCell>
+
+                                                {/* Job Title */}
+                                                <TableCell className="py-3 px-4 text-xs font-medium text-foreground hidden sm:table-cell">
+                                                    {user.job_title || '—'}
+                                                </TableCell>
+
+                                                {/* Role */}
+                                                <TableCell className="py-3 px-4">
+                                                    <RoleBadge role={user.role} />
+                                                </TableCell>
+
+                                                {/* Status */}
+                                                <TableCell className="py-3 px-4">
+                                                    <span
+                                                        className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${
+                                                            user.is_active
+                                                                ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
+                                                                : 'border-rose-500/20 bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                                                        }`}
+                                                    >
+                                                        <span
+                                                            className={`h-1.5 w-1.5 rounded-full ${user.is_active ? 'bg-emerald-500' : 'bg-rose-500'}`}
+                                                        />
+                                                        {user.is_active ? 'Active' : 'Inactive'}
+                                                    </span>
+                                                </TableCell>
+
+                                                {/* Actions */}
+                                                <TableCell className="py-3 px-4 text-right">
+                                                    <div className="flex items-center justify-end gap-1">
+                                                        {currentUser?.id === user.id ? (
+                                                            <span className="text-xs text-muted-foreground px-2">—</span>
+                                                        ) : (
+                                                            <>
+                                                                <button
+                                                                    type="button"
+                                                                    title="Edit User"
+                                                                    onClick={() => handleEdit(user)}
+                                                                    className="rounded-md border border-border bg-card p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer shadow-2xs"
+                                                                >
+                                                                    <Pencil className="h-3.5 w-3.5" />
+                                                                </button>
+
+                                                                {user.is_active ? (
+                                                                    <button
+                                                                        type="button"
+                                                                        title="Deactivate User"
+                                                                        onClick={() => handleDeactivate(user)}
+                                                                        disabled={deactivateUser.isPending}
+                                                                        className="rounded-md border border-amber-500/20 bg-amber-500/10 p-1.5 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20 transition-colors cursor-pointer shadow-2xs disabled:opacity-50"
+                                                                    >
+                                                                        <UserX className="h-3.5 w-3.5" />
+                                                                    </button>
+                                                                ) : (
+                                                                    <button
+                                                                        type="button"
+                                                                        title="Activate User"
+                                                                        onClick={() => handleActivate(user.id)}
+                                                                        disabled={activateUser.isPending}
+                                                                        className="rounded-md border border-emerald-500/20 bg-emerald-500/10 p-1.5 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/20 transition-colors cursor-pointer shadow-2xs disabled:opacity-50"
+                                                                    >
+                                                                        <UserCheck className="h-3.5 w-3.5" />
+                                                                    </button>
+                                                                )}
+
+                                                                <button
+                                                                    type="button"
+                                                                    title="Delete User"
+                                                                    onClick={() => handleDelete(user)}
+                                                                    disabled={deleteUser.isPending}
+                                                                    className="rounded-md border border-rose-500/20 bg-rose-500/10 p-1.5 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 transition-colors cursor-pointer shadow-2xs disabled:opacity-50"
+                                                                >
+                                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                                </button>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        );
+                                    })}
+                                </TableBody>
+                            </Table>
+
+                            <div className="border-t border-border bg-muted/20 px-4 py-3 text-xs font-medium text-muted-foreground flex items-center justify-between">
+                                <span>
+                                    Showing {filteredUsers.length} of {users.length} registered users
+                                </span>
+                                {isFiltered ? (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setSearchTerm('');
+                                            setRoleFilter('all');
+                                        }}
+                                        className="text-blue-500 hover:underline font-semibold cursor-pointer"
+                                    >
+                                        Clear filters
+                                    </button>
+                                ) : null}
+                            </div>
+                        </div>
+                    )}
+                </div>
             </div>
 
             <UserFormModal

@@ -38,10 +38,10 @@ function toDisplayStatus(status?: string): string {
  */
 export function mapImportTransaction(t: ApiImportTransaction): ImportTransaction {
     const colorMap: Record<string, string> = {
-        green: '#22c55e',   // text-green-500
-        yellow: '#eab308',  // text-yellow-500
-        red: '#ef4444',     // text-red-500
-        orange: '#f97316',  // text-orange-500
+        green: 'var(--success)',  // text-green-500
+        yellow: 'var(--warning)', // text-yellow-500
+        red: 'var(--danger)',     // text-red-500
+        orange: 'var(--warning)', // text-orange-500
     };
 
     return {
@@ -49,7 +49,7 @@ export function mapImportTransaction(t: ApiImportTransaction): ImportTransaction
         ref: t.customs_ref_no,
         bl: t.bl_no,
         status: toDisplayStatus(t.status),
-        color: colorMap[t.selective_color] ?? '#ef4444',
+        color: colorMap[t.selective_color] ?? 'var(--danger)',
         colorLabel: t.selective_color ? (t.selective_color.charAt(0).toUpperCase() + t.selective_color.slice(1)) : 'None',
         importer: t.importer?.name ?? 'Unknown',
         date: t.arrival_date ?? '',

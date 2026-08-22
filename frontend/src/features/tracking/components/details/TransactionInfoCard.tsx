@@ -1,6 +1,8 @@
+import { Calendar, FileText, Ship } from 'lucide-react';
+import { Card, CardContent } from '../../../../components/ui/card';
+import { Progress } from '../../../../components/ui/progress';
 import type { ExportTransaction, ImportTransaction } from '../../types';
 import type { StageDefinition } from '../../utils/stageUtils';
-
 
 interface TransactionInfoCardProps {
     transaction:   ImportTransaction | ExportTransaction;
@@ -12,6 +14,32 @@ interface TransactionInfoCardProps {
     statusColor:   string;
 }
 
+function getChannelStyle(colorLabel?: string) {
+    const raw = (colorLabel || '').toLowerCase().trim();
+    if (raw === 'yellow' || raw === 'orange') {
+        return {
+            dotClass: 'bg-amber-400 ring-2 ring-amber-400/30',
+            textClass: 'text-amber-600 dark:text-amber-400 font-semibold',
+        };
+    }
+    if (raw === 'green') {
+        return {
+            dotClass: 'bg-emerald-500 ring-2 ring-emerald-500/30',
+            textClass: 'text-emerald-600 dark:text-emerald-400 font-semibold',
+        };
+    }
+    if (raw === 'red') {
+        return {
+            dotClass: 'bg-rose-500 ring-2 ring-rose-500/30',
+            textClass: 'text-rose-600 dark:text-rose-400 font-semibold',
+        };
+    }
+    return {
+        dotClass: 'bg-muted-foreground ring-2 ring-muted-foreground/30',
+        textClass: 'text-muted-foreground font-semibold',
+    };
+}
+
 export const TransactionInfoCard = ({
     transaction,
     isImport,
@@ -19,85 +47,91 @@ export const TransactionInfoCard = ({
     exportTx,
     stages,
     stageStatuses,
-    statusColor,
 }: TransactionInfoCardProps) => {
-    const completedCount = stageStatuses.filter(s => s === 'completed').length;
-    const progressPct    = Math.round((completedCount / stages.length) * 100);
+    const completedCount = stageStatuses.filter((s) => s === 'completed').length;
+    const progressPct = Math.round((completedCount / stages.length) * 100);
+
+    const vesselName = importTx?.vesselName ?? (transaction as ExportTransaction).vessel ?? '—';
+    const importerOrShipper = importTx?.importer ?? exportTx?.shipper ?? '—';
+    const locationOrPort = isImport
+        ? (importTx?.locationOfGoods || importTx?.originCountry || '—')
+        : (exportTx?.portOfDestination || '—');
+    const dateValue = importTx?.date ?? exportTx?.departureDate ?? '—';
+    const channelStyle = getChannelStyle(importTx?.colorLabel);
 
     return (
-        <div className="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden">
-            <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-border border-b border-border">
-                <div className="px-5 py-4">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted mb-0.5">Bill of Lading</p>
-                    <p className="text-sm font-bold text-text-primary truncate">{transaction.bl || '—'}</p>
-                </div>
-                <div className="px-5 py-4">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted mb-0.5">{isImport ? 'Importer' : 'Shipper'}</p>
-                    <p className="text-sm font-bold text-text-primary truncate">{importTx?.importer ?? exportTx?.shipper ?? '—'}</p>
-                </div>
-                <div className="px-5 py-4">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted mb-0.5">{isImport ? 'Arrival Date' : 'Departure Date'}</p>
-                    <p className="text-sm font-bold text-text-primary truncate">{importTx?.date ?? exportTx?.departureDate ?? '—'}</p>
-                </div>
-                <div className="px-5 py-4">
-                    {isImport ? (
-                        <>
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted mb-1.5">Selective Color</p>
-                            <span
-                                className="text-sm font-bold capitalize px-2 py-0.5 rounded-md"
-                                style={{
-                                    color: importTx!.color,
-                                    backgroundColor: `${importTx!.color}18`,
-                                }}
-                            >
-                                {importTx!.colorLabel || '—'}
-                            </span>
-                        </>
-                    ) : (
-                        <>
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted mb-0.5">Destination</p>
-                            <p className="text-sm font-bold text-text-primary truncate">{exportTx?.portOfDestination || '—'}</p>
-                        </>
-                    )}
-                </div>
-            </div>
-
-            {isImport && (
-                <div className="grid grid-cols-1 border-b border-border sm:grid-cols-3 sm:divide-x divide-border">
-                    <div className="px-5 py-4">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted mb-0.5">Origin</p>
-                        <p className="text-sm font-bold text-text-primary truncate">{importTx?.originCountry || '—'}</p>
+        <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+            {/* Card 1: Vessel / Carrier */}
+            <Card className="shadow-2xs">
+                <CardContent className="p-3 sm:p-3.5 space-y-1">
+                    <div className="flex items-center justify-between text-muted-foreground text-[10px] font-semibold uppercase tracking-wider">
+                        <span>Vessel / Carrier</span>
+                        <Ship className="size-3.5" />
                     </div>
-                    <div className="px-5 py-4">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted mb-0.5">Vessel Name</p>
-                        <p className="text-sm font-bold text-text-primary truncate">{importTx?.vesselName || '—'}</p>
+                    <div className="text-sm font-bold truncate text-foreground" title={vesselName}>
+                        {vesselName}
                     </div>
-                    <div className="px-5 py-4">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted mb-0.5">Location of Goods</p>
-                        <p className="text-sm font-bold text-text-primary truncate">{importTx?.locationOfGoods || '—'}</p>
-                    </div>
-                </div>
-            )}
-
-            {/* Progress bar */}
-            <div className="px-5 py-4">
-                <div className="flex items-center justify-between mb-2">
-                    <p className="text-xs font-bold text-text-secondary">Clearance Progress</p>
-                    <p className="text-xs font-bold tabular-nums" style={{ color: statusColor }}>
-                        {completedCount} / {stages.length} stages &mdash; {progressPct}%
+                    <p className="text-[11px] text-muted-foreground truncate" title={`Location: ${locationOrPort}`}>
+                        Location: {locationOrPort}
                     </p>
-                </div>
-                <div className="h-2 bg-surface-secondary rounded-full overflow-hidden">
-                    <div
-                        className="h-full rounded-full transition-all duration-700"
-                        style={{
-                            width: `${progressPct}%`,
-                            backgroundColor: statusColor,
-                            boxShadow: progressPct > 0 ? `0 0 8px ${statusColor}60` : 'none',
-                        }}
-                    />
-                </div>
-            </div>
+                </CardContent>
+            </Card>
+
+            {/* Card 2: Bill of Lading & Client */}
+            <Card className="shadow-2xs">
+                <CardContent className="p-3 sm:p-3.5 space-y-1">
+                    <div className="flex items-center justify-between text-muted-foreground text-[10px] font-semibold uppercase tracking-wider">
+                        <span>Bill of Lading</span>
+                        <FileText className="size-3.5" />
+                    </div>
+                    <div className="text-sm font-bold font-mono truncate text-foreground" title={transaction.bl || '—'}>
+                        {transaction.bl || '—'}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground truncate" title={`${isImport ? 'Importer' : 'Shipper'}: ${importerOrShipper}`}>
+                        Client: {importerOrShipper}
+                    </p>
+                </CardContent>
+            </Card>
+
+            {/* Card 3: Arrival Schedule & Channel / Destination */}
+            <Card className="shadow-2xs">
+                <CardContent className="p-3 sm:p-3.5 space-y-1">
+                    <div className="flex items-center justify-between text-muted-foreground text-[10px] font-semibold uppercase tracking-wider">
+                        <span>{isImport ? 'Arrival & Channel' : 'Departure & Port'}</span>
+                        <Calendar className="size-3.5" />
+                    </div>
+                    <div className="text-sm font-bold tabular-nums text-foreground">
+                        {dateValue}
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground truncate">
+                        {isImport ? (
+                            <>
+                                <span>Channel:</span>
+                                <span className={`inline-flex items-center gap-1.5 ${channelStyle.textClass}`}>
+                                    <span className={`size-2 rounded-full inline-block shrink-0 ${channelStyle.dotClass}`} />
+                                    <span>{importTx?.colorLabel || 'None'}</span>
+                                </span>
+                            </>
+                        ) : (
+                            <span className="truncate">Port: {exportTx?.portOfDestination || '—'}</span>
+                        )}
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Card 4: Clearance Progress */}
+            <Card className="shadow-2xs">
+                <CardContent className="p-3 sm:p-3.5 space-y-1.5">
+                    <div className="flex items-center justify-between text-muted-foreground text-[10px] font-semibold uppercase tracking-wider">
+                        <span>Clearance Progress</span>
+                        <span className="font-mono font-bold text-foreground text-xs">{progressPct}%</span>
+                    </div>
+                    <div className="text-sm font-bold tabular-nums text-foreground">
+                        {completedCount} / {stages.length} Stages
+                    </div>
+                    <Progress value={progressPct} className="h-1.5" />
+                </CardContent>
+            </Card>
         </div>
     );
 };

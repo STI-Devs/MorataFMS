@@ -4,7 +4,7 @@ import { getEventCfg } from '../utils/auditLog.utils';
 import { AuditLogTableRow } from './AuditLogTableRow';
 
 const inputCls =
-    'px-3 py-2.5 rounded-lg border border-border-strong bg-input-bg text-text-primary text-sm placeholder:text-text-muted focus:outline-none focus:border-blue-500/50 transition-colors';
+    'px-3 py-2.5 rounded-lg border border-border-strong bg-input-bg text-text-primary text-sm placeholder:text-text-muted focus:outline-none focus:border-primary/50 transition-colors';
 
 export const AuditLogs = () => {
     const {
@@ -52,18 +52,18 @@ export const AuditLogs = () => {
             {/* Stats */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {[
-                    { label: 'Visible Events', value: summary.total, color: '#0a84ff', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' },
-                    { label: 'Created', value: summary.created, color: '#30d158', icon: 'M12 4v16m8-8H4' },
-                    { label: 'Updated', value: summary.updated, color: '#ff9f0a', icon: 'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z' },
-                    { label: 'Deleted', value: summary.deleted, color: '#ff453a', icon: 'M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16' },
-                ].map(({ label, value, color, icon }) => (
+                    { label: 'Visible Events', value: summary.total, color: 'var(--primary)', bg: 'color-mix(in srgb, var(--primary) 13%, transparent)', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' },
+                    { label: 'Created', value: summary.created, color: 'var(--success)', bg: 'color-mix(in srgb, var(--success) 13%, transparent)', icon: 'M12 4v16m8-8H4' },
+                    { label: 'Updated', value: summary.updated, color: 'var(--warning)', bg: 'color-mix(in srgb, var(--warning) 13%, transparent)', icon: 'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z' },
+                    { label: 'Deleted', value: summary.deleted, color: 'var(--danger)', bg: 'color-mix(in srgb, var(--danger) 13%, transparent)', icon: 'M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16' },
+                ].map(({ label, value, color, bg, icon }) => (
                     <div key={label} className="bg-surface rounded-xl p-4 border border-border">
                         <div className="flex items-start justify-between">
                             <div>
                                 <p className="text-3xl font-bold tabular-nums text-text-primary">{value}</p>
                                 <p className="text-xs mt-1 text-text-secondary">{label}</p>
                             </div>
-                            <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: `${color}20` }}>
+                            <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: bg }}>
                                 <svg className="w-4.5 h-4.5" fill="none" stroke={color} viewBox="0 0 24 24" strokeWidth={1.8}>
                                     <path strokeLinecap="round" strokeLinejoin="round" d={icon} />
                                 </svg>
@@ -127,11 +127,11 @@ export const AuditLogs = () => {
 
                 {isLoading ? (
                     <div className="p-16 flex items-center justify-center">
-                        <div className="w-8 h-8 rounded-full border-[3px] border-border animate-spin" style={{ borderTopColor: '#0a84ff' }} />
+                        <div className="w-8 h-8 rounded-full border-[3px] border-border animate-spin" style={{ borderTopColor: 'var(--primary)' }} />
                     </div>
                 ) : isError ? (
                     <div className="p-16 text-center">
-                        <p className="text-sm text-red-500 font-medium mb-2">Failed to load audit logs.</p>
+                        <p className="text-sm text-destructive font-medium mb-2">Failed to load audit logs.</p>
                         <button
                             onClick={() => void refetch()}
                             className="text-xs font-semibold text-text-secondary underline hover:text-text-primary"

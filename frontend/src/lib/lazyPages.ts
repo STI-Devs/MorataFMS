@@ -65,8 +65,8 @@ export const Documents = lazy(() =>
     import('../features/documents/components/document-list/Documents').then((module) => ({ default: module.Documents })),
 );
 
-export const DocumentsDetail = lazy(() =>
-    import('../features/documents/components/DocumentsDetail').then((module) => ({ default: module.DocumentsDetail })),
+export const DocumentDetailBridge = lazy(() =>
+    import('../features/documents/components/DocumentDetailBridge').then((module) => ({ default: module.DocumentDetailBridge })),
 );
 
 export const LawFirmPage = lazy(() =>

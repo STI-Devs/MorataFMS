@@ -1,25 +1,26 @@
 export type EventConfig = { label: string; color: string; bg: string };
 
 export const EVENT_CFG: Record<string, EventConfig> = {
-    created: { label: 'Created', color: '#30d158', bg: 'rgba(48,209,88,0.13)' },
-    updated: { label: 'Updated', color: '#0a84ff', bg: 'rgba(10,132,255,0.13)' },
-    deleted: { label: 'Deleted', color: '#ff453a', bg: 'rgba(255,69,58,0.13)' },
-    restored: { label: 'Restored', color: '#ff9f0a', bg: 'rgba(255,159,10,0.13)' },
-    status_changed: { label: 'Status Changed', color: '#ff9f0a', bg: 'rgba(255,159,10,0.13)' },
-    encoder_reassigned: { label: 'Encoder Reassigned', color: '#bf5af2', bg: 'rgba(191,90,242,0.13)' },
-    login: { label: 'Login', color: '#64d2ff', bg: 'rgba(100,210,255,0.13)' },
-    logout: { label: 'Logout', color: '#8e8e93', bg: 'rgba(142,142,147,0.13)' },
+    created: { label: 'Created', color: 'var(--success)', bg: 'color-mix(in srgb, var(--success) 13%, transparent)' },
+    updated: { label: 'Updated', color: 'var(--info)', bg: 'color-mix(in srgb, var(--info) 13%, transparent)' },
+    deleted: { label: 'Deleted', color: 'var(--danger)', bg: 'color-mix(in srgb, var(--danger) 13%, transparent)' },
+    restored: { label: 'Restored', color: 'var(--warning)', bg: 'color-mix(in srgb, var(--warning) 13%, transparent)' },
+    status_changed: { label: 'Status Changed', color: 'var(--warning)', bg: 'color-mix(in srgb, var(--warning) 13%, transparent)' },
+    encoder_reassigned: { label: 'Encoder Reassigned', color: 'var(--violet)', bg: 'color-mix(in srgb, var(--violet) 13%, transparent)' },
+    login: { label: 'Login', color: 'var(--sky)', bg: 'color-mix(in srgb, var(--sky) 13%, transparent)' },
+    logout: { label: 'Logout', color: 'var(--muted-foreground)', bg: 'color-mix(in srgb, var(--muted-foreground) 13%, transparent)' },
 };
 
 export const SELECTIVE_COLOR_TONES: Record<string, string> = {
-    green: '#30d158',
-    yellow: '#ffd60a',
-    orange: '#ff9f0a',
-    red: '#ff453a',
+    green: 'var(--success)',
+    // No distinct yellow token exists; closest semantic is warning (orange).
+    yellow: 'var(--warning)',
+    orange: 'var(--warning)',
+    red: 'var(--danger)',
 };
 
 export function getEventCfg(event: string): EventConfig {
-    return EVENT_CFG[event] ?? { label: event.replace(/_/g, ' '), color: '#8e8e93', bg: 'rgba(142,142,147,0.13)' };
+    return EVENT_CFG[event] ?? { label: event.replace(/_/g, ' '), color: 'var(--muted-foreground)', bg: 'color-mix(in srgb, var(--muted-foreground) 13%, transparent)' };
 }
 
 export function formatDate(iso: string): string {

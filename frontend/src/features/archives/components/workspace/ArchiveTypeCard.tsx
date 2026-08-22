@@ -9,7 +9,7 @@ interface ArchiveTypeCardProps {
 
 export const ArchiveTypeCard: React.FC<ArchiveTypeCardProps> = ({ type, isActive, onClick }) => {
     const isImport = type === 'import';
-    const color = isImport ? '#30d158' : '#0a84ff';
+    const color = isImport ? 'var(--success)' : 'var(--primary)';
     const label = isImport ? 'Import' : 'Export';
     const desc  = isImport ? 'Incoming goods from overseas' : 'Outgoing goods to destination';
 
@@ -21,11 +21,11 @@ export const ArchiveTypeCard: React.FC<ArchiveTypeCardProps> = ({ type, isActive
                 ? 'border-current shadow-sm'
                 : 'border-border-strong bg-input-bg hover:border-border'
             }`}
-            style={isActive ? { borderColor: color, backgroundColor: `${color}0d` } : {}}
+            style={isActive ? { borderColor: color, backgroundColor: `color-mix(in srgb, ${color} 5%, transparent)` } : {}}
         >
             <div
                 className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
-                style={{ backgroundColor: `${color}20` }}
+                style={{ backgroundColor: `color-mix(in srgb, ${color} 12%, transparent)` }}
             >
                 <svg className="w-5 h-5" fill="none" stroke={color} viewBox="0 0 24 24">
                     {isImport
@@ -43,7 +43,7 @@ export const ArchiveTypeCard: React.FC<ArchiveTypeCardProps> = ({ type, isActive
                     className="ml-auto w-5 h-5 rounded-full flex items-center justify-center shrink-0"
                     style={{ backgroundColor: color }}
                 >
-                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <svg className="w-3 h-3 text-primary-foreground" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                     </svg>
                 </div>

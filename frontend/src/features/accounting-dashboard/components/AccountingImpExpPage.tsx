@@ -132,7 +132,7 @@ export const AccountingImpExpPage = () => {
                             value={search}
                             onChange={(event) => setSearch(event.target.value)}
                             placeholder="Search BL, ref, client, vessel, blocker..."
-                            className="h-10 w-full rounded-xl border border-border bg-surface pl-10 pr-3 text-sm text-text-primary placeholder:text-text-muted focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                            className="h-10 w-full rounded-xl border border-border bg-surface pl-10 pr-3 text-sm text-text-primary placeholder:text-text-muted focus:border-success focus:outline-none focus:ring-1 focus:ring-success"
                         />
                     </div>
 
@@ -163,20 +163,20 @@ export const AccountingImpExpPage = () => {
                     <SummaryCard
                         label="Ready Now"
                         value={queueSummary.ready}
-                        accent="border-emerald-200 bg-emerald-50/60 dark:border-emerald-900/40 dark:bg-emerald-950/20"
-                        valueTone="text-emerald-700 dark:text-emerald-300"
+                        accent="border-success/30 bg-success/10"
+                        valueTone="text-success"
                     />
                     <SummaryCard
                         label="Blocked"
                         value={queueSummary.waiting}
-                        accent="border-slate-200 bg-slate-50/70 dark:border-border/70 dark:bg-surface-secondary/30"
-                        valueTone="text-slate-700 dark:text-text-primary"
+                        accent="border-border bg-muted/50"
+                        valueTone="text-foreground"
                     />
                     <SummaryCard
                         label="Overdue"
                         value={queueSummary.overdue}
-                        accent="border-amber-200 bg-amber-50/60 dark:border-amber-900/40 dark:bg-amber-950/20"
-                        valueTone="text-amber-700 dark:text-amber-300"
+                        accent="border-warning/30 bg-warning/10"
+                        valueTone="text-warning"
                     />
                 </div>
             </div>
@@ -270,13 +270,13 @@ const QueueViewButton = ({
         onClick={onClick}
         className={`flex items-center gap-2 border-b-2 px-2 pb-2.5 text-sm font-bold transition-colors ${
             isActive
-                ? 'border-emerald-600 text-emerald-600 dark:text-emerald-300'
+                ? 'border-success text-success'
                 : 'border-transparent text-text-secondary hover:text-text-primary'
         }`}
     >
         {label}
         {count > 0 && (
-            <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none ${isActive ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-300' : 'bg-surface-secondary text-text-muted dark:bg-surface-secondary/80'}`}>
+            <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none ${isActive ? 'bg-success/15 text-success' : 'bg-surface-secondary text-text-muted dark:bg-surface-secondary/80'}`}>
                 {count}
             </span>
         )}
@@ -299,12 +299,12 @@ const FilterChip = ({
         onClick={onClick}
         className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
             isActive
-                ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-950/25 dark:text-emerald-300'
+                ? 'border-success/30 bg-success/10 text-success'
                 : 'border-border bg-surface text-text-secondary hover:text-text-primary'
         }`}
     >
         {label}
-        <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${isActive ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300' : 'bg-surface-secondary text-text-muted dark:bg-surface-secondary/80'}`}>
+        <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${isActive ? 'bg-success/15 text-success' : 'bg-surface-secondary text-text-muted dark:bg-surface-secondary/80'}`}>
             {count}
         </span>
     </button>
@@ -346,7 +346,7 @@ const QueueSection = ({
 }) => (
     <section className="space-y-2">
         <div className="flex flex-wrap items-center gap-2.5">
-            <div className={`h-4 w-1 rounded-full ${tone === 'ready' ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+            <div className={`h-4 w-1 rounded-full ${tone === 'ready' ? 'bg-success' : 'bg-muted-foreground'}`} />
             <h2 className="text-sm font-bold uppercase tracking-[0.22em] text-text-secondary">{title}</h2>
             <span className="rounded-full border border-border bg-surface px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-text-muted">
                 {rows.length}
@@ -418,20 +418,20 @@ const QueueRow = ({
     onOpen: () => void;
     actionMode?: 'button' | 'none';
 }) => (
-    <div className={`grid gap-3 px-4 py-3 ${row.state === 'ready' ? 'bg-surface' : 'bg-slate-50/70 dark:bg-surface-secondary/20'}`}>
+    <div className={`grid gap-3 px-4 py-3 ${row.state === 'ready' ? 'bg-surface' : 'bg-muted/40'}`}>
         <div className="grid gap-3 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-center">
             <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                     <p className="truncate text-base font-bold tracking-tight text-text-primary">{row.ref}</p>
                     <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em] ${
                         row.selectedTransaction.type === 'import'
-                            ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-300'
-                            : 'border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-900/40 dark:bg-teal-950/20 dark:text-teal-300'
+                            ? 'border-success/30 bg-success/10 text-success'
+                            : 'border-sky/30 bg-sky/10 text-sky'
                     }`}>
                         {row.typeLabel}
                     </span>
                     {row.isOverdue && (
-                        <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-amber-700 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-300">
+                        <span className="rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-warning">
                             Overdue
                         </span>
                     )}
@@ -453,7 +453,7 @@ const QueueRow = ({
                     {row.state === 'ready' ? row.actionSummary : (row.blocker ?? 'Waiting for workflow progress.')}
                 </p>
                 {row.waitingLabel && (
-                    <span className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-amber-700 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-300">
+                    <span className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-warning/30 bg-warning/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-warning">
                         <Icon name="alert-circle" className="h-3 w-3" />
                         {row.waitingLabel}
                     </span>
@@ -484,8 +484,8 @@ const QueueRow = ({
                         onClick={onOpen}
                         className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold transition-colors ${
                             row.state === 'ready'
-                                ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/20 dark:text-emerald-300 dark:hover:bg-emerald-950/35'
-                                : 'bg-slate-200 text-slate-700 hover:bg-slate-300 dark:bg-surface-secondary/60 dark:text-text-primary dark:hover:bg-surface-secondary'
+                                ? 'bg-success/10 text-success hover:bg-success/20'
+                                : 'bg-secondary text-secondary-foreground hover:bg-foreground/10'
                         }`}
                     >
                         {row.state === 'ready' ? 'Open Tasks' : 'View Details'}
@@ -513,18 +513,18 @@ const SharedVesselGroup = ({
     const [isExpanded, setIsExpanded] = useState(true);
 
     return (
-        <div className="bg-blue-50/30 dark:bg-surface-secondary/10">
-            <div className="border-b border-blue-100 bg-blue-50/60 px-4 py-3 dark:border-border/60 dark:bg-surface/70">
+        <div className="bg-primary/5">
+            <div className="border-b border-primary/20 bg-primary/10 px-4 py-3">
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                     <div className="min-w-0">
-                        <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-300">
+                        <span className="rounded-full border border-success/30 bg-success/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-success">
                             {readyCount} Ready BLs
                         </span>
                         <div className="mt-2 flex items-start gap-3">
                             <button
                                 type="button"
                                 onClick={() => setIsExpanded((current) => !current)}
-                                className="mt-0.5 inline-flex h-7 w-7 items-center justify-center rounded-full border border-blue-200 bg-white text-blue-700 transition-colors hover:bg-blue-100 dark:border-blue-900/40 dark:bg-blue-950/25 dark:text-blue-300 dark:hover:bg-blue-950/45"
+                                className="mt-0.5 inline-flex h-7 w-7 items-center justify-center rounded-full border border-primary/20 bg-card text-primary transition-colors hover:bg-primary/10"
                                 aria-expanded={isExpanded}
                                 aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${vesselName} shared vessel group`}
                             >
@@ -549,7 +549,7 @@ const SharedVesselGroup = ({
                                     onOpen(primaryRow, 'shared-vessel');
                                 }
                             }}
-                            className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700 transition-colors hover:bg-emerald-100 dark:bg-emerald-950/20 dark:text-emerald-300 dark:hover:bg-emerald-950/35"
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-success/10 px-3 py-2 text-xs font-bold text-success transition-colors hover:bg-success/20"
                         >
                             Open Shared Upload
                             <Icon name="chevron-right" className="h-3.5 w-3.5" />
@@ -560,11 +560,11 @@ const SharedVesselGroup = ({
 
             {isExpanded && (
                 <div className="relative px-4 py-2">
-                    <div className="absolute bottom-3 left-8 top-3 hidden w-px bg-blue-100 dark:bg-border/55 lg:block" />
+                    <div className="absolute bottom-3 left-8 top-3 hidden w-px bg-primary/20 lg:block" />
                     <div className="space-y-2">
                         {rows.map((row) => (
                             <div key={`${row.selectedTransaction.type}-${row.id}`} className="relative lg:pl-6">
-                                <div className="absolute left-[1.15rem] top-6 hidden h-2.5 w-2.5 rounded-full border border-blue-200 bg-white dark:border-blue-900/40 dark:bg-surface lg:block" />
+                                <div className="absolute left-[1.15rem] top-6 hidden h-2.5 w-2.5 rounded-full border border-primary/20 bg-card lg:block" />
                                 <QueueRow row={row} onOpen={() => onOpen(row, 'single-transaction')} actionMode="none" />
                             </div>
                         ))}
