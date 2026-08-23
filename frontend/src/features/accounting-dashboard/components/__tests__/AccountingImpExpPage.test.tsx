@@ -132,8 +132,8 @@ describe('AccountingImpExpPage', () => {
         renderWithProviders(<AccountingImpExpPage />);
 
         expect(screen.getByText('Finance & Accounting Tasks')).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /Imports/i })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /Exports/i })).toBeInTheDocument();
+        expect(screen.getByRole('tab', { name: /Imports/i })).toBeInTheDocument();
+        expect(screen.getByRole('tab', { name: /Exports/i })).toBeInTheDocument();
         expect(screen.getByPlaceholderText(/search bl, ref, client, vessel, blocker/i)).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /Ready/i })).toBeInTheDocument();
 
