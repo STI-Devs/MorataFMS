@@ -208,54 +208,57 @@ export const StageRow = ({
 
             {/* Attached Documents */}
             {docs.length > 0 && (
-                <div className="mt-3.5 pl-10 space-y-2">
+                <div className="mt-3 pl-10 space-y-2">
                     <div className="grid grid-cols-1 gap-2">
                         {docs.map((doc) => (
                             <div
                                 key={doc.id}
-                                className="flex flex-col gap-2 rounded-md border border-border bg-card p-2.5 transition-colors sm:flex-row sm:items-center sm:justify-between hover:bg-muted/40"
+                                className="flex items-center justify-between gap-3 rounded-lg border border-border/80 bg-muted/20 p-2.5 transition-colors hover:bg-muted/40"
                             >
-                                <div className="min-w-0 flex-1">
-                                    <button
-                                        type="button"
-                                        onClick={() => onPreviewDoc(doc)}
-                                        className="inline-flex items-center gap-2 text-left cursor-pointer group min-w-0"
-                                    >
-                                        <FileText className="size-4 text-primary shrink-0" />
-                                        <span className="truncate text-xs font-medium text-primary group-hover:underline max-w-[240px] sm:max-w-md">
-                                            {doc.filename}
-                                        </span>
-                                        <span className="shrink-0 rounded border border-border px-1.5 py-0.2 font-mono text-[10px] text-muted-foreground">
-                                            {doc.formatted_size}
-                                        </span>
-                                    </button>
+                                <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                    <FileText className="size-4 text-primary shrink-0" />
+                                    <div className="min-w-0 flex-1 space-y-0.5">
+                                        <div className="flex items-center gap-2 min-w-0">
+                                            <button
+                                                type="button"
+                                                onClick={() => onPreviewDoc(doc)}
+                                                className="truncate text-xs font-semibold text-foreground hover:text-primary hover:underline text-left cursor-pointer"
+                                                title={doc.filename}
+                                            >
+                                                {doc.filename}
+                                            </button>
+                                            <span className="shrink-0 rounded border border-border bg-background px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground leading-none">
+                                                {doc.formatted_size}
+                                            </span>
+                                        </div>
 
-                                    <p className="mt-0.5 pl-6 text-[10px] text-muted-foreground">
-                                        Uploaded by <span className="font-medium text-foreground">{doc.uploaded_by?.name ?? 'Unknown'}</span>
-                                        {doc.created_at ? ` · ${new Date(doc.created_at).toLocaleDateString()}` : ''}
-                                    </p>
+                                        <p className="text-[10px] text-muted-foreground truncate">
+                                            Uploaded by <span className="font-medium text-foreground">{doc.uploaded_by?.name ?? 'Unknown'}</span>
+                                            {doc.created_at ? ` · ${new Date(doc.created_at).toLocaleDateString()}` : ''}
+                                        </p>
+                                    </div>
                                 </div>
 
-                                <div className="flex items-center gap-1.5 self-end sm:self-center shrink-0">
+                                <div className="flex items-center gap-1.5 shrink-0">
                                     <Button
                                         variant="outline"
                                         size="sm"
                                         onClick={() => onReplaceDoc(index, doc)}
                                         disabled={isUploading || deletingDocId === doc.id}
                                         title="Replace document"
-                                        className="h-7 px-2 text-xs font-medium cursor-pointer"
+                                        className="h-7 px-2.5 text-xs font-medium cursor-pointer"
                                     >
-                                        <RefreshCw className="mr-1 size-3" />
+                                        <RefreshCw className="mr-1.5 size-3" />
                                         Replace
                                     </Button>
 
                                     <Button
-                                        variant="outline"
+                                        variant="ghost"
                                         size="sm"
                                         onClick={() => onDeleteDoc(doc)}
                                         disabled={deletingDocId === doc.id || isUploading}
                                         title="Delete document"
-                                        className="h-7 px-2 text-xs font-medium text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/20 cursor-pointer"
+                                        className="h-7 px-2 text-xs font-medium text-destructive hover:text-destructive hover:bg-destructive/10 cursor-pointer"
                                     >
                                         {deletingDocId === doc.id ? (
                                             <Loader2 className="mr-1 size-3 animate-spin" />

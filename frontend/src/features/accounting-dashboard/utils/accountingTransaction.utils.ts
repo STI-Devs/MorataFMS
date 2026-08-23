@@ -34,6 +34,8 @@ export type QueueStageChip = {
 export type AccountingQueueRow = {
     id: number;
     ref: string;
+    customsRef: string | null;
+    blNo: string | null;
     clientName: string;
     typeLabel: 'Import' | 'Export';
     primaryMeta: string;
@@ -68,6 +70,8 @@ export function buildImportQueueRows(transactions: ApiImportTransaction[]): Acco
         return {
             id: transaction.id,
             ref: transaction.customs_ref_no || transaction.bl_no || 'Pending Ref',
+            customsRef: transaction.customs_ref_no ?? null,
+            blNo: transaction.bl_no ?? null,
             clientName: transaction.importer?.name || 'Unknown Client',
             typeLabel: 'Import',
             primaryMeta: transaction.arrival_date ? `ETA ${formatDateLabel(transaction.arrival_date)}` : 'ETA —',
@@ -115,6 +119,8 @@ export function buildExportQueueRows(transactions: ApiExportTransaction[]): Acco
         return {
             id: transaction.id,
             ref: transaction.bl_no || 'Pending BL',
+            customsRef: null,
+            blNo: transaction.bl_no ?? null,
             clientName: transaction.shipper?.name || 'Unknown Client',
             typeLabel: 'Export',
             primaryMeta: transaction.vessel ? `Vessel ${transaction.vessel}` : 'Vessel —',
@@ -245,14 +251,13 @@ export function formatDateLabel(value: string): string {
 export function stageToneClassName(tone: StageTone): string {
     switch (tone) {
         case 'ready':
-            return 'border-emerald-200 bg-emerald-50 text-emerald-700';
         case 'uploaded':
-            return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+            return 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400';
         case 'review':
-            return 'border-amber-200 bg-amber-50 text-amber-700';
+            return 'border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400';
         case 'action':
-            return 'border-red-200 bg-red-50 text-red-700';
+            return 'border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400';
         default:
-            return 'border-slate-200 bg-slate-100 text-slate-600';
+            return 'border-border bg-muted/60 text-muted-foreground';
     }
 }

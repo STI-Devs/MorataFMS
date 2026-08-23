@@ -1,32 +1,53 @@
+import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { CurrentDateTime } from '../../../components/CurrentDateTime';
+import {
+    AlertCircle,
+    ArrowRight,
+    FileSpreadsheet,
+    Flag,
+    FolderOpen,
+    Receipt,
+    Truck,
+} from 'lucide-react';
+import { Badge } from '../../../components/ui/badge';
+import {
+    Card,
+    CardContent,
+} from '../../../components/ui/card';
 import { appRoutes } from '../../../lib/appRoutes';
 import { trackingApi } from '../../tracking/api/trackingApi';
 import { trackingKeys } from '../../tracking/utils/queryKeys';
+import {
+    getExportAccountingActionability,
+    getImportAccountingActionability,
+} from '../../tracking/utils/stageUtils';
 
 type ModuleCard = {
     label: string;
     description: string;
     path: string;
-    accent: string;
-    icon: string;
+    icon: typeof FileSpreadsheet;
+    badgeLabel: string;
+    accentColor: string;
 };
 
 const moduleCards: ModuleCard[] = [
     {
         label: 'Transaction Tasks',
-        description: 'Track and manage import/export workflows for billing and liquidation.',
+        description: 'Track and manage import/export workflows for billing and liquidation uploads.',
         path: appRoutes.accountantImpExp,
-        accent: 'var(--success)',
-        icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4',
+        icon: FileSpreadsheet,
+        badgeLabel: 'Task Queue',
+        accentColor: 'text-emerald-500',
     },
     {
         label: 'Documents',
-        description: 'Access billing attachments, finance documents, and records.',
+        description: 'Access billing attachments, finance receipts, and finalized transaction records.',
         path: appRoutes.accountantDocuments,
-        accent: 'var(--success)',
-        icon: 'M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2',
+        icon: FolderOpen,
+        badgeLabel: 'Document Library',
+        accentColor: 'text-primary',
     },
 ];
 
@@ -43,104 +64,193 @@ export const AccountingDashboard = () => {
         queryFn: () => trackingApi.getAllExports({ exclude_statuses: 'completed,cancelled' }),
     });
 
-    const calculateMetrics = () => {
-        let pendingBilling = 0;
+    const isLoading = importsQuery.isLoading || exportsQuery.isLoading;
+    const rawImports = importsQuery.data;
+    const rawExports = exportsQuery.data;
 
-        importsQuery.data?.forEach(tx => {
-            if (tx.stages?.billing !== 'completed') {
-                pendingBilling++;
+    const metrics = useMemo(() => {
+        let readyImportBilling = 0;
+        let readyExportBilling = 0;
+        let pendingImportBilling = 0;
+        let pendingExportBilling = 0;
+        let importAttention = 0;
+        let exportAttention = 0;
+
+        rawImports?.forEach((tx) => {
+            const isBilled = tx.stages?.billing === 'completed';
+            if (!isBilled) {
+                pendingImportBilling++;
+                const actionability = getImportAccountingActionability(tx.stages);
+                if (actionability.billing) {
+                    readyImportBilling++;
+                }
+            }
+            if (tx.open_remarks_count > 0) {
+                importAttention++;
             }
         });
 
-        exportsQuery.data?.forEach(tx => {
-            if (tx.stages?.billing !== 'completed') {
-                pendingBilling++;
+        rawExports?.forEach((tx) => {
+            const isBilled = tx.stages?.billing === 'completed';
+            if (!isBilled) {
+                pendingExportBilling++;
+                const actionability = getExportAccountingActionability(tx.stages);
+                if (actionability.billing) {
+                    readyExportBilling++;
+                }
+            }
+            if (tx.open_remarks_count > 0) {
+                exportAttention++;
             }
         });
+
+        const readyBilling = readyImportBilling + readyExportBilling;
+        const pendingBilling = pendingImportBilling + pendingExportBilling;
+        const totalAttention = importAttention + exportAttention;
 
         return {
+            readyBilling,
+            readyImportBilling,
+            readyExportBilling,
             pendingBilling,
+            pendingImportBilling,
+            pendingExportBilling,
+            totalAttention,
         };
-    };
-
-    const metrics = calculateMetrics();
+    }, [rawImports, rawExports]);
 
     return (
-        <div className="space-y-8 px-6 py-6">
-            <header className="flex flex-col gap-4 border-b border-border pb-6 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.28em] text-text-muted">Accounting Workspace</p>
-                    <h1 className="mt-2 text-4xl font-bold tracking-tight text-text-primary">Accounting Dashboard</h1>
-                    <p className="mt-3 max-w-2xl text-sm text-text-secondary">
-                        Manage shared accounting-stage uploads while encoder ownership remains with the brokerage file owner.
-                    </p>
-                </div>
-                <CurrentDateTime
-                    className="text-left sm:text-right"
-                    timeClassName="text-2xl font-mono font-bold tracking-tight text-text-primary"
-                    dateClassName="mt-1 text-xs font-mono uppercase tracking-[0.25em] text-text-secondary"
-                />
+        <div className="w-full space-y-6 pb-8">
+            {/* Header */}
+            <header className="flex flex-col gap-1 border-b border-border/80 pb-5">
+                <h1 className="text-2xl font-bold tracking-tight text-foreground">
+                    Accounting Dashboard
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                    Manage shared accounting-stage uploads while encoder ownership remains with the brokerage file owner.
+                </p>
             </header>
 
-            <section className="grid gap-4 sm:grid-cols-2">
-                <div className="flex flex-col rounded-xl border border-success/10 bg-success/10 p-5 shadow-sm">
-                    <p className="text-xs font-bold uppercase tracking-wider text-success/70">Transactions Pending Billing</p>
-                    <div className="mt-2 text-3xl font-bold text-success">
-                        {importsQuery.isLoading || exportsQuery.isLoading ? '...' : metrics.pendingBilling}
-                    </div>
-                </div>
-                <div className="flex flex-col rounded-xl border border-success/10 bg-success/10 p-5 shadow-sm">
-                    <p className="text-xs font-bold uppercase tracking-wider text-success/70">Tasks Needs Re-upload</p>
-                    <div className="mt-2 text-3xl font-bold text-success">
-                        0
-                    </div>
-                </div>
+            {/* Section 1: KPI Metrics Cards */}
+            <section className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+                {/* 1. Active Imports */}
+                <Card className="shadow-2xs">
+                    <CardContent className="p-3 sm:p-3.5 space-y-1">
+                        <div className="flex items-center justify-between text-muted-foreground text-[10px] font-semibold uppercase tracking-wider">
+                            <span>Active Imports</span>
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-medium shrink-0 gap-1 border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                                <Truck className="size-3 text-blue-500" /> Imports
+                            </Badge>
+                        </div>
+                        <div className="text-xl sm:text-2xl font-bold tabular-nums text-foreground">
+                            {isLoading ? '...' : (rawImports?.length ?? 0)}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground truncate">
+                            {metrics.pendingImportBilling} pending billing
+                        </p>
+                    </CardContent>
+                </Card>
+
+                {/* 2. Active Exports */}
+                <Card className="shadow-2xs">
+                    <CardContent className="p-3 sm:p-3.5 space-y-1">
+                        <div className="flex items-center justify-between text-muted-foreground text-[10px] font-semibold uppercase tracking-wider">
+                            <span>Active Exports</span>
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-medium shrink-0 gap-1 border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                                <Flag className="size-3 text-emerald-500" /> Exports
+                            </Badge>
+                        </div>
+                        <div className="text-xl sm:text-2xl font-bold tabular-nums text-foreground">
+                            {isLoading ? '...' : (rawExports?.length ?? 0)}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground truncate">
+                            {metrics.pendingExportBilling} pending billing
+                        </p>
+                    </CardContent>
+                </Card>
+
+                {/* 3. Ready to Bill */}
+                <Card className="shadow-2xs">
+                    <CardContent className="p-3 sm:p-3.5 space-y-1">
+                        <div className="flex items-center justify-between text-muted-foreground text-[10px] font-semibold uppercase tracking-wider">
+                            <span>Ready to Bill</span>
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-medium shrink-0 gap-1 border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                                <Receipt className="size-3 text-emerald-500" /> Actionable
+                            </Badge>
+                        </div>
+                        <div className="text-xl sm:text-2xl font-bold tabular-nums text-foreground">
+                            {isLoading ? '...' : metrics.readyBilling}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground truncate">
+                            {metrics.readyImportBilling} imports · {metrics.readyExportBilling} exports
+                        </p>
+                    </CardContent>
+                </Card>
+
+                {/* 4. Needs Attention */}
+                <Card className="shadow-2xs">
+                    <CardContent className="p-3 sm:p-3.5 space-y-1">
+                        <div className="flex items-center justify-between text-muted-foreground text-[10px] font-semibold uppercase tracking-wider">
+                            <span>Needs Attention</span>
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-medium shrink-0 gap-1 border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400">
+                                <AlertCircle className="size-3 text-rose-500" /> Remarks
+                            </Badge>
+                        </div>
+                        <div className="text-xl sm:text-2xl font-bold tabular-nums text-foreground">
+                            {isLoading ? '...' : metrics.totalAttention}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground truncate">
+                            Open operational remarks
+                        </p>
+                    </CardContent>
+                </Card>
             </section>
 
-            <section>
-                <div className="mb-4 flex items-center gap-3">
-                    <div className="h-5 w-1 rounded-full bg-success" />
-                    <h2 className="text-sm font-bold uppercase tracking-[0.22em] text-text-secondary">Modules</h2>
+            {/* Section 2: Modules Navigation */}
+            <section className="space-y-3">
+                <div className="flex items-center gap-2">
+                    <div className="h-4 w-1 rounded-full bg-primary" />
+                    <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                        Modules
+                    </h2>
                 </div>
+
                 <div className="grid gap-4 sm:grid-cols-2">
-                    {moduleCards.map((card) => (
-                        <button
-                            key={card.label}
-                            id={`accounting-module-${card.label.toLowerCase().replace(/\s+/g, '-')}`}
-                            type="button"
-                            onClick={() => navigate(card.path)}
-                            className="group relative flex flex-col gap-4 overflow-hidden rounded-xl border border-border bg-surface p-6 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-border-strong hover:bg-hover hover:shadow-md"
-                        >
-                            <div
-                                className="absolute inset-x-0 top-0 h-0.5 opacity-0 transition-opacity group-hover:opacity-100"
-                                style={{ backgroundColor: card.accent }}
-                            />
-                            <div
-                                className="flex h-12 w-12 items-center justify-center rounded-xl"
-                                style={{ backgroundColor: `color-mix(in srgb, ${card.accent} 9%, transparent)` }}
+                    {moduleCards.map((card) => {
+                        const IconComponent = card.icon;
+                        return (
+                            <button
+                                key={card.label}
+                                id={`accounting-module-${card.label.toLowerCase().replace(/\s+/g, '-')}`}
+                                type="button"
+                                onClick={() => navigate(card.path)}
+                                className="group relative flex flex-col gap-4 overflow-hidden rounded-xl border border-border/80 bg-card p-5 text-left shadow-2xs transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-xs cursor-pointer"
                             >
-                                <svg
-                                    className="h-6 w-6"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                    style={{ color: card.accent }}
-                                >
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d={card.icon} />
-                                </svg>
-                            </div>
-                            <div>
-                                <p className="text-base font-bold text-text-primary">{card.label}</p>
-                                <p className="mt-1.5 text-sm leading-relaxed text-text-secondary">{card.description}</p>
-                            </div>
-                            <div className="mt-auto flex items-center gap-1.5 text-xs font-semibold" style={{ color: card.accent }}>
-                                Open module
-                                <svg className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
-                                </svg>
-                            </div>
-                        </button>
-                    ))}
+                                <div className="flex items-start justify-between">
+                                    <div className="flex size-11 items-center justify-center rounded-xl bg-muted/60 text-foreground group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                                        <IconComponent className={`size-5 ${card.accentColor}`} />
+                                    </div>
+                                    <Badge variant="secondary" className="text-[11px] font-medium">
+                                        {card.badgeLabel}
+                                    </Badge>
+                                </div>
+
+                                <div className="space-y-1">
+                                    <p className="text-base font-semibold text-foreground group-hover:text-primary transition-colors">
+                                        {card.label}
+                                    </p>
+                                    <p className="text-xs leading-relaxed text-muted-foreground">
+                                        {card.description}
+                                    </p>
+                                </div>
+
+                                <div className="mt-auto flex items-center gap-1.5 text-xs font-semibold text-primary pt-2">
+                                    Open module
+                                    <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-1" />
+                                </div>
+                            </button>
+                        );
+                    })}
                 </div>
             </section>
         </div>
