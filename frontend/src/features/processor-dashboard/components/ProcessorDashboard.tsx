@@ -62,8 +62,8 @@ export const ProcessorDashboard = () => {
     });
 
     const isLoading = importsQuery.isLoading || exportsQuery.isLoading;
-    const rawImports = importsQuery.data ?? [];
-    const rawExports = exportsQuery.data ?? [];
+    const rawImports = importsQuery.data;
+    const rawExports = exportsQuery.data;
 
     const metrics = useMemo(() => {
         let readyPPA = 0;
@@ -75,7 +75,7 @@ export const ProcessorDashboard = () => {
         let importAttention = 0;
         let exportAttention = 0;
 
-        rawImports.forEach((tx) => {
+        rawImports?.forEach((tx) => {
             const stages = tx.stages;
             const actionability = getImportProcessorActionability(stages);
 
@@ -98,7 +98,7 @@ export const ProcessorDashboard = () => {
             }
         });
 
-        rawExports.forEach((tx) => {
+        rawExports?.forEach((tx) => {
             const stages = tx.stages;
             const actionability = getExportProcessorActionability(stages);
 
@@ -164,7 +164,7 @@ export const ProcessorDashboard = () => {
                             </Badge>
                         </div>
                         <div className="text-xl sm:text-2xl font-bold tabular-nums text-foreground">
-                            {isLoading ? '...' : rawImports.length}
+                            {isLoading ? '...' : (rawImports?.length ?? 0)}
                         </div>
                         <p className="text-[11px] text-muted-foreground truncate">
                             {metrics.pendingImportTasks} pending stages (PPA/Port Charges)
@@ -182,7 +182,7 @@ export const ProcessorDashboard = () => {
                             </Badge>
                         </div>
                         <div className="text-xl sm:text-2xl font-bold tabular-nums text-foreground">
-                            {isLoading ? '...' : rawExports.length}
+                            {isLoading ? '...' : (rawExports?.length ?? 0)}
                         </div>
                         <p className="text-[11px] text-muted-foreground truncate">
                             {metrics.pendingExportTasks} pending stages (CIL/DCCCI)

@@ -65,8 +65,8 @@ export const AccountingDashboard = () => {
     });
 
     const isLoading = importsQuery.isLoading || exportsQuery.isLoading;
-    const rawImports = importsQuery.data ?? [];
-    const rawExports = exportsQuery.data ?? [];
+    const rawImports = importsQuery.data;
+    const rawExports = exportsQuery.data;
 
     const metrics = useMemo(() => {
         let readyImportBilling = 0;
@@ -76,7 +76,7 @@ export const AccountingDashboard = () => {
         let importAttention = 0;
         let exportAttention = 0;
 
-        rawImports.forEach((tx) => {
+        rawImports?.forEach((tx) => {
             const isBilled = tx.stages?.billing === 'completed';
             if (!isBilled) {
                 pendingImportBilling++;
@@ -90,7 +90,7 @@ export const AccountingDashboard = () => {
             }
         });
 
-        rawExports.forEach((tx) => {
+        rawExports?.forEach((tx) => {
             const isBilled = tx.stages?.billing === 'completed';
             if (!isBilled) {
                 pendingExportBilling++;
@@ -143,7 +143,7 @@ export const AccountingDashboard = () => {
                             </Badge>
                         </div>
                         <div className="text-xl sm:text-2xl font-bold tabular-nums text-foreground">
-                            {isLoading ? '...' : rawImports.length}
+                            {isLoading ? '...' : (rawImports?.length ?? 0)}
                         </div>
                         <p className="text-[11px] text-muted-foreground truncate">
                             {metrics.pendingImportBilling} pending billing
@@ -161,7 +161,7 @@ export const AccountingDashboard = () => {
                             </Badge>
                         </div>
                         <div className="text-xl sm:text-2xl font-bold tabular-nums text-foreground">
-                            {isLoading ? '...' : rawExports.length}
+                            {isLoading ? '...' : (rawExports?.length ?? 0)}
                         </div>
                         <p className="text-[11px] text-muted-foreground truncate">
                             {metrics.pendingExportBilling} pending billing
