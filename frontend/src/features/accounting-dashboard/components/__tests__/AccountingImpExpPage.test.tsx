@@ -135,7 +135,9 @@ describe('AccountingImpExpPage', () => {
         expect(screen.getByRole('tab', { name: /Imports/i })).toBeInTheDocument();
         expect(screen.getByRole('tab', { name: /Exports/i })).toBeInTheDocument();
         expect(screen.getByPlaceholderText(/search bl, ref, client, vessel, blocker/i)).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /Ready/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /^All/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /Ready to Upload/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /Waiting \/ Monitoring/i })).toBeInTheDocument();
 
         expect(trackingApi.trackingApi.getAllImports).toHaveBeenCalledWith({
             exclude_statuses: 'completed,cancelled',
@@ -205,18 +207,18 @@ describe('AccountingImpExpPage', () => {
         expect(screen.getByRole('button', { name: /open shared upload/i })).toBeInTheDocument();
         expect(screen.getAllByText('Included in vessel upload').length).toBeGreaterThan(0);
         expect(screen.getAllByText('Billing Ready').length).toBeGreaterThan(0);
-        expect(screen.getByText('Billing Waiting')).toBeInTheDocument();
-        expect(screen.getByText('Ready to Upload')).toBeInTheDocument();
-        expect(screen.getByText('Waiting / Monitoring')).toBeInTheDocument();
-        expect(screen.getAllByText('Waiting 3 days').length).toBeGreaterThan(0);
-        expect(screen.getByText('Waiting for Payment for Port Charges.')).toBeInTheDocument();
-        expect(screen.getAllByText('Overdue').length).toBeGreaterThan(0);
+        expect(screen.getByRole('button', { name: /Ready to Upload/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /Waiting \/ Monitoring/i })).toBeInTheDocument();
 
         fireEvent.click(screen.getByRole('button', { name: /^Overdue/i }));
 
         expect(screen.getByText('REF-ACT-WAIT-004')).toBeInTheDocument();
+        expect(screen.getByText('Billing Waiting')).toBeInTheDocument();
+        expect(screen.getAllByText('Waiting 3 days').length).toBeGreaterThan(0);
+        expect(screen.getByText('Waiting for Payment for Port Charges.')).toBeInTheDocument();
+        expect(screen.getAllByText('Overdue').length).toBeGreaterThan(0);
 
-        fireEvent.click(screen.getByRole('button', { name: /^All/i }));
+        fireEvent.click(screen.getByRole('button', { name: /Ready to Upload/i }));
         fireEvent.change(screen.getByPlaceholderText(/search bl, ref, client, vessel, blocker/i), {
             target: { value: 'Shared Ledger' },
         });

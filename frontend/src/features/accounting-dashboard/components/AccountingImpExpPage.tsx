@@ -17,6 +17,7 @@ import { Badge } from '../../../components/ui/badge';
 import { Button } from '../../../components/ui/button';
 import { Card, CardContent } from '../../../components/ui/card';
 import { Input } from '../../../components/ui/input';
+import { Pagination } from '../../../components/Pagination';
 import {
     Table,
     TableBody,
@@ -35,6 +36,7 @@ import { useAccountingTaskQueue } from '../hooks/useAccountingTaskQueue';
 import {
     FILTER_META,
     stageToneClassName,
+    type QueueFilter,
     type AccountingQueueRow,
     type QueueStageChip,
     type QueueState,
@@ -75,6 +77,30 @@ export const AccountingImpExpPage = () => {
         readyRows,
         waitingRows,
     } = useAccountingTaskQueue();
+
+    const [queueTab, setQueueTab] = useState<'ready' | 'waiting'>('ready');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [perPage, setPerPage] = useState(30);
+
+    const handleFilterChange = (newFilter: QueueFilter) => {
+        setFilter(newFilter);
+        setCurrentPage(1);
+        if (newFilter === 'blocked' || newFilter === 'overdue') {
+            setQueueTab('waiting');
+        } else if (newFilter === 'ready') {
+            setQueueTab('ready');
+        }
+    };
+
+    const handleTabChange = (tab: 'ready' | 'waiting') => {
+        setQueueTab(tab);
+        setCurrentPage(1);
+        if (tab === 'ready' && (filter === 'blocked' || filter === 'overdue')) {
+            setFilter('all');
+        } else if (tab === 'waiting' && filter === 'ready') {
+            setFilter('all');
+        }
+    };
 
     const readyVesselCounts = useMemo(() => {
         const counts = new Map<string, number>();
@@ -133,6 +159,18 @@ export const AccountingImpExpPage = () => {
         return groups;
     }, [readyRows, readyVesselCounts]);
 
+    const totalReadyPages = Math.max(1, Math.ceil(readyQueueGroups.length / perPage));
+    const paginatedReadyGroups = useMemo(() => {
+        const start = (currentPage - 1) * perPage;
+        return readyQueueGroups.slice(start, start + perPage);
+    }, [readyQueueGroups, currentPage, perPage]);
+
+    const totalWaitingPages = Math.max(1, Math.ceil(waitingRows.length / perPage));
+    const paginatedWaitingRows = useMemo(() => {
+        const start = (currentPage - 1) * perPage;
+        return waitingRows.slice(start, start + perPage);
+    }, [waitingRows, currentPage, perPage]);
+
     return (
         <div className="w-full space-y-6 pb-8">
             {/* Header */}
@@ -155,7 +193,13 @@ export const AccountingImpExpPage = () => {
 
             {/* Section 1: KPI Metrics Cards */}
             <section className="grid gap-3 grid-cols-2 lg:grid-cols-4">
-                <Card className="shadow-2xs">
+                <Card
+                    onClick={() => {
+                        setFilter('all');
+                        setCurrentPage(1);
+                    }}
+                    className="shadow-2xs cursor-pointer hover:border-primary/40 transition-colors"
+                >
                     <CardContent className="p-3 sm:p-3.5 space-y-1">
                         <div className="flex items-center justify-between text-muted-foreground text-[10px] font-semibold uppercase tracking-wider">
                             <span>Visible Queue</span>
@@ -172,7 +216,14 @@ export const AccountingImpExpPage = () => {
                     </CardContent>
                 </Card>
 
-                <Card className="shadow-2xs">
+                <Card
+                    onClick={() => {
+                        handleTabChange('ready');
+                    }}
+                    className={`shadow-2xs cursor-pointer transition-colors ${
+                        queueTab === 'ready' ? 'border-primary/60 bg-primary/5' : 'hover:border-primary/40'
+                    }`}
+                >
                     <CardContent className="p-3 sm:p-3.5 space-y-1">
                         <div className="flex items-center justify-between text-muted-foreground text-[10px] font-semibold uppercase tracking-wider">
                             <span>Ready Now</span>
@@ -189,7 +240,15 @@ export const AccountingImpExpPage = () => {
                     </CardContent>
                 </Card>
 
-                <Card className="shadow-2xs">
+                <Card
+                    onClick={() => {
+                        handleTabChange('waiting');
+                        setFilter('blocked');
+                    }}
+                    className={`shadow-2xs cursor-pointer transition-colors ${
+                        queueTab === 'waiting' && filter === 'blocked' ? 'border-primary/60 bg-primary/5' : 'hover:border-primary/40'
+                    }`}
+                >
                     <CardContent className="p-3 sm:p-3.5 space-y-1">
                         <div className="flex items-center justify-between text-muted-foreground text-[10px] font-semibold uppercase tracking-wider">
                             <span>Blocked</span>
@@ -206,7 +265,15 @@ export const AccountingImpExpPage = () => {
                     </CardContent>
                 </Card>
 
-                <Card className="shadow-2xs">
+                <Card
+                    onClick={() => {
+                        handleTabChange('waiting');
+                        setFilter('overdue');
+                    }}
+                    className={`shadow-2xs cursor-pointer transition-colors ${
+                        filter === 'overdue' ? 'border-destructive/60 bg-destructive/5' : 'hover:border-destructive/40'
+                    }`}
+                >
                     <CardContent className="p-3 sm:p-3.5 space-y-1">
                         <div className="flex items-center justify-between text-muted-foreground text-[10px] font-semibold uppercase tracking-wider">
                             <span>Overdue</span>
@@ -228,7 +295,14 @@ export const AccountingImpExpPage = () => {
             </section>
 
             {/* Section 2: Tabbed Workspace Toolbar */}
-            <Tabs value={view} onValueChange={(val) => setView(val as 'import' | 'export')} className="w-full space-y-4">
+            <Tabs
+                value={view}
+                onValueChange={(val) => {
+                    setView(val as 'import' | 'export');
+                    setCurrentPage(1);
+                }}
+                className="w-full space-y-4"
+            >
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                     <TabsList className="h-9 p-1 bg-muted/60">
                         <TabsTrigger value="import" className="gap-2 px-3 text-xs">
@@ -253,7 +327,10 @@ export const AccountingImpExpPage = () => {
                             <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                             <Input
                                 value={search}
-                                onChange={(event) => setSearch(event.target.value)}
+                                onChange={(event) => {
+                                    setSearch(event.target.value);
+                                    setCurrentPage(1);
+                                }}
                                 placeholder="Search BL, ref, client, vessel, blocker..."
                                 className="h-9 pl-8.5 pr-3 text-xs"
                             />
@@ -267,7 +344,7 @@ export const AccountingImpExpPage = () => {
                                         key={option.key}
                                         variant={isSelected ? 'default' : 'outline'}
                                         size="sm"
-                                        onClick={() => setFilter(option.key)}
+                                        onClick={() => handleFilterChange(option.key)}
                                         className="h-8 px-2.5 text-xs gap-1.5 font-medium shrink-0"
                                     >
                                         {option.label}
@@ -281,6 +358,47 @@ export const AccountingImpExpPage = () => {
                             })}
                         </div>
                     </div>
+                </div>
+
+                {/* Sub-tabs for Queue Separation (Ready vs Waiting) */}
+                <div className="flex items-center gap-1.5 p-1 bg-muted/60 rounded-lg w-fit">
+                    <button
+                        type="button"
+                        onClick={() => handleTabChange('ready')}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer ${
+                            queueTab === 'ready'
+                                ? 'bg-background text-foreground shadow-2xs border border-border/60'
+                                : 'text-muted-foreground hover:text-foreground hover:bg-muted/40'
+                        }`}
+                    >
+                        <span className="size-2 rounded-full bg-emerald-500" />
+                        Ready to Upload
+                        <Badge
+                            variant={queueTab === 'ready' ? 'default' : 'secondary'}
+                            className="text-[10px] px-1.5 py-0 font-bold"
+                        >
+                            {readyRows.length}
+                        </Badge>
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={() => handleTabChange('waiting')}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer ${
+                            queueTab === 'waiting'
+                                ? 'bg-background text-foreground shadow-2xs border border-border/60'
+                                : 'text-muted-foreground hover:text-foreground hover:bg-muted/40'
+                        }`}
+                    >
+                        <span className="size-2 rounded-full bg-amber-500" />
+                        Waiting / Monitoring
+                        <Badge
+                            variant={queueTab === 'waiting' ? 'default' : 'secondary'}
+                            className="text-[10px] px-1.5 py-0 font-bold"
+                        >
+                            {waitingRows.length}
+                        </Badge>
+                    </button>
                 </div>
 
                 {/* Section 3: Task Lists Content */}
@@ -306,31 +424,52 @@ export const AccountingImpExpPage = () => {
 
                     {!isLoading && !isError && filteredRows.length > 0 && (
                         <div className="space-y-6">
-                            <QueueSection
-                                title="Ready to Upload"
-                                description="Billing work that is fully unblocked and ready for finance upload."
-                                tone="ready"
-                                emptyMessage="No accounting files are ready right now."
-                                rows={readyRows}
-                                readyGroups={readyQueueGroups}
-                                view={view}
-                                onOpen={(row, entryMode) => {
-                                    setSelectedEntryMode(entryMode);
-                                    setSelectedTx(row.selectedTransaction);
-                                }}
-                            />
-                            <QueueSection
-                                title="Waiting / Monitoring"
-                                description="Blocked accounting transactions sorted with overdue items first."
-                                tone="waiting"
-                                emptyMessage="No waiting accounting transactions."
-                                rows={waitingRows}
-                                view={view}
-                                onOpen={(row, entryMode) => {
-                                    setSelectedEntryMode(entryMode);
-                                    setSelectedTx(row.selectedTransaction);
-                                }}
-                            />
+                            {queueTab === 'ready' ? (
+                                <QueueSection
+                                    title="Ready to Upload"
+                                    description="Billing work that is fully unblocked and ready for finance upload."
+                                    tone="ready"
+                                    emptyMessage="No accounting files are ready right now."
+                                    rows={readyRows}
+                                    readyGroups={paginatedReadyGroups}
+                                    totalCount={readyRows.length}
+                                    currentPage={currentPage}
+                                    totalPages={totalReadyPages}
+                                    perPage={perPage}
+                                    onPageChange={setCurrentPage}
+                                    onPerPageChange={(newPerPage) => {
+                                        setPerPage(newPerPage);
+                                        setCurrentPage(1);
+                                    }}
+                                    view={view}
+                                    onOpen={(row, entryMode) => {
+                                        setSelectedEntryMode(entryMode);
+                                        setSelectedTx(row.selectedTransaction);
+                                    }}
+                                />
+                            ) : (
+                                <QueueSection
+                                    title="Waiting / Monitoring"
+                                    description="Blocked accounting transactions sorted with overdue items first."
+                                    tone="waiting"
+                                    emptyMessage="No waiting accounting transactions."
+                                    rows={paginatedWaitingRows}
+                                    totalCount={waitingRows.length}
+                                    currentPage={currentPage}
+                                    totalPages={totalWaitingPages}
+                                    perPage={perPage}
+                                    onPageChange={setCurrentPage}
+                                    onPerPageChange={(newPerPage) => {
+                                        setPerPage(newPerPage);
+                                        setCurrentPage(1);
+                                    }}
+                                    view={view}
+                                    onOpen={(row, entryMode) => {
+                                        setSelectedEntryMode(entryMode);
+                                        setSelectedTx(row.selectedTransaction);
+                                    }}
+                                />
+                            )}
                         </div>
                     )}
                 </TabsContent>
@@ -361,6 +500,12 @@ const QueueSection = ({
     emptyMessage,
     rows,
     readyGroups,
+    totalCount,
+    currentPage,
+    totalPages,
+    perPage,
+    onPageChange,
+    onPerPageChange,
     view,
     onOpen,
 }: {
@@ -370,6 +515,12 @@ const QueueSection = ({
     emptyMessage: string;
     rows: AccountingQueueRow[];
     readyGroups?: ReadyQueueGroup[];
+    totalCount: number;
+    currentPage: number;
+    totalPages: number;
+    perPage: number;
+    onPageChange: (page: number) => void;
+    onPerPageChange: (perPage: number) => void;
     view: 'import' | 'export';
     onOpen: (row: AccountingQueueRow, entryMode: 'single-transaction' | 'shared-vessel') => void;
 }) => (
@@ -386,18 +537,18 @@ const QueueSection = ({
                             : 'border-border bg-muted/60 text-muted-foreground'
                     }`}
                 >
-                    {rows.length}
+                    {totalCount}
                 </Badge>
             </div>
             <p className="text-xs text-muted-foreground">{description}</p>
         </div>
 
-        {rows.length === 0 ? (
+        {totalCount === 0 ? (
             <div className="rounded-xl border border-dashed border-border bg-card p-6 text-center text-sm text-muted-foreground">
                 {emptyMessage}
             </div>
         ) : (
-            <Card className="p-0 overflow-hidden shadow-2xs">
+            <Card className="p-0 overflow-hidden shadow-2xs border-border/80">
                 <Table>
                     <TableHeader className="bg-muted/50">
                         <TableRow className="hover:bg-transparent">
@@ -445,6 +596,20 @@ const QueueSection = ({
                             ))}
                     </TableBody>
                 </Table>
+
+                {totalCount > 0 && (
+                    <div className="p-3 border-t border-border/80 bg-muted/20">
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            perPage={perPage}
+                            perPageOptions={[15, 30, 50, 100]}
+                            onPageChange={onPageChange}
+                            onPerPageChange={onPerPageChange}
+                            compact
+                        />
+                    </div>
+                )}
             </Card>
         )}
     </section>
