@@ -35,7 +35,10 @@ export type QueueStageChip = {
 export type ProcessorQueueRow = {
     id: number;
     ref: string;
+    customsRef: string | null;
+    blNo: string | null;
     clientName: string;
+    vesselName: string | null;
     typeLabel: 'Import' | 'Export';
     primaryMeta: string;
     secondaryMeta: string | null;
@@ -81,12 +84,15 @@ export function buildImportQueueRows(transactions: ApiImportTransaction[]): Proc
         return {
             id: transaction.id,
             ref: transaction.customs_ref_no || transaction.bl_no || 'Pending Ref',
+            customsRef: transaction.customs_ref_no ?? null,
+            blNo: transaction.bl_no ?? null,
             clientName: transaction.importer?.name || 'Unknown Client',
+            vesselName: transaction.vessel_name ?? null,
             typeLabel: 'Import',
             primaryMeta: transaction.arrival_date ? `ETA ${formatDateLabel(transaction.arrival_date)}` : 'ETA —',
             secondaryMeta: transaction.location_of_goods?.name ?? transaction.origin_country?.name ?? null,
             state,
-            nextActionLabel: state === 'ready' ? getNextActionLabel(stageChips) : 'Waiting for encoder progress.',
+            nextActionLabel: getNextActionLabel(stageChips),
             blocker,
             waitingLabel,
             isOverdue: overdue,
@@ -95,6 +101,7 @@ export function buildImportQueueRows(transactions: ApiImportTransaction[]): Proc
                 transaction.customs_ref_no,
                 transaction.bl_no,
                 transaction.importer?.name,
+                transaction.vessel_name,
                 transaction.location_of_goods?.name,
                 transaction.origin_country?.name,
                 blocker,
@@ -133,12 +140,15 @@ export function buildExportQueueRows(transactions: ApiExportTransaction[]): Proc
         return {
             id: transaction.id,
             ref: transaction.bl_no || 'Pending BL',
+            customsRef: null,
+            blNo: transaction.bl_no ?? null,
             clientName: transaction.shipper?.name || 'Unknown Client',
+            vesselName: transaction.vessel ?? null,
             typeLabel: 'Export',
             primaryMeta: transaction.vessel ? `Vessel ${transaction.vessel}` : 'Vessel —',
             secondaryMeta: transaction.destination_country?.name ?? null,
             state,
-            nextActionLabel: state === 'ready' ? getNextActionLabel(stageChips) : 'Waiting for encoder progress.',
+            nextActionLabel: getNextActionLabel(stageChips),
             blocker,
             waitingLabel,
             isOverdue: overdue,
@@ -291,16 +301,16 @@ export function formatDateLabel(value: string): string {
 export function stageToneClassName(tone: StageTone): string {
     switch (tone) {
         case 'ready':
-            return 'border-blue-200 bg-blue-50 text-blue-700';
+            return 'border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400';
         case 'uploaded':
-            return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+            return 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400';
         case 'review':
-            return 'border-amber-200 bg-amber-50 text-amber-700';
+            return 'border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400';
         case 'action':
-            return 'border-red-200 bg-red-50 text-red-700';
+            return 'border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400';
         case 'na':
-            return 'border-slate-200 bg-slate-100 text-slate-600';
+            return 'border-border bg-muted/40 text-muted-foreground opacity-60';
         default:
-            return 'border-slate-200 bg-slate-100 text-slate-600';
+            return 'border-border bg-muted/60 text-muted-foreground';
     }
 }

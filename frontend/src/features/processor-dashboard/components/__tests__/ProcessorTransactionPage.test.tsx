@@ -34,8 +34,8 @@ describe('ProcessorTransactionPage', () => {
         renderWithProviders(<ProcessorTransactionPage />);
 
         expect(screen.getByText('Processor Task Queue')).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /Imports/i })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /Exports/i })).toBeInTheDocument();
+        expect(screen.getByRole('tab', { name: /Imports/i })).toBeInTheDocument();
+        expect(screen.getByRole('tab', { name: /Exports/i })).toBeInTheDocument();
         expect(screen.getByPlaceholderText(/search bl, ref, client, vessel, blocker/i)).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /all/i })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /ready/i })).toBeInTheDocument();
@@ -90,8 +90,7 @@ describe('ProcessorTransactionPage', () => {
 
         expect(screen.getByText('Ready to Upload')).toBeInTheDocument();
         expect(screen.getByText('Waiting / Monitoring')).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /Open Upload Tasks/i })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /View Details/i })).toBeInTheDocument();
+        expect(screen.getAllByRole('button', { name: /^View$/i })).toHaveLength(2);
         expect(screen.getByText('PPA Ready')).toBeInTheDocument();
         expect(screen.getAllByText('Port Charges Waiting').length).toBeGreaterThan(0);
         expect(screen.getByText('Waiting 2 days')).toBeInTheDocument();

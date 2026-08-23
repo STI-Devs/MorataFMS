@@ -1,7 +1,22 @@
 import { useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Icon } from '../../../components/Icon';
+import {
+    Building2,
+    Flag,
+    Layers,
+    Loader2,
+    Truck,
+} from 'lucide-react';
+import { Badge } from '../../../components/ui/badge';
+import { Card } from '../../../components/ui/card';
+import {
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetHeader,
+    SheetTitle,
+} from '../../../components/ui/sheet';
 import { FilePreviewModal } from '../../../components/modals/FilePreviewModal';
 import { UploadModal } from '../../../components/modals/UploadModal';
 import { trackingApi } from '../../tracking/api/trackingApi';
@@ -226,90 +241,139 @@ export const ProcessorUploadModal = ({
         }
     };
 
-    if (!isOpen) return null;
+    const completedStagesCount = stages.filter((stage, i) => {
+        const isNotApplicable = localNotApplicableStages.includes(stage.type);
+        const docs = stageDocuments[i] ?? [];
+        return isNotApplicable || docs.length > 0;
+    }).length;
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-end bg-black/50 backdrop-blur-sm transition-opacity">
-            <div className="flex h-full w-full max-w-xl flex-col bg-surface shadow-2xl animate-slide-in-right">
-                <div className="flex items-center justify-between border-b border-border px-6 py-4">
-                    <div>
-                        <h2 className="text-lg font-bold text-text-primary">Processor Tasks</h2>
-                        <p className="text-xs text-text-secondary">{reference} • {clientName}</p>
+        <>
+            <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
+                <SheetContent
+                    side="right"
+                    className="w-full sm:max-w-xl p-0 gap-0 flex flex-col bg-background border-l border-border/80"
+                >
+                    {/* Header */}
+                    <SheetHeader className="p-6 border-b border-border/80 bg-muted/20 space-y-2 text-left">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <SheetTitle className="text-xl font-bold tracking-tight text-foreground">
+                                {reference}
+                            </SheetTitle>
+                            <Badge
+                                variant="outline"
+                                className={`text-[10px] px-2 py-0.5 font-semibold gap-1 ${
+                                    isImport
+                                        ? 'border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400'
+                                        : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                                }`}
+                            >
+                                {isImport ? <Truck className="size-3" /> : <Flag className="size-3" />}
+                                {isImport ? 'Import Shipment' : 'Export Shipment'}
+                            </Badge>
+                        </div>
+
+                        <div className="space-y-0.5 text-xs text-muted-foreground">
+                            <div className="flex items-center gap-1.5 font-medium text-foreground">
+                                <Building2 className="size-3.5 text-muted-foreground shrink-0" />
+                                <span className="truncate">{clientName}</span>
+                            </div>
+                        </div>
+
+                        <SheetDescription className="text-xs text-muted-foreground pt-1">
+                            Upload and manage processor compliance documents for this shipment.
+                        </SheetDescription>
+                    </SheetHeader>
+
+                    {/* Content */}
+                    <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                        {docsLoading ? (
+                            <div className="flex flex-col items-center justify-center p-12 gap-2 text-muted-foreground">
+                                <Loader2 className="size-8 animate-spin text-primary opacity-60" />
+                                <span className="text-xs font-medium">Loading compliance documents...</span>
+                            </div>
+                        ) : (
+                            <Card className="p-0 overflow-hidden shadow-2xs border-border/80">
+                                <div className="px-5 py-3.5 border-b border-border/80 bg-muted/40 flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <Layers className="size-4 text-primary" />
+                                        <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                            Required Uploads
+                                        </h3>
+                                    </div>
+                                    <Badge variant="secondary" className="text-[10px] px-2 py-0.5 font-semibold">
+                                        {completedStagesCount} of {stages.length} Complete
+                                    </Badge>
+                                </div>
+
+                                <div className="divide-y divide-border/60 bg-card">
+                                    {stages.map((stage, i) => {
+                                        const docs = stageDocuments[i] ?? [];
+                                        const isActionable = isStageActionable(stage.type);
+                                        const isNotApplicable = localNotApplicableStages.includes(stage.type);
+                                        const stageStatus = isNotApplicable
+                                            ? 'completed'
+                                            : getOperationalStageStatus(docs.length > 0, isActionable);
+
+                                        return (
+                                            <StageRow
+                                                key={stage.type}
+                                                stage={stage}
+                                                index={i}
+                                                isLast={i === stages.length - 1}
+                                                stageStatus={stageStatus}
+                                                docs={docs}
+                                                isNotApplicable={isNotApplicable}
+                                                isUploading={uploadingStage === i}
+                                                isApplicabilityUpdating={applicabilityStage === stage.type}
+                                                deletingDocId={deletingDocId}
+                                                uploadDisabledReason={
+                                                    !docs.length && !isActionable && !isNotApplicable
+                                                        ? 'Waiting for earlier stages to be completed first.'
+                                                        : null
+                                                }
+                                                onUploadClick={handleStageUploadClick}
+                                                onPreviewDoc={handlePreviewDoc}
+                                                onDeleteDoc={handleDeleteDoc}
+                                                onReplaceDoc={handleReplaceDoc}
+                                                onNotApplicableChange={handleStageApplicabilityChange}
+                                            />
+                                        );
+                                    })}
+                                </div>
+                            </Card>
+                        )}
                     </div>
-                    <button
-                        onClick={onClose}
-                        className="rounded-lg p-2 text-text-muted transition-colors hover:bg-hover hover:text-text-primary"
-                    >
-                        <Icon name="x" className="h-5 w-5" />
-                    </button>
-                </div>
 
-                <div className="flex-1 overflow-y-auto px-6 py-6 border-b border-border">
-                    {docsLoading ? (
-                        <div className="flex justify-center p-8">
-                            <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-500/30 border-t-blue-500" />
-                        </div>
-                    ) : (
-                        <div className="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col">
-                            <div className="px-5 py-4 border-b border-border flex items-center justify-between bg-surface-secondary/50">
-                                <h3 className="text-sm font-bold text-text-primary">Required Uploads</h3>
-                            </div>
-                            <div className="divide-y divide-border/60">
-                                {stages.map((stage, i) => {
-                                    const docs = stageDocuments[i] ?? [];
-                                    const isActionable = isStageActionable(stage.type);
-                                    const isNotApplicable = localNotApplicableStages.includes(stage.type);
-                                    const stageStatus = isNotApplicable
-                                        ? 'completed'
-                                        : getOperationalStageStatus(docs.length > 0, isActionable);
-                                    
-                                    return (
-                                        <StageRow
-                                            key={stage.type}
-                                            stage={stage}
-                                            index={i}
-                                            isLast={i === stages.length - 1}
-                                            stageStatus={stageStatus}
-                                            docs={docs}
-                                            isNotApplicable={isNotApplicable}
-                                            isUploading={uploadingStage === i}
-                                            isApplicabilityUpdating={applicabilityStage === stage.type}
-                                            deletingDocId={deletingDocId}
-                                            uploadDisabledReason={!docs.length && !isActionable && !isNotApplicable ? 'Waiting for earlier stages to be completed first.' : null}
-                                            onUploadClick={handleStageUploadClick}
-                                            onPreviewDoc={handlePreviewDoc}
-                                            onDeleteDoc={handleDeleteDoc}
-                                            onReplaceDoc={handleReplaceDoc}
-                                            onNotApplicableChange={handleStageApplicabilityChange}
-                                        />
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    )}
-                </div>
-            </div>
+                    <UploadModal
+                        isOpen={isUploadOpen}
+                        onClose={() => {
+                            setIsUploadOpen(false);
+                            setUploadError(null);
+                        }}
+                        onUpload={handleUpload}
+                        title={selectedStageIndex !== null ? stages[selectedStageIndex].title : ''}
+                        isLoading={uploadingStage !== null}
+                        errorMessage={uploadError ?? undefined}
+                    />
 
-            <UploadModal
-                isOpen={isUploadOpen}
-                onClose={() => { setIsUploadOpen(false); setUploadError(null); }}
-                onUpload={handleUpload}
-                title={selectedStageIndex !== null ? stages[selectedStageIndex].title : ''}
-                isLoading={uploadingStage !== null}
-                errorMessage={uploadError ?? undefined}
-            />
-
-            <FilePreviewModal
-                isOpen={!!previewFile}
-                onClose={() => setPreviewFile(null)}
-                file={previewFile?.file ?? null}
-                fileName={previewFile?.name ?? ''}
-                onDownload={previewFile ? () => {
-                    const allDocs = Object.values(stageDocuments).flat();
-                    const doc = allDocs.find(d => d.filename === previewFile.name);
-                    if (doc) trackingApi.downloadDocument(doc.id, doc.filename);
-                } : undefined}
-            />
-        </div>
+                    <FilePreviewModal
+                        isOpen={!!previewFile}
+                        onClose={() => setPreviewFile(null)}
+                        file={previewFile?.file ?? null}
+                        fileName={previewFile?.name ?? ''}
+                        onDownload={
+                            previewFile
+                                ? () => {
+                                      const allDocs = Object.values(stageDocuments).flat();
+                                      const doc = allDocs.find((d) => d.filename === previewFile.name);
+                                      if (doc) trackingApi.downloadDocument(doc.id, doc.filename);
+                                  }
+                                : undefined
+                        }
+                    />
+                </SheetContent>
+            </Sheet>
+        </>
     );
 };

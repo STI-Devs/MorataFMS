@@ -18,7 +18,10 @@ function makeRow(overrides: Partial<ProcessorQueueRow> = {}): ProcessorQueueRow 
     return {
         id: 1,
         ref: 'BL-001',
+        customsRef: null,
+        blNo: null,
         clientName: 'Acme',
+        vesselName: null,
         typeLabel: 'Import',
         primaryMeta: 'ETA Apr 15, 2026',
         secondaryMeta: null,

@@ -1,11 +1,39 @@
-import { Icon } from '../../../components/Icon';
+import {
+    AlertCircle,
+    Calendar,
+    Clock,
+    Flag,
+    FolderArchive,
+    Layers,
+    Receipt,
+    Search,
+    Truck,
+} from 'lucide-react';
+import { Badge } from '../../../components/ui/badge';
+import { Button } from '../../../components/ui/button';
+import { Card, CardContent } from '../../../components/ui/card';
+import { Input } from '../../../components/ui/input';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '../../../components/ui/table';
+import {
+    Tabs,
+    TabsContent,
+    TabsList,
+    TabsTrigger,
+} from '../../../components/ui/tabs';
 import { useProcessorTaskQueue } from '../hooks/useProcessorTaskQueue';
 import {
     FILTER_META,
     stageToneClassName,
     type ProcessorQueueRow,
-    type QueueState,
     type QueueStageChip,
+    type QueueState,
 } from '../utils/processorTransaction.utils';
 import { ProcessorUploadModal } from './ProcessorUploadModal';
 
@@ -32,132 +60,199 @@ export const ProcessorTransactionPage = () => {
     } = useProcessorTaskQueue();
 
     return (
-        <div className="flex h-full flex-1 flex-col bg-app-bg">
-            <div className="border-b border-border bg-surface px-4 pb-4 pt-4">
-                <h1 className="text-2xl font-bold tracking-tight text-text-primary">Processor Task Queue</h1>
-                <p className="mt-1 text-sm text-text-secondary">
+        <div className="w-full space-y-6 pb-8">
+            {/* Header */}
+            <div className="flex flex-col gap-1">
+                <h1 className="text-2xl font-bold tracking-tight text-foreground">
+                    Processor Task Queue
+                </h1>
+                <p className="text-sm text-muted-foreground">
                     Scan ready uploads first, then monitor blocked transactions by urgency and oldest waiting time.
                 </p>
+            </div>
 
-                <div className="mt-5 flex flex-wrap gap-4 border-b border-border">
-                    <QueueViewButton
-                        isActive={view === 'import'}
-                        label="Imports (PPA / Port Charges)"
-                        count={importCount}
-                        onClick={() => setView('import')}
-                    />
-                    <QueueViewButton
-                        isActive={view === 'export'}
-                        label="Exports (CIL / DCCCI)"
-                        count={exportCount}
-                        onClick={() => setView('export')}
-                    />
+            {/* Error Banner */}
+            {isError && !isLoading && (
+                <div className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm font-medium text-destructive">
+                    <AlertCircle className="size-4 shrink-0" />
+                    Processor queue failed to load. Please refresh the page and try again.
                 </div>
+            )}
 
-                <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                    <div className="relative w-full lg:max-w-md">
-                        <Icon name="search" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
-                        <input
-                            value={search}
-                            onChange={(event) => setSearch(event.target.value)}
-                            placeholder="Search BL, ref, client, vessel, blocker..."
-                            className="h-10 w-full rounded-xl border border-border bg-surface pl-10 pr-3 text-sm text-text-primary placeholder:text-text-muted focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                        />
-                    </div>
+            {/* Section 1: KPI Metrics Cards */}
+            <section className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+                <Card className="shadow-2xs">
+                    <CardContent className="p-3 sm:p-3.5 space-y-1">
+                        <div className="flex items-center justify-between text-muted-foreground text-[10px] font-semibold uppercase tracking-wider">
+                            <span>Visible Queue</span>
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-medium shrink-0 gap-1">
+                                <Layers className="size-3 text-primary" /> Queue
+                            </Badge>
+                        </div>
+                        <div className="text-xl sm:text-2xl font-bold tabular-nums text-foreground">
+                            {isLoading ? '...' : queueSummary.visible}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground truncate">
+                            {view === 'import' ? `${importCount} imports` : `${exportCount} exports`} in view
+                        </p>
+                    </CardContent>
+                </Card>
 
-                    <div className="flex flex-wrap items-center gap-2">
-                        <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-[0.18em] text-text-muted">
-                            <Icon name="filter" className="h-3.5 w-3.5" />
-                            Quick Filter
-                        </span>
-                        {FILTER_META.map((option) => (
-                            <FilterChip
-                                key={option.key}
-                                label={option.label}
-                                count={filterCounts[option.key]}
-                                isActive={filter === option.key}
-                                onClick={() => setFilter(option.key)}
+                <Card className="shadow-2xs">
+                    <CardContent className="p-3 sm:p-3.5 space-y-1">
+                        <div className="flex items-center justify-between text-muted-foreground text-[10px] font-semibold uppercase tracking-wider">
+                            <span>Ready Now</span>
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-medium shrink-0 gap-1 border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                                <Receipt className="size-3 text-emerald-500" /> Actionable
+                            </Badge>
+                        </div>
+                        <div className="text-xl sm:text-2xl font-bold tabular-nums text-foreground">
+                            {isLoading ? '...' : queueSummary.ready}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground truncate">
+                            Unblocked and ready for processor action
+                        </p>
+                    </CardContent>
+                </Card>
+
+                <Card className="shadow-2xs">
+                    <CardContent className="p-3 sm:p-3.5 space-y-1">
+                        <div className="flex items-center justify-between text-muted-foreground text-[10px] font-semibold uppercase tracking-wider">
+                            <span>Blocked</span>
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-medium shrink-0 gap-1 border-border bg-muted/60 text-muted-foreground">
+                                <Clock className="size-3" /> Waiting
+                            </Badge>
+                        </div>
+                        <div className="text-xl sm:text-2xl font-bold tabular-nums text-foreground">
+                            {isLoading ? '...' : queueSummary.waiting}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground truncate">
+                            Awaiting preceding stages
+                        </p>
+                    </CardContent>
+                </Card>
+
+                <Card className="shadow-2xs">
+                    <CardContent className="p-3 sm:p-3.5 space-y-1">
+                        <div className="flex items-center justify-between text-muted-foreground text-[10px] font-semibold uppercase tracking-wider">
+                            <span>Overdue</span>
+                            <Badge
+                                variant={queueSummary.overdue > 0 ? 'destructive' : 'outline'}
+                                className="text-[10px] px-1.5 py-0 font-medium shrink-0 gap-1"
+                            >
+                                <AlertCircle className="size-3" /> Overdue
+                            </Badge>
+                        </div>
+                        <div className={`text-xl sm:text-2xl font-bold tabular-nums ${queueSummary.overdue > 0 ? 'text-destructive' : 'text-foreground'}`}>
+                            {isLoading ? '...' : queueSummary.overdue}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground truncate">
+                            {queueSummary.overdue === 0 ? 'No overdue items' : 'Waiting > 48 hours'}
+                        </p>
+                    </CardContent>
+                </Card>
+            </section>
+
+            {/* Section 2: Tabbed Workspace Toolbar */}
+            <Tabs value={view} onValueChange={(val) => setView(val as 'import' | 'export')} className="w-full space-y-4">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                    <TabsList className="h-9 p-1 bg-muted/60">
+                        <TabsTrigger value="import" className="gap-2 px-3 text-xs">
+                            <Truck className="size-3.5 text-blue-500" />
+                            Imports (PPA / Port Charges)
+                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-semibold">
+                                {importCount}
+                            </Badge>
+                        </TabsTrigger>
+                        <TabsTrigger value="export" className="gap-2 px-3 text-xs">
+                            <Flag className="size-3.5 text-emerald-500" />
+                            Exports (CIL / DCCCI)
+                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-semibold">
+                                {exportCount}
+                            </Badge>
+                        </TabsTrigger>
+                    </TabsList>
+
+                    {/* Search & Quick Filters */}
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                        <div className="relative min-w-[240px] sm:w-64">
+                            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                                value={search}
+                                onChange={(event) => setSearch(event.target.value)}
+                                placeholder="Search BL, ref, client, vessel, blocker..."
+                                className="h-9 pl-8.5 pr-3 text-xs"
                             />
-                        ))}
+                        </div>
+
+                        <div className="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0">
+                            {FILTER_META.map((option) => {
+                                const isSelected = filter === option.key;
+                                return (
+                                    <Button
+                                        key={option.key}
+                                        variant={isSelected ? 'default' : 'outline'}
+                                        size="sm"
+                                        onClick={() => setFilter(option.key)}
+                                        className="h-8 px-2.5 text-xs gap-1.5 font-medium shrink-0"
+                                    >
+                                        {option.label}
+                                        <span className={`rounded-full px-1.5 py-0.2 text-[10px] font-semibold ${
+                                            isSelected ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-muted text-muted-foreground'
+                                        }`}>
+                                            {filterCounts[option.key]}
+                                        </span>
+                                    </Button>
+                                );
+                            })}
+                        </div>
                     </div>
                 </div>
 
-                <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                    <SummaryCard
-                        label="Visible Queue"
-                        value={queueSummary.visible}
-                        accent="border-border bg-surface-secondary/50"
-                        valueTone="text-text-primary"
-                    />
-                    <SummaryCard
-                        label="Ready Now"
-                        value={queueSummary.ready}
-                        accent="border-info/20 bg-info/10"
-                        valueTone="text-info"
-                    />
-                    <SummaryCard
-                        label="Blocked"
-                        value={queueSummary.waiting}
-                        accent="border-border bg-muted/80"
-                        valueTone="text-muted-foreground"
-                    />
-                    <SummaryCard
-                        label="Overdue"
-                        value={queueSummary.overdue}
-                        accent="border-warning/20 bg-warning/10"
-                        valueTone="text-warning"
-                    />
-                </div>
-            </div>
+                {/* Section 3: Task Lists Content */}
+                <TabsContent value={view} className="mt-0 space-y-6">
+                    {isLoading && (
+                        <div className="rounded-xl border border-dashed border-border bg-card p-10 text-center text-sm text-muted-foreground">
+                            Loading processor queue...
+                        </div>
+                    )}
 
-            <div className="flex-1 overflow-y-auto bg-surface-secondary/20 px-4 pb-8 pt-5">
-                {isLoading && (
-                    <div className="rounded-xl border border-dashed border-border bg-surface p-10 text-center text-sm text-text-muted">
-                        Loading processor queue...
-                    </div>
-                )}
+                    {!isLoading && !isError && activeRows.length === 0 && (
+                        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card p-16 text-center text-muted-foreground">
+                            <FolderArchive className="size-12 opacity-50 mb-3" />
+                            <p className="text-sm font-semibold text-foreground">No processor upload tasks available</p>
+                        </div>
+                    )}
 
-                {isError && !isLoading && (
-                    <div className="rounded-xl border border-dashed border-border bg-surface p-10 text-center text-sm text-text-muted">
-                        Processor queue failed to load. Refresh the page and try again.
-                    </div>
-                )}
+                    {!isLoading && !isError && activeRows.length > 0 && filteredRows.length === 0 && (
+                        <div className="rounded-xl border border-dashed border-border bg-card p-10 text-center text-sm text-muted-foreground">
+                            No processor tasks match the current search and filter.
+                        </div>
+                    )}
 
-                {!isLoading && !isError && activeRows.length === 0 && (
-                    <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-surface p-16 text-center text-text-muted">
-                        <Icon name="archive" className="h-12 w-12 opacity-50" />
-                        <p className="mt-4 text-sm font-semibold">No processor upload tasks available</p>
-                    </div>
-                )}
+                    {!isLoading && !isError && filteredRows.length > 0 && (
+                        <div className="space-y-6">
+                            <QueueSection
+                                title="Ready to Upload"
+                                description="Unblocked processor-owned stages, sorted so the oldest waiting work stays near the top."
+                                tone="ready"
+                                emptyMessage="No processor uploads are ready right now."
+                                rows={readyRows}
+                                onOpen={(row) => setSelectedTx(row.selectedTransaction)}
+                            />
 
-                {!isLoading && !isError && activeRows.length > 0 && filteredRows.length === 0 && (
-                    <div className="rounded-xl border border-dashed border-border bg-surface p-10 text-center text-sm text-text-muted">
-                        No processor tasks match the current search and filter.
-                    </div>
-                )}
-
-                {!isLoading && !isError && filteredRows.length > 0 && (
-                    <div className="space-y-8">
-                        <QueueSection
-                            title="Ready to Upload"
-                            description="Unblocked processor-owned stages, sorted so the oldest waiting work stays near the top."
-                            tone="ready"
-                            emptyMessage="No processor uploads are ready right now."
-                            rows={readyRows}
-                            onOpen={(row) => setSelectedTx(row.selectedTransaction)}
-                        />
-
-                        <QueueSection
-                            title="Waiting / Monitoring"
-                            description="Blocked transactions sorted by overdue items first, then by oldest wait."
-                            tone="waiting"
-                            emptyMessage="No waiting processor transactions."
-                            rows={waitingRows}
-                            onOpen={(row) => setSelectedTx(row.selectedTransaction)}
-                        />
-                    </div>
-                )}
-            </div>
+                            <QueueSection
+                                title="Waiting / Monitoring"
+                                description="Blocked transactions sorted by overdue items first, then by oldest wait."
+                                tone="waiting"
+                                emptyMessage="No waiting processor transactions."
+                                rows={waitingRows}
+                                onOpen={(row) => setSelectedTx(row.selectedTransaction)}
+                            />
+                        </div>
+                    )}
+                </TabsContent>
+            </Tabs>
 
             {selectedTx && (
                 <ProcessorUploadModal
@@ -175,79 +270,6 @@ export const ProcessorTransactionPage = () => {
     );
 };
 
-const QueueViewButton = ({
-    isActive,
-    label,
-    count,
-    onClick,
-}: {
-    isActive: boolean;
-    label: string;
-    count: number;
-    onClick: () => void;
-}) => (
-    <button
-        type="button"
-        onClick={onClick}
-        className={`flex items-center gap-2 border-b-2 px-2 pb-3 text-sm font-bold transition-colors ${
-            isActive
-                ? 'border-primary text-primary'
-                : 'border-transparent text-text-secondary hover:text-text-primary'
-        }`}
-    >
-        {label}
-        {count > 0 && (
-            <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold leading-none text-primary">
-                {count}
-            </span>
-        )}
-    </button>
-);
-
-const FilterChip = ({
-    label,
-    count,
-    isActive,
-    onClick,
-}: {
-    label: string;
-    count: number;
-    isActive: boolean;
-    onClick: () => void;
-}) => (
-    <button
-        type="button"
-        onClick={onClick}
-        className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
-            isActive
-                ? 'border-primary/20 bg-primary/10 text-primary'
-                : 'border-border bg-surface text-text-secondary hover:text-text-primary'
-        }`}
-    >
-        {label}
-        <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${isActive ? 'bg-primary/15 text-primary' : 'bg-surface-secondary text-text-muted'}`}>
-            {count}
-        </span>
-    </button>
-);
-
-const SummaryCard = ({
-    label,
-    value,
-    accent,
-    valueTone,
-}: {
-    label: string;
-    value: number;
-    accent: string;
-    valueTone: string;
-}) => (
-    <div className={`rounded-2xl border px-4 py-3 shadow-sm ${accent}`}>
-        <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-text-secondary">{label}</p>
-        <p className={`mt-2 text-2xl font-bold ${valueTone}`}>{value}</p>
-    </div>
-);
-
 const QueueSection = ({
     title,
     description,
@@ -264,138 +286,161 @@ const QueueSection = ({
     onOpen: (row: ProcessorQueueRow) => void;
 }) => (
     <section className="space-y-3">
-        <div className="flex flex-wrap items-center gap-3">
-            <div className={`h-5 w-1 rounded-full ${tone === 'ready' ? 'bg-info' : 'bg-muted-foreground'}`} />
-            <h2 className="text-sm font-bold uppercase tracking-[0.22em] text-text-secondary">{title}</h2>
-            <span className="rounded-full border border-border bg-surface px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-text-muted">
-                {rows.length}
-            </span>
-            <p className="text-xs text-text-muted">{description}</p>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+                <div className={`h-4 w-1 rounded-full ${tone === 'ready' ? 'bg-emerald-500' : 'bg-muted-foreground/60'}`} />
+                <h2 className="text-sm font-semibold text-foreground">{title}</h2>
+                <Badge
+                    variant="outline"
+                    className={`text-[10px] px-1.5 py-0 font-medium ${
+                        tone === 'ready'
+                            ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                            : 'border-border bg-muted/60 text-muted-foreground'
+                    }`}
+                >
+                    {rows.length}
+                </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground">{description}</p>
         </div>
 
         {rows.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-border bg-surface p-6 text-sm text-text-muted">
+            <div className="rounded-xl border border-dashed border-border bg-card p-6 text-center text-sm text-muted-foreground">
                 {emptyMessage}
             </div>
         ) : (
-            <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
-                <div
-                    className="hidden items-center gap-3 border-b border-border bg-surface-secondary/60 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.14em] text-text-muted lg:grid"
-                    style={{ gridTemplateColumns: 'minmax(0,1.3fr) minmax(0,1.1fr) minmax(0,1fr) minmax(0,1.15fr) auto' }}
-                >
-                    <span>Reference</span>
-                    <span>Next Step</span>
-                    <span>Context</span>
-                    <span>Stages</span>
-                    <span>Action</span>
-                </div>
-
-                <div className="divide-y divide-border/50">
-                    {rows.map((row) => (
-                        <QueueRow key={`${row.selectedTransaction.type}-${row.id}`} row={row} onOpen={() => onOpen(row)} />
-                    ))}
-                </div>
-            </div>
+            <Card className="p-0 overflow-hidden shadow-2xs">
+                <Table>
+                    <TableHeader className="bg-muted/50">
+                        <TableRow className="hover:bg-transparent">
+                            <TableHead className="w-[180px] text-xs font-semibold uppercase tracking-wider text-muted-foreground">Reference / BL</TableHead>
+                            <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Client / Vessel</TableHead>
+                            <TableHead className="w-[200px] text-xs font-semibold uppercase tracking-wider text-muted-foreground">Next Step / Blocker</TableHead>
+                            <TableHead className="w-[140px] text-xs font-semibold uppercase tracking-wider text-muted-foreground">Context</TableHead>
+                            <TableHead className="w-[180px] text-xs font-semibold uppercase tracking-wider text-muted-foreground">Stages</TableHead>
+                            <TableHead className="w-[140px] text-end text-xs font-semibold uppercase tracking-wider text-muted-foreground">Actions</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {rows.map((row) => (
+                            <QueueTableRow key={`${row.selectedTransaction.type}-${row.id}`} row={row} onOpen={() => onOpen(row)} />
+                        ))}
+                    </TableBody>
+                </Table>
+            </Card>
         )}
     </section>
 );
 
-const QueueRow = ({
+const QueueTableRow = ({
     row,
     onOpen,
 }: {
     row: ProcessorQueueRow;
     onOpen: () => void;
-}) => (
-    <div
-        className={`grid gap-3 px-4 py-4 lg:items-center ${
-            row.state === 'ready'
-                ? 'bg-surface'
-                : 'bg-muted/70'
-        }`}
-        style={{ gridTemplateColumns: '1fr', }}
-    >
-        <div className="grid gap-3 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,1.15fr)_auto] lg:items-center">
-            <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                    <p className="truncate text-base font-bold tracking-tight text-text-primary">{row.ref}</p>
-                    <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em] ${
-                        row.selectedTransaction.type === 'import'
-                            ? 'border-info/20 bg-info/10 text-info'
-                            : 'border-success/20 bg-success/10 text-success'
-                    }`}>
-                        {row.typeLabel}
-                    </span>
-                    {row.isOverdue && (
-                        <span className="rounded-full border border-warning/20 bg-warning/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-warning">
-                            Overdue
+}) => {
+    const isImport = row.selectedTransaction.type === 'import';
+    const displayTitle = isImport ? (row.customsRef || row.ref) : (row.blNo || row.ref);
+
+    return (
+        <TableRow className={`hover:bg-muted/50 transition-colors ${row.state === 'ready' ? 'bg-card' : 'bg-muted/10'}`}>
+            {/* Reference / BL */}
+            <TableCell className="py-3.5 px-4 align-top">
+                <div className="space-y-1">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="text-xs font-bold text-foreground block">
+                            {displayTitle}
                         </span>
+                        <Badge
+                            variant="outline"
+                            className={`text-[10px] px-1.5 py-0 font-medium shrink-0 ${
+                                isImport
+                                    ? 'border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400'
+                                    : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                            }`}
+                        >
+                            {row.typeLabel}
+                        </Badge>
+                        {row.isOverdue && (
+                            <Badge
+                                variant="destructive"
+                                className="text-[10px] px-1.5 py-0 font-medium shrink-0 gap-1"
+                            >
+                                <AlertCircle className="size-2.5" /> Overdue
+                            </Badge>
+                        )}
+                    </div>
+                    {isImport && row.blNo && (
+                        <p className="text-[11px] text-muted-foreground">
+                            BL: <span className="font-medium text-foreground">{row.blNo}</span>
+                        </p>
                     )}
                 </div>
-                <p className="mt-1 truncate text-sm text-text-secondary">{row.clientName}</p>
-                {row.secondaryMeta && (
-                    <p className="mt-1 truncate text-[11px] text-text-muted">{row.secondaryMeta}</p>
-                )}
-            </div>
+            </TableCell>
 
-            <div className="min-w-0">
-                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-text-muted">
-                    {row.state === 'ready' ? 'Next Upload' : 'Blocked By'}
+            {/* Client / Vessel */}
+            <TableCell className="py-3.5 px-4 align-top">
+                <p className="text-xs font-semibold text-foreground truncate max-w-[200px]">
+                    {row.clientName}
                 </p>
-                <p className="mt-1 truncate text-sm font-semibold text-text-primary">
+                {row.vesselName && (
+                    <p className="mt-0.5 text-[11px] text-muted-foreground truncate max-w-[200px]">
+                        Vessel: <span className="font-medium text-foreground/80">{row.vesselName}</span>
+                    </p>
+                )}
+            </TableCell>
+
+            {/* Next Step / Blocker */}
+            <TableCell className="py-3.5 px-4 align-top">
+                <p className="text-xs font-semibold text-foreground line-clamp-1">
                     {row.state === 'ready' ? row.nextActionLabel : (row.blocker ?? 'Waiting for encoder progress.')}
                 </p>
                 {row.waitingLabel && (
-                    <span className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-warning/20 bg-warning/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-warning">
-                        <Icon name="alert-circle" className="h-3 w-3" />
-                        {row.waitingLabel}
-                    </span>
+                    <div className="mt-1 flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400 font-medium">
+                        <Clock className="size-3 shrink-0" />
+                        <span>{row.waitingLabel}</span>
+                    </div>
                 )}
-            </div>
+            </TableCell>
 
-            <div className="min-w-0">
-                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-text-muted">Context</p>
-                <div className="mt-2 flex flex-wrap gap-2">
-                    <span className="inline-flex items-center gap-1 rounded-full border border-border bg-surface-secondary px-2.5 py-1 text-[10px] font-semibold text-text-secondary">
-                        <Icon name="clock" className="h-3 w-3 text-text-muted" />
-                        {row.primaryMeta}
-                    </span>
+            {/* Context */}
+            <TableCell className="py-3.5 px-4 align-top">
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Calendar className="size-3.5 shrink-0 text-muted-foreground/70" />
+                    <span className="truncate">{row.primaryMeta}</span>
                 </div>
-            </div>
+            </TableCell>
 
-            <div className="min-w-0">
-                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-text-muted">Stages</p>
-                <div className="mt-2 flex flex-wrap gap-2">
+            {/* Stages */}
+            <TableCell className="py-3.5 px-4 align-top">
+                <div className="flex flex-wrap gap-1.5">
                     {row.stageChips.map((chip) => (
                         <StageChip key={chip.key} chip={chip} />
                     ))}
                 </div>
-            </div>
+            </TableCell>
 
-            <div className="flex items-center justify-start lg:justify-end">
-                <button
-                    type="button"
+            {/* Actions */}
+            <TableCell className="py-3.5 px-4 align-top text-end">
+                <Button
+                    variant={row.state === 'ready' ? 'default' : 'outline'}
+                    size="sm"
                     onClick={onOpen}
-                    className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold transition-colors ${
-                        row.state === 'ready'
-                            ? 'bg-primary/10 text-primary hover:bg-primary/20'
-                            : 'bg-muted text-muted-foreground hover:bg-foreground/10'
-                    }`}
+                    className="h-8 px-3 text-xs font-semibold cursor-pointer shadow-2xs"
                 >
-                    {row.state === 'ready' ? 'Open Upload Tasks' : 'View Details'}
-                    <Icon name="chevron-right" className="h-3.5 w-3.5" />
-                </button>
-            </div>
-        </div>
-    </div>
-);
+                    View
+                </Button>
+            </TableCell>
+        </TableRow>
+    );
+};
 
 const StageChip = ({ chip }: { chip: QueueStageChip }) => {
     const toneClass = stageToneClassName(chip.tone);
 
     return (
-        <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] ${toneClass}`}>
-            <span className="h-1.5 w-1.5 rounded-full bg-current opacity-70" />
+        <span className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${toneClass}`}>
+            <span className="size-1.5 rounded-full bg-current opacity-80" />
             {chip.label}
         </span>
     );

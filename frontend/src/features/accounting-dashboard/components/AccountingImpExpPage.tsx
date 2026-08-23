@@ -18,6 +18,14 @@ import { Button } from '../../../components/ui/button';
 import { Card, CardContent } from '../../../components/ui/card';
 import { Input } from '../../../components/ui/input';
 import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '../../../components/ui/table';
+import {
     Tabs,
     TabsContent,
     TabsList,
@@ -365,177 +373,189 @@ const QueueSection = ({
     view: 'import' | 'export';
     onOpen: (row: AccountingQueueRow, entryMode: 'single-transaction' | 'shared-vessel') => void;
 }) => (
-    <section className="space-y-2.5">
-        <div className="flex flex-wrap items-center gap-2">
-            <div className={`h-4 w-1 rounded-full ${tone === 'ready' ? 'bg-emerald-500' : 'bg-muted-foreground/60'}`} />
-            <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{title}</h2>
-            <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-semibold text-muted-foreground">
-                {rows.length}
-            </Badge>
-            <span className="text-xs text-muted-foreground hidden sm:inline">· {description}</span>
+    <section className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+                <div className={`h-4 w-1 rounded-full ${tone === 'ready' ? 'bg-emerald-500' : 'bg-muted-foreground/60'}`} />
+                <h2 className="text-sm font-semibold text-foreground">{title}</h2>
+                <Badge
+                    variant="outline"
+                    className={`text-[10px] px-1.5 py-0 font-medium ${
+                        tone === 'ready'
+                            ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                            : 'border-border bg-muted/60 text-muted-foreground'
+                    }`}
+                >
+                    {rows.length}
+                </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground">{description}</p>
         </div>
 
         {rows.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-border bg-card p-6 text-sm text-muted-foreground">
+            <div className="rounded-xl border border-dashed border-border bg-card p-6 text-center text-sm text-muted-foreground">
                 {emptyMessage}
             </div>
         ) : (
-            <div className="overflow-hidden rounded-xl border border-border/80 bg-card shadow-2xs">
-                <div
-                    className="hidden items-center gap-3 border-b border-border/80 bg-muted/40 px-4 py-2.5 text-xs font-semibold text-muted-foreground lg:grid"
-                    style={{ gridTemplateColumns: 'minmax(0,1.4fr) minmax(0,1.1fr) minmax(0,1fr) minmax(0,1fr) auto' }}
-                >
-                    <span>{view === 'import' ? 'Customs Ref / Client' : 'Bill of Lading / Client'}</span>
-                    <span>Next Step</span>
-                    <span>Schedule / Context</span>
-                    <span>Status</span>
-                    <span className="text-end">Actions</span>
-                </div>
+            <Card className="p-0 overflow-hidden shadow-2xs">
+                <Table>
+                    <TableHeader className="bg-muted/50">
+                        <TableRow className="hover:bg-transparent">
+                            <TableHead className="w-[180px] text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                {view === 'import' ? 'Reference / BL' : 'Bill of Lading'}
+                            </TableHead>
+                            <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Client / Vessel</TableHead>
+                            <TableHead className="w-[200px] text-xs font-semibold uppercase tracking-wider text-muted-foreground">Next Step / Blocker</TableHead>
+                            <TableHead className="w-[140px] text-xs font-semibold uppercase tracking-wider text-muted-foreground">Context</TableHead>
+                            <TableHead className="w-[140px] text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</TableHead>
+                            <TableHead className="w-[140px] text-end text-xs font-semibold uppercase tracking-wider text-muted-foreground">Actions</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {readyGroups
+                            ? readyGroups.map((group, index) => {
+                                if (group.kind === 'single-row') {
+                                    const row = group.row;
 
-                <div className="divide-y divide-border/60">
-                    {readyGroups
-                        ? readyGroups.map((group, index) => {
-                            if (group.kind === 'single-row') {
-                                const row = group.row;
+                                    return (
+                                        <QueueTableRow
+                                            key={`${row.selectedTransaction.type}-${row.id}`}
+                                            row={row}
+                                            onOpen={() => onOpen(row, 'single-transaction')}
+                                        />
+                                    );
+                                }
 
                                 return (
-                                    <QueueRow
-                                        key={`${row.selectedTransaction.type}-${row.id}`}
-                                        row={row}
-                                        onOpen={() => onOpen(row, 'single-transaction')}
+                                    <SharedVesselTableGroup
+                                        key={`${group.vesselKey}-${index}`}
+                                        vesselName={group.vesselName}
+                                        readyCount={group.readyCount}
+                                        rows={group.rows}
+                                        onOpen={onOpen}
                                     />
                                 );
-                            }
-
-                            return (
-                                <SharedVesselGroup
-                                    key={`${group.vesselKey}-${index}`}
-                                    vesselName={group.vesselName}
-                                    readyCount={group.readyCount}
-                                    rows={group.rows}
-                                    onOpen={onOpen}
+                            })
+                            : rows.map((row) => (
+                                <QueueTableRow
+                                    key={`${row.selectedTransaction.type}-${row.id}`}
+                                    row={row}
+                                    onOpen={() => onOpen(row, 'single-transaction')}
                                 />
-                            );
-                        })
-                        : rows.map((row) => (
-                            <QueueRow
-                                key={`${row.selectedTransaction.type}-${row.id}`}
-                                row={row}
-                                onOpen={() => onOpen(row, 'single-transaction')}
-                            />
-                        ))}
-                </div>
-            </div>
+                            ))}
+                    </TableBody>
+                </Table>
+            </Card>
         )}
     </section>
 );
 
-const QueueRow = ({
+const QueueTableRow = ({
     row,
     onOpen,
     actionMode = 'button',
+    isGroupChild = false,
 }: {
     row: AccountingQueueRow;
     onOpen: () => void;
     actionMode?: 'button' | 'none';
-}) => (
-    <div className={`px-4 py-3.5 transition-colors ${row.state === 'ready' ? 'bg-card hover:bg-muted/30' : 'bg-muted/15 hover:bg-muted/30'}`}>
-        <div className="grid gap-3 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-center">
-            {/* Column 1: Reference / Client */}
-            <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                    <span className="truncate text-sm font-semibold text-foreground">
-                        {row.customsRef ?? row.blNo ?? row.ref}
-                    </span>
-                    <Badge
-                        variant="outline"
-                        className={`text-[10px] px-1.5 py-0 font-medium ${
-                            row.selectedTransaction.type === 'import'
-                                ? 'border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400'
-                                : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                        }`}
-                    >
-                        {row.typeLabel}
-                    </Badge>
-                    {row.isOverdue && (
+    isGroupChild?: boolean;
+}) => {
+    const isImport = row.selectedTransaction.type === 'import';
+    const displayTitle = isImport ? (row.customsRef || row.blNo || row.ref) : (row.blNo || row.ref);
+
+    return (
+        <TableRow className={`hover:bg-muted/50 transition-colors ${isGroupChild ? 'bg-primary/5' : (row.state === 'ready' ? 'bg-card' : 'bg-muted/10')}`}>
+            {/* Reference / BL */}
+            <TableCell className="py-3.5 px-4 align-top">
+                <div className="space-y-1">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="text-xs font-bold text-foreground block">
+                            {displayTitle}
+                        </span>
                         <Badge
                             variant="outline"
-                            className="text-[10px] px-1.5 py-0 font-medium border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                            className={`text-[10px] px-1.5 py-0 font-medium shrink-0 ${
+                                isImport
+                                    ? 'border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400'
+                                    : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                            }`}
                         >
-                            Overdue
+                            {row.typeLabel}
                         </Badge>
+                        {row.isOverdue && (
+                            <Badge
+                                variant="destructive"
+                                className="text-[10px] px-1.5 py-0 font-medium shrink-0 gap-1"
+                            >
+                                <AlertCircle className="size-2.5" /> Overdue
+                            </Badge>
+                        )}
+                    </div>
+                    {isImport && row.customsRef && row.blNo && (
+                        <p className="text-[11px] text-muted-foreground">
+                            BL: <span className="font-medium text-foreground">{row.blNo}</span>
+                        </p>
                     )}
                 </div>
-                {row.customsRef && row.blNo && (
-                    <p className="mt-0.5 text-xs text-muted-foreground truncate font-normal">
-                        BL: <span className="text-foreground/80 font-medium">{row.blNo}</span>
-                    </p>
-                )}
-                <p className="mt-0.5 truncate text-xs text-muted-foreground font-medium">{row.clientName}</p>
-                <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
+            </TableCell>
+
+            {/* Client / Vessel */}
+            <TableCell className="py-3.5 px-4 align-top">
+                <p className="text-xs font-semibold text-foreground truncate max-w-[200px]">
+                    {row.clientName}
+                </p>
+                <p className="mt-0.5 text-[11px] text-muted-foreground truncate max-w-[200px]">
                     Vessel: {row.selectedTransaction.vesselName ?? 'Not set'}
                 </p>
-                {row.secondaryMeta && (
-                    <p className="mt-0.5 truncate text-[11px] text-muted-foreground/80">{row.secondaryMeta}</p>
-                )}
-            </div>
+            </TableCell>
 
-            {/* Column 2: Next Step / Blocker */}
-            <div className="min-w-0">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    {row.state === 'ready' ? 'Next Upload' : 'Blocked By'}
-                </p>
-                <p className="mt-0.5 truncate text-xs font-semibold text-foreground">
+            {/* Next Step / Blocker */}
+            <TableCell className="py-3.5 px-4 align-top">
+                <p className="text-xs font-semibold text-foreground line-clamp-1">
                     {row.state === 'ready' ? row.actionSummary : (row.blocker ?? 'Waiting for workflow progress.')}
                 </p>
                 {row.waitingLabel && (
-                    <span className="mt-1 inline-flex items-center gap-1 text-[10px] font-medium text-amber-600 dark:text-amber-400">
+                    <div className="mt-1 flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400 font-medium">
                         <Clock className="size-3 shrink-0" />
-                        {row.waitingLabel}
-                    </span>
+                        <span>{row.waitingLabel}</span>
+                    </div>
                 )}
-            </div>
+            </TableCell>
 
-            {/* Column 3: Context / Schedule */}
-            <div className="min-w-0">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Context</p>
-                <div className="mt-1 flex flex-wrap gap-1.5">
-                    <span className="inline-flex items-center gap-1 rounded-md border border-border/80 bg-muted/40 px-2 py-0.5 text-[11px] font-medium text-foreground">
-                        <Calendar className="size-3 text-muted-foreground shrink-0" />
-                        {row.primaryMeta}
-                    </span>
+            {/* Context */}
+            <TableCell className="py-3.5 px-4 align-top">
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Calendar className="size-3.5 shrink-0 text-muted-foreground/70" />
+                    <span className="truncate">{row.primaryMeta}</span>
                 </div>
-            </div>
+            </TableCell>
 
-            {/* Column 4: Status */}
-            <div className="min-w-0">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Status</p>
-                <div className="mt-1 flex flex-wrap gap-1.5">
-                    <StageChip chip={row.stageChip} />
-                </div>
-            </div>
+            {/* Status */}
+            <TableCell className="py-3.5 px-4 align-top">
+                <StageChip chip={row.stageChip} />
+            </TableCell>
 
-            {/* Column 5: Action */}
-            <div className="flex items-center justify-start lg:justify-end">
+            {/* Actions */}
+            <TableCell className="py-3.5 px-4 align-top text-end">
                 {actionMode === 'button' ? (
                     <Button
-                        variant={row.state === 'ready' ? 'default' : 'secondary'}
+                        variant={row.state === 'ready' ? 'default' : 'outline'}
                         size="sm"
                         onClick={onOpen}
-                        className="h-8 gap-1 text-xs font-semibold"
+                        className="h-8 px-3 text-xs font-semibold cursor-pointer shadow-2xs"
                     >
-                        {row.state === 'ready' ? 'Open Tasks' : 'View Details'}
-                        <ChevronRight className="size-3.5" />
+                        View
                     </Button>
                 ) : (
-                    <span className="text-xs text-muted-foreground">Included in vessel upload</span>
+                    <span className="text-xs text-muted-foreground italic">Included in vessel upload</span>
                 )}
-            </div>
-        </div>
-    </div>
-);
+            </TableCell>
+        </TableRow>
+    );
+};
 
-const SharedVesselGroup = ({
+const SharedVesselTableGroup = ({
     vesselName,
     readyCount,
     rows,
@@ -549,18 +569,16 @@ const SharedVesselGroup = ({
     const [isExpanded, setIsExpanded] = useState(true);
 
     return (
-        <div className="bg-primary/5">
-            <div className="border-b border-primary/20 bg-primary/10 px-4 py-3">
-                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                    <div className="min-w-0">
-                        <Badge variant="outline" className="border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] px-2 py-0.5 font-semibold">
-                            {readyCount} Ready BLs
-                        </Badge>
-                        <div className="mt-2 flex items-start gap-2.5">
+        <>
+            {/* Header row for Shared Vessel */}
+            <TableRow className="border-b border-primary/20 bg-primary/10 hover:bg-primary/15 transition-colors">
+                <TableCell colSpan={6} className="py-3 px-4">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex items-center gap-2.5">
                             <button
                                 type="button"
                                 onClick={() => setIsExpanded((current) => !current)}
-                                className="mt-0.5 inline-flex size-6 items-center justify-center rounded-md border border-primary/20 bg-card text-primary transition-colors hover:bg-primary/10 cursor-pointer"
+                                className="inline-flex size-6 items-center justify-center rounded-md border border-primary/30 bg-card text-primary transition-colors hover:bg-primary/10 cursor-pointer"
                                 aria-expanded={isExpanded}
                                 aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${vesselName} shared vessel group`}
                             >
@@ -570,51 +588,52 @@ const SharedVesselGroup = ({
                                     <ChevronRight className="size-3.5" />
                                 )}
                             </button>
-                            <div className="min-w-0">
-                                <div className="flex items-center gap-1.5">
-                                    <Ship className="size-4 text-primary shrink-0" />
-                                    <p className="text-sm font-bold tracking-tight text-foreground">{vesselName}</p>
+                            <Ship className="size-4 text-primary shrink-0" />
+                            <div>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-sm font-bold tracking-tight text-foreground">{vesselName}</span>
+                                    <Badge variant="outline" className="border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] px-1.5 py-0 font-semibold">
+                                        {readyCount} Ready BLs
+                                    </Badge>
                                 </div>
-                                <p className="mt-0.5 text-xs text-muted-foreground">
+                                <p className="text-xs text-muted-foreground">
                                     Billing & Liquidation is shared across every ready BL on this vessel.
                                 </p>
                             </div>
                         </div>
-                    </div>
-                    <div className="flex items-center lg:self-stretch">
-                        <Button
-                            size="sm"
-                            onClick={(event) => {
-                                event.stopPropagation();
-                                const primaryRow = rows[0];
 
-                                if (primaryRow) {
-                                    onOpen(primaryRow, 'shared-vessel');
-                                }
-                            }}
-                            className="h-8 gap-1.5 text-xs font-semibold"
-                        >
-                            Open Shared Upload
-                            <ChevronRight className="size-3.5" />
-                        </Button>
+                        <div>
+                            <Button
+                                size="sm"
+                                onClick={(event) => {
+                                    event.stopPropagation();
+                                    const primaryRow = rows[0];
+                                    if (primaryRow) {
+                                        onOpen(primaryRow, 'shared-vessel');
+                                    }
+                                }}
+                                className="h-8 gap-1.5 text-xs font-semibold cursor-pointer"
+                            >
+                                Open Shared Upload
+                                <ChevronRight className="size-3.5" />
+                            </Button>
+                        </div>
                     </div>
-                </div>
-            </div>
+                </TableCell>
+            </TableRow>
 
-            {isExpanded && (
-                <div className="relative px-4 py-2">
-                    <div className="absolute bottom-3 left-8 top-3 hidden w-px bg-primary/20 lg:block" />
-                    <div className="space-y-2">
-                        {rows.map((row) => (
-                            <div key={`${row.selectedTransaction.type}-${row.id}`} className="relative lg:pl-6">
-                                <div className="absolute left-[1.15rem] top-6 hidden h-2.5 w-2.5 rounded-full border border-primary/20 bg-card lg:block" />
-                                <QueueRow row={row} onOpen={() => onOpen(row, 'single-transaction')} actionMode="none" />
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
-        </div>
+            {/* Child rows when expanded */}
+            {isExpanded &&
+                rows.map((row) => (
+                    <QueueTableRow
+                        key={`${row.selectedTransaction.type}-${row.id}`}
+                        row={row}
+                        onOpen={() => onOpen(row, 'single-transaction')}
+                        actionMode="none"
+                        isGroupChild
+                    />
+                ))}
+        </>
     );
 };
 
