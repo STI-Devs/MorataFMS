@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { AlertCircle, Globe, X } from 'lucide-react';
 import { getApiError } from '../../../lib/apiErrors';
 import type { Country, CountryType, CreateCountryData, UpdateCountryData } from '../types/country.types';
 
@@ -11,13 +12,14 @@ interface CountryFormModalProps {
 }
 
 const COUNTRY_TYPES: { value: CountryType; label: string }[] = [
-    { value: 'both', label: 'Both' },
+    { value: 'both', label: 'Both (Import & Export)' },
     { value: 'import_origin', label: 'Import Origin' },
     { value: 'export_destination', label: 'Export Destination' },
 ];
 
-const inputCls = 'w-full px-4 py-3 rounded-xl border border-border bg-input-bg text-text-primary placeholder:text-text-muted focus:outline-none focus:border-primary/50 transition-colors';
-const labelCls = 'block text-sm font-medium mb-2 text-text-secondary';
+const inputCls =
+    'w-full px-3 py-2 rounded-lg border border-border/80 bg-background text-foreground text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary transition-colors';
+const labelCls = 'block text-xs font-medium mb-1 text-foreground';
 
 export const CountryFormModal = ({ isOpen, onClose, onSubmit, country, mode }: CountryFormModalProps) => {
     const [formData, setFormData] = useState<{
@@ -75,42 +77,76 @@ export const CountryFormModal = ({ isOpen, onClose, onSubmit, country, mode }: C
     }
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-backdrop-in" onClick={onClose}>
+        <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-backdrop-in"
+            onClick={onClose}
+        >
             <div
-                className="w-full max-w-xl rounded-2xl p-8 bg-surface border border-border shadow-xl animate-modal-in"
+                className="w-full max-w-md rounded-xl p-6 bg-card border border-border shadow-xl animate-modal-in"
                 onClick={(event) => event.stopPropagation()}
             >
-                <h2 className="text-2xl font-bold mb-6 text-text-primary">
-                    {mode === 'create' ? 'Add Country' : 'Edit Country'}
-                </h2>
-
-                {error && (
-                    <div className="mb-4 p-3 rounded-xl text-sm bg-danger/10 text-danger">
-                        {error}
-                    </div>
-                )}
-
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="md:col-span-2">
-                            <label htmlFor="country-name" className={labelCls}>Country Name *</label>
-                            <input
-                                id="country-name"
-                                type="text"
-                                value={formData.name}
-                                onChange={(event) => setFormData({ ...formData, name: event.target.value })}
-                                required
-                                className={inputCls}
-                            />
+                {/* Header */}
+                <div className="flex items-center justify-between pb-4 border-b border-border/80">
+                    <div className="flex items-center gap-2.5">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+                            <Globe className="h-4 w-4" />
                         </div>
-
                         <div>
-                            <label htmlFor="country-code" className={labelCls}>Country Code</label>
+                            <h2 className="text-sm font-semibold text-foreground">
+                                {mode === 'create' ? 'Add Country' : 'Edit Country'}
+                            </h2>
+                            <p className="text-[11px] text-muted-foreground">
+                                {mode === 'create'
+                                    ? 'Register a trade partner country for transaction records'
+                                    : 'Update country name, ISO code, or flow usage'}
+                            </p>
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="rounded-lg p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+                    >
+                        <X className="h-4 w-4" />
+                    </button>
+                </div>
+
+                {/* Error Banner */}
+                {error ? (
+                    <div className="mt-4 flex items-start gap-2 rounded-lg border border-rose-500/20 bg-rose-500/10 p-3 text-xs text-rose-600 dark:text-rose-400">
+                        <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                        <span>{error}</span>
+                    </div>
+                ) : null}
+
+                <form onSubmit={handleSubmit} className="mt-4 space-y-3.5">
+                    <div>
+                        <label htmlFor="country-name" className={labelCls}>
+                            Country Name *
+                        </label>
+                        <input
+                            id="country-name"
+                            type="text"
+                            value={formData.name}
+                            onChange={(event) => setFormData({ ...formData, name: event.target.value })}
+                            placeholder="e.g. Philippines"
+                            required
+                            className={inputCls}
+                        />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label htmlFor="country-code" className={labelCls}>
+                                Country Code
+                            </label>
                             <input
                                 id="country-code"
                                 type="text"
                                 value={formData.code}
-                                onChange={(event) => setFormData({ ...formData, code: event.target.value.toUpperCase() })}
+                                onChange={(event) =>
+                                    setFormData({ ...formData, code: event.target.value.toUpperCase() })
+                                }
                                 maxLength={3}
                                 placeholder="e.g. PH"
                                 className={inputCls}
@@ -118,34 +154,41 @@ export const CountryFormModal = ({ isOpen, onClose, onSubmit, country, mode }: C
                         </div>
 
                         <div>
-                            <label htmlFor="country-type" className={labelCls}>Country Usage *</label>
+                            <label htmlFor="country-type" className={labelCls}>
+                                Country Usage *
+                            </label>
                             <select
                                 id="country-type"
                                 value={formData.type}
-                                onChange={(event) => setFormData({ ...formData, type: event.target.value as CountryType })}
+                                onChange={(event) =>
+                                    setFormData({ ...formData, type: event.target.value as CountryType })
+                                }
                                 required
                                 className={inputCls}
                             >
                                 {COUNTRY_TYPES.map((option) => (
-                                    <option key={option.value} value={option.value}>{option.label}</option>
+                                    <option key={option.value} value={option.value}>
+                                        {option.label}
+                                    </option>
                                 ))}
                             </select>
                         </div>
                     </div>
 
-                    <div className="flex gap-3 pt-4">
+                    {/* Action Buttons */}
+                    <div className="flex items-center justify-end gap-2 pt-3 border-t border-border/80">
                         <button
                             type="button"
                             onClick={onClose}
                             disabled={isSubmitting}
-                            className="flex-1 px-6 py-3 rounded-xl font-bold border border-border text-text-secondary hover:text-text-primary hover:border-border-strong transition-colors disabled:opacity-50"
+                            className="rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer disabled:opacity-50"
                         >
                             Cancel
                         </button>
                         <button
                             type="submit"
                             disabled={isSubmitting}
-                            className="flex-1 px-6 py-3 rounded-xl font-bold bg-primary text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50"
+                            className="rounded-lg bg-emerald-600 hover:bg-emerald-700 px-3.5 py-1.5 text-xs font-semibold text-white shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
                         >
                             {isSubmitting ? 'Saving...' : mode === 'create' ? 'Add Country' : 'Save Changes'}
                         </button>

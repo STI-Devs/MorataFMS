@@ -11,7 +11,6 @@ import {
 import { ConfirmationModal } from '../../../components/ConfirmationModal';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
-import { Tabs, TabsList, TabsTrigger } from '../../../components/ui/tabs';
 import {
     Table,
     TableBody,
@@ -71,6 +70,15 @@ function RoleBadge({ role }: { role: string }) {
         </span>
     );
 }
+
+const ROLE_FILTER_OPTIONS: Array<{ key: string; label: string }> = [
+    { key: 'all', label: 'All' },
+    { key: 'admin', label: 'Admin' },
+    { key: 'encoder', label: 'Encoder' },
+    { key: 'processor', label: 'Processor' },
+    { key: 'accounting', label: 'Accountant' },
+    { key: 'paralegal', label: 'Paralegal' },
+];
 
 export const UserManagement = () => {
     const { user: currentUser } = useAuth();
@@ -166,13 +174,11 @@ export const UserManagement = () => {
     return (
         <div className="w-full space-y-4 pb-6">
             {/* Header */}
-            <div className="flex flex-wrap items-end justify-between gap-2">
-                <div>
-                    <h2 className="text-2xl font-bold tracking-tight text-foreground">User Management</h2>
-                    <p className="text-sm text-muted-foreground">
-                        Manage team accounts, assign department roles, and configure system permissions.
-                    </p>
-                </div>
+            <div className="flex flex-col gap-1">
+                <h1 className="text-2xl font-bold tracking-tight text-foreground">User Management</h1>
+                <p className="text-sm text-muted-foreground">
+                    Manage team accounts, assign department roles, and configure system permissions.
+                </p>
             </div>
 
             {/* KPI Metric Cards */}
@@ -193,31 +199,36 @@ export const UserManagement = () => {
                             />
                         </div>
 
-                        <Tabs
-                            value={roleFilter}
-                            onValueChange={(val) => setRoleFilter(val)}
-                        >
-                            <TabsList className="h-8 p-0.5">
-                                <TabsTrigger value="all" className="h-7 text-xs px-2.5">
-                                    All ({roleCounts.all})
-                                </TabsTrigger>
-                                <TabsTrigger value="admin" className="h-7 text-xs px-2.5">
-                                    Admin ({roleCounts.admin})
-                                </TabsTrigger>
-                                <TabsTrigger value="encoder" className="h-7 text-xs px-2.5">
-                                    Encoder ({roleCounts.encoder})
-                                </TabsTrigger>
-                                <TabsTrigger value="processor" className="h-7 text-xs px-2.5">
-                                    Processor ({roleCounts.processor})
-                                </TabsTrigger>
-                                <TabsTrigger value="accounting" className="h-7 text-xs px-2.5">
-                                    Accountant ({roleCounts.accounting})
-                                </TabsTrigger>
-                                <TabsTrigger value="paralegal" className="h-7 text-xs px-2.5">
-                                    Paralegal ({roleCounts.paralegal})
-                                </TabsTrigger>
-                            </TabsList>
-                        </Tabs>
+                        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+                            {ROLE_FILTER_OPTIONS.map((option) => {
+                                const isSelected = roleFilter === option.key;
+                                const count = roleCounts[option.key as keyof typeof roleCounts] ?? 0;
+                                return (
+                                    <Button
+                                        key={option.key}
+                                        variant={isSelected ? 'default' : 'outline'}
+                                        size="sm"
+                                        onClick={() => setRoleFilter(option.key)}
+                                        className={`h-8 px-2.5 text-xs gap-1.5 font-medium shrink-0 shadow-2xs transition-all cursor-pointer ${
+                                            !isSelected
+                                                ? 'bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground border-border/80'
+                                                : ''
+                                        }`}
+                                    >
+                                        {option.label}
+                                        <span
+                                            className={`rounded-full px-1.5 py-0.2 text-[10px] font-semibold tabular-nums ${
+                                                isSelected
+                                                    ? 'bg-primary-foreground/20 text-primary-foreground'
+                                                    : 'bg-background/80 text-foreground border border-border/60'
+                                            }`}
+                                        >
+                                            {count}
+                                        </span>
+                                    </Button>
+                                );
+                            })}
+                        </div>
 
                         {isFiltered ? (
                             <Button
@@ -246,7 +257,7 @@ export const UserManagement = () => {
                 </div>
 
                 {/* Table Card */}
-                <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
+                <div className="overflow-hidden rounded-xl border border-border/80 bg-card shadow-2xs">
                     {isLoading ? (
                         <div className="flex min-h-[280px] flex-col items-center justify-center p-12">
                             <div className="h-7 w-7 rounded-full border-2 border-border border-t-blue-500 animate-spin" />
@@ -272,24 +283,24 @@ export const UserManagement = () => {
                     ) : (
                         <div className="overflow-x-auto">
                             <Table>
-                                <TableHeader>
+                                <TableHeader className="bg-muted/50">
                                     <TableRow className="hover:bg-transparent border-b border-border/80">
-                                        <TableHead className="h-9 px-4 text-xs font-semibold text-muted-foreground w-[28%] min-w-[220px]">
+                                        <TableHead className="h-9 px-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground w-[28%] min-w-[220px]">
                                             User / Name
                                         </TableHead>
-                                        <TableHead className="h-9 px-4 text-xs font-semibold text-muted-foreground w-[22%] min-w-[180px]">
+                                        <TableHead className="h-9 px-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground w-[22%] min-w-[180px]">
                                             Email
                                         </TableHead>
-                                        <TableHead className="h-9 px-4 text-xs font-semibold text-muted-foreground w-[16%] min-w-[130px] hidden sm:table-cell">
+                                        <TableHead className="h-9 px-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground w-[16%] min-w-[130px] hidden sm:table-cell">
                                             Position
                                         </TableHead>
-                                        <TableHead className="h-9 px-4 text-xs font-semibold text-muted-foreground w-[14%] min-w-[120px]">
+                                        <TableHead className="h-9 px-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground w-[14%] min-w-[120px]">
                                             Role
                                         </TableHead>
-                                        <TableHead className="h-9 px-4 text-xs font-semibold text-muted-foreground w-[10%] min-w-[100px]">
+                                        <TableHead className="h-9 px-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground w-[10%] min-w-[100px]">
                                             Status
                                         </TableHead>
-                                        <TableHead className="h-9 px-4 text-xs font-semibold text-muted-foreground w-[10%] min-w-[110px] text-right">
+                                        <TableHead className="h-9 px-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground w-[10%] min-w-[110px] text-right">
                                             Actions
                                         </TableHead>
                                     </TableRow>
@@ -304,7 +315,7 @@ export const UserManagement = () => {
                                                 <TableCell className="py-3 px-4">
                                                     <div className="flex items-center gap-3">
                                                         <div
-                                                            className={`flex h-8 w-8 items-center justify-center rounded-full border text-xs font-bold shrink-0 ${cfg.avatarBg}`}
+                                                             className={`flex h-8 w-8 items-center justify-center rounded-full border text-xs font-bold shrink-0 ${cfg.avatarBg}`}
                                                         >
                                                             {user.name.charAt(0).toUpperCase()}
                                                         </div>
@@ -324,7 +335,7 @@ export const UserManagement = () => {
                                                                     {user.departments.map((dept) => (
                                                                         <span
                                                                             key={dept}
-                                                                            className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground"
+                                                                            className="text-[10px] uppercase font-medium tracking-wider text-muted-foreground"
                                                                         >
                                                                             {dept}
                                                                         </span>
@@ -336,7 +347,7 @@ export const UserManagement = () => {
                                                 </TableCell>
 
                                                 {/* Email */}
-                                                <TableCell className="py-3 px-4 text-xs font-mono text-muted-foreground">
+                                                <TableCell className="py-3 px-4 text-xs text-muted-foreground">
                                                     <span className="truncate block" title={user.email}>
                                                         {user.email}
                                                     </span>

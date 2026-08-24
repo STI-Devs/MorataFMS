@@ -22,6 +22,7 @@ export function useAuditLogsWorkspace() {
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
     const [page, setPage] = useState(1);
+    const [perPage, setPerPage] = useState(25);
     const [expandedId, setExpandedId] = useState<number | null>(null);
 
     const filters: AuditLogFilters = {
@@ -32,7 +33,7 @@ export function useAuditLogsWorkspace() {
         date_from: dateFrom || undefined,
         date_to: dateTo || undefined,
         page,
-        per_page: 25,
+        per_page: perPage,
     };
     const actionFilters: AuditLogFilters = {
         search: debouncedSearch || undefined,
@@ -63,6 +64,7 @@ export function useAuditLogsWorkspace() {
         dateFrom,
         dateTo,
         page,
+        perPage,
         expandedId,
         // derived data
         logs,
@@ -104,6 +106,11 @@ export function useAuditLogsWorkspace() {
             resetForFilterChange();
         },
         // pagination
+        setPage,
+        handlePerPageChange: (newPerPage: number) => {
+            setPerPage(newPerPage);
+            setPage(1);
+        },
         goToPreviousPage: () => setPage((p) => Math.max(1, p - 1)),
         goToNextPage: () => setPage((p) => Math.min(meta.last_page, p + 1)),
     };

@@ -1,30 +1,87 @@
-import { useState } from 'react';
-import { CurrentDateTime } from '../../../components/CurrentDateTime';
+import { useState, useMemo } from 'react';
+import {
+    ArrowDownLeft,
+    ArrowLeftRight,
+    ArrowUpRight,
+    Globe,
+    History,
+    Mail,
+    Pencil,
+    Phone,
+    Search,
+    UserCheck,
+    UserPlus,
+    Users,
+    UserX,
+    X,
+} from 'lucide-react';
+import { ConfirmationModal } from '../../../components/ConfirmationModal';
+import { Pagination } from '../../../components/Pagination';
+import { Button } from '../../../components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
+import { Input } from '../../../components/ui/input';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '../../../components/ui/table';
+import { useConfirmationModal } from '../../../hooks/useConfirmationModal';
 import { TransactionHistoryModal } from '../../oversight/components/modals/TransactionHistoryModal';
-import { useClients, useClientTransactions, useCreateClient, useToggleClient, useUpdateClient } from '../hooks/useClients';
-import type { Client, CreateClientData, UpdateClientData } from '../types/client.types';
+import {
+    useClients,
+    useClientTransactions,
+    useCreateClient,
+    useToggleClient,
+    useUpdateClient,
+} from '../hooks/useClients';
+import type { Client, ClientType, CreateClientData, UpdateClientData } from '../types/client.types';
 import { ClientFormModal } from './ClientFormModal';
 
-const typeConfig: Record<string, { label: string; color: string; icon: string }> = {
-    importer: { label: 'Importer', color: 'var(--primary)', icon: 'M19 14l-7 7m0 0l-7-7m7 7V3' },
-    exporter: { label: 'Exporter', color: 'var(--success)', icon: 'M5 10l7-7m0 0l7 7m-7-7v18' },
-    both: { label: 'Both', color: 'var(--warning)', icon: 'M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4' },
+const typeConfig: Record<
+    ClientType,
+    { label: string; className: string; avatarBg: string; icon: typeof ArrowLeftRight }
+> = {
+    importer: {
+        label: 'Importer',
+        className: 'border-blue-500/20 bg-blue-500/10 text-blue-600 dark:text-blue-400',
+        avatarBg: 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30',
+        icon: ArrowDownLeft,
+    },
+    exporter: {
+        label: 'Exporter',
+        className: 'border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+        avatarBg: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30',
+        icon: ArrowUpRight,
+    },
+    both: {
+        label: 'Both',
+        className: 'border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400',
+        avatarBg: 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30',
+        icon: ArrowLeftRight,
+    },
 };
 
-function TypeBadge({ type }: { type: string }) {
-    const cfg = typeConfig[type] ?? { label: type, color: 'var(--muted-foreground)', icon: 'M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z' };
+function TypeBadge({ type }: { type: ClientType }) {
+    const cfg = typeConfig[type] ?? typeConfig.both;
+    const IconComponent = cfg.icon;
+
     return (
-        <span
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold capitalize"
-            style={{ color: cfg.color, backgroundColor: `color-mix(in srgb, ${cfg.color} 10%, transparent)` }}
-        >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d={cfg.icon} />
-            </svg>
+        <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${cfg.className}`}>
+            <IconComponent className="size-3 shrink-0" />
             {cfg.label}
         </span>
     );
 }
+
+const TYPE_FILTER_OPTIONS: Array<{ key: string; label: string }> = [
+    { key: 'all', label: 'All' },
+    { key: 'both', label: 'Both' },
+    { key: 'importer', label: 'Importer' },
+    { key: 'exporter', label: 'Exporter' },
+];
 
 export const ClientManagement = () => {
     const [isFormModalOpen, setIsFormModalOpen] = useState(false);
@@ -34,12 +91,17 @@ export const ClientManagement = () => {
     const [historyClientId, setHistoryClientId] = useState<number | null>(null);
     const [historyClientName, setHistoryClientName] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
+    const [typeFilter, setTypeFilter] = useState<string>('all');
+    const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [perPage, setPerPage] = useState(30);
 
     const { data: clients = [], isLoading, isError } = useClients();
     const createClient = useCreateClient();
     const updateClient = useUpdateClient();
     const toggleClient = useToggleClient();
     const { data: transactionHistory } = useClientTransactions(historyClientId);
+    const { openModal, modalProps } = useConfirmationModal();
 
     const handleCreateClient = async (data: CreateClientData | UpdateClientData) => {
         await createClient.mutateAsync(data as CreateClientData);
@@ -53,8 +115,17 @@ export const ClientManagement = () => {
         }
     };
 
-    const handleToggleActive = async (clientId: number) => {
-        await toggleClient.mutateAsync(clientId);
+    const handleToggleActive = (client: Client) => {
+        const action = client.is_active ? 'deactivate' : 'activate';
+        openModal({
+            title: `${action === 'deactivate' ? 'Deactivate' : 'Activate'} Client?`,
+            message: `Are you sure you want to ${action} ${client.name}?`,
+            confirmText: action === 'deactivate' ? 'Deactivate' : 'Activate',
+            confirmButtonClass: action === 'deactivate' ? 'bg-destructive hover:bg-destructive/90' : 'bg-emerald-600 hover:bg-emerald-700',
+            onConfirm: async () => {
+                await toggleClient.mutateAsync(client.id);
+            },
+        });
     };
 
     const handleViewTransactions = (client: Client) => {
@@ -75,228 +146,438 @@ export const ClientManagement = () => {
         setIsFormModalOpen(true);
     };
 
-    const filteredClients = clients.filter(client =>
-        client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        client.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (client.country?.name?.toLowerCase() ?? '').includes(searchTerm.toLowerCase()) ||
-        (client.contact_person?.toLowerCase() ?? '').includes(searchTerm.toLowerCase())
-    );
+    const metrics = useMemo(() => {
+        const total = clients.length;
+        const active = clients.filter((c) => c.is_active).length;
+        const inactive = total - active;
+        const importers = clients.filter((c) => c.type === 'importer' || c.type === 'both').length;
+        const exporters = clients.filter((c) => c.type === 'exporter' || c.type === 'both').length;
+        const bothTypes = clients.filter((c) => c.type === 'both').length;
+        const activePct = total > 0 ? Math.round((active / total) * 100) : 0;
+
+        return {
+            total,
+            active,
+            inactive,
+            importers,
+            exporters,
+            bothTypes,
+            activePct,
+        };
+    }, [clients]);
+
+    const typeCounts = useMemo(() => {
+        return {
+            all: clients.length,
+            both: clients.filter((c) => c.type === 'both').length,
+            importer: clients.filter((c) => c.type === 'importer').length,
+            exporter: clients.filter((c) => c.type === 'exporter').length,
+        };
+    }, [clients]);
+
+    const filteredClients = useMemo(() => {
+        return clients.filter((client) => {
+            const matchesSearch =
+                client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                client.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (client.country?.name?.toLowerCase() ?? '').includes(searchTerm.toLowerCase()) ||
+                (client.contact_person?.toLowerCase() ?? '').includes(searchTerm.toLowerCase()) ||
+                (client.contact_email?.toLowerCase() ?? '').includes(searchTerm.toLowerCase()) ||
+                (client.contact_phone?.toLowerCase() ?? '').includes(searchTerm.toLowerCase());
+
+            const matchesType = typeFilter === 'all' || client.type === typeFilter;
+            const matchesStatus =
+                statusFilter === 'all' ||
+                (statusFilter === 'active' && client.is_active) ||
+                (statusFilter === 'inactive' && !client.is_active);
+
+            return matchesSearch && matchesType && matchesStatus;
+        });
+    }, [clients, searchTerm, typeFilter, statusFilter]);
+
+    const totalPages = Math.max(1, Math.ceil(filteredClients.length / perPage));
+    const paginatedClients = useMemo(() => {
+        const start = (currentPage - 1) * perPage;
+        return filteredClients.slice(start, start + perPage);
+    }, [filteredClients, currentPage, perPage]);
+
+    const isFiltered = searchTerm.trim() !== '' || typeFilter !== 'all' || statusFilter !== 'all';
+
+    const handleResetFilters = () => {
+        setSearchTerm('');
+        setTypeFilter('all');
+        setStatusFilter('all');
+        setCurrentPage(1);
+    };
 
     return (
-        <div className="space-y-5 p-4">
+        <div className="w-full space-y-4 pb-6">
             {/* Header */}
-            <div className="flex justify-between items-center">
-                <div>
-                    <h1 className="text-2xl font-bold text-text-primary tracking-tight">Brokerage Client Management</h1>
-                    <p className="text-xs text-text-muted mt-0.5">Manage brokerage clients, toggle status, and view transaction history</p>
-                </div>
-                <CurrentDateTime
-                    className="text-right hidden sm:block"
-                    timeClassName="text-xl font-bold tabular-nums text-text-primary"
-                    dateClassName="text-xs text-text-muted"
-                />
+            <div className="flex flex-col gap-1">
+                <h1 className="text-2xl font-bold tracking-tight text-foreground">Brokerage Client Management</h1>
+                <p className="text-sm text-muted-foreground">
+                    Manage brokerage clients, assign operational types, and review transaction history.
+                </p>
             </div>
 
-            {/* Stat Cards */}
-            {(() => {
-                const total = clients.length;
-                const active = clients.filter(c => c.is_active).length;
-                const inactive = total - active;
-                const importers = clients.filter(c => c.type === 'importer' || c.type === 'both').length;
-                const exporters = clients.filter(c => c.type === 'exporter' || c.type === 'both').length;
-                const bothTypes = clients.filter(c => c.type === 'both').length;
+            {/* Section 1: KPI Metric Cards */}
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {/* 1. Total Clients */}
+                <Card className="p-4 gap-2 shadow-xs bg-card">
+                    <CardHeader className="flex flex-row items-center justify-between p-0 space-y-0">
+                        <CardTitle className="text-xs font-medium text-muted-foreground">Total Clients</CardTitle>
+                        <Users className="size-4 text-muted-foreground/70" />
+                    </CardHeader>
+                    <CardContent className="p-0">
+                        <div className="text-2xl font-bold tracking-tight text-foreground tabular-nums">
+                            {isLoading ? '—' : metrics.total.toLocaleString()}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                            {metrics.total > 0
+                                ? `${metrics.importers} importers · ${metrics.exporters} exporters`
+                                : 'All registered clients'}
+                        </p>
+                    </CardContent>
+                </Card>
 
-                const cards = [
-                    {
-                        label: 'Total Brokerage Clients',
-                        value: total,
-                        sub: `${importers} importers · ${exporters} exporters`,
-                        dot: null as string | null,
-                    },
-                    {
-                        label: 'Active',
-                        value: active,
-                        sub: total > 0 ? `${Math.round((active / total) * 100)}% of total` : '—',
-                        dot: 'var(--success)' as string | null,
-                    },
-                    {
-                        label: 'Inactive',
-                        value: inactive,
-                        sub: inactive === 0 ? 'All clients active' : `${inactive} deactivated`,
-                        dot: inactive > 0 ? 'var(--danger)' as string | null : null,
-                    },
-                    {
-                        label: 'Both Types',
-                        value: bothTypes,
-                        sub: 'import & export clients',
-                        dot: null as string | null,
-                    },
-                ];
+                {/* 2. Active Accounts */}
+                <Card className="p-4 gap-2 shadow-xs bg-card">
+                    <CardHeader className="flex flex-row items-center justify-between p-0 space-y-0">
+                        <CardTitle className="text-xs font-medium text-muted-foreground">Active Accounts</CardTitle>
+                        <UserCheck className="size-4 text-emerald-500" />
+                    </CardHeader>
+                    <CardContent className="p-0">
+                        <div className="text-2xl font-bold tracking-tight text-foreground tabular-nums">
+                            {isLoading ? '—' : metrics.active.toLocaleString()}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                            {metrics.total > 0 ? `${metrics.activePct}% of total clients` : 'Active operations'}
+                        </p>
+                    </CardContent>
+                </Card>
 
-                return (
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                        {cards.map(card => (
-                            <div
-                                key={card.label}
-                                className="bg-surface border border-border rounded-lg px-4 py-3.5"
-                            >
-                                <p className="text-[11px] font-medium text-text-muted uppercase tracking-widest mb-2">
-                                    {card.label}
-                                </p>
-                                <div className="flex items-center gap-2">
-                                    {card.dot && (
+                {/* 3. Inactive Accounts */}
+                <Card className="p-4 gap-2 shadow-xs bg-card">
+                    <CardHeader className="flex flex-row items-center justify-between p-0 space-y-0">
+                        <CardTitle className="text-xs font-medium text-muted-foreground">Inactive</CardTitle>
+                        <UserX className={`size-4 ${metrics.inactive > 0 ? 'text-rose-500' : 'text-muted-foreground/70'}`} />
+                    </CardHeader>
+                    <CardContent className="p-0">
+                        <div
+                            className={`text-2xl font-bold tracking-tight tabular-nums ${
+                                metrics.inactive > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-foreground'
+                            }`}
+                        >
+                            {isLoading ? '—' : metrics.inactive.toLocaleString()}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                            {metrics.inactive === 0 ? 'All clients active' : `${metrics.inactive} deactivated accounts`}
+                        </p>
+                    </CardContent>
+                </Card>
+
+                {/* 4. Dual Operations */}
+                <Card className="p-4 gap-2 shadow-xs bg-card">
+                    <CardHeader className="flex flex-row items-center justify-between p-0 space-y-0">
+                        <CardTitle className="text-xs font-medium text-muted-foreground">Dual Operations</CardTitle>
+                        <ArrowLeftRight className="size-4 text-amber-500" />
+                    </CardHeader>
+                    <CardContent className="p-0">
+                        <div className="text-2xl font-bold tracking-tight text-foreground tabular-nums">
+                            {isLoading ? '—' : metrics.bothTypes.toLocaleString()}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                            Import & export handlers
+                        </p>
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* Section 2: Main Content Area */}
+            <div className="flex flex-col gap-3">
+                {/* Search & Filter Toolbar */}
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex flex-1 flex-wrap items-center gap-2">
+                        <div className="relative w-full sm:w-[240px] lg:w-[300px]">
+                            <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                                placeholder="Search client name, contact, country..."
+                                value={searchTerm}
+                                onChange={(e) => {
+                                    setSearchTerm(e.target.value);
+                                    setCurrentPage(1);
+                                }}
+                                className="h-8 pl-8 text-xs"
+                            />
+                        </div>
+
+                        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+                            {TYPE_FILTER_OPTIONS.map((option) => {
+                                const isSelected = typeFilter === option.key;
+                                const count = typeCounts[option.key as keyof typeof typeCounts] ?? 0;
+                                return (
+                                    <Button
+                                        key={option.key}
+                                        variant={isSelected ? 'default' : 'outline'}
+                                        size="sm"
+                                        onClick={() => {
+                                            setTypeFilter(option.key);
+                                            setCurrentPage(1);
+                                        }}
+                                        className={`h-8 px-2.5 text-xs gap-1.5 font-medium shrink-0 shadow-2xs transition-all cursor-pointer ${
+                                            !isSelected
+                                                ? 'bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground border-border/80'
+                                                : ''
+                                        }`}
+                                    >
+                                        {option.label}
                                         <span
-                                            className="w-2 h-2 rounded-full flex-shrink-0"
-                                            style={{ backgroundColor: card.dot }}
-                                        />
-                                    )}
-                                    <p className="text-[2rem] font-semibold tabular-nums text-text-primary leading-none">
-                                        {card.value}
-                                    </p>
-                                </div>
-                                <p className="text-xs text-text-muted mt-2">{card.sub}</p>
-                            </div>
-                        ))}
-                    </div>
-                );
-            })()}
+                                            className={`rounded-full px-1.5 py-0.2 text-[10px] font-semibold tabular-nums ${
+                                                isSelected
+                                                    ? 'bg-primary-foreground/20 text-primary-foreground'
+                                                    : 'bg-background/80 text-foreground border border-border/60'
+                                            }`}
+                                        >
+                                            {count}
+                                        </span>
+                                    </Button>
+                                );
+                            })}
+                        </div>
 
-            {/* Table */}
-            <div className="bg-surface rounded-xl border border-border overflow-hidden">
-                <div className="p-3 border-b border-border flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between bg-surface-subtle">
-                    <div className="relative flex-1 max-w-sm">
-                        <svg className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                        <input
-                            type="text"
-                            placeholder="Search brokerage clients..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-9 pr-3 h-9 rounded-md border border-border-strong bg-input-bg text-text-primary text-sm placeholder:text-text-muted focus:outline-none focus:border-primary/50 transition-colors"
-                        />
+                        {isFiltered ? (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={handleResetFilters}
+                                className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+                            >
+                                Reset
+                                <X className="ml-1 size-3.5" />
+                            </Button>
+                        ) : null}
                     </div>
-                    <button
+
+                    <Button
+                        size="sm"
                         onClick={handleCreate}
-                        className="flex items-center gap-1.5 px-3.5 h-9 rounded-lg text-xs font-bold transition-all shadow-sm bg-primary text-primary-foreground"
+                        className="h-8 gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-2xs cursor-pointer"
                     >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-                        </svg>
-                        Create Brokerage Client
-                    </button>
+                        <UserPlus className="size-3.5" />
+                        Create Client
+                    </Button>
                 </div>
 
-                {isLoading ? (
-                    <div className="p-16 flex items-center justify-center">
-                        <div className="w-8 h-8 rounded-full border-2 border-transparent animate-spin" style={{ borderTopColor: 'var(--primary)' }} />
-                    </div>
-                ) : isError ? (
-                    <div className="p-16 text-center">
-                        <p className="text-sm text-destructive font-medium">Failed to load brokerage clients. Please try again.</p>
-                    </div>
-                ) : filteredClients.length === 0 ? (
-                    <div className="p-16 text-center">
-                        <svg className="w-10 h-10 mx-auto mb-3 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                        </svg>
-                        <p className="text-sm text-text-muted">
-                            {searchTerm ? 'No brokerage clients match your search' : 'No brokerage clients found'}
-                        </p>
-                    </div>
-                ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead>
-                                <tr className="border-b border-border">
-                                    {['Name', 'Type', 'Country', 'Contact', 'Status', 'Actions'].map((h, i) => (
-                                        <th key={h} className={`px-5 py-3 text-xs font-semibold uppercase tracking-wider ${i === 0 ? 'text-left' : 'text-center'} text-text-muted`}>
-                                            {h}
-                                        </th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filteredClients.map((client, idx) => (
-                                    <tr
-                                        key={client.id}
-                                        className={`border-b border-border/50 transition-colors hover:bg-hover ${idx % 2 !== 0 ? 'bg-surface-secondary/40' : ''}`}
-                                    >
-                                        <td className="px-5 py-3.5">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-primary-foreground flex-shrink-0"
-                                                    style={{ backgroundColor: typeConfig[client.type]?.color ?? 'var(--muted-foreground)' }}>
-                                                    {client.name.charAt(0).toUpperCase()}
-                                                </div>
-                                                <span className="text-sm font-semibold text-text-primary">{client.name}</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-5 py-3.5 text-center"><TypeBadge type={client.type} /></td>
-                                        <td className="px-5 py-3.5 text-sm text-text-secondary text-center">
-                                            {client.country?.name || <span className="text-text-muted">—</span>}
-                                        </td>
-                                        <td className="px-5 py-3.5 text-center">
-                                            <div className="text-sm text-text-primary">
-                                                {client.contact_person && <div className="font-medium">{client.contact_person}</div>}
-                                                {client.contact_email && <div className="text-xs text-text-muted">{client.contact_email}</div>}
-                                                {!client.contact_person && !client.contact_email && <span className="text-text-muted">—</span>}
-                                            </div>
-                                        </td>
-                                        <td className="px-5 py-3.5 text-center">
-                                            <span
-                                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold ${client.is_active ? 'text-success bg-success/12' : 'text-danger bg-danger/12'}`}
-                                            >
-                                                <span className={`w-1.5 h-1.5 rounded-full inline-block ${client.is_active ? 'bg-success' : 'bg-danger'}`} />
-                                                {client.is_active ? 'Active' : 'Inactive'}
-                                            </span>
-                                        </td>
-                                        <td className="px-5 py-3.5 text-center">
-                                            <div className="flex items-center justify-center gap-1.5">
-                                                <button
-                                                    title="Edit Client"
-                                                    onClick={() => handleEdit(client)}
-                                                    className="p-1.5 rounded-lg transition-colors bg-surface-elevated border border-border text-text-secondary hover:text-text-primary hover:border-border-strong"
-                                                >
-                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                                    </svg>
-                                                </button>
-                                                <button
-                                                    title="View History"
-                                                    onClick={() => handleViewTransactions(client)}
-                                                    className="p-1.5 rounded-lg transition-colors bg-primary/12 text-primary"
-                                                >
-                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                    </svg>
-                                                </button>
-                                                <button
-                                                    title={client.is_active ? 'Deactivate Client' : 'Activate Client'}
-                                                    onClick={() => handleToggleActive(client.id)}
-                                                    disabled={toggleClient.isPending}
-                                                    className={`p-1.5 rounded-lg transition-colors disabled:opacity-50 ${client.is_active ? 'bg-danger/12 text-danger' : 'bg-success/12 text-success'}`}
-                                                >
-                                                    {client.is_active ? (
-                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                                                        </svg>
-                                                    ) : (
-                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                        </svg>
-                                                    )}
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                        <div className="px-5 py-3 text-xs text-text-muted border-t border-border">
-                            Showing {filteredClients.length} of {clients.length} brokerage clients
+                {/* Table Card */}
+                <div className="overflow-hidden rounded-xl border border-border/80 bg-card shadow-2xs">
+                    {isLoading ? (
+                        <div className="flex min-h-[280px] flex-col items-center justify-center p-12">
+                            <div className="h-7 w-7 rounded-full border-2 border-border border-t-emerald-500 animate-spin" />
+                            <p className="mt-3 text-xs font-medium text-muted-foreground">Loading brokerage clients...</p>
                         </div>
-                    </div>
-                )}
+                    ) : isError ? (
+                        <div className="p-12 text-center">
+                            <p className="text-sm font-medium text-rose-500">Failed to load brokerage clients.</p>
+                            <p className="mt-1 text-xs text-muted-foreground">Please check your connection and try again.</p>
+                        </div>
+                    ) : filteredClients.length === 0 ? (
+                        <div className="flex min-h-[280px] flex-col items-center justify-center p-8 text-center">
+                            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full border border-border bg-muted/30 text-muted-foreground shadow-2xs">
+                                <Users className="h-5 w-5" />
+                            </div>
+                            <h3 className="text-sm font-semibold text-foreground">No brokerage clients found</h3>
+                            <p className="mt-1.5 max-w-sm text-xs text-muted-foreground">
+                                {isFiltered
+                                    ? 'No accounts match the current filter criteria.'
+                                    : 'Create your first brokerage client account using the button above.'}
+                            </p>
+                        </div>
+                    ) : (
+                        <div>
+                            <div className="overflow-x-auto">
+                                <Table>
+                                    <TableHeader className="bg-muted/50">
+                                        <TableRow className="hover:bg-transparent border-b border-border/80">
+                                            <TableHead className="h-9 px-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground w-[32%] min-w-[240px]">
+                                                Client / Organization
+                                            </TableHead>
+                                            <TableHead className="h-9 px-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground w-[15%] min-w-[130px]">
+                                                Type
+                                            </TableHead>
+                                            <TableHead className="h-9 px-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground w-[15%] min-w-[120px]">
+                                                Country
+                                            </TableHead>
+                                            <TableHead className="h-9 px-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground w-[20%] min-w-[160px]">
+                                                Contact Info
+                                            </TableHead>
+                                            <TableHead className="h-9 px-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground w-[10%] min-w-[90px]">
+                                                Status
+                                            </TableHead>
+                                            <TableHead className="h-9 px-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground w-[8%] min-w-[110px] text-right">
+                                                Actions
+                                            </TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {paginatedClients.map((client) => {
+                                            const cfg = typeConfig[client.type] ?? typeConfig.both;
+
+                                            return (
+                                                <TableRow key={client.id} className="hover:bg-muted/50 border-b border-border/60 transition-colors">
+                                                    {/* Client Name & Initial Avatar */}
+                                                    <TableCell className="py-3 px-4">
+                                                        <div className="flex items-center gap-3">
+                                                            <div
+                                                                className={`flex h-8 w-8 items-center justify-center rounded-full border text-xs font-bold shrink-0 ${cfg.avatarBg}`}
+                                                            >
+                                                                {client.name.charAt(0).toUpperCase()}
+                                                            </div>
+                                                            <div className="min-w-0">
+                                                                <span className="font-semibold text-xs text-foreground truncate block" title={client.name}>
+                                                                    {client.name}
+                                                                </span>
+                                                                {client.address ? (
+                                                                    <p className="text-[11px] text-muted-foreground truncate max-w-xs mt-0.5" title={client.address}>
+                                                                        {client.address}
+                                                                    </p>
+                                                                ) : null}
+                                                            </div>
+                                                        </div>
+                                                    </TableCell>
+
+                                                    {/* Type */}
+                                                    <TableCell className="py-3 px-4">
+                                                        <TypeBadge type={client.type} />
+                                                    </TableCell>
+
+                                                    {/* Country */}
+                                                    <TableCell className="py-3 px-4 text-xs text-muted-foreground">
+                                                        {client.country?.name ? (
+                                                            <span className="inline-flex items-center gap-1.5 text-foreground font-medium">
+                                                                <Globe className="size-3 text-muted-foreground shrink-0" />
+                                                                {client.country.name}
+                                                            </span>
+                                                        ) : (
+                                                            <span>—</span>
+                                                        )}
+                                                    </TableCell>
+
+                                                    {/* Contact Info */}
+                                                    <TableCell className="py-3 px-4">
+                                                        {client.contact_person || client.contact_email || client.contact_phone ? (
+                                                            <div className="space-y-0.5 min-w-0">
+                                                                {client.contact_person ? (
+                                                                    <p className="text-xs font-medium text-foreground truncate" title={client.contact_person}>
+                                                                        {client.contact_person}
+                                                                    </p>
+                                                                ) : null}
+                                                                {client.contact_email ? (
+                                                                    <p className="text-[11px] text-muted-foreground truncate flex items-center gap-1" title={client.contact_email}>
+                                                                        <Mail className="size-2.5 text-muted-foreground/80 shrink-0" />
+                                                                        {client.contact_email}
+                                                                    </p>
+                                                                ) : null}
+                                                                {client.contact_phone ? (
+                                                                    <p className="text-[11px] text-muted-foreground truncate flex items-center gap-1" title={client.contact_phone}>
+                                                                        <Phone className="size-2.5 text-muted-foreground/80 shrink-0" />
+                                                                        {client.contact_phone}
+                                                                    </p>
+                                                                ) : null}
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-xs text-muted-foreground">—</span>
+                                                        )}
+                                                    </TableCell>
+
+                                                    {/* Status */}
+                                                    <TableCell className="py-3 px-4">
+                                                        <span
+                                                            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${
+                                                                client.is_active
+                                                                    ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
+                                                                    : 'border-rose-500/20 bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                                                            }`}
+                                                        >
+                                                            <span
+                                                                className={`h-1.5 w-1.5 rounded-full ${client.is_active ? 'bg-emerald-500' : 'bg-rose-500'}`}
+                                                            />
+                                                            {client.is_active ? 'Active' : 'Inactive'}
+                                                        </span>
+                                                    </TableCell>
+
+                                                    {/* Actions */}
+                                                    <TableCell className="py-3 px-4 text-right">
+                                                        <div className="flex items-center justify-end gap-1">
+                                                            <button
+                                                                type="button"
+                                                                title="Edit Client"
+                                                                onClick={() => handleEdit(client)}
+                                                                className="rounded-md border border-border bg-card p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer shadow-2xs"
+                                                            >
+                                                                <Pencil className="h-3.5 w-3.5" />
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                title="View History"
+                                                                onClick={() => handleViewTransactions(client)}
+                                                                className="rounded-md border border-blue-500/20 bg-blue-500/10 p-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 transition-colors cursor-pointer shadow-2xs"
+                                                            >
+                                                                <History className="h-3.5 w-3.5" />
+                                                            </button>
+                                                            {client.is_active ? (
+                                                                <button
+                                                                    type="button"
+                                                                    title="Deactivate Client"
+                                                                    onClick={() => handleToggleActive(client)}
+                                                                    disabled={toggleClient.isPending}
+                                                                    className="rounded-md border border-amber-500/20 bg-amber-500/10 p-1.5 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20 transition-colors cursor-pointer shadow-2xs disabled:opacity-50"
+                                                                >
+                                                                    <UserX className="h-3.5 w-3.5" />
+                                                                </button>
+                                                            ) : (
+                                                                <button
+                                                                    type="button"
+                                                                    title="Activate Client"
+                                                                    onClick={() => handleToggleActive(client)}
+                                                                    disabled={toggleClient.isPending}
+                                                                    className="rounded-md border border-emerald-500/20 bg-emerald-500/10 p-1.5 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/20 transition-colors cursor-pointer shadow-2xs disabled:opacity-50"
+                                                                >
+                                                                    <UserCheck className="h-3.5 w-3.5" />
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </TableCell>
+                                                </TableRow>
+                                            );
+                                        })}
+                                    </TableBody>
+                                </Table>
+                            </div>
+
+                            {/* Pagination Footer */}
+                            {filteredClients.length > 0 ? (
+                                <div className="flex flex-col sm:flex-row items-center justify-between gap-2 p-3 border-t border-border/80 bg-muted/20">
+                                    <p className="text-xs text-muted-foreground">
+                                        Showing {Math.min((currentPage - 1) * perPage + 1, filteredClients.length)} to{' '}
+                                        {Math.min(currentPage * perPage, filteredClients.length)} of {filteredClients.length} clients
+                                    </p>
+                                    <Pagination
+                                        currentPage={currentPage}
+                                        totalPages={totalPages}
+                                        perPage={perPage}
+                                        onPageChange={setCurrentPage}
+                                        onPerPageChange={(newPerPage) => {
+                                            setPerPage(newPerPage);
+                                            setCurrentPage(1);
+                                        }}
+                                        perPageOptions={[15, 30, 50, 100]}
+                                        compact
+                                    />
+                                </div>
+                            ) : null}
+                        </div>
+                    )}
+                </div>
             </div>
 
             <ClientFormModal
@@ -309,11 +590,16 @@ export const ClientManagement = () => {
 
             <TransactionHistoryModal
                 isOpen={isHistoryModalOpen}
-                onClose={() => { setIsHistoryModalOpen(false); setHistoryClientId(null); }}
+                onClose={() => {
+                    setIsHistoryModalOpen(false);
+                    setHistoryClientId(null);
+                }}
                 clientName={historyClientName}
                 imports={transactionHistory?.transactions?.imports ?? []}
                 exports={transactionHistory?.transactions?.exports ?? []}
             />
+
+            <ConfirmationModal {...modalProps} />
         </div>
     );
 };

@@ -1,5 +1,15 @@
 import { useState } from 'react';
-import { useTheme } from '../../../../context/ThemeContext';
+import { ArrowDownLeft, ArrowUpRight, History, X } from 'lucide-react';
+import { Badge } from '../../../../components/ui/badge';
+import { Button } from '../../../../components/ui/button';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '../../../../components/ui/table';
 import type { ExportTransaction, ImportTransaction } from '../../../clients/types/client.types';
 
 interface TransactionHistoryModalProps {
@@ -10,8 +20,30 @@ interface TransactionHistoryModalProps {
     exports: ExportTransaction[];
 }
 
+function StatusBadge({ status }: { status: string }) {
+    let className = 'border-border bg-muted/50 text-muted-foreground';
+    let dotClass = 'bg-muted-foreground';
+
+    if (status === 'completed') {
+        className = 'border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400';
+        dotClass = 'bg-emerald-500';
+    } else if (status === 'in_progress') {
+        className = 'border-blue-500/20 bg-blue-500/10 text-blue-700 dark:text-blue-400';
+        dotClass = 'bg-blue-500';
+    } else if (status === 'cancelled') {
+        className = 'border-rose-500/20 bg-rose-500/10 text-rose-700 dark:text-rose-400';
+        dotClass = 'bg-rose-500';
+    }
+
+    return (
+        <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold capitalize ${className}`}>
+            <span className={`size-1.5 rounded-full ${dotClass}`} />
+            {status.replace(/_/g, ' ')}
+        </span>
+    );
+}
+
 export const TransactionHistoryModal = ({ isOpen, onClose, clientName, imports, exports }: TransactionHistoryModalProps) => {
-    const { theme } = useTheme();
     const [activeTab, setActiveTab] = useState<'imports' | 'exports'>('imports');
 
     if (!isOpen) return null;
@@ -19,193 +51,189 @@ export const TransactionHistoryModal = ({ isOpen, onClose, clientName, imports, 
     const totalTransactions = imports.length + exports.length;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-backdrop-in" onClick={onClose}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-backdrop-in" onClick={onClose}>
             <div
-                className={`w-full max-w-4xl rounded-[2rem] p-8 max-h-[90vh] overflow-y-auto animate-modal-in ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}
+                className="w-full max-w-4xl rounded-xl p-6 bg-card border border-border shadow-xl animate-modal-in max-h-[90vh] flex flex-col"
                 onClick={(e) => e.stopPropagation()}
             >
-                <div className="flex justify-between items-start mb-6">
-                    <div>
-                        <h2 className={`text-2xl font-bold mb-1 ${theme === 'dark' ? 'text-white' : 'text-gray-900'
-                            }`}>
-                            Transaction History
-                        </h2>
-                        <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                            {clientName} • {totalTransactions} total transaction{totalTransactions !== 1 ? 's' : ''}
-                        </p>
+                {/* Header */}
+                <div className="flex items-center justify-between pb-4 border-b border-border/80 shrink-0">
+                    <div className="flex items-center gap-2.5">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 border border-primary/20 text-primary">
+                            <History className="h-4 w-4" />
+                        </div>
+                        <div>
+                            <h2 className="text-sm font-semibold text-foreground">
+                                Transaction History
+                            </h2>
+                            <p className="text-[11px] text-muted-foreground">
+                                <span className="font-medium text-foreground">{clientName}</span> · {totalTransactions} total transaction{totalTransactions !== 1 ? 's' : ''}
+                            </p>
+                        </div>
                     </div>
                     <button
+                        type="button"
                         onClick={onClose}
-                        className={`p-2 rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
-                            }`}
+                        className="rounded-lg p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
                     >
-                        <svg className={`w-6 h-6 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
+                        <X className="h-4 w-4" />
                     </button>
                 </div>
 
-                {/* Tabs */}
-                <div className="flex gap-2 mb-6 border-b border-gray-200 dark:border-gray-700">
-                    <button
+                {/* Sub-Tabs Switcher */}
+                <div className="flex items-center gap-1.5 pt-4 pb-3 shrink-0">
+                    <Button
+                        variant={activeTab === 'imports' ? 'default' : 'outline'}
+                        size="sm"
                         onClick={() => setActiveTab('imports')}
-                        className={`px-4 py-2 font-medium transition-colors border-b-2 ${activeTab === 'imports'
-                            ? 'border-black dark:border-white text-black dark:text-white'
-                            : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-                            }`}
+                        className={`h-8 px-2.5 text-xs gap-1.5 font-medium shadow-2xs transition-all cursor-pointer ${
+                            activeTab !== 'imports'
+                                ? 'bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground border-border/80'
+                                : ''
+                        }`}
                     >
-                        Imports ({imports.length})
-                    </button>
-                    <button
+                        <ArrowDownLeft className="size-3.5" />
+                        Imports
+                        <Badge
+                            variant={activeTab === 'imports' ? 'secondary' : 'outline'}
+                            className="text-[10px] px-1.5 py-0 font-semibold tabular-nums ml-0.5"
+                        >
+                            {imports.length}
+                        </Badge>
+                    </Button>
+                    <Button
+                        variant={activeTab === 'exports' ? 'default' : 'outline'}
+                        size="sm"
                         onClick={() => setActiveTab('exports')}
-                        className={`px-4 py-2 font-medium transition-colors border-b-2 ${activeTab === 'exports'
-                            ? 'border-black dark:border-white text-black dark:text-white'
-                            : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-                            }`}
+                        className={`h-8 px-2.5 text-xs gap-1.5 font-medium shadow-2xs transition-all cursor-pointer ${
+                            activeTab !== 'exports'
+                                ? 'bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground border-border/80'
+                                : ''
+                        }`}
                     >
-                        Exports ({exports.length})
-                    </button>
+                        <ArrowUpRight className="size-3.5" />
+                        Exports
+                        <Badge
+                            variant={activeTab === 'exports' ? 'secondary' : 'outline'}
+                            className="text-[10px] px-1.5 py-0 font-semibold tabular-nums ml-0.5"
+                        >
+                            {exports.length}
+                        </Badge>
+                    </Button>
                 </div>
 
-                {/* Transaction Lists */}
-                {activeTab === 'imports' ? (
-                    imports.length === 0 ? (
-                        <div className="text-center py-12">
-                            <p className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>
-                                No import transactions found
-                            </p>
-                        </div>
-                    ) : (
-                        <div className="overflow-x-auto">
-                            <table className="w-full">
-                                <thead className={theme === 'dark' ? 'bg-gray-700/50' : 'bg-gray-50'}>
-                                    <tr>
-                                        <th className={`px-4 py-3 text-left text-xs font-bold uppercase ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-                                            Date
-                                        </th>
-                                        <th className={`px-4 py-3 text-left text-xs font-bold uppercase ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+                {/* Table Container */}
+                <div className="flex-1 overflow-y-auto min-h-[220px] rounded-lg border border-border/80 bg-card shadow-2xs">
+                    {activeTab === 'imports' ? (
+                        imports.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center p-12 text-center">
+                                <p className="text-xs font-medium text-muted-foreground">No import transactions recorded for this client.</p>
+                            </div>
+                        ) : (
+                            <Table>
+                                <TableHeader className="bg-muted/50 sticky top-0 z-10">
+                                    <TableRow className="hover:bg-transparent border-b border-border/80">
+                                        <TableHead className="h-8 px-4 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                            Arrival Date
+                                        </TableHead>
+                                        <TableHead className="h-8 px-4 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                                             Ref No
-                                        </th>
-                                        <th className={`px-4 py-3 text-left text-xs font-bold uppercase ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+                                        </TableHead>
+                                        <TableHead className="h-8 px-4 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                                             BL No
-                                        </th>
-                                        <th className={`px-4 py-3 text-left text-xs font-bold uppercase ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+                                        </TableHead>
+                                        <TableHead className="h-8 px-4 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                                             Status
-                                        </th>
-                                        <th className={`px-4 py-3 text-left text-xs font-bold uppercase ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-                                            Assigned To
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody className={`divide-y ${theme === 'dark' ? 'divide-gray-700' : 'divide-gray-100'}`}>
-                                    {imports.map((transaction) => (
-                                        <tr key={transaction.id} className={`transition-colors ${theme === 'dark' ? 'hover:bg-gray-700/30' : 'hover:bg-gray-50'}`}>
-                                            <td className={`px-4 py-3 text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-                                                {transaction.arrival_date
-                                                    ? new Date(transaction.arrival_date).toLocaleDateString()
-                                                    : 'N/A'}
-                                            </td>
-                                            <td className={`px-4 py-3 text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                                                {transaction.customs_ref_no || 'N/A'}
-                                            </td>
-                                            <td className={`px-4 py-3 text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-                                                {transaction.bl_no || 'N/A'}
-                                            </td>
-                                            <td className="px-4 py-3">
-                                                <span className={`inline-flex px-2 py-1 rounded-full text-xs font-bold capitalize ${transaction.status === 'completed'
-                                                    ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                                                    : transaction.status === 'in_progress'
-                                                        ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
-                                                        : transaction.status === 'cancelled'
-                                                            ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
-                                                            : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
-                                                    }`}>
-                                                    {transaction.status}
-                                                </span>
-                                            </td>
-                                            <td className={`px-4 py-3 text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-                                                {transaction.assigned_user?.name ?? 'Unassigned'}
-                                            </td>
-                                        </tr>
+                                        </TableHead>
+                                        <TableHead className="h-8 px-4 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground text-right">
+                                            Assigned Encoder
+                                        </TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {imports.map((tx) => (
+                                        <TableRow key={tx.id} className="hover:bg-muted/50 border-b border-border/60 transition-colors">
+                                            <TableCell className="py-2.5 px-4 text-xs tabular-nums text-muted-foreground">
+                                                {tx.arrival_date ? new Date(tx.arrival_date).toLocaleDateString() : '—'}
+                                            </TableCell>
+                                            <TableCell className="py-2.5 px-4 text-xs font-medium text-foreground">
+                                                {tx.customs_ref_no || '—'}
+                                            </TableCell>
+                                            <TableCell className="py-2.5 px-4 text-xs font-mono font-medium text-foreground">
+                                                {tx.bl_no || '—'}
+                                            </TableCell>
+                                            <TableCell className="py-2.5 px-4">
+                                                <StatusBadge status={tx.status} />
+                                            </TableCell>
+                                            <TableCell className="py-2.5 px-4 text-xs text-muted-foreground text-right">
+                                                {tx.assigned_user?.name ?? 'Unassigned'}
+                                            </TableCell>
+                                        </TableRow>
                                     ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )
-                ) : (
-                    exports.length === 0 ? (
-                        <div className="text-center py-12">
-                            <p className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>
-                                No export transactions found
-                            </p>
+                                </TableBody>
+                            </Table>
+                        )
+                    ) : exports.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center p-12 text-center">
+                            <p className="text-xs font-medium text-muted-foreground">No export transactions recorded for this client.</p>
                         </div>
                     ) : (
-                        <div className="overflow-x-auto">
-                            <table className="w-full">
-                                <thead className={theme === 'dark' ? 'bg-gray-700/50' : 'bg-gray-50'}>
-                                    <tr>
-                                        <th className={`px-4 py-3 text-left text-xs font-bold uppercase ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-                                            BL No
-                                        </th>
-                                        <th className={`px-4 py-3 text-left text-xs font-bold uppercase ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-                                            Vessel
-                                        </th>
-                                        <th className={`px-4 py-3 text-left text-xs font-bold uppercase ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-                                            Destination
-                                        </th>
-                                        <th className={`px-4 py-3 text-left text-xs font-bold uppercase ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-                                            Status
-                                        </th>
-                                        <th className={`px-4 py-3 text-left text-xs font-bold uppercase ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-                                            Assigned To
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody className={`divide-y ${theme === 'dark' ? 'divide-gray-700' : 'divide-gray-100'}`}>
-                                    {exports.map((transaction) => (
-                                        <tr key={transaction.id} className={`transition-colors ${theme === 'dark' ? 'hover:bg-gray-700/30' : 'hover:bg-gray-50'}`}>
-                                            <td className={`px-4 py-3 text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                                                {transaction.bl_no || 'N/A'}
-                                            </td>
-                                            <td className={`px-4 py-3 text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-                                                {transaction.vessel || 'N/A'}
-                                            </td>
-                                            <td className={`px-4 py-3 text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-                                                {transaction.destination || 'N/A'}
-                                            </td>
-                                            <td className="px-4 py-3">
-                                                <span className={`inline-flex px-2 py-1 rounded-full text-xs font-bold capitalize ${transaction.status === 'completed'
-                                                    ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                                                    : transaction.status === 'in_progress'
-                                                        ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
-                                                        : transaction.status === 'cancelled'
-                                                            ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
-                                                            : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
-                                                    }`}>
-                                                    {transaction.status}
-                                                </span>
-                                            </td>
-                                            <td className={`px-4 py-3 text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-                                                {transaction.assigned_user?.name ?? 'Unassigned'}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )
-                )}
+                        <Table>
+                            <TableHeader className="bg-muted/50 sticky top-0 z-10">
+                                <TableRow className="hover:bg-transparent border-b border-border/80">
+                                    <TableHead className="h-8 px-4 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                        BL No
+                                    </TableHead>
+                                    <TableHead className="h-8 px-4 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                        Vessel
+                                    </TableHead>
+                                    <TableHead className="h-8 px-4 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                        Destination
+                                    </TableHead>
+                                    <TableHead className="h-8 px-4 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                        Status
+                                    </TableHead>
+                                    <TableHead className="h-8 px-4 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground text-right">
+                                        Assigned Encoder
+                                    </TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {exports.map((tx) => (
+                                    <TableRow key={tx.id} className="hover:bg-muted/50 border-b border-border/60 transition-colors">
+                                        <TableCell className="py-2.5 px-4 text-xs font-mono font-medium text-foreground">
+                                            {tx.bl_no || '—'}
+                                        </TableCell>
+                                        <TableCell className="py-2.5 px-4 text-xs text-foreground font-medium">
+                                            {tx.vessel || '—'}
+                                        </TableCell>
+                                        <TableCell className="py-2.5 px-4 text-xs text-muted-foreground">
+                                            {tx.destination || '—'}
+                                        </TableCell>
+                                        <TableCell className="py-2.5 px-4">
+                                            <StatusBadge status={tx.status} />
+                                        </TableCell>
+                                        <TableCell className="py-2.5 px-4 text-xs text-muted-foreground text-right">
+                                            {tx.assigned_user?.name ?? 'Unassigned'}
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    )}
+                </div>
 
-                <div className="mt-6 flex justify-end">
-                    <button
+                {/* Footer */}
+                <div className="pt-4 flex items-center justify-end shrink-0">
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
                         onClick={onClose}
-                        className={`px-6 py-3 rounded-xl font-bold border transition-colors ${theme === 'dark'
-                            ? 'border-gray-600 text-white hover:bg-gray-700'
-                            : 'border-gray-200 text-gray-900 hover:bg-gray-50'
-                            }`}
+                        className="h-8 text-xs cursor-pointer"
                     >
                         Close
-                    </button>
+                    </Button>
                 </div>
             </div>
         </div>

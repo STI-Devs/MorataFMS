@@ -25,7 +25,7 @@ export const UserManagementKpiCards = ({ users, isLoading }: UserManagementKpiCa
                     <Users className="size-4 text-muted-foreground/70" />
                 </CardHeader>
                 <CardContent className="p-0">
-                    <div className="text-2xl font-bold tracking-tight text-foreground font-mono">
+                    <div className="text-2xl font-bold tracking-tight text-foreground tabular-nums">
                         {isLoading ? '—' : total.toLocaleString()}
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5">
@@ -41,7 +41,7 @@ export const UserManagementKpiCards = ({ users, isLoading }: UserManagementKpiCa
                     <UserCheck className="size-4 text-emerald-500" />
                 </CardHeader>
                 <CardContent className="p-0">
-                    <div className="text-2xl font-bold tracking-tight text-foreground font-mono">
+                    <div className="text-2xl font-bold tracking-tight text-foreground tabular-nums">
                         {isLoading ? '—' : active.toLocaleString()}
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5">
@@ -58,7 +58,7 @@ export const UserManagementKpiCards = ({ users, isLoading }: UserManagementKpiCa
                 </CardHeader>
                 <CardContent className="p-0">
                     <div
-                        className={`text-2xl font-bold tracking-tight font-mono ${
+                        className={`text-2xl font-bold tracking-tight tabular-nums ${
                             inactive > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-foreground'
                         }`}
                     >
@@ -77,7 +77,7 @@ export const UserManagementKpiCards = ({ users, isLoading }: UserManagementKpiCa
                     <ShieldCheck className="size-4 text-blue-500" />
                 </CardHeader>
                 <CardContent className="p-0">
-                    <div className="text-2xl font-bold tracking-tight text-foreground font-mono">
+                    <div className="text-2xl font-bold tracking-tight text-foreground tabular-nums">
                         {isLoading ? '—' : admins.toLocaleString()}
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5">Full administrative access</p>
