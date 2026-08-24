@@ -84,13 +84,10 @@ describe('ArchivesPage', () => {
 
         expect(screen.getByRole('heading', { name: /records archive/i })).toBeInTheDocument();
         expect(screen.getByText(/search preserved import and export records/i)).toBeInTheDocument();
-        expect(screen.getByText(/records control/i)).toBeInTheDocument();
-        expect(screen.getByText(/brokerage records workspace/i)).toBeInTheDocument();
         expect(screen.getByText(/completion/i)).toBeInTheDocument();
         expect(screen.getByText(/^BL Records$/i)).toBeInTheDocument();
         expect(screen.getAllByText(/^Incomplete$/i).length).toBeGreaterThan(0);
         expect(screen.getByText(/^Storage$/i)).toBeInTheDocument();
-        expect(screen.getByText(/records browser/i)).toBeInTheDocument();
         expect(screen.getByTestId('archives-folder-view')).toBeInTheDocument();
         expect(screen.getByPlaceholderText(/search bl number, client, or vessel/i)).toBeInTheDocument();
     });

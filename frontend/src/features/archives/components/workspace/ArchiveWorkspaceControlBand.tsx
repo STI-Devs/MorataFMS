@@ -1,4 +1,13 @@
-import type { ReactNode } from 'react';
+import {
+    AlertTriangle,
+    Calendar,
+    CheckCircle2,
+    FileText,
+    FolderArchive,
+    HardDrive,
+    Percent,
+} from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '../../../../components/ui/card';
 
 type ArchiveMetric = {
     label: string;
@@ -7,58 +16,79 @@ type ArchiveMetric = {
 };
 
 type Props = {
-    controlTitle: string;
-    healthLabel: string;
-    healthTone: 'good' | 'danger';
+    controlTitle?: string;
+    healthLabel?: string;
+    healthTone?: 'good' | 'danger';
     metrics: ArchiveMetric[];
     isLoading: boolean;
-    rightAction?: ReactNode;
 };
 
+function getMetricIcon(label: string, value: string, tone: string) {
+    const l = label.toLowerCase();
+    if (l.includes('completion')) {
+        return value === '100%' ? (
+            <CheckCircle2 className="size-4 text-emerald-500" />
+        ) : (
+            <Percent className={`size-4 ${tone.includes('red') ? 'text-rose-500' : 'text-amber-500'}`} />
+        );
+    }
+    if (l.includes('storage')) return <HardDrive className="size-4 text-muted-foreground/70" />;
+    if (l.includes('incomplete')) {
+        const isZero = value === '0' || value === '0%';
+        return <AlertTriangle className={`size-4 ${isZero ? 'text-muted-foreground/70' : 'text-rose-500'}`} />;
+    }
+    if (l.includes('files uploaded') || l.includes('file')) return <FileText className="size-4 text-sky-500" />;
+    if (l.includes('month') || l.includes('added')) return <Calendar className="size-4 text-amber-500" />;
+    return <FolderArchive className="size-4 text-muted-foreground/70" />;
+}
+
+function getMetricSubtitle(label: string, value: string): string {
+    const l = label.toLowerCase();
+    if (l.includes('completion')) return 'Overall archive completeness';
+    if (l.includes('storage')) return 'Total preserved file storage';
+    if (l.includes('incomplete')) {
+        return value === '0' ? 'All records complete' : 'BLs requiring document uploads';
+    }
+    if (l.includes('bl records')) return 'Preserved BL records';
+    if (l.includes('file')) return 'Total uploaded documents';
+    if (l.includes('month') || l.includes('added')) return 'Recent additions this month';
+    return 'Archive record tracking';
+}
+
 export const ArchiveWorkspaceControlBand = ({
-    controlTitle,
-    healthLabel,
-    healthTone,
     metrics,
     isLoading,
-    rightAction,
 }: Props) => (
-    <div className="flex flex-col gap-3 border-b border-border px-4 py-3 2xl:flex-row 2xl:items-start 2xl:justify-between">
-        <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-black uppercase tracking-widest text-text-muted">Records Control</p>
-            <div className="mt-1.5 flex flex-wrap items-center gap-2.5">
-                <h2 className="text-base font-black tracking-tight text-text-primary">{controlTitle}</h2>
-                {!isLoading && (
-                    <span
-                        className={`inline-flex min-h-7 items-center rounded-full border px-3 py-1 text-[10px] font-bold tracking-wide ${
-                            healthTone === 'danger'
-                                ? 'border-red-500/30 bg-red-500/10 text-red-500'
-                                : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600'
-                        }`}
-                    >
-                        {healthLabel}
-                    </span>
-                )}
-            </div>
-        </div>
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {metrics.map((metric) => {
+            const icon = getMetricIcon(metric.label, metric.value, metric.tone);
+            const subtitle = getMetricSubtitle(metric.label, metric.value);
+            const isDanger = metric.tone.includes('red');
+            const isSuccess = metric.tone.includes('emerald') || metric.tone.includes('green');
 
-        <div className="flex min-w-0 flex-col gap-2 xl:flex-row xl:items-start xl:justify-end">
-            {rightAction}
-            <div className="grid min-w-0 gap-1.5 sm:grid-cols-2 xl:grid-cols-4 2xl:w-auto">
-                {metrics.map((metric) => (
-                    <div
-                        key={metric.label}
-                        className="grid h-8 min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-lg border border-border bg-surface-secondary/50 px-2.5"
-                    >
-                        <p className="truncate text-[9px] font-black uppercase tracking-widest text-text-muted">{metric.label}</p>
-                        {isLoading ? (
-                            <div className="h-3.5 w-9 justify-self-end animate-pulse rounded bg-surface" />
-                        ) : (
-                            <p className={`text-right text-xs font-black tabular-nums ${metric.tone}`}>{metric.value}</p>
-                        )}
-                    </div>
-                ))}
-            </div>
-        </div>
+            return (
+                <Card key={metric.label} className="p-4 gap-2 shadow-xs bg-card">
+                    <CardHeader className="flex flex-row items-center justify-between p-0 space-y-0">
+                        <CardTitle className="text-xs font-medium text-muted-foreground">{metric.label}</CardTitle>
+                        {icon}
+                    </CardHeader>
+                    <CardContent className="p-0">
+                        <div
+                            className={`text-2xl font-bold tracking-tight tabular-nums ${
+                                isDanger
+                                    ? 'text-rose-600 dark:text-rose-400'
+                                    : isSuccess
+                                      ? 'text-emerald-600 dark:text-emerald-400'
+                                      : 'text-foreground'
+                            }`}
+                        >
+                            {isLoading ? '—' : metric.value}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>
+                    </CardContent>
+                </Card>
+            );
+        })}
     </div>
 );
+

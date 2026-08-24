@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { ChevronRight, Folder } from 'lucide-react';
 import type { ArchiveDocument, ArchiveYear } from '../../../documents/types/document.types';
 import type { ArchiveDocumentIndexResponse, ArchiveDocumentIndexRow } from '../../types/archiveHistory.types';
 import { useArchiveFolderHistory } from '../../hooks/useArchiveFolderHistory';
@@ -40,22 +41,26 @@ export const ArchivesDocumentView = ({
     const to = meta?.to ?? rows.length;
 
     if (!isFetching && rows.length === 0) return (
-        <div className="py-20 flex flex-col items-center gap-3 text-text-muted">
-            <p className="text-sm font-semibold text-text-secondary">No records match your filters</p>
+        <div className="py-20 flex flex-col items-center gap-2 text-muted-foreground">
+            <p className="text-sm font-semibold text-foreground">No records match your filters</p>
             <p className="text-xs">Try changing the search or filter options.</p>
         </div>
     );
 
     return (
         <div>
-            <div className="grid items-center gap-4 px-5 py-3 border-b border-border bg-surface sticky top-0 z-10"
-                style={{ gridTemplateColumns: '60px 1fr 1fr 80px 100px 80px' }}>
+            <div
+                className="grid items-center gap-4 px-5 py-3 border-b border-border/80 bg-muted/40 sticky top-0 z-10"
+                style={{ gridTemplateColumns: '60px 1fr 1fr 80px 100px 80px' }}
+            >
                 {['Year', 'BL Number', 'Client', 'Type', 'Status', 'Stages'].map((h, i) => (
-                    <span key={i} className="text-xs font-bold text-text-muted uppercase tracking-widest truncate">{h}</span>
+                    <span key={i} className="text-xs font-semibold text-muted-foreground uppercase tracking-wider truncate">
+                        {h}
+                    </span>
                 ))}
             </div>
             {isFetching && rows.length === 0 ? (
-                <div className="divide-y divide-border">
+                <div className="divide-y divide-border/60">
                     {Array.from({ length: Math.min(perPage, 8) }).map((_, index) => (
                         <div
                             key={index}
@@ -63,60 +68,90 @@ export const ArchivesDocumentView = ({
                             style={{ gridTemplateColumns: '60px 1fr 1fr 80px 100px 80px' }}
                         >
                             {Array.from({ length: 6 }).map((__, cellIndex) => (
-                                <span key={cellIndex} className="h-4 animate-pulse rounded bg-surface-secondary" />
+                                <span key={cellIndex} className="h-4 animate-pulse rounded bg-muted" />
                             ))}
                         </div>
                     ))}
                 </div>
-            ) : rows.map((r) => {
-                const completion = getArchiveBlCompletion(r.documents, r.type);
-                return (
-                    <button key={`${r.year}-${r.type}-${r.bl_no}`}
-                        onClick={() => {
-                            setViewMode('folder');
-                            nav({ level: 'files', year: getYearData(r), type: r.type, month: r.month, bl: r.bl_no });
-                        }}
-                        className="w-full grid items-center gap-4 px-5 py-3.5 border-b border-border hover:bg-hover transition-colors text-left group"
-                        style={{ gridTemplateColumns: '60px 1fr 1fr 80px 100px 80px' }}>
-                        <span className="text-xs font-bold text-text-secondary tabular-nums">{r.year}</span>
-                        <span className="font-mono text-sm font-bold text-text-primary truncate group-hover:underline underline-offset-2">{r.bl_no}</span>
-                        <span className="min-w-0">
-                            <span className="block truncate text-xs text-text-secondary">{toTitleCase(r.client || '—')}</span>
-                            <span className="mt-0.5 block truncate text-[10px] text-text-muted">
-                                {r.type === 'import'
-                                    ? `Vessel: ${r.documents[0]?.vessel_name ?? '—'} • Location: ${r.documents[0]?.location_of_goods ?? '—'}`
-                                    : `Vessel: ${r.documents[0]?.vessel_name ?? '—'} • Destination: ${r.documents[0]?.destination_country ?? '—'}`}
+            ) : (
+                rows.map((r) => {
+                    const completion = getArchiveBlCompletion(r.documents, r.type);
+                    return (
+                        <button
+                            key={`${r.year}-${r.type}-${r.bl_no}`}
+                            onClick={() => {
+                                setViewMode('folder');
+                                nav({ level: 'files', year: getYearData(r), type: r.type, month: r.month, bl: r.bl_no });
+                            }}
+                            className="w-full grid items-center gap-4 px-5 py-3.5 border-b border-border/60 hover:bg-muted/40 transition-colors text-left group cursor-pointer"
+                            style={{ gridTemplateColumns: '60px 1fr 1fr 80px 100px 80px' }}
+                        >
+                            <span className="text-xs font-semibold text-muted-foreground tabular-nums">{r.year}</span>
+                            <span className="font-mono text-sm font-semibold text-foreground truncate group-hover:underline underline-offset-2">
+                                {r.bl_no}
                             </span>
-                        </span>
-                        <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-md w-fit ${r.type === 'import' ? 'bg-success/10 text-success border border-success/30' : 'bg-info/10 text-info border border-info/30'}`}>
-                            {r.type === 'import' ? 'IMP' : 'EXP'}
-                        </span>
-                        <span className={`inline-flex items-center gap-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full border w-fit ${completion.isComplete ? 'bg-success/10 text-success border-success/30' : 'bg-warning/10 text-warning border-warning/30'}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${completion.isComplete ? 'bg-success' : 'bg-warning'}`} />
-                            {completion.isComplete ? 'Complete' : 'Incomplete'}
-                        </span>
-                        <span className={`text-xs font-semibold tabular-nums ${completion.isComplete ? 'text-success' : 'text-warning'}`}>
-                            {completion.doneCount}/{completion.requiredStages.length}
-                        </span>
-                    </button>
-                );
-            })}
-            <div className="flex flex-col gap-3 border-t border-border bg-surface-secondary/40 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-xs font-semibold text-text-muted">
+                            <span className="min-w-0">
+                                <span className="block truncate text-xs text-foreground">{toTitleCase(r.client || '—')}</span>
+                                <span className="mt-0.5 block truncate text-[10px] text-muted-foreground">
+                                    {r.type === 'import'
+                                        ? `Vessel: ${r.documents[0]?.vessel_name ?? '—'} • Location: ${r.documents[0]?.location_of_goods ?? '—'}`
+                                        : `Vessel: ${r.documents[0]?.vessel_name ?? '—'} • Destination: ${r.documents[0]?.destination_country ?? '—'}`}
+                                </span>
+                            </span>
+                            <span
+                                className={`inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-md w-fit ${
+                                    r.type === 'import'
+                                        ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                                        : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'
+                                }`}
+                            >
+                                {r.type === 'import' ? 'IMP' : 'EXP'}
+                            </span>
+                            <span
+                                className={`inline-flex items-center gap-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full border w-fit ${
+                                    completion.isComplete
+                                        ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                                        : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
+                                }`}
+                            >
+                                <span
+                                    className={`w-1.5 h-1.5 rounded-full ${
+                                        completion.isComplete ? 'bg-emerald-500' : 'bg-amber-500'
+                                    }`}
+                                />
+                                {completion.isComplete ? 'Complete' : 'Incomplete'}
+                            </span>
+                            <span
+                                className={`text-xs font-semibold tabular-nums ${
+                                    completion.isComplete
+                                        ? 'text-emerald-600 dark:text-emerald-400'
+                                        : 'text-amber-600 dark:text-amber-400'
+                                }`}
+                            >
+                                {completion.doneCount}/{completion.requiredStages.length}
+                            </span>
+                        </button>
+                    );
+                })
+            )}
+            <div className="flex flex-col gap-3 border-t border-border/80 bg-muted/20 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-xs font-medium text-muted-foreground">
                     Showing {from.toLocaleString()}-{to.toLocaleString()} of {totalRows.toLocaleString()} BL records
                 </p>
                 <div className="flex flex-wrap items-center gap-2">
-                    <label className="flex items-center gap-2 text-xs font-bold text-text-secondary">
+                    <label className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
                         Rows
                         <select
                             value={perPage}
                             onChange={(event) => {
                                 onPerPageChange(Number(event.target.value));
                             }}
-                            className="rounded-lg border border-border bg-surface px-2 py-1 text-xs font-bold text-text-primary outline-none transition-colors focus:border-primary"
+                            className="rounded-lg border border-border/80 bg-background px-2 py-1 text-xs font-medium text-foreground outline-none transition-colors focus:border-primary cursor-pointer"
                         >
                             {[25, 50, 100].map((option) => (
-                                <option key={option} value={option}>{option}</option>
+                                <option key={option} value={option}>
+                                    {option}
+                                </option>
                             ))}
                         </select>
                     </label>
@@ -124,18 +159,18 @@ export const ArchivesDocumentView = ({
                         type="button"
                         disabled={currentPage <= 1}
                         onClick={() => onPageChange(Math.max(1, currentPage - 1))}
-                        className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-black text-text-secondary transition-colors hover:bg-hover hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40"
+                        className="rounded-lg border border-border/80 bg-background px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer shadow-2xs"
                     >
                         Previous
                     </button>
-                    <span className="min-w-20 text-center text-xs font-black text-text-muted">
+                    <span className="min-w-20 text-center text-xs font-semibold text-muted-foreground">
                         {currentPage} / {totalPages}
                     </span>
                     <button
                         type="button"
                         disabled={currentPage >= totalPages}
                         onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
-                        className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-black text-text-secondary transition-colors hover:bg-hover hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40"
+                        className="rounded-lg border border-border/80 bg-background px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer shadow-2xs"
                     >
                         Next
                     </button>
@@ -163,7 +198,7 @@ const formatPeriod = (dateStr: string) => {
     return (day === 1 || day === lastDayOfMonth) ? `${month} ${year}` : `${month} ${day}, ${year}`;
 };
 
-export const BLFolderRow = ({ blNo, blDocs, drill, nav, COL, color }: BLFolderRowProps) => {
+export const BLFolderRow = ({ blNo, blDocs, drill, nav, COL }: BLFolderRowProps) => {
     const firstDoc = blDocs[0];
     const isImport = drill.type === 'import';
     const completion = getArchiveBlCompletion(blDocs, drill.type);
@@ -172,20 +207,30 @@ export const BLFolderRow = ({ blNo, blDocs, drill, nav, COL, color }: BLFolderRo
         .join('\n');
 
     return (
-        <div className="grid items-center gap-4 px-5 py-3.5 border-b border-border hover:bg-hover transition-colors group"
-            style={{ gridTemplateColumns: COL }}>
-            <svg className="w-4 h-4 shrink-0" fill="none" stroke={color} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75}
-                    d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
-            </svg>
+        <div
+            className="grid items-center gap-4 px-5 py-3.5 border-b border-border/60 hover:bg-muted/40 transition-colors group"
+            style={{ gridTemplateColumns: COL }}
+        >
+            <Folder
+                className={`w-4 h-4 shrink-0 ${isImport ? 'text-emerald-500' : 'text-blue-500'}`}
+            />
             <button
-                onClick={() => nav({ level: 'files', year: { ...drill.year, documents: blDocs }, type: drill.type, month: drill.month, bl: blNo })}
-                className="text-sm font-bold text-text-primary truncate text-left font-mono group-hover:underline underline-offset-2 decoration-border-strong">
+                onClick={() =>
+                    nav({
+                        level: 'files',
+                        year: { ...drill.year, documents: blDocs },
+                        type: drill.type,
+                        month: drill.month,
+                        bl: blNo,
+                    })
+                }
+                className="text-sm font-mono font-semibold text-foreground truncate text-left group-hover:underline underline-offset-2 decoration-border cursor-pointer"
+            >
                 {blNo}/
             </button>
             <span className="min-w-0">
-                <span className="block truncate text-xs text-text-secondary">{toTitleCase(firstDoc?.client ?? '—')}</span>
-                <span className="mt-0.5 block truncate text-[10px] text-text-muted">
+                <span className="block truncate text-xs text-foreground">{toTitleCase(firstDoc?.client ?? '—')}</span>
+                <span className="mt-0.5 block truncate text-[10px] text-muted-foreground">
                     {isImport
                         ? `Vessel: ${firstDoc?.vessel_name ?? '—'} • Location: ${firstDoc?.location_of_goods ?? '—'}`
                         : `Vessel: ${firstDoc?.vessel_name ?? '—'} • Destination: ${firstDoc?.destination_country ?? '—'}`}
@@ -193,27 +238,51 @@ export const BLFolderRow = ({ blNo, blDocs, drill, nav, COL, color }: BLFolderRo
             </span>
             {isImport ? (
                 <span className="inline-flex items-center gap-1.5 text-xs font-semibold truncate">
-                    <span className={`w-2 h-2 rounded-full shrink-0 ${firstDoc?.selective_color === 'red' ? 'bg-danger' : firstDoc?.selective_color === 'orange' ? 'bg-warning' : firstDoc?.selective_color === 'yellow' ? 'bg-warning' : 'bg-success'}`} />
-                    <span className="capitalize text-text-secondary">{firstDoc?.selective_color ?? 'Green'}</span>
+                    <span
+                        className={`w-2 h-2 rounded-full shrink-0 ${
+                            firstDoc?.selective_color === 'red'
+                                ? 'bg-rose-500'
+                                : firstDoc?.selective_color === 'orange' || firstDoc?.selective_color === 'yellow'
+                                  ? 'bg-amber-500'
+                                  : 'bg-emerald-500'
+                        }`}
+                    />
+                    <span className="capitalize text-foreground">{firstDoc?.selective_color ?? 'Green'}</span>
                 </span>
             ) : (
-                <span className="text-xs text-text-secondary truncate" title={firstDoc?.destination_country ?? undefined}>
+                <span className="text-xs text-foreground truncate" title={firstDoc?.destination_country ?? undefined}>
                     {firstDoc?.destination_country ?? '—'}
                 </span>
             )}
-            <span className="text-xs text-text-muted tabular-nums">
+            <span className="text-xs text-muted-foreground tabular-nums">
                 {firstDoc?.transaction_date ? formatPeriod(firstDoc.transaction_date) : '—'}
             </span>
-            <span title={tooltip} className={`text-xs font-semibold tabular-nums ${completion.isComplete ? 'text-success' : completion.doneCount === 0 ? 'text-text-muted' : 'text-warning'}`}>
+            <span
+                title={tooltip}
+                className={`text-xs font-semibold tabular-nums ${
+                    completion.isComplete
+                        ? 'text-emerald-600 dark:text-emerald-400'
+                        : completion.doneCount === 0
+                          ? 'text-muted-foreground'
+                          : 'text-amber-600 dark:text-amber-400'
+                }`}
+            >
                 {completion.doneCount}/{completion.requiredStages.length}
             </span>
             <button
-                onClick={() => nav({ level: 'files', year: { ...drill.year, documents: blDocs }, type: drill.type, month: drill.month, bl: blNo })}
+                onClick={() =>
+                    nav({
+                        level: 'files',
+                        year: { ...drill.year, documents: blDocs },
+                        type: drill.type,
+                        month: drill.month,
+                        bl: blNo,
+                    })
+                }
                 title="Open folder"
-                className="opacity-0 group-hover:opacity-100 transition-opacity">
-                <svg className="w-3.5 h-3.5 text-text-muted/50 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
+                className="opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-muted-foreground hover:text-foreground"
+            >
+                <ChevronRight className="w-3.5 h-3.5 shrink-0" />
             </button>
         </div>
     );
@@ -278,17 +347,21 @@ export const ArchivesBLView = ({
 
     return (
         <div>
-            <div className="grid items-center gap-4 px-5 py-3 border-b border-border bg-surface sticky top-0 z-10"
-                style={{ gridTemplateColumns: COL }}>
+            <div
+                className="grid items-center gap-4 px-5 py-3 border-b border-border/80 bg-muted/40 sticky top-0 z-10"
+                style={{ gridTemplateColumns: COL }}
+            >
                 {(isImport
                     ? ['', 'BL Number', 'Importer', 'BLSC', 'Period', 'Stages', '', '']
                     : ['', 'BL Number', 'Shipper', 'Destination', 'Period', 'Stages', '', '']
                 ).map((h, i) => (
-                    <span key={i} className="text-xs font-bold text-text-muted uppercase tracking-widest truncate">{h}</span>
+                    <span key={i} className="text-xs font-semibold text-muted-foreground uppercase tracking-wider truncate">
+                        {h}
+                    </span>
                 ))}
             </div>
             {historyQuery.isFetching && rows.length === 0 ? (
-                <div className="divide-y divide-border">
+                <div className="divide-y divide-border/60">
                     {Array.from({ length: Math.min(perPage, 8) }).map((_, index) => (
                         <div
                             key={index}
@@ -296,25 +369,36 @@ export const ArchivesBLView = ({
                             style={{ gridTemplateColumns: COL }}
                         >
                             {Array.from({ length: 7 }).map((__, cellIndex) => (
-                                <span key={cellIndex} className="h-4 animate-pulse rounded bg-surface-secondary" />
+                                <span key={cellIndex} className="h-4 animate-pulse rounded bg-muted" />
                             ))}
                         </div>
                     ))}
                 </div>
             ) : rows.length === 0 ? (
-                <div className="py-20 flex flex-col items-center gap-2 text-text-muted">
-                    <p className="text-sm font-semibold text-text-secondary">{search ? `No BLs match "${search}"` : 'No records in this folder'}</p>
+                <div className="py-20 flex flex-col items-center gap-2 text-muted-foreground">
+                    <p className="text-sm font-semibold text-foreground">
+                        {search ? `No BLs match "${search}"` : 'No records in this folder'}
+                    </p>
                 </div>
-            ) : rows.map((row) => (
-                <BLFolderRow key={`${row.type}-${row.transaction_id}`} blNo={row.bl_no || '(no BL)'} blDocs={row.documents}
-                    drill={drill} nav={nav} COL={COL} color={color} />
-            ))}
-            <div className="flex flex-col gap-3 border-t border-border bg-surface-secondary/40 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-xs font-semibold text-text-muted">
+            ) : (
+                rows.map((row) => (
+                    <BLFolderRow
+                        key={`${row.type}-${row.transaction_id}`}
+                        blNo={row.bl_no || '(no BL)'}
+                        blDocs={row.documents}
+                        drill={drill}
+                        nav={nav}
+                        COL={COL}
+                        color={color}
+                    />
+                ))
+            )}
+            <div className="flex flex-col gap-3 border-t border-border/80 bg-muted/20 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-xs font-medium text-muted-foreground">
                     Showing {from.toLocaleString()}-{to.toLocaleString()} of {totalRows.toLocaleString()} BL records
                 </p>
                 <div className="flex flex-wrap items-center gap-2">
-                    <label className="flex items-center gap-2 text-xs font-bold text-text-secondary">
+                    <label className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
                         Rows
                         <select
                             value={perPage}
@@ -322,10 +406,12 @@ export const ArchivesBLView = ({
                                 setPerPage(Number(event.target.value));
                                 setPage(1);
                             }}
-                            className="rounded-lg border border-border bg-surface px-2 py-1 text-xs font-bold text-text-primary outline-none transition-colors focus:border-primary"
+                            className="rounded-lg border border-border/80 bg-background px-2 py-1 text-xs font-medium text-foreground outline-none transition-colors focus:border-primary cursor-pointer"
                         >
                             {[25, 50, 100].map((option) => (
-                                <option key={option} value={option}>{option}</option>
+                                <option key={option} value={option}>
+                                    {option}
+                                </option>
                             ))}
                         </select>
                     </label>
@@ -333,18 +419,18 @@ export const ArchivesBLView = ({
                         type="button"
                         disabled={currentPage <= 1}
                         onClick={() => setPage(Math.max(1, currentPage - 1))}
-                        className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-black text-text-secondary transition-colors hover:bg-hover hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40"
+                        className="rounded-lg border border-border/80 bg-background px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer shadow-2xs"
                     >
                         Previous
                     </button>
-                    <span className="min-w-20 text-center text-xs font-black text-text-muted">
+                    <span className="min-w-20 text-center text-xs font-semibold text-muted-foreground">
                         {currentPage} / {totalPages}
                     </span>
                     <button
                         type="button"
                         disabled={currentPage >= totalPages}
                         onClick={() => setPage(Math.min(totalPages, currentPage + 1))}
-                        className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-black text-text-secondary transition-colors hover:bg-hover hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-40"
+                        className="rounded-lg border border-border/80 bg-background px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer shadow-2xs"
                     >
                         Next
                     </button>
@@ -353,3 +439,4 @@ export const ArchivesBLView = ({
         </div>
     );
 };
+

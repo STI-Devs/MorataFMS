@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { Download } from 'lucide-react';
+import { Button } from '../../../../components/ui/button';
 import type { ArchiveZipRequest } from '../../hooks/useArchiveZipRequests';
 
 type ArchiveZipRequestsPanelProps = {
@@ -83,19 +85,20 @@ export const ArchiveZipRequestsPanel = ({
 
     return (
         <>
-            <button
+            <Button
+                variant="outline"
+                size="sm"
                 onClick={onOpen}
-                className="flex h-8 shrink-0 items-center justify-center gap-2 rounded-lg border border-blue-500/25 bg-blue-500/10 px-3 text-xs font-black text-blue-500 transition-colors hover:bg-blue-500/15">
-                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 3v10m0 0l-4-4m4 4l4-4M5 17v1a3 3 0 003 3h8a3 3 0 003-3v-1" />
-                </svg>
+                className="h-8 px-2.5 text-xs font-semibold text-muted-foreground hover:text-foreground border-border/80 cursor-pointer shadow-2xs"
+            >
+                <Download className="mr-1 size-3.5" />
                 <span>ZIP Requests</span>
                 {requests.length > 0 && (
-                    <span className="rounded-full border border-blue-500/30 bg-blue-500/15 px-1.5 py-0.5 text-[10px] font-black">
+                    <span className="ml-1.5 rounded-full bg-muted px-1.5 py-0.2 text-[10px] font-semibold tabular-nums text-foreground border border-border/60">
                         {requests.length}
                     </span>
                 )}
-            </button>
+            </Button>
 
             {isOpen && (
                 <>

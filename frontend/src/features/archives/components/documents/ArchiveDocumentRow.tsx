@@ -1,3 +1,4 @@
+import { Download, FileText, RefreshCw, Trash2 } from 'lucide-react';
 import type { ArchiveDocument } from '../../../documents/types/document.types';
 import { trackingApi } from '../../../tracking/api/trackingApi';
 
@@ -89,24 +90,24 @@ export const ArchiveDocumentRow = ({ doc, onDelete, canDelete = true, onReplace,
     const handleDownload = () => trackingApi.downloadDocument(doc.id, doc.filename);
 
     return (
-        <div className="grid items-center gap-3 border-b border-border/40 px-4 py-2.5 transition-colors hover:bg-hover"
-            style={{ gridTemplateColumns: '28px minmax(0,1fr) minmax(180px,260px) 92px' }}>
-
+        <div
+            className="grid items-center gap-3 border-b border-border/50 px-5 py-2.5 transition-colors hover:bg-muted/40"
+            style={{ gridTemplateColumns: '28px minmax(0,1fr) minmax(180px,260px) 92px' }}
+        >
             {/* File type icon */}
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
-                style={{ backgroundColor: c.bg }}>
-                <svg className="h-3.5 w-3.5" fill="none" stroke={c.color} viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75}
-                        d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                </svg>
+            <div
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg shadow-2xs"
+                style={{ backgroundColor: c.bg }}
+            >
+                <FileText className="h-3.5 w-3.5" style={{ color: c.color }} />
             </div>
 
             {/* Filename + ext/size */}
             <div className="min-w-0">
-                <p className="truncate text-sm font-bold text-text-primary" title={doc.filename}>
+                <p className="truncate text-sm font-semibold text-foreground" title={doc.filename}>
                     {doc.filename}
                 </p>
-                <p className="mt-0.5 truncate text-[10px] font-semibold text-text-muted">
+                <p className="mt-0.5 truncate text-[10px] text-muted-foreground">
                     <span className="font-mono">{ext.toUpperCase()} · {doc.formatted_size}</span>
                     <span className="mx-1.5">·</span>
                     <span>{formatDate(doc.uploaded_at)}</span>
@@ -117,49 +118,59 @@ export const ArchiveDocumentRow = ({ doc, onDelete, canDelete = true, onReplace,
 
             {/* Stage pill */}
             <div className="min-w-0">
-                <span className="inline-flex max-w-full items-center truncate rounded-md px-2 py-0.5 text-[10px] font-bold"
-                    style={{ color: sc.color, backgroundColor: sc.bg }}>
+                <span
+                    className="inline-flex max-w-full items-center truncate rounded-md px-2 py-0.5 text-[10px] font-semibold"
+                    style={{ color: sc.color, backgroundColor: sc.bg }}
+                >
                     {stage}
                 </span>
             </div>
 
             {/* Actions */}
             <div className="flex items-center justify-end gap-1">
-                <div className="mr-1 hidden h-6 w-6 shrink-0 items-center justify-center rounded-full text-[8px] font-black text-primary-foreground ring-2 ring-surface sm:flex"
+                <div
+                    className="mr-1 hidden h-6 w-6 shrink-0 items-center justify-center rounded-full text-[8px] font-bold text-primary-foreground ring-2 ring-background sm:flex"
                     style={{ backgroundColor: 'var(--warning)' }}
-                    title={doc.uploader?.name ?? 'Unknown'}>
+                    title={doc.uploader?.name ?? 'Unknown'}
+                >
                     {initials}
                 </div>
                 <button
+                    type="button"
                     title="Download"
-                    className="rounded-md p-1.5 text-primary transition-colors hover:bg-primary/10"
-                    onClick={handleDownload}>
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                            d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
+                    className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground cursor-pointer"
+                    onClick={handleDownload}
+                >
+                    <Download className="w-3.5 h-3.5" />
                 </button>
                 {canReplace && onReplace && (
                     <button
+                        type="button"
                         title="Replace"
-                        className="p-1.5 rounded-md text-text-muted hover:text-text-primary hover:bg-surface-hover transition-colors"
-                        onClick={e => { e.stopPropagation(); onReplace(doc); }}>
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
+                        className="rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onReplace(doc);
+                        }}
+                    >
+                        <RefreshCw className="w-3.5 h-3.5" />
                     </button>
                 )}
                 {canDelete && onDelete && (
                     <button
+                        type="button"
                         title="Delete"
-                        className="p-1.5 rounded-md text-text-muted hover:text-danger hover:bg-danger/10 transition-colors"
-                        onClick={e => { e.stopPropagation(); onDelete(doc.id); }}>
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
+                        className="rounded-md p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onDelete(doc.id);
+                        }}
+                    >
+                        <Trash2 className="w-3.5 h-3.5" />
                     </button>
                 )}
             </div>
         </div>
     );
 };
+
