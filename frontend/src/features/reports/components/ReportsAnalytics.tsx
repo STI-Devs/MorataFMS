@@ -167,7 +167,9 @@ const MonthlyBars = ({
     const hasSelectedMonth = selectedMonth > 0;
 
     return (
-        <div className="flex items-end gap-2 h-44 w-full pt-4">
+        <div className="overflow-x-auto pt-9">
+            <div className="min-w-[520px] sm:min-w-0">
+                <div className="flex items-end gap-2 h-44 w-full pt-4">
             {data.map((d, i) => {
                 const impH = (d.imports / max) * 100;
                 const expH = (d.exports / max) * 100;
@@ -212,6 +214,8 @@ const MonthlyBars = ({
                     </div>
                 );
             })}
+                </div>
+            </div>
         </div>
     );
 };

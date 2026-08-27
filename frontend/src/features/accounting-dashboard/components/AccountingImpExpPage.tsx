@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { Badge } from '../../../components/ui/badge';
 import { Button } from '../../../components/ui/button';
-import { Card, CardContent } from '../../../components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Input } from '../../../components/ui/input';
 import { Pagination } from '../../../components/Pagination';
 import {
@@ -43,18 +43,20 @@ import {
 } from '../utils/accountingTransaction.utils';
 import { AccountingUploadModal } from './AccountingUploadModal';
 
-type ReadyQueueGroup =
-    | {
-        kind: 'shared-vessel';
-        vesselName: string;
-        vesselKey: string;
-        readyCount: number;
-        rows: AccountingQueueRow[];
-    }
-    | {
-        kind: 'single-row';
-        row: AccountingQueueRow;
-    };
+type ReadySingleRowGroup = {
+    kind: 'single-row';
+    row: AccountingQueueRow;
+};
+
+type ReadySharedVesselGroup = {
+    kind: 'shared-vessel';
+    vesselKey: string;
+    vesselName: string;
+    readyCount: number;
+    rows: AccountingQueueRow[];
+};
+
+type ReadyQueueGroup = ReadySingleRowGroup | ReadySharedVesselGroup;
 
 export const AccountingImpExpPage = () => {
     const {
@@ -192,107 +194,75 @@ export const AccountingImpExpPage = () => {
             )}
 
             {/* Section 1: KPI Metrics Cards */}
-            <section className="grid gap-3 grid-cols-2 lg:grid-cols-4">
-                <Card
-                    onClick={() => {
-                        setFilter('all');
-                        setCurrentPage(1);
-                    }}
-                    className="shadow-2xs cursor-pointer hover:border-primary/40 transition-colors"
-                >
-                    <CardContent className="p-3 sm:p-3.5 space-y-1">
-                        <div className="flex items-center justify-between text-muted-foreground text-[10px] font-semibold uppercase tracking-wider">
-                            <span>Visible Queue</span>
-                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-medium shrink-0 gap-1">
-                                <Layers className="size-3 text-primary" /> Queue
-                            </Badge>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {/* 1. Visible Queue */}
+                <Card className="p-4 gap-2 shadow-xs bg-card">
+                    <CardHeader className="flex flex-row items-center justify-between p-0 space-y-0">
+                        <CardTitle className="text-xs font-medium text-muted-foreground">Visible Queue</CardTitle>
+                        <Layers className="size-4 text-muted-foreground/70" />
+                    </CardHeader>
+                    <CardContent className="p-0">
+                        <div className="text-2xl font-bold tracking-tight text-foreground tabular-nums">
+                            {isLoading ? '—' : queueSummary.visible}
                         </div>
-                        <div className="text-xl sm:text-2xl font-bold tabular-nums text-foreground">
-                            {isLoading ? '...' : queueSummary.visible}
-                        </div>
-                        <p className="text-[11px] text-muted-foreground truncate">
+                        <p className="text-xs text-muted-foreground mt-0.5">
                             {view === 'import' ? `${importCount} imports` : `${exportCount} exports`} in view
                         </p>
                     </CardContent>
                 </Card>
 
-                <Card
-                    onClick={() => {
-                        handleTabChange('ready');
-                    }}
-                    className={`shadow-2xs cursor-pointer transition-colors ${
-                        queueTab === 'ready' ? 'border-primary/60 bg-primary/5' : 'hover:border-primary/40'
-                    }`}
-                >
-                    <CardContent className="p-3 sm:p-3.5 space-y-1">
-                        <div className="flex items-center justify-between text-muted-foreground text-[10px] font-semibold uppercase tracking-wider">
-                            <span>Ready Now</span>
-                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-medium shrink-0 gap-1 border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                                <Receipt className="size-3 text-emerald-500" /> Actionable
-                            </Badge>
+                {/* 2. Ready Now */}
+                <Card className="p-4 gap-2 shadow-xs bg-card">
+                    <CardHeader className="flex flex-row items-center justify-between p-0 space-y-0">
+                        <CardTitle className="text-xs font-medium text-muted-foreground">Ready Now</CardTitle>
+                        <Receipt className="size-4 text-emerald-500" />
+                    </CardHeader>
+                    <CardContent className="p-0">
+                        <div className="text-2xl font-bold tracking-tight text-foreground tabular-nums">
+                            {isLoading ? '—' : queueSummary.ready}
                         </div>
-                        <div className="text-xl sm:text-2xl font-bold tabular-nums text-foreground">
-                            {isLoading ? '...' : queueSummary.ready}
-                        </div>
-                        <p className="text-[11px] text-muted-foreground truncate">
+                        <p className="text-xs text-muted-foreground mt-0.5">
                             Unblocked and ready for billing
                         </p>
                     </CardContent>
                 </Card>
 
-                <Card
-                    onClick={() => {
-                        handleTabChange('waiting');
-                        setFilter('blocked');
-                    }}
-                    className={`shadow-2xs cursor-pointer transition-colors ${
-                        queueTab === 'waiting' && filter === 'blocked' ? 'border-primary/60 bg-primary/5' : 'hover:border-primary/40'
-                    }`}
-                >
-                    <CardContent className="p-3 sm:p-3.5 space-y-1">
-                        <div className="flex items-center justify-between text-muted-foreground text-[10px] font-semibold uppercase tracking-wider">
-                            <span>Blocked</span>
-                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-medium shrink-0 gap-1 border-border bg-muted/60 text-muted-foreground">
-                                <Clock className="size-3" /> Waiting
-                            </Badge>
+                {/* 3. Blocked */}
+                <Card className="p-4 gap-2 shadow-xs bg-card">
+                    <CardHeader className="flex flex-row items-center justify-between p-0 space-y-0">
+                        <CardTitle className="text-xs font-medium text-muted-foreground">Blocked</CardTitle>
+                        <Clock className="size-4 text-amber-500" />
+                    </CardHeader>
+                    <CardContent className="p-0">
+                        <div className="text-2xl font-bold tracking-tight text-foreground tabular-nums">
+                            {isLoading ? '—' : queueSummary.waiting}
                         </div>
-                        <div className="text-xl sm:text-2xl font-bold tabular-nums text-foreground">
-                            {isLoading ? '...' : queueSummary.waiting}
-                        </div>
-                        <p className="text-[11px] text-muted-foreground truncate">
+                        <p className="text-xs text-muted-foreground mt-0.5">
                             Awaiting preceding stages
                         </p>
                     </CardContent>
                 </Card>
 
-                <Card
-                    onClick={() => {
-                        handleTabChange('waiting');
-                        setFilter('overdue');
-                    }}
-                    className={`shadow-2xs cursor-pointer transition-colors ${
-                        filter === 'overdue' ? 'border-destructive/60 bg-destructive/5' : 'hover:border-destructive/40'
-                    }`}
-                >
-                    <CardContent className="p-3 sm:p-3.5 space-y-1">
-                        <div className="flex items-center justify-between text-muted-foreground text-[10px] font-semibold uppercase tracking-wider">
-                            <span>Overdue</span>
-                            <Badge
-                                variant={queueSummary.overdue > 0 ? 'destructive' : 'outline'}
-                                className="text-[10px] px-1.5 py-0 font-medium shrink-0 gap-1"
-                            >
-                                <AlertCircle className="size-3" /> Overdue
-                            </Badge>
+                {/* 4. Overdue */}
+                <Card className="p-4 gap-2 shadow-xs bg-card">
+                    <CardHeader className="flex flex-row items-center justify-between p-0 space-y-0">
+                        <CardTitle className="text-xs font-medium text-muted-foreground">Overdue</CardTitle>
+                        <AlertCircle className={`size-4 ${queueSummary.overdue > 0 ? 'text-rose-500' : 'text-muted-foreground/70'}`} />
+                    </CardHeader>
+                    <CardContent className="p-0">
+                        <div
+                            className={`text-2xl font-bold tracking-tight tabular-nums ${
+                                queueSummary.overdue > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-foreground'
+                            }`}
+                        >
+                            {isLoading ? '—' : queueSummary.overdue}
                         </div>
-                        <div className={`text-xl sm:text-2xl font-bold tabular-nums ${queueSummary.overdue > 0 ? 'text-destructive' : 'text-foreground'}`}>
-                            {isLoading ? '...' : queueSummary.overdue}
-                        </div>
-                        <p className="text-[11px] text-muted-foreground truncate">
+                        <p className="text-xs text-muted-foreground mt-0.5">
                             {queueSummary.overdue === 0 ? 'No overdue items' : 'Waiting > 48 hours'}
                         </p>
                     </CardContent>
                 </Card>
-            </section>
+            </div>
 
             {/* Section 2: Tabbed Workspace Toolbar */}
             <Tabs

@@ -96,7 +96,7 @@ export const StatusOverrideModal = ({ isOpen, onClose, transaction, onSuccess }:
                     <label className="block text-sm font-semibold mb-2.5 text-text-primary">
                         {isRestoreMode ? 'Restore To' : 'New Status'}
                     </label>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {availableOptions.map((opt) => (
                             <button
                                 key={opt.value}

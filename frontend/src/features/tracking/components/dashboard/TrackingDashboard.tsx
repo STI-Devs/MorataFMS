@@ -635,7 +635,7 @@ export const TrackingDashboard = () => {
             </div>
 
             {/* Section 1: KPI Metrics Row */}
-            <section className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+            <section className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
                 <Card className="shadow-2xs">
                     <CardContent className="p-3 sm:p-3.5 space-y-1">
                         <div className="flex items-center justify-between text-muted-foreground text-[10px] font-semibold uppercase tracking-wider">
@@ -716,32 +716,32 @@ export const TrackingDashboard = () => {
             <Tabs defaultValue="all" className="w-full space-y-4">
                 {/* Toolbar */}
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                    <TabsList className="h-9 p-1 bg-muted/60">
-                        <TabsTrigger value="all" className="gap-2 px-3 text-xs">
+                    <TabsList className="h-9 max-w-full justify-start gap-0.5 overflow-x-auto p-1 bg-muted/60">
+                        <TabsTrigger value="all" className="gap-2 px-3 text-xs shrink-0">
                             <span>All Vessels</span>
-                            <Badge variant="secondary" className="px-1.5 py-0 text-[10px] font-semibold">
+                            <Badge variant="secondary" className="hidden px-1.5 py-0 text-[10px] font-semibold sm:inline-flex">
                                 {totalVessels}
                             </Badge>
                         </TabsTrigger>
-                        <TabsTrigger value="imports" className="gap-1.5 px-3 text-xs">
+                        <TabsTrigger value="imports" className="gap-1.5 px-3 text-xs shrink-0">
                             <Truck className="size-3.5" />
                             <span>Imports</span>
-                            <Badge variant="secondary" className="px-1.5 py-0 text-[10px] font-semibold">
+                            <Badge variant="secondary" className="hidden px-1.5 py-0 text-[10px] font-semibold sm:inline-flex">
                                 {importGroups.length}
                             </Badge>
                         </TabsTrigger>
-                        <TabsTrigger value="exports" className="gap-1.5 px-3 text-xs">
+                        <TabsTrigger value="exports" className="gap-1.5 px-3 text-xs shrink-0">
                             <Flag className="size-3.5" />
                             <span>Exports</span>
-                            <Badge variant="secondary" className="px-1.5 py-0 text-[10px] font-semibold">
+                            <Badge variant="secondary" className="hidden px-1.5 py-0 text-[10px] font-semibold sm:inline-flex">
                                 {exportGroups.length}
                             </Badge>
                         </TabsTrigger>
-                        <TabsTrigger value="attention" className="gap-1.5 px-3 text-xs">
+                        <TabsTrigger value="attention" className="gap-1.5 px-3 text-xs shrink-0">
                             <AlertCircle className="size-3.5 text-destructive" />
                             <span>Attention</span>
                             {totalAttention > 0 && (
-                                <Badge variant="destructive" className="px-1.5 py-0 text-[10px] font-semibold">
+                                <Badge variant="destructive" className="hidden px-1.5 py-0 text-[10px] font-semibold sm:inline-flex">
                                     {totalAttention}
                                 </Badge>
                             )}
@@ -750,7 +750,7 @@ export const TrackingDashboard = () => {
 
                     {/* Search and Filters */}
                     <div className="flex items-center gap-2.5 flex-wrap">
-                        <div className="relative flex-1 sm:w-64 sm:flex-initial">
+                        <div className="relative min-w-0 flex-1 sm:w-64 sm:flex-initial">
                             <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
                             <Input
                                 placeholder="Filter vessel, BL, ref..."

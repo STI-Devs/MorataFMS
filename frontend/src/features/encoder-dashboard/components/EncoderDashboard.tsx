@@ -244,7 +244,9 @@ export const EncoderDashboard = () => {
                         </div>
                     </CardHeader>
                     <CardContent className="mt-auto pt-4">
-                        <div className="flex h-44 items-end justify-between gap-1.5">
+                        <div className="overflow-x-auto pt-9">
+                            <div className="min-w-[520px] sm:min-w-0">
+                                <div className="flex h-44 items-end justify-between gap-1.5">
                             {reports ? (
                                 volumeMonths.map((month) => {
                                     const importsHeight = (month.imports / volumeMax) * 100;
@@ -290,6 +292,8 @@ export const EncoderDashboard = () => {
                                     Loading volume data...
                                 </div>
                             )}
+                                </div>
+                            </div>
                         </div>
                     </CardContent>
                 </Card>

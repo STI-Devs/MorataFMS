@@ -168,7 +168,7 @@ export const SubFolderRow = ({
             data-testid={`archive-subfolder-row-${groupKey}`}
             className="border-b border-border/60 bg-card px-5 py-3 transition-colors last:border-b-0 hover:bg-muted/40"
         >
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
                 <div
                     className={cn(
                         'flex size-7 shrink-0 items-center justify-center rounded-md shadow-2xs',
@@ -189,6 +189,14 @@ export const SubFolderRow = ({
                         {folderName}
                     </span>
                     <span className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[11px] text-muted-foreground">
+                        <span className="inline-flex items-center gap-1.5 font-semibold md:hidden">
+                            <span className={cn('size-1.5 rounded-full', folderPct >= 90 ? 'bg-emerald-500' : folderPct >= 50 ? 'bg-amber-500' : 'bg-rose-500')} />
+                            <span className={cn(folderPct >= 90 ? 'text-emerald-600 dark:text-emerald-400' : folderPct >= 50 ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400')}>
+                                {statusLabel === 'Incomplete' ? 'Needs documents' : statusLabel}
+                            </span>
+                            <span>·</span>
+                            <span>{folderPct}%</span>
+                        </span>
                         <span>{fileCount.toLocaleString()} files</span>
                         <span>·</span>
                         <span>
@@ -354,7 +362,7 @@ const YearRow = ({
     return (
         <div className="border-b border-border/80 last:border-b-0">
             <div
-                className="flex items-center justify-between border-b border-border/80 bg-card px-5 py-3 transition-colors hover:bg-muted/40 cursor-pointer select-none"
+                className="flex flex-wrap items-center justify-between gap-y-2 border-b border-border/80 bg-card px-4 py-3 transition-colors hover:bg-muted/40 cursor-pointer select-none sm:px-5"
                 onClick={() => toggleYear(yr.year)}
             >
                 <div className="flex items-center gap-2.5">
@@ -370,7 +378,7 @@ const YearRow = ({
                     </Badge>
                 </div>
 
-                <div className="ml-auto flex items-center gap-4 text-xs text-muted-foreground">
+                <div className="ml-auto flex flex-wrap items-center justify-end gap-x-3 gap-y-1 text-xs text-muted-foreground">
                     <span className="tabular-nums">{totalFiles.toLocaleString()} files</span>
                     <span className="tabular-nums">{totalBLs.toLocaleString()} BLs</span>
                     <span className="font-medium tabular-nums text-foreground">{yearPct}% complete</span>

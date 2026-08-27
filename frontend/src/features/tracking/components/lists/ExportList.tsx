@@ -81,6 +81,7 @@ export const ExportList = () => {
                         type="export"
                         filters={filters}
                         gridTemplateColumns="1.4fr 1.2fr 1.3fr 1.1fr 110px 1.4fr 80px"
+                        minGridWidth="880px"
                         mapResponseData={(data) => (data as ApiExportTransaction[]).map(mapExportTransaction)}
                         renderHeaders={() => (
                             <>

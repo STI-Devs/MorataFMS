@@ -219,9 +219,9 @@ export const AdminDocumentReview = () => {
     const isSplitView = selectedTransaction !== null;
 
     return (
-        <div className={`${isSplitView ? 'absolute inset-0 flex flex-col overflow-hidden' : 'min-h-screen'} bg-background font-sans selection:bg-primary selection:text-primary-foreground`}>
-            <div className={`relative z-10 ${isSplitView ? 'flex h-full flex-col' : ''}`}>
-                <main className={`${isSplitView ? 'min-h-0 flex flex-1 flex-col' : 'w-full space-y-4 pb-8 pt-1'} p-0 text-foreground`}>
+        <div className={`${isSplitView ? 'flex flex-col xl:absolute xl:inset-0 xl:overflow-hidden' : 'min-h-screen'} bg-background font-sans selection:bg-primary selection:text-primary-foreground`}>
+            <div className={`relative z-10 ${isSplitView ? 'flex flex-col xl:h-full' : ''}`}>
+                <main className={`${isSplitView ? 'flex w-full flex-1 flex-col p-0 xl:min-h-0' : 'w-full space-y-4 pb-8 pt-1 p-0'} text-foreground`}>
                     {!isSplitView ? (
                         <div className="space-y-1">
                             <h1 className="text-2xl font-bold tracking-tight text-foreground">Documents</h1>
@@ -231,11 +231,12 @@ export const AdminDocumentReview = () => {
                         </div>
                     ) : null}
                     <div
+                        data-testid="admin-review-split-grid"
                         className={`grid ${
                             isSplitView
-                                ? 'grid-cols-[minmax(28rem,0.82fr)_minmax(46rem,1.18fr)] xl:grid-cols-[minmax(26rem,0.9fr)_minmax(36rem,1.1fr)]'
+                                ? 'grid-cols-1 min-h-0 flex-1 xl:grid-cols-[minmax(26rem,0.9fr)_minmax(36rem,1.1fr)] xl:overflow-hidden'
                                 : 'grid-cols-1'
-                        } ${isSplitView ? 'min-h-0 flex-1' : ''}`}
+                        }`}
                     >
                         <AdminReviewQueuePane
                             summary={reviewStats}

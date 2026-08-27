@@ -49,7 +49,7 @@ export const Pagination = ({
             className={`flex items-center justify-between transition-colors duration-300 ${
                 compact
                     ? 'flex-col gap-3 px-0 pt-0 sm:flex-row'
-                    : 'mt-6 border-t border-border px-2 pt-6'
+                    : 'mt-6 flex-col gap-3 border-t border-border px-2 pt-6 sm:flex-row sm:items-center sm:justify-between'
             }`}
         >
             <div className="flex items-center gap-2">

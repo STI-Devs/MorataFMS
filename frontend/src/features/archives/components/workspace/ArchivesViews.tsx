@@ -49,16 +49,18 @@ export const ArchivesDocumentView = ({
 
     return (
         <div>
-            <div
-                className="grid items-center gap-4 px-5 py-3 border-b border-border/80 bg-muted/40 sticky top-0 z-10"
-                style={{ gridTemplateColumns: '60px 1fr 1fr 80px 100px 80px' }}
-            >
-                {['Year', 'BL Number', 'Client', 'Type', 'Status', 'Stages'].map((h, i) => (
-                    <span key={i} className="text-xs font-semibold text-muted-foreground uppercase tracking-wider truncate">
-                        {h}
-                    </span>
-                ))}
-            </div>
+            <div className="max-md:overflow-x-auto">
+                <div className="min-w-[43rem]">
+                    <div
+                        className="grid items-center gap-4 px-5 py-3 border-b border-border/80 bg-muted/40 sticky top-0 z-10"
+                        style={{ gridTemplateColumns: '60px 1fr 1fr 80px 100px 80px' }}
+                    >
+                        {['Year', 'BL Number', 'Client', 'Type', 'Status', 'Stages'].map((h, i) => (
+                            <span key={i} className="text-xs font-semibold text-muted-foreground uppercase tracking-wider truncate">
+                                {h}
+                            </span>
+                        ))}
+                    </div>
             {isFetching && rows.length === 0 ? (
                 <div className="divide-y divide-border/60">
                     {Array.from({ length: Math.min(perPage, 8) }).map((_, index) => (
@@ -134,6 +136,8 @@ export const ArchivesDocumentView = ({
                     );
                 })
             )}
+                </div>
+            </div>
             <div className="flex flex-col gap-3 border-t border-border/80 bg-muted/20 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-xs font-medium text-muted-foreground">
                     Showing {from.toLocaleString()}-{to.toLocaleString()} of {totalRows.toLocaleString()} BL records
@@ -347,19 +351,21 @@ export const ArchivesBLView = ({
 
     return (
         <div>
-            <div
-                className="grid items-center gap-4 px-5 py-3 border-b border-border/80 bg-muted/40 sticky top-0 z-10"
-                style={{ gridTemplateColumns: COL }}
-            >
-                {(isImport
-                    ? ['', 'BL Number', 'Importer', 'BLSC', 'Period', 'Stages', '', '']
-                    : ['', 'BL Number', 'Shipper', 'Destination', 'Period', 'Stages', '', '']
-                ).map((h, i) => (
-                    <span key={i} className="text-xs font-semibold text-muted-foreground uppercase tracking-wider truncate">
-                        {h}
-                    </span>
-                ))}
-            </div>
+            <div className="max-md:overflow-x-auto">
+                <div className="min-w-[44rem]">
+                    <div
+                        className="grid items-center gap-4 px-5 py-3 border-b border-border/80 bg-muted/40 sticky top-0 z-10"
+                        style={{ gridTemplateColumns: COL }}
+                    >
+                        {(isImport
+                            ? ['', 'BL Number', 'Importer', 'BLSC', 'Period', 'Stages', '', '']
+                            : ['', 'BL Number', 'Shipper', 'Destination', 'Period', 'Stages', '', '']
+                        ).map((h, i) => (
+                            <span key={i} className="text-xs font-semibold text-muted-foreground uppercase tracking-wider truncate">
+                                {h}
+                            </span>
+                        ))}
+                    </div>
             {historyQuery.isFetching && rows.length === 0 ? (
                 <div className="divide-y divide-border/60">
                     {Array.from({ length: Math.min(perPage, 8) }).map((_, index) => (
@@ -393,6 +399,8 @@ export const ArchivesBLView = ({
                     />
                 ))
             )}
+                </div>
+            </div>
             <div className="flex flex-col gap-3 border-t border-border/80 bg-muted/20 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-xs font-medium text-muted-foreground">
                     Showing {from.toLocaleString()}-{to.toLocaleString()} of {totalRows.toLocaleString()} BL records

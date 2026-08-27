@@ -1,6 +1,14 @@
 import * as React from 'react'
 import { cn } from '@/lib/utils'
 
+// Tables scroll horizontally by default: <Table> renders its <table> inside a
+// `relative w-full overflow-x-auto` wrapper (data-slot="table-container"). Do NOT
+// wrap <Table> in an overflow-hidden element expecting it to clip — it only rounds
+// corners while the inner scrollbox keeps working.
+//
+// For wide datasets set a floor width on <Table> so columns don't compress below a
+// usable size, e.g. <Table className="min-w-xl"> (min-w-lg ≈ 512px / min-w-xl ≈ 576px).
+
 function Table({ className, ...props }: React.ComponentProps<'table'>) {
   return (
     <div

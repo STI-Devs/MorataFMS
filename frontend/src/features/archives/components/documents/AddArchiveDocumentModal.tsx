@@ -136,7 +136,7 @@ export const AddArchiveDocumentModal: React.FC<AddArchiveDocumentModalProps> = (
                             Stage <span className="text-danger">*</span>
                         </p>
 
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                             {allStages.map((stage) => {
                                 const count = stageDocCount[stage.key] ?? 0;
                                 const isNotApplicable = notApplicableStages.has(stage.key);

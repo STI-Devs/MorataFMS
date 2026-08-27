@@ -7,7 +7,7 @@ export const AuthPage = () => {
     const navigate = useNavigate();
 
     return (
-        <div className="min-h-screen flex items-center justify-center p-6 relative bg-black">
+        <div className="relative flex min-h-screen min-h-svh overflow-y-auto bg-black px-4 py-6 sm:p-6">
             {/* Back Button */}
             <button
                 onClick={() => navigate(appRoutes.landing)}
@@ -34,7 +34,7 @@ export const AuthPage = () => {
             </div>
 
             {/* Frame / Card */}
-            <div className="relative z-10 w-full max-w-5xl rounded-2xl overflow-hidden shadow-2xl flex min-h-[560px]">
+            <div className="relative z-10 m-auto w-full max-w-5xl rounded-2xl overflow-hidden shadow-2xl flex min-h-0 sm:min-h-[560px]">
 
                 {/* Left — Branding panel */}
                 <div
@@ -60,7 +60,7 @@ export const AuthPage = () => {
 
                 {/* Right — Form panel */}
                 <div className="w-full lg:w-[420px] flex-shrink-0 bg-black/80 backdrop-blur-sm flex flex-col">
-                    <div className="flex-1 flex items-center w-full px-10 py-12">
+                    <div className="flex-1 flex items-center w-full px-5 py-8 sm:px-10 sm:py-12">
                         <div className="w-full">
                             <h2 className="text-2xl font-black text-white mb-8 tracking-[0.05em]">
                                 Login
@@ -69,8 +69,13 @@ export const AuthPage = () => {
                         </div>
                     </div>
                     {/* Help — pinned to very bottom */}
-                    <div className="text-center pb-6">
-                        <a href="#" className="text-[9px] uppercase tracking-[0.4em] font-semibold text-white/25 hover:text-white/60 transition-colors">Help</a>
+                    <div className="text-center pb-2">
+                        <a
+                            href="#"
+                            className="inline-block px-6 py-3 text-[9px] uppercase tracking-[0.4em] font-semibold text-white/25 hover:text-white/60 transition-colors"
+                        >
+                            Help
+                        </a>
                     </div>
                 </div>
 

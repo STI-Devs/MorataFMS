@@ -45,7 +45,7 @@ export const ArchiveWorkspaceFilters = ({
             {/* Left Filter Controls */}
             <div className="flex flex-1 flex-wrap items-center gap-2">
                 {/* Search Input */}
-                <div className="relative w-full sm:w-[240px] lg:w-[280px]">
+                <div className="relative w-full min-w-0 sm:w-[240px] lg:w-[280px]">
                     <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
                     <Input
                         type="text"
@@ -82,7 +82,7 @@ export const ArchiveWorkspaceFilters = ({
                 </select>
 
                 {/* Type Filter Pills */}
-                <div className="flex items-center gap-1">
+                <div className="flex flex-wrap items-center gap-1">
                     {(['all', 'import', 'export'] as const).map((t) => {
                         const isSelected = filterType === t;
                         return (
@@ -104,7 +104,7 @@ export const ArchiveWorkspaceFilters = ({
                 </div>
 
                 {/* Status Filter Pills */}
-                <div className="flex items-center gap-1">
+                <div className="flex flex-wrap items-center gap-1">
                     {(
                         [
                             { value: 'all', label: 'All' },
@@ -133,7 +133,7 @@ export const ArchiveWorkspaceFilters = ({
             </div>
 
             {/* Right Action Cluster */}
-            <div className="flex items-center gap-2 self-end xl:self-center">
+            <div className="flex flex-wrap items-center justify-end gap-2 self-end xl:self-center">
                 {zipRequestsAction}
 
                 <Button

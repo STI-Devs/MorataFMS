@@ -49,7 +49,7 @@ export function DataTableFacetedFilter({
                     )}
                 </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-44 p-1" align="start">
+            <DropdownMenuContent className="w-44 min-w-44 max-w-[calc(100vw-2rem)] max-h-[70vh] overflow-y-auto p-1" align="start" side="bottom">
                 {options.map((option) => {
                     const isSelected = value === option.value;
                     const Icon = option.icon;

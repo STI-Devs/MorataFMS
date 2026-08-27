@@ -39,25 +39,29 @@ export const ArchiveFilesView = ({
     return (
         <div>
             <ArchiveRecordOverview docs={fileDocs} canEdit onEdit={onEditRecord} />
-            <div
-                className="grid items-center gap-3 border-b border-border/80 bg-muted/40 px-5 py-2.5 sticky top-0 z-10"
-                style={{ gridTemplateColumns: '28px minmax(0,1fr) minmax(180px,260px) 92px' }}
-            >
-                <span />
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">File</span>
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Stage</span>
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground text-right">Actions</span>
+            <div className="max-md:overflow-x-auto">
+                <div className="min-w-[26rem]">
+                    <div
+                        className="grid items-center gap-3 border-b border-border/80 bg-muted/40 px-5 py-2.5 sticky top-0 z-10"
+                        style={{ gridTemplateColumns: '28px minmax(0,1fr) minmax(180px,260px) 92px' }}
+                    >
+                        <span />
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">File</span>
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Stage</span>
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground text-right">Actions</span>
+                    </div>
+                    {fileDocs.map((doc: ArchiveDocument) => (
+                        <ArchiveDocumentRow
+                            key={doc.id}
+                            doc={doc}
+                            canDelete={canDeleteDocument(doc, userId)}
+                            onDelete={onDeleteDoc}
+                            canReplace={canReplaceDocument(doc, userId)}
+                            onReplace={onReplaceDoc}
+                        />
+                    ))}
+                </div>
             </div>
-            {fileDocs.map((doc: ArchiveDocument) => (
-                <ArchiveDocumentRow
-                    key={doc.id}
-                    doc={doc}
-                    canDelete={canDeleteDocument(doc, userId)}
-                    onDelete={onDeleteDoc}
-                    canReplace={canReplaceDocument(doc, userId)}
-                    onReplace={onReplaceDoc}
-                />
-            ))}
             <button
                 type="button"
                 onClick={() => onAddDoc(drill.bl, drill.type, fileDocs)}

@@ -37,7 +37,7 @@ export const TrackingDetailsSkeleton = () => (
 
         {/* Info card */}
         <div className="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden">
-            <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-border border-b border-border">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:divide-x divide-border border-b border-border">
                 <div className="px-5 py-4 space-y-2">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted mb-0.5">Bill of Lading</p>
                     <Sk className="h-4 w-28 rounded" />

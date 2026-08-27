@@ -252,9 +252,9 @@ export function VesselGroupedExportList({ filters, onCancel }: Props) {
                                         className="border-l-2 border-slate-300 dark:border-border/55"
                                         data-testid="tracking-vessel-group-guide"
                                     >
-                                        <div className="overflow-hidden bg-card">
+                                        <div className="overflow-x-auto">
                                             <div
-                                                className="hidden border-b border-border/80 bg-muted/40 px-4 py-2 lg:grid lg:grid-cols-[1.2fr_1.1fr_1.4fr_150px_140px_90px_70px] lg:gap-x-4"
+                                                className="hidden border-b border-border/80 bg-muted/40 px-4 py-2 lg:grid lg:grid-cols-[1.2fr_1.1fr_1.4fr_150px_140px_90px_70px] lg:gap-x-4 lg:min-w-[1000px]"
                                             >
                                                 {COL_HEADERS.map(h => (
                                                     <span key={h.label} className={`text-[11px] font-semibold text-muted-foreground uppercase tracking-wider ${h.className}`}>

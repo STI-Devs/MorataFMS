@@ -288,6 +288,8 @@ const ArchiveSection = ({
                 <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${badgeClassName}`}>{records.length}</span>
             </div>
 
+            <div className="overflow-x-auto">
+            <div className="min-w-[38rem]">
             {/* Column header */}
             <div className="grid items-center gap-3 rounded-lg bg-surface-secondary/60 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.14em] text-text-muted"
                 style={{ gridTemplateColumns: '80px 1.4fr 1.6fr 100px 1.6fr 64px 24px' }}>
@@ -355,6 +357,8 @@ const ArchiveSection = ({
                         </span>
                     </button>
                 ))}
+            </div>
+            </div>
             </div>
         </section>
     );

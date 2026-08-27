@@ -153,7 +153,7 @@ export const NotarialGeneratedDocumentsPage = ({ module = 'notarial' }: Props) =
                     </p>
                 </header>
 
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                     <SummaryCard label="Generated Documents" value={String(totalDocuments)} />
                     <SummaryCard label="Ready Masters" value={String(readyTemplates)} />
                     <SummaryCard label="Master Variants" value={String(libraryVariantCount)} />
