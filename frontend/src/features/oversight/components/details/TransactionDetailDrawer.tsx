@@ -173,15 +173,24 @@ export const TransactionDetailDrawer = ({ transaction, onClose }: Props) => {
 
                     {/* Tabs */}
                     <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as Tab)} className="flex-1 flex flex-col overflow-hidden">
-                        <div className="border-b border-border bg-muted/30 px-6 pt-2">
-                            <TabsList className="grid w-full grid-cols-3 h-9 p-1">
-                                <TabsTrigger value="Documents" className="text-xs font-semibold">
+                        <div className="border-b border-border/80 bg-muted/30 px-6 py-3">
+                            <TabsList className="grid w-full grid-cols-3 h-10 p-1 bg-muted/80 border border-border/70 rounded-xl shadow-2xs">
+                                <TabsTrigger
+                                    value="Documents"
+                                    className="h-8 text-xs font-semibold rounded-lg transition-all cursor-pointer data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-xs text-muted-foreground hover:text-foreground"
+                                >
                                     Documents
                                 </TabsTrigger>
-                                <TabsTrigger value="Stages" className="text-xs font-semibold">
+                                <TabsTrigger
+                                    value="Stages"
+                                    className="h-8 text-xs font-semibold rounded-lg transition-all cursor-pointer data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-xs text-muted-foreground hover:text-foreground"
+                                >
                                     Stages
                                 </TabsTrigger>
-                                <TabsTrigger value="Remarks" className="text-xs font-semibold">
+                                <TabsTrigger
+                                    value="Remarks"
+                                    className="h-8 text-xs font-semibold rounded-lg transition-all cursor-pointer data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-xs text-muted-foreground hover:text-foreground"
+                                >
                                     Remarks {transaction.open_remarks_count > 0 ? `(${transaction.open_remarks_count})` : ''}
                                 </TabsTrigger>
                             </TabsList>
