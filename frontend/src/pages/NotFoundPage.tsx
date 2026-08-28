@@ -27,7 +27,7 @@ const NotFoundPage: React.FC = () => {
     }, [homePath, navigate]);
 
     return (
-        <div className="fixed inset-0 z-[9999] bg-black overflow-hidden flex items-center justify-center font-sans tracking-tight">
+        <div className="fixed inset-0 z-[9999] bg-black overflow-y-auto font-sans tracking-tight">
             {/* Background Image: Cargo Ship Port */}
             <div
                 className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-60 transition-opacity duration-1000"
@@ -37,11 +37,11 @@ const NotFoundPage: React.FC = () => {
             {/* Gradient Overlay for Text Readability */}
             <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/20 to-black/60" />
 
-            <div className="container mx-auto px-6 max-w-6xl flex flex-col md:flex-row items-center justify-between relative z-10">
+            <div className="container px-6 py-10 max-w-6xl flex flex-col md:flex-row items-center justify-between relative z-10 m-auto">
 
                 {/* Left Side: Circular Logo */}
-                <div className="flex-1 flex justify-start items-center pl-8">
-                    <div className="w-48 h-48 md:w-64 md:h-64 relative flex items-center justify-center">
+                <div className="flex-1 flex justify-center md:justify-start items-center pl-0 md:pl-8">
+                    <div className="w-40 h-40 sm:w-48 sm:h-48 md:w-64 md:h-64 relative flex items-center justify-center">
                         <div className="w-full h-full border-2 border-dashed border-white/40 rounded-full flex items-center justify-center bg-white/10 backdrop-blur-sm shadow-[0_0_30px_rgba(255,255,255,0.2)]">
                             <img src={logoImage} alt="F.M Morata Logo" className="w-full h-full object-cover rounded-full" />
                         </div>
@@ -49,11 +49,11 @@ const NotFoundPage: React.FC = () => {
                 </div>
 
                 {/* Right Side: Text Content */}
-                <div className="flex-1 text-white flex flex-col items-center md:items-start text-center md:text-left pr-12">
+                <div className="flex-1 text-white flex flex-col items-center md:items-start text-center md:text-left pr-0 sm:pr-12 mt-8 md:mt-0">
                     <h2 className="text-5xl md:text-6xl font-normal mb-1 drop-shadow-lg">Oops!</h2>
 
                     <div className="flex items-center mb-4 -ml-2">
-                        <h1 className="text-[10rem] md:text-[12rem] font-bold leading-none tracking-tighter drop-shadow-2xl">404</h1>
+                        <h1 className="text-[6rem] sm:text-[8rem] md:text-[10rem] lg:text-[12rem] font-bold leading-none tracking-tighter drop-shadow-2xl">404</h1>
                     </div>
 
                     <div className="max-w-md space-y-4">

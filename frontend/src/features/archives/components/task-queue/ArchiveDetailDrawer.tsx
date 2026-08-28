@@ -1,5 +1,17 @@
 import { useMemo } from 'react';
-import { Icon } from '../../../../components/Icon';
+import {
+    Archive,
+    CheckCircle2,
+    Clock,
+    Download,
+    Eye,
+    FileText,
+    Plus,
+    Truck,
+    X,
+} from 'lucide-react';
+import { Badge } from '../../../../components/ui/badge';
+import { Button } from '../../../../components/ui/button';
 import { trackingApi } from '../../../tracking/api/trackingApi';
 import type {
     ArchiveTaskDocument,
@@ -18,17 +30,20 @@ import {
     stageStateTone,
     titleCase,
 } from '../../utils/archiveTask.utils';
+import { cn } from '@/lib/utils';
 
 export const RecordTypeBadge = ({ type }: { type: ArchiveTaskRecord['type'] }) => (
-    <span
-        className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em] ${
+    <Badge
+        variant="outline"
+        className={cn(
+            'text-[10px] font-semibold uppercase tracking-wider',
             type === 'import'
-                ? 'border-blue-200 bg-blue-50 text-blue-700'
-                : 'border-teal-200 bg-teal-50 text-teal-700'
-        }`}
+                ? 'border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400'
+                : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+        )}
     >
         {type}
-    </span>
+    </Badge>
 );
 
 export const ArchiveDetailDrawer = ({
@@ -56,65 +71,66 @@ export const ArchiveDetailDrawer = ({
         });
 
     return (
-        <div className="fixed inset-0 z-[120] flex justify-end bg-black/25 backdrop-blur-sm" onClick={onClose}>
+        <div className="fixed inset-0 z-[120] flex justify-end bg-background/80 backdrop-blur-xs" onClick={onClose}>
             <aside
-                className="flex h-full w-full max-w-xl flex-col border-l border-border bg-surface shadow-2xl"
+                className="flex h-full w-full max-w-xl flex-col border-l border-border/80 bg-card shadow-2xl animate-in slide-in-from-right duration-200"
                 onClick={(event) => event.stopPropagation()}
             >
-                {/* ── Drawer header ── */}
-                <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
+                {/* Drawer header */}
+                <div className="flex items-start justify-between gap-4 border-b border-border/80 px-6 py-5">
                     <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
-                            <h2 className="text-xl font-bold tracking-tight text-text-primary truncate">{record.bl_no}</h2>
+                            <h2 className="text-lg font-bold tracking-tight text-foreground truncate">{record.bl_no}</h2>
                             <RecordTypeBadge type={record.type} />
                         </div>
-                        <p className="mt-0.5 text-sm font-medium text-text-secondary truncate">{record.client_name ?? 'Unknown client'}</p>
-                        <p className="mt-1 text-[10px] uppercase tracking-[0.22em] text-text-muted">{record.reference}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground truncate">{record.client_name ?? 'Unknown client'}</p>
+                        <p className="mt-1 text-[10px] uppercase tracking-wider text-muted-foreground">{record.reference}</p>
                         {/* Metadata pills */}
-                        <div className="mt-3 flex flex-wrap gap-2">
+                        <div className="mt-3 flex flex-wrap gap-1.5">
                             {record.archive_period.label && (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-surface-secondary border border-border px-2.5 py-1 text-[10px] font-semibold text-text-secondary">
-                                    <Icon name="archive" className="h-3 w-3 text-text-muted" />
+                                <Badge variant="secondary" className="gap-1 text-[10px] font-medium text-muted-foreground">
+                                    <Archive className="size-3" />
                                     {record.archive_period.label}
-                                </span>
+                                </Badge>
                             )}
                             {record.transaction_date && (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-surface-secondary border border-border px-2.5 py-1 text-[10px] font-semibold text-text-secondary">
-                                    <Icon name="clock" className="h-3 w-3 text-text-muted" />
+                                <Badge variant="secondary" className="gap-1 text-[10px] font-medium text-muted-foreground">
+                                    <Clock className="size-3" />
                                     {record.transaction_date}
-                                </span>
+                                </Badge>
                             )}
-                            {(record.origin_country) && (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-surface-secondary border border-border px-2.5 py-1 text-[10px] font-semibold text-text-secondary">
-                                    <Icon name="truck" className="h-3 w-3 text-text-muted" />
+                            {record.origin_country && (
+                                <Badge variant="secondary" className="gap-1 text-[10px] font-medium text-muted-foreground">
+                                    <Truck className="size-3" />
                                     {record.type === 'import' ? 'Origin: ' : 'Dest: '}{record.origin_country}
-                                </span>
+                                </Badge>
                             )}
                             {record.type === 'import' && record.selective_color && (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-surface-secondary border border-border px-2.5 py-1 text-[10px] font-semibold text-text-secondary">
-                                    <Icon name="check-circle" className="h-3 w-3 text-text-muted" />
+                                <Badge variant="secondary" className="gap-1 text-[10px] font-medium text-muted-foreground">
+                                    <CheckCircle2 className="size-3" />
                                     BLSC: {titleCase(record.selective_color)}
-                                </span>
+                                </Badge>
                             )}
                             {(record.type === 'import' ? record.location_of_goods : record.vessel_name) && (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-surface-secondary border border-border px-2.5 py-1 text-[10px] font-semibold text-text-secondary">
-                                    <Icon name="file-text" className="h-3 w-3 text-text-muted" />
+                                <Badge variant="secondary" className="gap-1 text-[10px] font-medium text-muted-foreground">
+                                    <FileText className="size-3" />
                                     {record.type === 'import' ? record.location_of_goods : record.vessel_name}
-                                </span>
+                                </Badge>
                             )}
                         </div>
                     </div>
-                    <button
-                        type="button"
+                    <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={onClose}
-                        className="mt-0.5 shrink-0 rounded-lg p-1.5 text-text-muted transition-colors hover:bg-hover hover:text-text-primary"
+                        className="size-8 text-muted-foreground hover:text-foreground cursor-pointer shrink-0"
                     >
-                        <Icon name="x" className="h-4 w-4" />
-                    </button>
+                        <X className="size-4" />
+                    </Button>
                 </div>
 
-                {/* ── Drawer body ── */}
-                <div className="flex-1 space-y-6 overflow-y-auto px-5 py-5">
+                {/* Drawer body */}
+                <div className="flex-1 space-y-6 overflow-y-auto px-6 py-5">
                     {record.my_stage_summaries.length > 0 && (
                         <section className="space-y-3">
                             <DrawerSectionHeading
@@ -122,7 +138,7 @@ export const ArchiveDetailDrawer = ({
                                 hint={role === 'processor'
                                     ? 'Your processor-owned stages only.'
                                     : 'Your billing stage only.'}
-                                accent="border-blue-400"
+                                accent="border-primary"
                             />
                             <div className="space-y-2.5">
                                 {record.my_stage_summaries.map((summary) => (
@@ -145,7 +161,7 @@ export const ArchiveDetailDrawer = ({
                         <DrawerSectionHeading
                             title="Shared Archive Stages"
                             hint="Read-only — files from encoder, admin, and other contributors."
-                            accent="border-amber-400"
+                            accent="border-amber-500"
                         />
                         {readOnlyStages.length > 0 ? (
                             <div className="space-y-2">
@@ -159,7 +175,7 @@ export const ArchiveDetailDrawer = ({
                                 ))}
                             </div>
                         ) : (
-                            <div className="rounded-xl border border-dashed border-border px-4 py-5 text-sm text-text-muted text-center">
+                            <div className="rounded-xl border border-dashed border-border/80 px-4 py-5 text-xs text-muted-foreground text-center">
                                 No shared stage files yet.
                             </div>
                         )}
@@ -171,10 +187,10 @@ export const ArchiveDetailDrawer = ({
 };
 
 const DrawerSectionHeading = ({ title, hint, accent }: { title: string; hint: string; accent: string }) => (
-    <div className={`flex items-start gap-2.5 border-l-2 pl-3 ${accent}`}>
+    <div className={cn('flex items-start gap-2.5 border-l-2 pl-3', accent)}>
         <div>
-            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-text-primary">{title}</h3>
-            <p className="mt-0.5 text-[11px] text-text-muted">{hint}</p>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-foreground">{title}</h3>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">{hint}</p>
         </div>
     </div>
 );
@@ -192,40 +208,39 @@ const StagePanel = ({
     onToggleNotApplicable?: (notApplicable: boolean) => void;
     isApplicabilityUpdating?: boolean;
 }) => (
-    <div className="rounded-xl border border-border bg-surface p-3.5">
+    <div className="rounded-xl border border-border/80 bg-card p-3.5 shadow-2xs">
         <div className="flex items-center justify-between gap-2">
             <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                    <h4 className="text-sm font-bold text-text-primary truncate">{summary.label}</h4>
+                    <h4 className="text-xs font-semibold text-foreground truncate">{summary.label}</h4>
                     <StageStateChip summary={summary} compact />
                 </div>
-                <p className="mt-0.5 text-[11px] text-text-muted">{stageStateLabel(summary.state, summary.uploaded_by)}</p>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">{stageStateLabel(summary.state, summary.uploaded_by)}</p>
             </div>
             <div className="flex shrink-0 items-center gap-1.5">
                 {onToggleNotApplicable && (
-                    <button
+                    <Button
                         type="button"
+                        variant="outline"
+                        size="sm"
                         onClick={() => onToggleNotApplicable(summary.state !== 'not_applicable')}
                         disabled={isApplicabilityUpdating}
                         aria-label={`${summary.state === 'not_applicable' ? 'Undo N/A' : 'Mark N/A'} for ${summary.label}`}
-                        className={`inline-flex items-center rounded-md border px-2.5 py-1.5 text-[11px] font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
-                            summary.state === 'not_applicable'
-                                ? 'border-slate-300 bg-slate-100 text-slate-700 hover:bg-slate-200'
-                                : 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100'
-                        }`}
+                        className="h-7 px-2 text-xs font-medium cursor-pointer shadow-2xs"
                     >
                         {isApplicabilityUpdating ? 'Saving…' : summary.state === 'not_applicable' ? 'Undo N/A' : 'Mark N/A'}
-                    </button>
+                    </Button>
                 )}
                 {onUpload && (
-                    <button
+                    <Button
                         type="button"
+                        size="sm"
                         onClick={onUpload}
-                        className="inline-flex items-center gap-1 rounded-md bg-blue-600 px-2.5 py-1.5 text-[11px] font-bold text-white transition-colors hover:bg-blue-700"
+                        className="h-7 px-2.5 text-xs font-medium bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer shadow-2xs gap-1"
                     >
-                        <Icon name="plus" className="h-3.5 w-3.5" />
+                        <Plus className="size-3" />
                         Upload
-                    </button>
+                    </Button>
                 )}
             </div>
         </div>
@@ -242,20 +257,22 @@ const ReadOnlyStageRow = ({
     documents: ArchiveTaskDocument[];
     isNotApplicable: boolean;
 }) => (
-    <div className="rounded-xl border border-border bg-surface p-3.5">
+    <div className="rounded-xl border border-border/80 bg-card p-3.5 shadow-2xs">
         <div className="flex items-center justify-between gap-2">
-            <h4 className="text-sm font-semibold text-text-primary">{label}</h4>
+            <h4 className="text-xs font-semibold text-foreground">{label}</h4>
             <div className="flex shrink-0 items-center gap-2">
                 {isNotApplicable && (
-                    <span className="rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-600">N/A</span>
+                    <Badge variant="outline" className="text-[10px] font-medium text-muted-foreground">
+                        N/A
+                    </Badge>
                 )}
                 {!isNotApplicable && documents.length > 0 && (
-                    <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                    <Badge variant="secondary" className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10">
                         {documents.length} file{documents.length === 1 ? '' : 's'}
-                    </span>
+                    </Badge>
                 )}
                 {!isNotApplicable && documents.length === 0 && (
-                    <span className="rounded-full bg-surface-secondary border border-border px-2 py-0.5 text-[10px] font-medium text-text-muted">None</span>
+                    <span className="text-[11px] text-muted-foreground">None</span>
                 )}
             </div>
         </div>
@@ -272,7 +289,7 @@ const DocumentList = ({
 }) => {
     if (documents.length === 0) {
         return (
-            <p className="mt-4 rounded-xl border border-dashed border-border px-4 py-3 text-sm text-text-secondary">
+            <p className="mt-3 rounded-lg border border-dashed border-border/80 px-3 py-2 text-xs text-muted-foreground">
                 {emptyLabel}
             </p>
         );
@@ -281,31 +298,38 @@ const DocumentList = ({
     return (
         <div className="mt-3 space-y-1.5">
             {documents.map((document) => (
-                <div key={document.id} className="flex items-center justify-between gap-3 rounded-lg border border-border bg-surface-secondary/40 px-3 py-2">
+                <div
+                    key={document.id}
+                    className="flex items-center justify-between gap-3 rounded-lg border border-border/70 bg-muted/30 px-3 py-2"
+                >
                     <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-text-primary">{document.filename}</p>
-                        <p className="mt-1 text-xs text-text-secondary">
+                        <p className="truncate text-xs font-semibold text-foreground">{document.filename}</p>
+                        <p className="mt-0.5 text-[11px] text-muted-foreground">
                             {document.uploaded_by?.name ?? 'Unknown uploader'}
                             {document.uploaded_by?.role ? ` • ${document.uploaded_by.role}` : ''}
                             {document.created_at ? ` • ${formatDateTime(document.created_at)}` : ''}
                         </p>
                     </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                        <span className="text-xs font-semibold text-text-muted">{document.formatted_size}</span>
-                        <button
-                            type="button"
+                    <div className="flex shrink-0 items-center gap-1.5">
+                        <span className="text-[11px] tabular-nums text-muted-foreground mr-1">{document.formatted_size}</span>
+                        <Button
+                            variant="outline"
+                            size="sm"
                             onClick={() => void previewDocument(document)}
-                            className="rounded-lg border border-border px-3 py-1.5 text-xs font-bold text-text-primary transition-colors hover:bg-hover"
+                            className="h-7 px-2 text-xs font-medium cursor-pointer shadow-2xs gap-1"
                         >
+                            <Eye className="size-3 text-muted-foreground" />
                             Preview
-                        </button>
-                        <button
-                            type="button"
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
                             onClick={() => void trackingApi.downloadDocument(document.id, document.filename)}
-                            className="rounded-lg border border-border px-3 py-1.5 text-xs font-bold text-text-primary transition-colors hover:bg-hover"
+                            className="h-7 px-2 text-xs font-medium cursor-pointer shadow-2xs gap-1"
                         >
+                            <Download className="size-3 text-muted-foreground" />
                             Download
-                        </button>
+                        </Button>
                     </div>
                 </div>
             ))}
@@ -323,13 +347,13 @@ const StageStateChip = ({
     const tone = stageStateTone(summary.state);
 
     return (
-        <span
-            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] ${tone} ${
-                compact ? '' : 'shadow-sm'
-            }`}
+        <Badge
+            variant="outline"
+            className={cn('text-[10px] px-2 py-0.5 font-semibold gap-1.5', tone)}
         >
-            <span className="h-1.5 w-1.5 rounded-full bg-current opacity-70" />
+            <span className="size-1.5 rounded-full bg-current opacity-80" />
             {compact ? shortStageStateLabel(summary.state) : `${summary.label}: ${shortStageStateLabel(summary.state)}`}
-        </span>
+        </Badge>
     );
 };
+
