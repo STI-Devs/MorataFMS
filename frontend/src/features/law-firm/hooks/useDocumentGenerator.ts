@@ -66,9 +66,9 @@ export const useDocumentGenerator = (module: LawFirmDocumentModule = 'notarial')
     );
 
     const selectedTemplate = filteredTemplates.find((t) => t.id === selectedTemplateId) ?? null;
-    const readyTemplateCount = readyTemplatesQuery.data?.meta.total ?? 0;
+    const readyTemplateCount = readyTemplatesQuery.data?.meta.total ?? templates.filter((t) => t.template_status === 'ready').length;
     const generatedDocumentCount = generatedDocumentsQuery.data?.meta.total ?? 0;
-    const totalTemplateCount = libraryTemplatesQuery.data?.meta.total ?? 0;
+    const totalTemplateCount = libraryTemplatesQuery.data?.meta.total || templatesQuery.data?.meta.total || templates.length;
 
     const handleCategorySelect = (cat: DocumentTemplateCategoryCode | 'all') => {
         setSelectedCategory(cat);

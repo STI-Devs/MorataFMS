@@ -1,17 +1,30 @@
 import { useNavigate } from 'react-router-dom';
-import { CurrentDateTime } from '../../../../components/CurrentDateTime';
+import {
+    Archive,
+    ArrowRight,
+    CheckCircle2,
+    ChevronRight,
+    Files,
+    FileSignature,
+    FileText,
+    FolderKanban,
+    UploadCloud,
+} from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '../../../../components/ui/card';
 import { appRoutes } from '../../../../lib/appRoutes';
 import {
     useNotarialGeneratedDocuments,
     useNotarialTemplates,
 } from '../../hooks/useLegalWorkspace';
+import { cn } from '@/lib/utils';
 
 type ModuleCard = {
     label: string;
     description: string;
     path: string;
-    accent: string;
-    icon: string;
+    icon: React.ComponentType<{ className?: string }>;
+    iconBg: string;
+    iconColor: string;
 };
 
 const baseModuleCards: ModuleCard[] = [
@@ -19,53 +32,51 @@ const baseModuleCards: ModuleCard[] = [
         label: 'Create Draft',
         description: 'Select a master, create a working copy, and open it in the editor.',
         path: appRoutes.paralegalGenerator,
-        accent: 'var(--primary)',
-        icon: 'M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2',
+        icon: FileSignature,
+        iconBg: 'bg-blue-500/10',
+        iconColor: 'text-blue-600 dark:text-blue-400',
     },
     {
         label: 'Generated Documents',
         description: 'Search and reopen editable Word outputs by party, document type, variant, or file name.',
         path: appRoutes.paralegalGeneratedDocuments,
-        accent: 'var(--success)',
-        icon: 'M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4',
+        icon: Files,
+        iconBg: 'bg-emerald-500/10',
+        iconColor: 'text-emerald-600 dark:text-emerald-400',
     },
     {
         label: 'Legal Create Draft',
         description: 'Create a legal Word draft from the legal document master library.',
         path: appRoutes.paralegalLegalFiles,
-        accent: 'var(--warning)',
-        icon: 'M5 4h10l4 4v12a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2zm9 1.5V9h3.5',
+        icon: FileText,
+        iconBg: 'bg-amber-500/10',
+        iconColor: 'text-amber-600 dark:text-amber-400',
     },
     {
         label: 'Legal File Masters',
         description: 'Upload and manage legal DOCX masters for the drafting engine.',
         path: appRoutes.paralegalLegalFileMasters,
-        accent: 'var(--violet)',
-        icon: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1M12 4v12m0-12l-4 4m4-4l4 4',
+        icon: UploadCloud,
+        iconBg: 'bg-indigo-500/10',
+        iconColor: 'text-indigo-600 dark:text-indigo-400',
     },
     {
         label: 'Legal Generated Documents',
         description: 'Search and reopen legal Word outputs by party, master, or file name.',
         path: appRoutes.paralegalLegalFileRecords,
-        accent: 'var(--danger)',
-        icon: 'M4 6a2 2 0 012-2h8l6 6v8a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm4 7h8m-8 4h8',
+        icon: FolderKanban,
+        iconBg: 'bg-rose-500/10',
+        iconColor: 'text-rose-600 dark:text-rose-400',
     },
     {
         label: 'Legacy Records',
         description: 'Upload and review old notarial and legal folders from the dedicated legacy records workspace.',
         path: appRoutes.paralegalLegacyFolderUpload,
-        accent: 'var(--muted-foreground)',
-        icon: 'M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4',
+        icon: Archive,
+        iconBg: 'bg-muted',
+        iconColor: 'text-muted-foreground',
     },
 ];
-
-const OverviewCard = ({ label, value, description }: { label: string; value: string; description: string }) => (
-    <div className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">{label}</p>
-        <p className="mt-2 text-2xl font-bold tracking-tight text-text-primary">{value}</p>
-        <p className="mt-1.5 text-sm text-text-muted">{description}</p>
-    </div>
-);
 
 export const ParalegalDashboard = () => {
     const navigate = useNavigate();
@@ -81,94 +92,116 @@ export const ParalegalDashboard = () => {
     const legalGeneratedDocumentCount = legalGeneratedDocumentsQuery.data?.meta.total ?? 0;
 
     return (
-        <div className="space-y-8 px-6 py-6">
-            <header className="flex flex-col gap-4 border-b border-border pb-6 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                    <h1 className="mt-2 text-4xl font-bold tracking-tight text-text-primary">Paralegal Workspace</h1>
-                    <p className="mt-3 max-w-2xl text-sm text-text-secondary">
-                        Manage notarial drafting, generated Word files, and the supporting archive work from one legal workspace.
-                    </p>
-                </div>
-                <CurrentDateTime
-                    className="text-left sm:text-right"
-                    timeClassName="text-2xl font-mono font-bold tracking-tight text-text-primary"
-                    dateClassName="mt-1 text-xs font-mono uppercase tracking-[0.25em] text-text-secondary"
-                />
+        <div className="w-full space-y-6 pb-8">
+            {/* Header */}
+            <header className="flex flex-col gap-1 border-b border-border/80 pb-5">
+                <h1 className="text-2xl font-bold tracking-tight text-foreground">Paralegal Workspace</h1>
+                <p className="text-sm text-muted-foreground">
+                    Manage notarial drafting, generated Word files, and the supporting archive work from one legal workspace.
+                </p>
             </header>
 
-            <section>
-                <div className="mb-4 flex items-center gap-3">
-                    <div className="h-5 w-1 rounded-full bg-primary" />
-                    <h2 className="text-sm font-bold uppercase tracking-[0.22em] text-text-secondary">Overview</h2>
-                </div>
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                    <OverviewCard
-                        label="Document Masters"
-                        value={String(templateCount)}
-                        description="Document masters saved in the system."
-                    />
-                    <OverviewCard
-                        label="Ready Masters"
-                        value={String(readyTemplateCount)}
-                        description="Masters that already have their DOCX source file."
-                    />
-                    <OverviewCard
-                        label="Generated Documents"
-                        value={String(generatedDocumentCount)}
-                        description="Editable Word outputs already created from the master library."
-                    />
-                    <OverviewCard
-                        label="Generated Legal Files"
-                        value={String(legalGeneratedDocumentCount)}
-                        description="Editable legal Word outputs already created from the legal master library."
-                    />
+            {/* Overview Section */}
+            <section className="space-y-3">
+                <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Overview</h2>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    <Card className="p-4 gap-2 shadow-xs bg-card">
+                        <CardHeader className="flex flex-row items-center justify-between p-0 space-y-0">
+                            <CardTitle className="text-xs font-medium text-muted-foreground">Document Masters</CardTitle>
+                            <FileText className="size-4 text-blue-500" />
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            <div className="text-2xl font-bold tracking-tight text-foreground tabular-nums">
+                                {templateCount}
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                                Document masters saved in the system.
+                            </p>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="p-4 gap-2 shadow-xs bg-card">
+                        <CardHeader className="flex flex-row items-center justify-between p-0 space-y-0">
+                            <CardTitle className="text-xs font-medium text-muted-foreground">Ready Masters</CardTitle>
+                            <CheckCircle2 className="size-4 text-emerald-500" />
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            <div className="text-2xl font-bold tracking-tight text-foreground tabular-nums">
+                                {readyTemplateCount}
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                                Masters that already have their DOCX source file.
+                            </p>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="p-4 gap-2 shadow-xs bg-card">
+                        <CardHeader className="flex flex-row items-center justify-between p-0 space-y-0">
+                            <CardTitle className="text-xs font-medium text-muted-foreground">Generated Documents</CardTitle>
+                            <Files className="size-4 text-amber-500" />
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            <div className="text-2xl font-bold tracking-tight text-foreground tabular-nums">
+                                {generatedDocumentCount}
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                                Editable Word outputs created from master library.
+                            </p>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="p-4 gap-2 shadow-xs bg-card">
+                        <CardHeader className="flex flex-row items-center justify-between p-0 space-y-0">
+                            <CardTitle className="text-xs font-medium text-muted-foreground">Generated Legal Files</CardTitle>
+                            <FolderKanban className="size-4 text-indigo-500" />
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            <div className="text-2xl font-bold tracking-tight text-foreground tabular-nums">
+                                {legalGeneratedDocumentCount}
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                                Editable legal outputs from legal master library.
+                            </p>
+                        </CardContent>
+                    </Card>
                 </div>
             </section>
 
-            <section>
-                <div className="mb-4 flex items-center gap-3">
-                    <div className="h-5 w-1 rounded-full bg-primary" />
-                    <h2 className="text-sm font-bold uppercase tracking-[0.22em] text-text-secondary">Workflows</h2>
-                </div>
-                <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
-                    {baseModuleCards.map((card) => (
-                        <button
-                            key={card.label}
-                            id={`paralegal-module-${card.label.toLowerCase().replace(/\s+/g, '-')}`}
-                            type="button"
-                            onClick={() => navigate(card.path)}
-                            className="group relative flex h-full flex-col gap-4 overflow-hidden rounded-xl border border-border bg-surface p-6 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-border-strong hover:bg-hover hover:shadow-md"
-                        >
-                            <div
-                                className="absolute inset-x-0 top-0 h-0.5 opacity-0 transition-opacity group-hover:opacity-100"
-                                style={{ backgroundColor: card.accent }}
-                            />
-                            <div
-                                className="flex h-12 w-12 items-center justify-center rounded-xl"
-                                style={{ backgroundColor: `color-mix(in srgb, ${card.accent} 10%, transparent)` }}
+            {/* Workflows Section */}
+            <section className="space-y-3">
+                <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Workflows</h2>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {baseModuleCards.map((card) => {
+                        const IconComponent = card.icon;
+                        return (
+                            <button
+                                key={card.label}
+                                id={`paralegal-module-${card.label.toLowerCase().replace(/\s+/g, '-')}`}
+                                type="button"
+                                onClick={() => navigate(card.path)}
+                                className="group p-5 flex flex-col justify-between gap-4 border border-border/80 bg-card hover:border-primary/50 hover:shadow-xs transition-all cursor-pointer rounded-xl text-left shadow-2xs"
                             >
-                                <svg
-                                    className="h-6 w-6"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                    style={{ color: card.accent }}
-                                >
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d={card.icon} />
-                                </svg>
-                            </div>
-                            <div>
-                                <p className="text-base font-bold text-text-primary">{card.label}</p>
-                                <p className="mt-1.5 text-sm leading-relaxed text-text-secondary">{card.description}</p>
-                            </div>
-                            <div className="mt-auto flex items-center gap-1.5 text-xs font-semibold" style={{ color: card.accent }}>
-                                Open page
-                                <svg className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
-                                </svg>
-                            </div>
-                        </button>
-                    ))}
+                                <div className="flex items-start justify-between gap-3 w-full">
+                                    <div className={cn("flex size-10 items-center justify-center rounded-lg shadow-2xs", card.iconBg)}>
+                                        <IconComponent className={cn("size-5", card.iconColor)} />
+                                    </div>
+                                    <ChevronRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
+                                        {card.label}
+                                    </p>
+                                    <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+                                        {card.description}
+                                    </p>
+                                </div>
+                                <div className="flex items-center gap-1 text-xs font-semibold text-primary pt-2 border-t border-border/40 w-full">
+                                    Open page
+                                    <ArrowRight className="size-3 transition-transform group-hover:translate-x-1" />
+                                </div>
+                            </button>
+                        );
+                    })}
                 </div>
             </section>
         </div>
