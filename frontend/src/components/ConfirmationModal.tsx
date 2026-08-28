@@ -1,4 +1,12 @@
 import React from 'react';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogTitle,
+} from './ui/alert-dialog';
 
 interface ConfirmationModalProps {
     isOpen: boolean;
@@ -26,32 +34,45 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
     icon = 'warning',
 }) => {
     const [isProcessing, setIsProcessing] = React.useState(false);
+    // Ref mirrors isProcessing synchronously so Radix's composed close-on-click
+    // (which fires before React flushes the state update) cannot dismiss the
+    // dialog while onConfirm is still pending.
+    const isProcessingRef = React.useRef(false);
 
     React.useEffect(() => {
         if (!isOpen) {
             setIsProcessing(false);
+            isProcessingRef.current = false;
         }
     }, [isOpen]);
-
-    if (!isOpen) return null;
 
     const iconWrapperClass = icon === 'success' ? 'bg-emerald-500/10' : 'bg-red-500/10';
     const iconClass = icon === 'success' ? 'text-emerald-500' : 'text-red-500';
 
     const handleConfirm = async () => {
+        isProcessingRef.current = true;
+        setIsProcessing(true);
         try {
-            setIsProcessing(true);
             await onConfirm();
             onClose();
         } finally {
+            isProcessingRef.current = false;
             setIsProcessing(false);
         }
     };
 
     return (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[200] animate-backdrop-in">
-            <div className="bg-surface rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden mx-4 border border-border transition-all animate-modal-in">
-                <div className="p-6 text-center">
+        <AlertDialog
+            open={isOpen}
+            onOpenChange={(nextOpen) => {
+                if (!nextOpen && !isProcessingRef.current) onClose();
+            }}
+        >
+            <AlertDialogContent
+                className="z-[200] w-full max-w-sm p-0 gap-0 border-0 bg-transparent shadow-none sm:max-w-sm"
+                overlayClassName="bg-black/40 backdrop-blur-sm z-[200] animate-backdrop-in"
+            >
+                <div className="p-6 text-center bg-surface rounded-2xl border border-border shadow-2xl animate-modal-in">
                     <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 transition-colors ${iconWrapperClass}`}>
                         {icon === 'success' ? (
                             <svg className={`w-8 h-8 ${iconClass}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -63,28 +84,28 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
                             </svg>
                         )}
                     </div>
-                    <h3 className="text-xl font-bold text-text-primary mb-2 transition-colors">{title}</h3>
-                    <p className="text-sm text-text-secondary mb-8 transition-colors">{message}</p>
+                    <AlertDialogTitle className="text-xl font-bold text-text-primary mb-2 transition-colors">{title}</AlertDialogTitle>
+                    <AlertDialogDescription className="text-sm text-text-secondary mb-8 transition-colors">{message}</AlertDialogDescription>
                     <div className="flex gap-3">
                         {!hideCancel && (
-                            <button
-                                onClick={onClose}
+                            <AlertDialogCancel
                                 disabled={isProcessing}
-                                className="flex-1 px-4 py-2.5 bg-surface-secondary hover:bg-hover text-text-secondary text-sm font-bold rounded-xl transition-all disabled:opacity-60"
+                                className="flex-1 px-4 py-2.5 text-text-secondary text-sm font-bold rounded-xl transition-all disabled:opacity-60 cursor-pointer"
                             >
                                 {cancelText}
-                            </button>
+                            </AlertDialogCancel>
                         )}
-                        <button
-                            onClick={handleConfirm}
+                        <AlertDialogAction
                             disabled={isProcessing}
-                            className={`${hideCancel ? 'w-full' : 'flex-1'} px-4 py-2.5 text-white text-sm font-bold rounded-xl transition-all shadow-sm disabled:opacity-60 ${confirmButtonClass}`}
+                            onClick={handleConfirm}
+                            onSelect={(e) => e.preventDefault()}
+                            className={`${hideCancel ? 'w-full' : 'flex-1'} px-4 py-2.5 text-white text-sm font-bold rounded-xl transition-all shadow-sm disabled:opacity-60 ${confirmButtonClass} cursor-pointer`}
                         >
                             {isProcessing ? 'Processing...' : confirmText}
-                        </button>
+                        </AlertDialogAction>
                     </div>
                 </div>
-            </div>
-        </div>
+            </AlertDialogContent>
+        </AlertDialog>
     );
 };

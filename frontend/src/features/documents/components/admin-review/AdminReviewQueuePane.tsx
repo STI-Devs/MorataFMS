@@ -128,7 +128,7 @@ export const AdminReviewQueuePane = ({
             className={`flex w-full flex-col ${
                 expanded
                     ? 'max-w-none gap-3 bg-transparent'
-                    : 'h-full min-h-0 overflow-hidden border-r border-border bg-card xl:min-w-[26rem] xl:max-w-[38rem] 2xl:min-w-[30rem] 2xl:max-w-[42rem]'
+                    : 'h-full min-h-0 overflow-hidden border-b border-border bg-card xl:border-b-0 xl:border-r xl:min-w-[26rem] xl:max-w-[38rem] 2xl:min-w-[30rem] 2xl:max-w-[42rem]'
             }`}
             data-testid="admin-review-queue-pane"
         >

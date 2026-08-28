@@ -1,4 +1,6 @@
 import { useRef, useState } from 'react';
+import { Building2 } from 'lucide-react';
+import { Input } from '../../../../components/ui/input';
 import type { LegalParty } from '../../types/legalRecords.types';
 
 type Props = {
@@ -19,12 +21,12 @@ export const PartyCombobox = ({ search, onSearchChange, suggestions, selectedPar
     };
 
     return (
-        <div ref={containerRef} className="relative space-y-2">
-            <span className="text-[13px] font-medium text-text-secondary">
-                Party / Principal <span className="text-red-500">*</span>
-            </span>
+        <div ref={containerRef} className="relative space-y-1.5">
+            <label htmlFor="generator-party-name" className="text-xs font-medium text-foreground">
+                Party / Principal <span className="text-destructive">*</span>
+            </label>
             <div className="relative">
-                <input
+                <Input
                     id="generator-party-name"
                     type="text"
                     autoComplete="off"
@@ -33,33 +35,36 @@ export const PartyCombobox = ({ search, onSearchChange, suggestions, selectedPar
                     onFocus={() => setOpen(true)}
                     onBlur={() => setTimeout(() => setOpen(false), 150)}
                     placeholder="Search or type the client / principal name..."
-                    className="w-full rounded-xl border border-border bg-input-bg px-4 py-3 text-[14px] font-medium text-text-primary placeholder:font-normal placeholder:text-text-muted transition-colors hover:bg-hover focus:border-text-primary focus:bg-surface-elevated focus:outline-none focus:ring-1 focus:ring-text-primary"
+                    className="h-9 text-xs bg-background"
                 />
             </div>
             {selectedParty && (
-                <div className="flex flex-wrap items-center gap-2 pt-1.5">
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200/60 bg-emerald-50 px-2.5 py-1 text-[11px] font-medium uppercase tracking-wide text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-500/10 dark:text-emerald-300">
-                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                    <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
+                        <span className="size-1.5 rounded-full bg-emerald-500" />
                         Linked party
                     </span>
-                    <p className="text-[12px] text-text-secondary">
+                    <p className="text-xs text-muted-foreground">
                         {selectedParty.principal_address ?? 'No address on file'}
                     </p>
                 </div>
             )}
             {open && suggestions.length > 0 && (
-                <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-2xl border border-border bg-surface-elevated p-1.5 shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:shadow-none">
+                <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-xl border border-border/80 bg-popover p-1 shadow-md">
                     {suggestions.map((party) => (
                         <button
                             key={party.id}
                             type="button"
                             onMouseDown={() => handleSelect(party)}
-                            className="flex w-full flex-col gap-0.5 rounded-xl px-3.5 py-2.5 text-left transition-colors hover:bg-hover focus:bg-hover focus:outline-none"
+                            className="flex w-full items-start gap-2.5 rounded-lg px-3 py-2 text-left transition-colors hover:bg-muted/80 focus:bg-muted/80 focus:outline-none cursor-pointer"
                         >
-                            <span className="text-[13px] font-semibold text-text-primary">{party.name}</span>
-                            {party.principal_address && (
-                                <span className="text-[12px] text-text-secondary">{party.principal_address}</span>
-                            )}
+                            <Building2 className="size-4 text-muted-foreground shrink-0 mt-0.5" />
+                            <div className="min-w-0">
+                                <span className="block text-xs font-semibold text-foreground">{party.name}</span>
+                                {party.principal_address && (
+                                    <span className="block truncate text-[11px] text-muted-foreground">{party.principal_address}</span>
+                                )}
+                            </div>
                         </button>
                     ))}
                 </div>

@@ -3,6 +3,15 @@ import { useAuth } from '../features/auth';
 import { getHomePath } from '../features/auth/utils/access';
 import { landingHeroImage, logoImage } from '../assets/branding';
 import { appRoutes } from '../lib/appRoutes';
+import {
+    Sheet,
+    SheetClose,
+    SheetContent,
+    SheetFooter,
+    SheetHeader,
+    SheetTitle,
+    SheetTrigger,
+} from '../components/ui/sheet';
 
 const LandingPage: React.FC = () => {
     const navigate = useNavigate();
@@ -17,7 +26,7 @@ const LandingPage: React.FC = () => {
     };
 
     return (
-        <div className="relative h-screen w-full bg-black font-['Montserrat',sans-serif] overflow-hidden text-white">
+        <div className="relative h-svh w-full bg-black font-['Montserrat',sans-serif] overflow-hidden text-white">
 
             {/* Background Image Layer */}
             <div className="absolute inset-0 z-0 overflow-hidden">
@@ -39,8 +48,8 @@ const LandingPage: React.FC = () => {
                             <img src={logoImage} alt="F.M. Morata Logo" className="w-full h-full object-cover rounded-full" />
                         </div>
                         <div>
-                            <h1 className="text-2xl font-black leading-none text-white uppercase tracking-[0.2em]">F.M. MORATA</h1>
-                            <p className="text-[12px] uppercase tracking-[0.2em] text-gray-300 font-bold whitespace-nowrap">CUSTOMS TRACKING &amp; FILE MANAGEMENT</p>
+                            <h1 className="text-xl sm:text-2xl font-black leading-none text-white uppercase tracking-[0.12em] sm:tracking-[0.2em]">F.M. MORATA</h1>
+                            <p className="hidden sm:block text-[12px] uppercase tracking-[0.2em] text-gray-300 font-bold whitespace-nowrap">CUSTOMS TRACKING &amp; FILE MANAGEMENT</p>
                         </div>
                     </div>
 
@@ -76,37 +85,83 @@ const LandingPage: React.FC = () => {
                     </div>
 
                     <div className="md:hidden">
-                        <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7" />
-                        </svg>
+                        <Sheet>
+                            <SheetTrigger asChild>
+                                <button
+                                    type="button"
+                                    aria-label="Open menu"
+                                    className="flex h-12 w-12 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white backdrop-blur-sm transition-colors hover:bg-white/20"
+                                >
+                                    <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7" />
+                                    </svg>
+                                </button>
+                            </SheetTrigger>
+                            <SheetContent
+                                side="right"
+                                className="flex w-full flex-col gap-0 bg-black/95 text-white backdrop-blur-xl sm:w-[400px] sm:max-w-[400px]"
+                            >
+                                <SheetHeader className="border-b border-white/10 px-5 py-4">
+                                    <SheetTitle className="font-black uppercase tracking-[0.2em] text-white">Menu</SheetTitle>
+                                </SheetHeader>
+                                <nav className="flex-1 overflow-y-auto px-2 py-3">
+                                    <ul className="flex flex-col gap-1">
+                                        {[
+                                            { label: 'Home', href: '#top' },
+                                            { label: 'Services', href: '#services' },
+                                            { label: 'About', href: '#about' },
+                                            { label: 'Contact', href: '#contact' },
+                                        ].map((link) => (
+                                            <li key={link.label}>
+                                                <SheetClose asChild>
+                                                    <a href={link.href} className="flex items-center justify-between rounded-md px-4 py-3 text-sm font-bold uppercase tracking-[0.2em] text-white/80 transition-colors hover:bg-white/10 hover:text-white">
+                                                        {link.label}
+                                                        <span aria-hidden="true" className="text-white/30">→</span>
+                                                    </a>
+                                                </SheetClose>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </nav>
+                                <SheetFooter className="border-t border-white/10 bg-black/60 px-5 py-4">
+                                    <button
+                                        type="button"
+                                        onClick={handleHeaderAction}
+                                        className="w-full border border-white/30 bg-white/10 px-4 py-3 text-xs font-black uppercase tracking-[0.3em] text-white transition-colors hover:bg-white hover:text-black"
+                                    >
+                                        {isAuthenticated ? 'Open App' : 'Sign In'}
+                                    </button>
+                                </SheetFooter>
+                            </SheetContent>
+                        </Sheet>
                     </div>
                 </header>
 
                 {/* Main Hero Content */}
-                <main className="flex-1 container mx-auto px-8 md:px-12 flex flex-col justify-center pb-20">
+                <main className="flex-1 container mx-auto px-6 sm:px-8 md:px-12 flex flex-col justify-center pb-20">
                     <div className="max-w-5xl">
-                        <h1 className="text-4xl md:text-5xl lg:text-7xl font-black leading-[0.9] mb-4 tracking-[0.2em] uppercase">
+                        <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-black leading-[0.95] mb-4 tracking-[0.08em] sm:tracking-[0.15em] lg:tracking-[0.2em] uppercase">
                             FELY M. MORATA
                         </h1>
-                        <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold leading-none mb-10 tracking-[0.2em] uppercase text-white/90">
+                        <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold leading-none mb-10 tracking-[0.08em] sm:tracking-[0.15em] lg:tracking-[0.2em] uppercase text-white/90">
                             CUSTOMS BROKERAGE <br /> <span className="text-white/60">&amp; LAW FIRM</span>
                         </h2>
-                        <p className="text-lg md:text-xl font-bold text-white/80 mt-10 mb-14 max-w-2xl leading-relaxed tracking-[0.2em] uppercase">
+                        <p className="text-base sm:text-lg md:text-xl font-bold text-white/80 mt-10 mb-14 max-w-2xl leading-relaxed tracking-[0.08em] sm:tracking-[0.15em] lg:tracking-[0.2em] uppercase">
                             Results Driven, with Integrity
                         </p>
                     </div>
                 </main>
 
                 {/* Footer */}
-                <footer className="absolute bottom-10 left-0 w-full px-8 md:px-12">
+                <footer className="absolute bottom-10 left-0 w-full px-6 sm:px-8 md:px-12">
                     <div className="container mx-auto flex flex-col md:flex-row justify-between items-end gap-8">
                         <div className="hidden lg:flex flex-col gap-1 text-white/60 uppercase tracking-[0.3em] text-xs font-bold">
                             <span>EST. 2002</span>
                             <span>DAVAO CITY, PH</span>
                         </div>
                         <div className="text-right flex flex-col items-end">
-                            <p className="text-sm font-bold uppercase tracking-widest text-white mb-1">© 2026 F.M. Morata — All rights reserved</p>
-                            <p className="text-[10px] uppercase tracking-[0.2em] text-white/40 font-black">Cargo images are designer impressions</p>
+                            <p className="text-xs sm:text-sm font-bold uppercase tracking-[0.08em] sm:tracking-widest text-white mb-1">© 2026 F.M. Morata — All rights reserved</p>
+                            <p className="text-[10px] uppercase tracking-[0.1em] sm:tracking-[0.2em] text-white/40 font-black">Cargo images are designer impressions</p>
                         </div>
                     </div>
                 </footer>

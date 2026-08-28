@@ -1,6 +1,7 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { setMatchMediaMobile } from '../../test/matchMedia';
 import { appRoutes } from '../../lib/appRoutes';
 import { MainLayout } from './MainLayout';
 
@@ -417,5 +418,74 @@ describe('MainLayout', () => {
         expect(screen.getByRole('button', { name: 'F.M Morata' })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Brokerage' })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Legal' })).toBeInTheDocument();
+    });
+});
+
+describe('MainLayout mobile shell (Sheet navigation)', () => {
+    beforeEach(() => {
+        mockUseAuth.mockReset();
+        mockUseTheme.mockReset();
+
+        mockUseAuth.mockReturnValue({
+            user: {
+                name: 'Admin User',
+                email: 'admin@example.com',
+                role: 'admin',
+                departments: ['brokerage', 'legal'],
+                multi_department: true,
+            },
+            logout: vi.fn(),
+        });
+
+        mockUseTheme.mockReturnValue({
+            theme: 'light',
+            toggleTheme: vi.fn(),
+        });
+
+        setMatchMediaMobile(true);
+    });
+
+    const renderMobileLayout = () =>
+        render(
+            <MemoryRouter initialEntries={[appRoutes.dashboard]}>
+                <Routes>
+                    <Route element={<MainLayout />}>
+                        <Route path={appRoutes.dashboard} element={<div>Dashboard</div>} />
+                    </Route>
+                </Routes>
+            </MemoryRouter>,
+        );
+
+    it('GREEN: the header trigger opens a Sheet with the nav reachable', () => {
+        renderMobileLayout();
+
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole('button', { name: 'Toggle Sidebar' }));
+
+        const dialog = screen.getByRole('dialog');
+        expect(dialog).toBeInTheDocument();
+        expect(within(dialog).getByRole('button', { name: 'Brokerage' })).toBeInTheDocument();
+        expect(within(dialog).getByRole('button', { name: 'Legal' })).toBeInTheDocument();
+        expect(within(dialog).getByText('Dashboard')).toBeInTheDocument();
+    });
+
+    it('RED now -> flips green in Phase 2: the mobile Sheet exposes an explicit Close button', () => {
+        renderMobileLayout();
+
+        fireEvent.click(screen.getByRole('button', { name: 'Toggle Sidebar' }));
+
+        const dialog = screen.getByRole('dialog');
+        expect(within(dialog).getByRole('button', { name: 'Close' })).toBeInTheDocument();
+    });
+
+    it('GREEN: the mobile Sheet Close button dismisses it', () => {
+        renderMobileLayout();
+
+        fireEvent.click(screen.getByRole('button', { name: 'Toggle Sidebar' }));
+        const dialog = screen.getByRole('dialog');
+
+        fireEvent.click(within(dialog).getByRole('button', { name: 'Close' }));
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
 });

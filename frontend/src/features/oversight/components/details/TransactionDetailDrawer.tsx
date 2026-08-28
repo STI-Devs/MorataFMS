@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Download, Eye, FileText, Flag, Loader2, Paperclip, User, Building2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Download, ExternalLink, Eye, FileText, Flag, Loader2, Paperclip, User, Building2 } from 'lucide-react';
 import { Badge } from '../../../../components/ui/badge';
 import { Button } from '../../../../components/ui/button';
 import { Card } from '../../../../components/ui/card';
+import { appRoutes } from '../../../../lib/appRoutes';
 import {
     Select,
     SelectContent,
@@ -43,6 +45,7 @@ interface Props {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export const TransactionDetailDrawer = ({ transaction, onClose }: Props) => {
+    const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState<Tab>('Documents');
     const { previewFile, setPreviewFile, handlePreviewDoc } = useDocumentPreview();
     const [previewLoading, setPreviewLoading] = useState<number | null>(null);
@@ -109,28 +112,48 @@ export const TransactionDetailDrawer = ({ transaction, onClose }: Props) => {
 
     const transactionLabel = `${transaction.type === 'import' ? 'Import' : 'Export'} — ${transaction.reference_no || transaction.bl_no || `#${transaction.id}`}`;
 
+    const targetRef = transaction.type === 'import'
+        ? (transaction.reference_no || transaction.bl_no || String(transaction.id))
+        : (transaction.bl_no || transaction.reference_no || `EXP-${String(transaction.id).padStart(4, '0')}` || String(transaction.id));
+
+    const trackingPath = appRoutes.trackingDetail.replace(':referenceId', encodeURIComponent(targetRef));
+
     return (
         <>
             <Sheet open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
                 <SheetContent side="right" className="w-full sm:max-w-[540px] p-0 flex flex-col gap-0 border-l shadow-2xl bg-card">
                     {/* Header */}
-                    <SheetHeader className="text-start px-6 pt-6 pb-4 border-b border-border space-y-2 bg-card">
-                        <div className="flex items-center gap-2">
-                            <Badge
-                                variant={transaction.type === 'import' ? 'secondary' : 'outline'}
-                                className="text-[10px] font-bold uppercase tracking-wider font-mono px-2 py-0.5"
-                            >
-                                {transaction.type}
-                            </Badge>
-                            {transaction.open_remarks_count > 0 && (
-                                <Badge variant="destructive" className="text-[10px] font-bold px-2 py-0.5 gap-1">
-                                    <Flag className="size-3" />
-                                    {transaction.open_remarks_count} open
+                    <SheetHeader className="text-start px-6 pt-6 pb-4 border-b border-border space-y-2.5 bg-card">
+                        <div className="flex items-center justify-between gap-2 pr-6">
+                            <div className="flex items-center gap-2">
+                                <Badge
+                                    variant={transaction.type === 'import' ? 'secondary' : 'outline'}
+                                    className="text-[10px] font-bold uppercase tracking-wider font-mono px-2 py-0.5"
+                                >
+                                    {transaction.type}
                                 </Badge>
-                            )}
-                            <Badge variant="outline" className="capitalize text-[10px] font-medium text-muted-foreground">
-                                {transaction.status?.replace(/_/g, ' ')}
-                            </Badge>
+                                {transaction.open_remarks_count > 0 && (
+                                    <Badge variant="destructive" className="text-[10px] font-bold px-2 py-0.5 gap-1">
+                                        <Flag className="size-3" />
+                                        {transaction.open_remarks_count} open
+                                    </Badge>
+                                )}
+                                <Badge variant="outline" className="capitalize text-[10px] font-medium text-muted-foreground">
+                                    {transaction.status?.replace(/_/g, ' ')}
+                                </Badge>
+                            </div>
+                            <Button
+                                type="button"
+                                size="sm"
+                                onClick={() => {
+                                    navigate(trackingPath);
+                                    onClose();
+                                }}
+                                className="h-7.5 px-3 text-xs font-medium gap-1.5 shadow-xs bg-primary text-primary-foreground hover:bg-primary/90 transition-all cursor-pointer"
+                            >
+                                <ExternalLink className="size-3.5" />
+                                View in Tracking
+                            </Button>
                         </div>
                         <div>
                             <SheetTitle className="text-xl font-bold tracking-tight text-foreground">{transactionLabel}</SheetTitle>
@@ -150,15 +173,24 @@ export const TransactionDetailDrawer = ({ transaction, onClose }: Props) => {
 
                     {/* Tabs */}
                     <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as Tab)} className="flex-1 flex flex-col overflow-hidden">
-                        <div className="border-b border-border bg-muted/30 px-6 pt-2">
-                            <TabsList className="grid w-full grid-cols-3 h-9 p-1">
-                                <TabsTrigger value="Documents" className="text-xs font-semibold">
+                        <div className="border-b border-border/80 bg-muted/30 px-6 py-3">
+                            <TabsList className="grid w-full grid-cols-3 h-10 p-1 bg-muted/80 border border-border/70 rounded-xl shadow-2xs">
+                                <TabsTrigger
+                                    value="Documents"
+                                    className="h-8 text-xs font-semibold rounded-lg transition-all cursor-pointer data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-xs text-muted-foreground hover:text-foreground"
+                                >
                                     Documents
                                 </TabsTrigger>
-                                <TabsTrigger value="Stages" className="text-xs font-semibold">
+                                <TabsTrigger
+                                    value="Stages"
+                                    className="h-8 text-xs font-semibold rounded-lg transition-all cursor-pointer data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-xs text-muted-foreground hover:text-foreground"
+                                >
                                     Stages
                                 </TabsTrigger>
-                                <TabsTrigger value="Remarks" className="text-xs font-semibold">
+                                <TabsTrigger
+                                    value="Remarks"
+                                    className="h-8 text-xs font-semibold rounded-lg transition-all cursor-pointer data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-xs text-muted-foreground hover:text-foreground"
+                                >
                                     Remarks {transaction.open_remarks_count > 0 ? `(${transaction.open_remarks_count})` : ''}
                                 </TabsTrigger>
                             </TabsList>

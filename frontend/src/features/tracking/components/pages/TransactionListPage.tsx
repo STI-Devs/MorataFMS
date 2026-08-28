@@ -44,6 +44,8 @@ export interface TransactionListPageProps<T> {
     encodeButtonLabel?: string;
     filters?: VesselListFilters;
     gridTemplateColumns: string;
+    /** Shared floor width for the header AND data-row grids (must be identical on both or columns drift when scrolled). */
+    minGridWidth?: string;
     renderHeaders: () => React.ReactNode;
     renderRow: (
         row: T,
@@ -58,6 +60,7 @@ export function TransactionListPage<T>({
     type,
     filters,
     gridTemplateColumns,
+    minGridWidth,
     renderHeaders,
     renderRow,
     mapResponseData,
@@ -154,14 +157,14 @@ export function TransactionListPage<T>({
         <div className="space-y-4">
             {/* Table Container */}
             <div
-                className={`overflow-hidden rounded-xl border border-border/80 bg-card shadow-2xs transition-opacity duration-200 ${
+                className={`overflow-x-auto rounded-xl border border-border/80 bg-card shadow-2xs transition-opacity duration-200 ${
                     isFetching ? 'opacity-70' : 'opacity-100'
                 }`}
             >
                 {/* Header row */}
                 <div
                     className="grid gap-3 py-2.5 px-4 border-b border-border/80 bg-muted/40 text-xs font-semibold uppercase tracking-wider text-muted-foreground"
-                    style={{ gridTemplateColumns }}
+                    style={{ gridTemplateColumns, minWidth: minGridWidth }}
                 >
                     {renderHeaders()}
                 </div>
@@ -197,7 +200,7 @@ export function TransactionListPage<T>({
                                     <div
                                         key={rowKey}
                                         className="grid gap-3 py-2.5 px-4 items-center cursor-pointer transition-colors hover:bg-muted/50 text-xs"
-                                        style={{ gridTemplateColumns }}
+                                        style={{ gridTemplateColumns, minWidth: minGridWidth }}
                                         onClick={() => {
                                             if (!referenceId) return;
                                             navigate(

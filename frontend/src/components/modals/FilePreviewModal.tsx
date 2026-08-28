@@ -1,4 +1,10 @@
 import { Icon } from '../Icon';
+import {
+    Dialog,
+    DialogClose,
+    DialogContent,
+    DialogTitle,
+} from '../ui/dialog';
 
 interface FilePreviewModalProps {
     isOpen: boolean;
@@ -43,7 +49,7 @@ export const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
     const isBlobUrl    = typeof file === 'string' && file.startsWith('blob:');
     const isRemoteUrl  = typeof file === 'string' && !isBlobUrl;
 
-    // Derive a stable blob URL for local File objects
+    // Derive a stable blob URL for local File objects (only while open)
     const localBlobUrl = isLocalFile ? URL.createObjectURL(file) : null;
 
     const displayName  = fileName
@@ -70,70 +76,73 @@ export const FilePreviewModal: React.FC<FilePreviewModalProps> = ({
     })();
 
     return (
-        <div
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[200] p-4 animate-backdrop-in"
-            onClick={onClose}
-        >
-            <div
-                className="relative w-full max-w-4xl max-h-[92vh] flex flex-col rounded-2xl shadow-2xl overflow-hidden bg-surface border border-border animate-modal-in"
-                onClick={e => e.stopPropagation()}
+        <Dialog open={isOpen} onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }}>
+            <DialogContent
+                className="z-[200] w-full max-w-4xl h-[100dvh] p-0 gap-0 border-0 bg-transparent shadow-none sm:h-auto sm:max-w-4xl"
+                overlayClassName="bg-black/80 backdrop-blur-sm z-[200] animate-backdrop-in"
+                showCloseButton={false}
             >
-                {/* ── Header ─────────────────────────────────────────── */}
-                <div className="flex items-center justify-between p-4 border-b border-border shrink-0">
-                    <div className="flex items-center gap-3 min-w-0">
-                        <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 shrink-0">
-                            <Icon name="file-text" className="w-5 h-5" />
+                <div className="flex h-full flex-col overflow-hidden rounded-none bg-surface sm:h-auto sm:max-h-[92vh] sm:rounded-2xl border-border border shadow-2xl">
+                    {/* ── Header ─────────────────────────────────────────── */}
+                    <div className="flex items-center justify-between p-4 border-b border-border shrink-0">
+                        <div className="flex items-center gap-3 min-w-0">
+                            <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 shrink-0">
+                                <Icon name="file-text" className="w-5 h-5" />
+                            </div>
+                            <DialogTitle className="text-lg font-bold text-text-primary truncate">{displayName}</DialogTitle>
                         </div>
-                        <h3 className="text-lg font-bold text-text-primary truncate">{displayName}</h3>
+                        <div className="flex items-center gap-2 shrink-0">
+                            {onDownload && (
+                                <button
+                                    type="button"
+                                    onClick={onDownload}
+                                    title="Download file"
+                                    className="p-2 rounded-xl text-text-muted hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all cursor-pointer"
+                                >
+                                    <Icon name="download" className="w-5 h-5" />
+                                </button>
+                            )}
+                            <DialogClose asChild>
+                                <button
+                                    type="button"
+                                    className="p-2 rounded-xl text-text-muted hover:text-text-primary hover:bg-hover transition-all cursor-pointer"
+                                >
+                                    <Icon name="x" className="w-5 h-5" />
+                                </button>
+                            </DialogClose>
+                        </div>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                        {onDownload && (
-                            <button
-                                onClick={onDownload}
-                                title="Download file"
-                                className="p-2 rounded-xl text-text-muted hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all"
-                            >
-                                <Icon name="download" className="w-5 h-5" />
-                            </button>
+
+                    {/* ── Content ────────────────────────────────────────── */}
+                    <div className="flex-1 overflow-hidden bg-surface-secondary min-h-[400px] flex items-center justify-center">
+                        {previewType === 'image' && viewerUrl && (
+                            <img
+                                src={viewerUrl}
+                                alt={displayName}
+                                className="max-w-full max-h-[78vh] object-contain rounded-lg p-4"
+                            />
                         )}
-                        <button
-                            onClick={onClose}
-                            className="p-2 rounded-xl text-text-muted hover:text-text-primary hover:bg-hover transition-all"
-                        >
-                            <Icon name="x" className="w-5 h-5" />
-                        </button>
+
+                        {(previewType === 'pdf' || previewType === 'local-raw') && viewerUrl && (
+                            <iframe
+                                src={viewerUrl}
+                                className="w-full h-[78vh] border-none"
+                                title="Document Preview"
+                            />
+                        )}
+
+                        {previewType === 'unsupported' && (
+                            <UnsupportedPreview name={displayName ?? ''} onDownload={onDownload} />
+                        )}
+
+                        {!viewerUrl && !['image', 'pdf', 'local-raw', 'office'].includes(previewType) && (
+                            <UnsupportedPreview name={displayName ?? ''} onDownload={onDownload} />
+                        )}
                     </div>
+
                 </div>
-
-                {/* ── Content ────────────────────────────────────────── */}
-                <div className="flex-1 overflow-hidden bg-surface-secondary min-h-[400px] flex items-center justify-center">
-                    {previewType === 'image' && viewerUrl && (
-                        <img
-                            src={viewerUrl}
-                            alt={displayName}
-                            className="max-w-full max-h-[78vh] object-contain rounded-lg p-4"
-                        />
-                    )}
-
-                    {(previewType === 'pdf' || previewType === 'local-raw') && viewerUrl && (
-                        <iframe
-                            src={viewerUrl}
-                            className="w-full h-[78vh] border-none"
-                            title="Document Preview"
-                        />
-                    )}
-
-                    {previewType === 'unsupported' && (
-                        <UnsupportedPreview name={displayName ?? ''} onDownload={onDownload} />
-                    )}
-
-                    {!viewerUrl && !['image', 'pdf', 'local-raw', 'office'].includes(previewType) && (
-                        <UnsupportedPreview name={displayName ?? ''} onDownload={onDownload} />
-                    )}
-                </div>
-
-            </div>
-        </div>
+            </DialogContent>
+        </Dialog>
     );
 };
 
@@ -150,6 +159,7 @@ const UnsupportedPreview: React.FC<{ name: string; onDownload?: () => void }> = 
         </div>
         {onDownload && (
             <button
+                type="button"
                 onClick={onDownload}
                 className="mt-2 flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors"
             >

@@ -56,7 +56,7 @@ export function DataTableColumnHeader({
                         )}
                     </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-28">
+                <DropdownMenuContent align="start" side="bottom" className="w-28 max-w-[calc(100vw-2rem)]">
                     <DropdownMenuItem onClick={handleAsc} className="cursor-pointer text-xs">
                         <ArrowUp className="mr-2 size-3.5 text-muted-foreground/70" />
                         Asc

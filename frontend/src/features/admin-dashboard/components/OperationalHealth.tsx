@@ -145,7 +145,7 @@ export const OperationalHealth = ({
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2.5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                         {recordsTiles.map((tile) => {
                             const TileIcon = tile.icon;
                             return (

@@ -84,6 +84,7 @@ export const ImportList = () => {
                         type="import"
                         filters={filters}
                         gridTemplateColumns="80px 1.3fr 1.1fr 1.2fr 1.2fr 110px 1.2fr 1.3fr 80px"
+                        minGridWidth="1100px"
                         mapResponseData={(data) => (data as ApiImportTransaction[]).map(mapImportTransaction)}
                         renderHeaders={() => (
                                 <>

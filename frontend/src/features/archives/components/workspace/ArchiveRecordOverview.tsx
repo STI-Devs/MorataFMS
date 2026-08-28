@@ -1,3 +1,4 @@
+import { Pencil } from 'lucide-react';
 import type { ArchiveDocument } from '../../../documents/types/document.types';
 
 interface ArchiveRecordOverviewProps {
@@ -29,23 +30,23 @@ export const ArchiveRecordOverview = ({ docs, canEdit = false, onEdit }: Archive
         ];
 
     return (
-        <div className="border-b border-border bg-surface-secondary/40 px-4 py-3">
+        <div className="border-b border-border/80 bg-muted/20 px-5 py-3.5">
             <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
                 <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-text-muted">BL Record</p>
-                        <span className="rounded-full border border-border bg-surface px-2 py-0.5 text-[10px] font-bold text-text-muted">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">BL Record</p>
+                        <span className="rounded-full border border-border/80 bg-background px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
                             {docs.length.toLocaleString()} file{docs.length === 1 ? '' : 's'}
                         </span>
                     </div>
-                    <h3 className="mt-1 truncate text-lg font-black text-text-primary">{firstDocument.bl_no}</h3>
+                    <h3 className="mt-1 truncate text-lg font-bold text-foreground font-mono">{firstDocument.bl_no}</h3>
                 </div>
 
                 <div className="flex min-w-0 flex-1 flex-wrap gap-2 xl:justify-end">
                     {metadata.map((item) => (
-                        <div key={item.label} className="min-w-0 rounded-lg border border-border bg-surface px-3 py-2">
-                            <p className="text-[9px] font-black uppercase tracking-[0.16em] text-text-muted">{item.label}</p>
-                            <p className="mt-0.5 max-w-[220px] truncate text-xs font-bold text-text-primary" title={item.value || '—'}>
+                        <div key={item.label} className="min-w-0 rounded-lg border border-border/80 bg-background px-3 py-1.5 shadow-2xs">
+                            <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">{item.label}</p>
+                            <p className="mt-0.5 max-w-[220px] truncate text-xs font-semibold text-foreground" title={item.value || '—'}>
                                 {item.value || '—'}
                             </p>
                         </div>
@@ -56,11 +57,9 @@ export const ArchiveRecordOverview = ({ docs, canEdit = false, onEdit }: Archive
                     <button
                         type="button"
                         onClick={() => onEdit(firstDocument)}
-                        className="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-lg border border-border bg-surface px-3 text-xs font-bold text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary"
+                        className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-border/80 bg-background px-3 text-xs font-semibold text-foreground shadow-2xs transition-colors hover:bg-muted cursor-pointer"
                     >
-                        <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
+                        <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
                         Edit Record
                     </button>
                 )}

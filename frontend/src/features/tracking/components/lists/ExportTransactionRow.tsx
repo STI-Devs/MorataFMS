@@ -100,7 +100,7 @@ export function ExportTransactionRow({
     return (
         <div
             onClick={() => onNavigate(path)}
-            className="group grid gap-x-4 gap-y-3 p-4 lg:min-h-[52px] lg:grid-cols-[1.2fr_1.1fr_1.4fr_150px_140px_90px_70px] lg:items-center lg:gap-y-0 lg:px-4 lg:py-2 cursor-pointer border-b border-border/40 last:border-b-0 text-xs transition-colors hover:bg-muted/50"
+            className="group grid gap-x-4 gap-y-3 p-4 lg:min-h-[52px] lg:grid-cols-[1.2fr_1.1fr_1.4fr_150px_140px_90px_70px] lg:items-center lg:gap-y-0 lg:px-4 lg:py-2 cursor-pointer border-b border-border/40 last:border-b-0 text-xs transition-colors hover:bg-muted/50 lg:min-w-[1000px]"
             role="row"
         >
             {/* Primary BL Reference */}

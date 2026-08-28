@@ -39,28 +39,25 @@ export const ArchiveBrowserHeader = ({
     onSortKeyChange,
     onSortDirChange,
 }: Props) => (
-    <div className="flex flex-col gap-2 border-b border-border bg-surface-subtle px-4 py-2 lg:flex-row lg:items-center lg:justify-between">
+    <div className="flex flex-col gap-2 border-b border-border/80 bg-muted/20 px-5 py-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-widest text-text-muted">Records Browser</p>
-            <div className="mt-0.5 flex min-w-0 items-center gap-2">
-                {viewMode === 'document' ? (
-                    <div className="min-w-0">
-                        <p className="truncate text-sm font-black text-text-primary">{documentViewTitle}</p>
-                        <p className="text-xs font-semibold text-text-muted">
-                            {flatDocumentCount.toLocaleString()} visible records
-                        </p>
-                    </div>
-                ) : currentDrill.level !== 'years' ? (
-                    <Breadcrumb parts={breadcrumbParts} />
-                ) : (
-                    <div className="min-w-0">
-                        <p className="truncate text-sm font-black text-text-primary">Folder View</p>
-                        <p className="text-xs font-semibold text-text-muted">
-                            {archiveData.length.toLocaleString()} filing years · {totalDocs.toLocaleString()} files · {totalBLRecords.toLocaleString()} BL Records · {totalImports.toLocaleString()} imports · {totalExports.toLocaleString()} exports
-                        </p>
-                    </div>
-                )}
-            </div>
+            {viewMode === 'document' ? (
+                <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-foreground">{documentViewTitle}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                        {flatDocumentCount.toLocaleString()} visible records
+                    </p>
+                </div>
+            ) : currentDrill.level !== 'years' ? (
+                <Breadcrumb parts={breadcrumbParts} />
+            ) : (
+                <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-foreground">Folder View</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                        {archiveData.length.toLocaleString()} filing years · {totalDocs.toLocaleString()} files · {totalBLRecords.toLocaleString()} BL Records · {totalImports.toLocaleString()} imports · {totalExports.toLocaleString()} exports
+                    </p>
+                </div>
+            )}
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -72,7 +69,7 @@ export const ArchiveBrowserHeader = ({
                         onSortKeyChange(k as SortKey);
                         onSortDirChange(d as 'asc' | 'desc');
                     }}
-                    className="h-9 rounded-lg border border-border-strong bg-input-bg px-3 text-xs font-bold text-text-secondary shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/25"
+                    className="h-8 rounded-lg border border-border/80 bg-background px-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer shadow-2xs"
                 >
                     <option value="period:desc">Period newest first</option>
                     <option value="period:asc">Period oldest first</option>
@@ -87,3 +84,4 @@ export const ArchiveBrowserHeader = ({
         </div>
     </div>
 );
+

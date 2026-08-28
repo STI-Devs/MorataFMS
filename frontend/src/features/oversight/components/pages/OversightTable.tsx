@@ -56,7 +56,7 @@ export const OversightTable = ({
                     <TableHead className="h-9 text-xs font-medium text-muted-foreground w-[75px]">
                         Type
                     </TableHead>
-                    <TableHead className="h-9 text-xs font-medium text-muted-foreground w-[20%] min-w-[160px]">
+                    <TableHead className="h-9 text-xs font-medium text-muted-foreground w-[20%] min-w-[140px]">
                         <DataTableColumnHeader
                             title="Vessel"
                             sortKey="vessel"
@@ -74,7 +74,7 @@ export const OversightTable = ({
                             onSort={onSort}
                         />
                     </TableHead>
-                    <TableHead className="h-9 text-xs font-medium text-muted-foreground w-[25%] min-w-[200px]">
+                    <TableHead className="h-9 text-xs font-medium text-muted-foreground w-[25%] min-w-[170px]">
                         <DataTableColumnHeader
                             title="Client"
                             sortKey="client"

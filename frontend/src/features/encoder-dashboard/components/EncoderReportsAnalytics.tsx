@@ -15,7 +15,9 @@ const MonthlyVolumeChart = ({ data }: { data: EncoderDashboardMonthlyVolumePoint
     const max = Math.max(...data.map((point) => point.total), 1);
 
     return (
-        <div className="mt-6 flex h-52 w-full items-end gap-2">
+        <div className="overflow-x-auto pt-9">
+            <div className="min-w-[520px] sm:min-w-0">
+                <div className="mt-6 flex h-52 w-full items-end gap-2">
             {data.map((point) => {
                 const importsHeight = (point.imports / max) * 100;
                 const exportsHeight = (point.exports / max) * 100;
@@ -38,6 +40,8 @@ const MonthlyVolumeChart = ({ data }: { data: EncoderDashboardMonthlyVolumePoint
                     </div>
                 );
             })}
+                </div>
+            </div>
         </div>
     );
 };

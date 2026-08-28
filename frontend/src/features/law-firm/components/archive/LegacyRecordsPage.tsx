@@ -95,50 +95,46 @@ export const LegacyRecordsPage = () => {
     }
 
     return (
-        <div className="relative min-h-full w-full bg-surface-secondary font-sans selection:bg-text-primary selection:text-surface">
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-48 bg-gradient-to-b from-surface-elevated to-transparent" />
+        <div className="w-full space-y-6 pb-8">
+            <header className="flex flex-col gap-1 border-b border-border/80 pb-5">
+                <h1 className="text-2xl font-bold tracking-tight text-foreground">
+                    {workspaceCopy.title}
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                    {workspaceCopy.description}
+                </p>
+            </header>
 
-            <div className="relative z-10 mx-auto w-full max-w-7xl space-y-5 p-6 pb-12">
-                <header className="space-y-0.5">
-                    <h1 className="text-2xl font-semibold tracking-tight text-text-primary">
-                        {workspaceCopy.title}
-                    </h1>
-                    <p className="text-[13px] text-text-secondary">
-                        {workspaceCopy.description}
-                    </p>
-                </header>
-
-                <div hidden={activeWorkspace !== 'legacyUpload'}>
-                    <LegacyFolderUploadView
-                        module="notarial"
-                        resolveModuleFromMeta={resolveLawFirmModuleFromMeta}
-                        departmentOptions={LAW_FIRM_DEPARTMENT_OPTIONS}
-                        startButtonLabel="Start Legacy Ingestion"
-                        resumeButtonLabel="Resume Legacy Ingestion"
-                        onOpenBatches={(module) => {
-                            setResumeBatchId(null);
-                            navigate(getBatchRouteForModule(module));
-                        }}
-                        resumeBatchId={resumeBatchId}
-                        onResumeCleared={() => setResumeBatchId(null)}
-                    />
-                </div>
-
-                {isBatchWorkspace && (
-                    <LegacyBatchesPage
-                        module={selectedBatchModule.module}
-                        eyebrow={selectedBatchModule.eyebrow}
-                        title={selectedBatchModule.title}
-                        description={selectedBatchModule.description}
-                        searchPlaceholder={selectedBatchModule.searchPlaceholder}
-                        deleteTitle={selectedBatchModule.deleteTitle}
-                        onResumeBatch={(batchId) => {
-                            setResumeBatchId(batchId);
-                            navigate(appRoutes.paralegalLegacyFolderUpload);
-                        }}
-                    />
-                )}
+            <div hidden={activeWorkspace !== 'legacyUpload'}>
+                <LegacyFolderUploadView
+                    module="notarial"
+                    resolveModuleFromMeta={resolveLawFirmModuleFromMeta}
+                    departmentOptions={LAW_FIRM_DEPARTMENT_OPTIONS}
+                    startButtonLabel="Start Legacy Ingestion"
+                    resumeButtonLabel="Resume Legacy Ingestion"
+                    onOpenBatches={(module) => {
+                        setResumeBatchId(null);
+                        navigate(getBatchRouteForModule(module));
+                    }}
+                    resumeBatchId={resumeBatchId}
+                    onResumeCleared={() => setResumeBatchId(null)}
+                />
             </div>
+
+            {isBatchWorkspace && (
+                <LegacyBatchesPage
+                    module={selectedBatchModule.module}
+                    eyebrow={selectedBatchModule.eyebrow}
+                    title={selectedBatchModule.title}
+                    description={selectedBatchModule.description}
+                    searchPlaceholder={selectedBatchModule.searchPlaceholder}
+                    deleteTitle={selectedBatchModule.deleteTitle}
+                    onResumeBatch={(batchId) => {
+                        setResumeBatchId(batchId);
+                        navigate(appRoutes.paralegalLegacyFolderUpload);
+                    }}
+                />
+            )}
         </div>
     );
 };

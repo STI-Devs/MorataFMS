@@ -187,9 +187,9 @@ export const UserManagement = () => {
             {/* Main Content Area */}
             <div className="flex flex-col gap-3">
                 {/* Search & Tabs Toolbar */}
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex flex-1 flex-wrap items-center gap-2">
-                        <div className="relative w-full sm:w-[220px] lg:w-[280px]">
+                        <div className="relative w-full min-w-0 sm:w-[220px] lg:w-[280px]">
                             <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
                             <Input
                                 placeholder="Search users…"
@@ -199,7 +199,7 @@ export const UserManagement = () => {
                             />
                         </div>
 
-                        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+                        <div className="flex flex-wrap items-center gap-1.5">
                             {ROLE_FILTER_OPTIONS.map((option) => {
                                 const isSelected = roleFilter === option.key;
                                 const count = roleCounts[option.key as keyof typeof roleCounts] ?? 0;

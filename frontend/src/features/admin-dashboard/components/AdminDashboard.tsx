@@ -375,7 +375,9 @@ export const AdminDashboard = () => {
                             )}
                         </CardHeader>
                         <CardContent className="mt-auto pt-4">
-                            <div className="flex h-44 items-end justify-between gap-1.5">
+                            <div className="overflow-x-auto pt-9">
+                                <div className="min-w-[520px] sm:min-w-0">
+                                    <div className="flex h-44 items-end justify-between gap-1.5">
                                 {analytics ? (
                                     analytics.monthly_volume.months.map((month) => (
                                         <div
@@ -414,8 +416,10 @@ export const AdminDashboard = () => {
                                         Loading volume data...
                                     </div>
                                 )}
+                                </div>
                             </div>
-                        </CardContent>
+                        </div>
+                    </CardContent>
                     </Card>
 
                     {/* 2.2 Status Mix (Donut + Legend) */}

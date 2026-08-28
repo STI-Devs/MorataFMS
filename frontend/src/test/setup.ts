@@ -1,19 +1,12 @@
 import '@testing-library/jest-dom/vitest';
 import { cleanup } from '@testing-library/react';
 import { afterEach, vi } from 'vitest';
+import { installMatchMediaStub, resetMatchMedia } from './matchMedia';
 
-// Desktop default: the shadcn sidebar's useIsMobile hook (useSyncExternalStore
-// on matchMedia) needs addEventListener/removeEventListener to subscribe.
-vi.stubGlobal('matchMedia', (query: string): MediaQueryList => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: vi.fn(),
-    removeListener: vi.fn(),
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-}));
+// Controllable matchMedia stub (desktop default; tests flip via setMatchMediaMobile).
+// The shadcn sidebar's useIsMobile hook (useSyncExternalStore on matchMedia) needs
+// addEventListener/removeEventListener to subscribe.
+installMatchMediaStub();
 
 // recharts ResponsiveContainer needs ResizeObserver; happy-dom has none.
 class ResizeObserverStub {
@@ -25,5 +18,6 @@ vi.stubGlobal('ResizeObserver', ResizeObserverStub);
 
 afterEach(() => {
     cleanup();
+    resetMatchMedia();
     vi.restoreAllMocks();
 });

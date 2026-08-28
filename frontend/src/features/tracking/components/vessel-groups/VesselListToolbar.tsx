@@ -62,11 +62,11 @@ export function VesselListToolbar({
         Boolean(filters.search) || filters.status !== 'all' || filters.time !== 'all';
 
     return (
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
             {/* Left filter group */}
-            <div className="flex flex-1 flex-wrap items-center gap-2">
+            <div className="flex flex-1 min-w-0 flex-wrap items-center gap-2">
                 {/* Search Input */}
-                <div className="relative flex-1 min-w-[220px] max-w-sm">
+                <div className="relative min-w-0 max-w-sm flex-1 sm:min-w-[220px]">
                     <Search className="size-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
                     <Input
                         type="text"
@@ -133,7 +133,7 @@ export function VesselListToolbar({
             </div>
 
             {/* Right controls: View mode + Encode button */}
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
                 {/* View Mode Toggle */}
                 <div className="flex items-center rounded-lg border border-border bg-card p-0.5 shadow-2xs">
                     <Button

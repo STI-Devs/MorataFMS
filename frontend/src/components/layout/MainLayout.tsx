@@ -45,7 +45,7 @@ export const MainLayout = () => {
             />
 
             <SidebarInset className="h-svh">
-                <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-background px-4">
+                <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-background px-4 sm:px-6">
                     <SidebarTrigger variant="outline" className="max-md:scale-125" />
                     <Separator orientation="vertical" className="h-6" />
                     <p className="truncate text-sm font-semibold text-foreground">{moduleSubtitle}</p>
@@ -53,9 +53,9 @@ export const MainLayout = () => {
 
                 <main
                     id="main-content"
-                    className="relative flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto bg-background px-4 py-4 sm:px-6 sm:py-5"
+                    className="relative flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto bg-background px-4 py-4 sm:px-6 sm:py-5 @container/content"
                 >
-                    <div className="flex min-h-0 w-full flex-1 flex-col">
+                    <div className="flex min-h-0 min-w-0 w-full flex-1 flex-col">
                         <Suspense fallback={<PageFallback />}>
                             <Outlet context={{ user: nav.user }} />
                         </Suspense>

@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { CurrentDateTime } from '../../../../components/CurrentDateTime';
 import { ConfirmationModal } from '../../../../components/ConfirmationModal';
 import { useAuth } from '../../../auth/hooks/useAuth';
 import type { ArchiveDocument, ArchiveYear } from '../../../documents/types/document.types';
@@ -129,41 +128,24 @@ export const ArchiveWorkspace = ({
     });
 
     return (
-        <div className="w-full space-y-3 pb-8 pt-1">
-            <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
-                <div>
-                    <h1 className="text-2xl font-black tracking-tight text-text-primary">Records Archive</h1>
-                    <p className="mt-0.5 max-w-3xl text-sm text-text-secondary">{pageDescription}</p>
-                </div>
-                <CurrentDateTime
-                    className="hidden shrink-0 text-right sm:block"
-                    timeClassName="text-xl font-bold tabular-nums text-text-primary leading-none"
-                    dateClassName="text-xs font-semibold text-text-muted mt-1 uppercase tracking-widest leading-none"
-                />
+        <div className="w-full space-y-4 pb-8 pt-1">
+            {/* Header */}
+            <div className="flex flex-col gap-1">
+                <h1 className="text-2xl font-bold tracking-tight text-foreground">Records Archive</h1>
+                <p className="text-sm text-muted-foreground">{pageDescription}</p>
             </div>
 
-            <section className="rounded-xl border border-border bg-surface shadow-sm">
-                <ArchiveWorkspaceControlBand
-                    controlTitle={controlTitle}
-                    healthLabel={healthLabel}
-                    healthTone={healthTone}
-                    metrics={metrics}
-                    isLoading={isLoading}
-                    rightAction={(
-                        <ArchiveZipRequestsPanel
-                            requests={zipRequests.requests}
-                            isOpen={zipRequestsOpen}
-                            onOpen={() => setZipRequestsOpen(true)}
-                            onClose={() => setZipRequestsOpen(false)}
-                            onDownload={zipRequests.downloadRequest}
-                            downloadingRequestId={zipRequests.downloadingRequestId}
-                            onRetry={zipRequests.retryRequest}
-                            onDismiss={zipRequests.dismissRequest}
-                            onClearFinished={zipRequests.clearFinishedRequests}
-                        />
-                    )}
-                />
+            {/* Section 1: KPI Metric Cards */}
+            <ArchiveWorkspaceControlBand
+                controlTitle={controlTitle}
+                healthLabel={healthLabel}
+                healthTone={healthTone}
+                metrics={metrics}
+                isLoading={isLoading}
+            />
 
+            {/* Section 2: Unified Filter Toolbar Card */}
+            <div className="overflow-hidden rounded-xl border border-border/80 bg-card shadow-2xs">
                 <ArchiveWorkspaceFilters
                     archiveData={archiveData}
                     availableYears={availableYears}
@@ -190,10 +172,24 @@ export const ArchiveWorkspace = ({
                         workspace.setIncompleteFilterActive(false);
                     }}
                     onOpenUpload={() => workspace.setShowLegacyUpload(true)}
+                    zipRequestsAction={(
+                        <ArchiveZipRequestsPanel
+                            requests={zipRequests.requests}
+                            isOpen={zipRequestsOpen}
+                            onOpen={() => setZipRequestsOpen(true)}
+                            onClose={() => setZipRequestsOpen(false)}
+                            onDownload={zipRequests.downloadRequest}
+                            downloadingRequestId={zipRequests.downloadingRequestId}
+                            onRetry={zipRequests.retryRequest}
+                            onDismiss={zipRequests.dismissRequest}
+                            onClearFinished={zipRequests.clearFinishedRequests}
+                        />
+                    )}
                 />
-            </section>
+            </div>
 
-            <div className={`rounded-xl border border-border bg-surface shadow-sm ${workspace.openMenuKey ? 'overflow-visible' : 'overflow-hidden'}`}>
+            {/* Section 3: Browser Card */}
+            <div className={`overflow-hidden rounded-xl border border-border/80 bg-card shadow-2xs ${workspace.openMenuKey ? 'overflow-visible' : 'overflow-hidden'}`}>
                 <ArchiveBrowserHeader
                     viewMode={workspace.viewMode}
                     onViewModeChange={(m) => {

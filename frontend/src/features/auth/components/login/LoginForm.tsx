@@ -101,11 +101,15 @@ export const LoginForm = () => {
 
         {isTurnstileEnabled && (
           <div className="pt-2">
-            <TurnstileWidget
-              onTokenChange={handleTurnstileTokenChange}
-              resetCounter={turnstileResetCounter}
-              siteKey={turnstileSiteKey}
-            />
+            <div className="h-[47px] overflow-hidden sm:h-auto sm:overflow-visible">
+              <div className="origin-top-left scale-[0.72] sm:scale-100">
+                <TurnstileWidget
+                  onTokenChange={handleTurnstileTokenChange}
+                  resetCounter={turnstileResetCounter}
+                  siteKey={turnstileSiteKey}
+                />
+              </div>
+            </div>
           </div>
         )}
 

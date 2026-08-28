@@ -28,7 +28,7 @@ export const DocumentsStats = ({
     stats: DocumentStat[];
     isLoading: boolean;
 }) => (
-    <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
+    <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
             <Card key={stat.label} className="shadow-2xs">
                 <CardContent className="p-2.5 sm:p-3 space-y-0.5">

@@ -1,4 +1,5 @@
 import {
+    CalendarRange,
     FileEdit,
     History,
     PlusCircle,
@@ -10,6 +11,11 @@ import {
 import { Pagination } from '../../../components/Pagination';
 import { Button } from '../../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuTrigger,
+} from '../../../components/ui/dropdown-menu';
 import { Input } from '../../../components/ui/input';
 import {
     Table,
@@ -167,7 +173,7 @@ export const AuditLogs = () => {
                 <div className="flex flex-col gap-3">
                     <div className="flex flex-1 flex-wrap items-center gap-2">
                         {/* Search Input */}
-                        <div className="relative w-full sm:w-[220px] lg:w-[260px]">
+                        <div className="relative w-full min-w-0 sm:w-[220px] lg:w-[260px]">
                             <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
                             <Input
                                 placeholder="Search by user..."
@@ -178,7 +184,7 @@ export const AuditLogs = () => {
                         </div>
 
                         {/* Actor Filter Pills */}
-                        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+                        <div className="flex flex-wrap items-center gap-1.5">
                             {ACTOR_FILTER_OPTIONS.map((option) => {
                                 const isSelected = actorFilter === option.key;
                                 return (
@@ -224,27 +230,39 @@ export const AuditLogs = () => {
                             ))}
                         </select>
 
-                        {/* Date From */}
-                        <div className="flex items-center gap-1">
-                            <span className="text-[11px] text-muted-foreground">From:</span>
-                            <input
-                                type="date"
-                                value={dateFrom}
-                                onChange={(e) => handleDateFrom(e.target.value)}
-                                className={selectCls}
-                            />
-                        </div>
-
-                        {/* Date To */}
-                        <div className="flex items-center gap-1">
-                            <span className="text-[11px] text-muted-foreground">To:</span>
-                            <input
-                                type="date"
-                                value={dateTo}
-                                onChange={(e) => handleDateTo(e.target.value)}
-                                className={selectCls}
-                            />
-                        </div>
+                        {/* Date Range (folded into one popover) */}
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 px-2.5 text-xs gap-1.5 border-dashed font-medium shrink-0 text-muted-foreground shadow-2xs transition-all cursor-pointer"
+                                >
+                                    <CalendarRange className="size-3.5" />
+                                    {dateFrom || dateTo ? `${dateFrom ?? '…'} → ${dateTo ?? '…'}` : 'All Dates'}
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="start" className="max-w-[calc(100vw-2rem)] p-2.5 space-y-2">
+                                <div className="flex flex-col gap-1">
+                                    <span className="text-[11px] text-muted-foreground">From:</span>
+                                    <input
+                                        type="date"
+                                        value={dateFrom}
+                                        onChange={(e) => handleDateFrom(e.target.value)}
+                                        className={selectCls}
+                                    />
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                    <span className="text-[11px] text-muted-foreground">To:</span>
+                                    <input
+                                        type="date"
+                                        value={dateTo}
+                                        onChange={(e) => handleDateTo(e.target.value)}
+                                        className={selectCls}
+                                    />
+                                </div>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
 
                         {/* Reset Button */}
                         {isFiltered ? (

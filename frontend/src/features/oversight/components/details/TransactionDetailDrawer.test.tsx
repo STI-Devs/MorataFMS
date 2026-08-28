@@ -166,6 +166,20 @@ describe('TransactionDetailDrawer', () => {
         view.unmount();
     });
 
+    it('calls onClose and triggers navigation when the View in Tracking button is clicked', () => {
+        const onClose = vi.fn();
+        const view = renderWithProviders(
+            <TransactionDetailDrawer transaction={transaction()} onClose={onClose} />,
+        );
+
+        const trackingBtn = screen.getByRole('button', { name: /view in tracking/i });
+        expect(trackingBtn).toBeInTheDocument();
+        fireEvent.click(trackingBtn);
+        expect(onClose).toHaveBeenCalledTimes(1);
+
+        view.unmount();
+    });
+
     it('calls onClose when the Sheet close button is pressed', () => {
         const onClose = vi.fn();
         const view = renderWithProviders(

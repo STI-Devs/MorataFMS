@@ -286,6 +286,7 @@ export const LegacyFolderBrowserPanel = ({
     const tree = batch.tree;
     const [selectedPath, setSelectedPath] = useState(tree?.name ?? batch.rootFolder);
     const [search, setSearch] = useState('');
+    const [isTreeOpen, setIsTreeOpen] = useState(false);
     const showStatusColumn = batch.status !== 'completed';
 
     const totals = useMemo(() => tree ? countItems(tree) : { folders: 0, files: 0 }, [tree]);
@@ -308,6 +309,31 @@ export const LegacyFolderBrowserPanel = ({
 
     const folders = filteredChildren.filter((child) => child.type === 'folder');
     const files = filteredChildren.filter((child) => child.type === 'file');
+
+    const renderFolderTree = () => (
+        <>
+            <div className="border-b border-border px-3 py-3">
+                <p className="text-[10px] font-black uppercase tracking-widest text-text-muted">Folder Tree</p>
+            </div>
+            <div className="p-2">
+                {tree ? (
+                    <TreeNode
+                        node={tree}
+                        depth={0}
+                        selectedPath={selectedPath}
+                        onSelectFolder={(path, node) => {
+                            if (node.type === 'folder') {
+                                setSelectedPath(path);
+                                setIsTreeOpen(false);
+                            }
+                        }}
+                    />
+                ) : (
+                    <p className="px-2 py-3 text-xs text-text-muted">No preserved tree is available yet.</p>
+                )}
+            </div>
+        </>
+    );
 
     return (
         <div className="flex h-full flex-col">
@@ -376,30 +402,31 @@ export const LegacyFolderBrowserPanel = ({
             </div>
 
             <div className="flex min-h-0 flex-1">
-                <div aria-label="Folder tree" className="w-64 shrink-0 overflow-y-auto border-r border-border bg-surface-secondary">
-                    <div className="border-b border-border px-3 py-3">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-text-muted">Folder Tree</p>
-                    </div>
-                    <div className="p-2">
-                        {tree ? (
-                            <TreeNode
-                                node={tree}
-                                depth={0}
-                                selectedPath={selectedPath}
-                                onSelectFolder={(path, node) => {
-                                    if (node.type === 'folder') {
-                                        setSelectedPath(path);
-                                    }
-                                }}
-                            />
-                        ) : (
-                            <p className="px-2 py-3 text-xs text-text-muted">No preserved tree is available yet.</p>
-                        )}
-                    </div>
+                {/* Desktop inline tree — collapsed below lg, stays in the DOM with the same aria-label */}
+                <div aria-label="Folder tree" className="hidden w-64 shrink-0 flex-col overflow-y-auto border-r border-border bg-surface-secondary lg:flex">
+                    {renderFolderTree()}
                 </div>
 
+                {/* Mobile off-canvas tree — layers ABOVE the hosting drawer (backdrop z-40 / panel z-50) */}
+                {isTreeOpen && (
+                    <>
+                        <div className="fixed inset-0 z-[60] bg-black/40 lg:hidden" onClick={() => setIsTreeOpen(false)} />
+                        <div aria-label="Folder tree overlay" className="fixed inset-y-0 left-0 z-[70] flex w-[85vw] max-w-[20rem] flex-col overflow-y-auto border-r border-border bg-surface-secondary shadow-2xl lg:hidden">
+                            {renderFolderTree()}
+                        </div>
+                    </>
+                )}
+
                 <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-                    <div className="flex shrink-0 items-center gap-3 border-b border-border bg-surface px-4 py-3">
+                    <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border bg-surface px-4 py-3 sm:gap-3">
+                        <button
+                            type="button"
+                            onClick={() => setIsTreeOpen(true)}
+                            aria-label="Open folder tree"
+                            className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg border border-border bg-surface-secondary text-text-secondary transition-colors hover:bg-hover lg:hidden"
+                        >
+                            <FolderIcon className="h-4 w-4 text-amber-500" />
+                        </button>
                         <div className="min-w-0 flex-1">
                             <Breadcrumb path={selectedPath} onNavigate={setSelectedPath} />
                         </div>
@@ -412,12 +439,12 @@ export const LegacyFolderBrowserPanel = ({
                                 placeholder="Search in folder..."
                                 value={search}
                                 onChange={(event) => setSearch(event.target.value)}
-                                className="w-48 rounded-lg border border-border-strong bg-input-bg py-1.5 pl-8 pr-3 text-xs outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
+                                className="w-full rounded-lg border border-border-strong bg-input-bg py-1.5 pl-8 pr-3 text-xs outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 sm:w-48"
                             />
                         </div>
                     </div>
 
-                    <div aria-label="Folder contents" className="flex-1 overflow-y-auto bg-surface">
+                    <div aria-label="Folder contents" className="flex-1 overflow-auto bg-surface">
                         {!currentNode ? (
                             <div className="py-12 text-center">
                                 <p className="text-sm font-semibold text-text-secondary">No folder is selected.</p>
@@ -429,7 +456,7 @@ export const LegacyFolderBrowserPanel = ({
                                 </p>
                             </div>
                         ) : (
-                            <table className="w-full table-fixed border-collapse">
+                            <table className="w-full table-fixed border-collapse min-w-[42rem]">
                                 <colgroup>
                                     <col />
                                     {showStatusColumn && <col className="w-28" />}

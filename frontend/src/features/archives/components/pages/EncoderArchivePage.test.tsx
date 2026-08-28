@@ -223,9 +223,6 @@ describe('EncoderArchivePage', () => {
         renderEncoderArchivePage();
 
         expect(screen.getByRole('heading', { name: 'Records Archive' })).toBeInTheDocument();
-        expect(screen.getByText('Records Control')).toBeInTheDocument();
-        expect(screen.getByText('My archive workspace')).toBeInTheDocument();
-        expect(screen.getByText('1 BL needs documents')).toBeInTheDocument();
         expect(screen.getByText('Files Uploaded')).toBeInTheDocument();
         expect(screen.getByText('Incomplete BLs')).toBeInTheDocument();
         expect(screen.getByText('BLs Added This Month')).toBeInTheDocument();
@@ -314,7 +311,7 @@ describe('EncoderArchivePage', () => {
 
         renderEncoderArchivePage();
 
-        const monthlyMetric = screen.getByText('BLs Added This Month').closest('div');
+        const monthlyMetric = screen.getByText('BLs Added This Month').closest('[data-slot="card"]');
 
         expect(monthlyMetric).not.toBeNull();
         expect(within(monthlyMetric as HTMLElement).getByText('1')).toBeInTheDocument();

@@ -14,6 +14,8 @@ import { Badge } from '../../../components/ui/badge';
 import {
     Card,
     CardContent,
+    CardHeader,
+    CardTitle,
 } from '../../../components/ui/card';
 import { appRoutes } from '../../../lib/appRoutes';
 import { trackingApi } from '../../tracking/api/trackingApi';
@@ -51,19 +53,17 @@ const moduleCards: ModuleCard[] = [
 export const ProcessorDashboard = () => {
     const navigate = useNavigate();
 
-    const importsQuery = useQuery({
+    const { data: rawImports, isLoading: loadingImports } = useQuery({
         queryKey: [...trackingKeys.imports.list(), 'processor-dashboard-imports'],
-        queryFn: () => trackingApi.getAllImports({ exclude_statuses: 'completed,cancelled' }),
+        queryFn: () => trackingApi.getAllImports({ exclude_statuses: 'completed,cancelled', operational_scope: 'workspace' }),
     });
 
-    const exportsQuery = useQuery({
+    const { data: rawExports, isLoading: loadingExports } = useQuery({
         queryKey: [...trackingKeys.exports.list(), 'processor-dashboard-exports'],
-        queryFn: () => trackingApi.getAllExports({ exclude_statuses: 'completed,cancelled' }),
+        queryFn: () => trackingApi.getAllExports({ exclude_statuses: 'completed,cancelled', operational_scope: 'workspace' }),
     });
 
-    const isLoading = importsQuery.isLoading || exportsQuery.isLoading;
-    const rawImports = importsQuery.data;
-    const rawExports = exportsQuery.data;
+    const isLoading = loadingImports || loadingExports;
 
     const metrics = useMemo(() => {
         let readyPPA = 0;
@@ -153,86 +153,75 @@ export const ProcessorDashboard = () => {
             </header>
 
             {/* Section 1: KPI Metrics Cards */}
-            <section className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 {/* 1. Active Imports */}
-                <Card className="shadow-2xs">
-                    <CardContent className="p-3 sm:p-3.5 space-y-1">
-                        <div className="flex items-center justify-between text-muted-foreground text-[10px] font-semibold uppercase tracking-wider">
-                            <span>Active Imports</span>
-                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-medium shrink-0 gap-1 border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400">
-                                <Truck className="size-3 text-blue-500" /> Imports
-                            </Badge>
-                        </div>
-                        <div className="text-xl sm:text-2xl font-bold tabular-nums text-foreground">
+                <Card className="p-4 gap-2 shadow-xs bg-card">
+                    <CardHeader className="flex flex-row items-center justify-between p-0 space-y-0">
+                        <CardTitle className="text-xs font-medium text-muted-foreground">Active Imports</CardTitle>
+                        <Truck className="size-4 text-blue-500" />
+                    </CardHeader>
+                    <CardContent className="p-0">
+                        <div className="text-2xl font-bold tracking-tight text-foreground tabular-nums">
                             {isLoading ? '...' : (rawImports?.length ?? 0)}
                         </div>
-                        <p className="text-[11px] text-muted-foreground truncate">
+                        <p className="text-xs text-muted-foreground mt-0.5">
                             {metrics.pendingImportTasks} pending stages (PPA/Port Charges)
                         </p>
                     </CardContent>
                 </Card>
 
                 {/* 2. Active Exports */}
-                <Card className="shadow-2xs">
-                    <CardContent className="p-3 sm:p-3.5 space-y-1">
-                        <div className="flex items-center justify-between text-muted-foreground text-[10px] font-semibold uppercase tracking-wider">
-                            <span>Active Exports</span>
-                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-medium shrink-0 gap-1 border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                                <Flag className="size-3 text-emerald-500" /> Exports
-                            </Badge>
-                        </div>
-                        <div className="text-xl sm:text-2xl font-bold tabular-nums text-foreground">
+                <Card className="p-4 gap-2 shadow-xs bg-card">
+                    <CardHeader className="flex flex-row items-center justify-between p-0 space-y-0">
+                        <CardTitle className="text-xs font-medium text-muted-foreground">Active Exports</CardTitle>
+                        <Flag className="size-4 text-emerald-500" />
+                    </CardHeader>
+                    <CardContent className="p-0">
+                        <div className="text-2xl font-bold tracking-tight text-foreground tabular-nums">
                             {isLoading ? '...' : (rawExports?.length ?? 0)}
                         </div>
-                        <p className="text-[11px] text-muted-foreground truncate">
+                        <p className="text-xs text-muted-foreground mt-0.5">
                             {metrics.pendingExportTasks} pending stages (CIL/DCCCI)
                         </p>
                     </CardContent>
                 </Card>
 
                 {/* 3. Ready to Process */}
-                <Card className="shadow-2xs">
-                    <CardContent className="p-3 sm:p-3.5 space-y-1">
-                        <div className="flex items-center justify-between text-muted-foreground text-[10px] font-semibold uppercase tracking-wider">
-                            <span>Ready to Process</span>
-                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-medium shrink-0 gap-1 border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                                <Layers className="size-3 text-emerald-500" /> Actionable
-                            </Badge>
-                        </div>
-                        <div className="text-xl sm:text-2xl font-bold tabular-nums text-foreground">
+                <Card className="p-4 gap-2 shadow-xs bg-card">
+                    <CardHeader className="flex flex-row items-center justify-between p-0 space-y-0">
+                        <CardTitle className="text-xs font-medium text-muted-foreground">Ready to Process</CardTitle>
+                        <Layers className="size-4 text-emerald-500" />
+                    </CardHeader>
+                    <CardContent className="p-0">
+                        <div className="text-2xl font-bold tracking-tight text-foreground tabular-nums">
                             {isLoading ? '...' : metrics.readyTasks}
                         </div>
-                        <p className="text-[11px] text-muted-foreground truncate">
+                        <p className="text-xs text-muted-foreground mt-0.5">
                             {metrics.readyImportTasks} imports · {metrics.readyExportTasks} exports
                         </p>
                     </CardContent>
                 </Card>
 
                 {/* 4. Needs Attention */}
-                <Card className="shadow-2xs">
-                    <CardContent className="p-3 sm:p-3.5 space-y-1">
-                        <div className="flex items-center justify-between text-muted-foreground text-[10px] font-semibold uppercase tracking-wider">
-                            <span>Needs Attention</span>
-                            <Badge
-                                variant={metrics.totalAttention > 0 ? 'destructive' : 'outline'}
-                                className="text-[10px] px-1.5 py-0 font-medium shrink-0 gap-1"
-                            >
-                                <AlertCircle className="size-3" /> Blockers
-                            </Badge>
-                        </div>
+                <Card className="p-4 gap-2 shadow-xs bg-card">
+                    <CardHeader className="flex flex-row items-center justify-between p-0 space-y-0">
+                        <CardTitle className="text-xs font-medium text-muted-foreground">Needs Attention</CardTitle>
+                        <AlertCircle className={`size-4 ${metrics.totalAttention > 0 ? 'text-rose-500' : 'text-muted-foreground/70'}`} />
+                    </CardHeader>
+                    <CardContent className="p-0">
                         <div
-                            className={`text-xl sm:text-2xl font-bold tabular-nums ${
-                                metrics.totalAttention > 0 ? 'text-destructive' : 'text-foreground'
+                            className={`text-2xl font-bold tracking-tight tabular-nums ${
+                                metrics.totalAttention > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-foreground'
                             }`}
                         >
                             {isLoading ? '...' : metrics.totalAttention}
                         </div>
-                        <p className="text-[11px] text-muted-foreground truncate">
-                            {metrics.totalAttention === 0 ? 'No blockers reported' : 'Shipments with open remarks'}
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                            Open operational remarks
                         </p>
                     </CardContent>
                 </Card>
-            </section>
+            </div>
 
             {/* Section 2: Module Navigation */}
             <section className="space-y-3">
