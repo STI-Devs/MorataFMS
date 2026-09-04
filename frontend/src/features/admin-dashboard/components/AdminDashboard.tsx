@@ -437,9 +437,9 @@ export const AdminDashboard = () => {
                                 Active pipeline by transaction status
                             </CardDescription>
                         </CardHeader>
-                        <CardContent className="mt-auto pt-2">
+                        <CardContent className="flex flex-col justify-between flex-1 pt-1.5 pb-0">
                             {/* Donut Chart */}
-                            <div className="relative mx-auto size-32 flex items-center justify-center mb-4">
+                            <div className="relative mx-auto size-44 flex items-center justify-center my-1">
                                 <svg viewBox="0 0 100 100" className="size-full -rotate-90">
                                     <circle
                                         cx="50"
@@ -473,21 +473,21 @@ export const AdminDashboard = () => {
                                     })}
                                 </svg>
                                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                                    <span className="text-xl font-bold tracking-tight text-foreground">
+                                    <span className="text-2xl font-bold tracking-tight text-foreground">
                                         {liveStatusTotal}
                                     </span>
-                                    <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
+                                    <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">
                                         Total
                                     </span>
                                 </div>
                             </div>
 
-                            {/* Status Legend Pills */}
-                            <div className="grid grid-cols-2 gap-2 text-xs">
+                            {/* Status Legend */}
+                            <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs mt-auto">
                                 {analytics?.status_breakdown.map((status) => (
                                     <div
                                         key={status.key}
-                                        className="flex items-center justify-between p-2 rounded-lg bg-muted/40 border border-border/40"
+                                        className="flex items-center justify-between py-0.5"
                                     >
                                         <div className="flex items-center gap-1.5">
                                             <span
@@ -519,54 +519,78 @@ export const AdminDashboard = () => {
                             <CardDescription className="text-xs text-muted-foreground">
                                 Share of year-to-date volume
                             </CardDescription>
-                            <div className="flex items-baseline gap-2 pt-1">
-                                <span className="text-2xl font-bold tracking-tight tabular-nums text-foreground">
+                        </CardHeader>
+                        <CardContent className="flex flex-col justify-between flex-1 pt-4 pb-0.5">
+                            {/* YTD Total */}
+                            <div className="flex items-baseline gap-2">
+                                <span className="text-3xl font-bold tracking-tight tabular-nums text-foreground">
                                     {analytics?.transaction_flow.total ?? '—'}
                                 </span>
-                                <span className="text-xs text-muted-foreground font-medium">
+                                <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
                                     YTD Volume
                                 </span>
                             </div>
-                        </CardHeader>
-                        <CardContent className="mt-auto space-y-4 pt-2">
-                            <div>
-                                <div className="mb-1.5 flex justify-between text-xs font-medium">
-                                    <span className="text-muted-foreground">Imports</span>
-                                    <span className="text-foreground font-semibold">
-                                        {analytics?.transaction_flow.imports ?? '—'} ({importsPercentage}%)
-                                    </span>
+
+                            {/* Breakdown: Imports & Exports */}
+                            <div className="space-y-4">
+                                <div>
+                                    <div className="mb-2 flex justify-between text-xs font-medium">
+                                        <div className="flex items-center gap-1.5">
+                                            <span className="size-2 rounded-full bg-primary shrink-0" />
+                                            <span className="text-muted-foreground">Imports</span>
+                                        </div>
+                                        <span className="text-foreground font-semibold tabular-nums">
+                                            {analytics?.transaction_flow.imports ?? '—'}{' '}
+                                            <span className="text-muted-foreground font-normal">
+                                                ({importsPercentage}%)
+                                            </span>
+                                        </span>
+                                    </div>
+                                    <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-muted">
+                                        <div
+                                            className="bg-primary rounded-full transition-all duration-500"
+                                            style={{ width: `${importsPercentage}%` }}
+                                        />
+                                    </div>
                                 </div>
-                                <div className="flex h-2 w-full overflow-hidden rounded-full bg-muted">
-                                    <div
-                                        className="bg-primary rounded-full transition-all duration-500"
-                                        style={{ width: `${importsPercentage}%` }}
-                                    />
+
+                                <div>
+                                    <div className="mb-2 flex justify-between text-xs font-medium">
+                                        <div className="flex items-center gap-1.5">
+                                            <span className="size-2 rounded-full bg-success shrink-0" />
+                                            <span className="text-muted-foreground">Exports</span>
+                                        </div>
+                                        <span className="text-foreground font-semibold tabular-nums">
+                                            {analytics?.transaction_flow.exports ?? '—'}{' '}
+                                            <span className="text-muted-foreground font-normal">
+                                                ({exportsPercentage}%)
+                                            </span>
+                                        </span>
+                                    </div>
+                                    <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-muted">
+                                        <div
+                                            className="bg-success rounded-full transition-all duration-500"
+                                            style={{ width: `${exportsPercentage}%` }}
+                                        />
+                                    </div>
                                 </div>
                             </div>
 
-                            <div>
-                                <div className="mb-1.5 flex justify-between text-xs font-medium">
-                                    <span className="text-muted-foreground">Exports</span>
-                                    <span className="text-foreground font-semibold">
-                                        {analytics?.transaction_flow.exports ?? '—'} ({exportsPercentage}%)
+                            {/* Completion Rate Footer */}
+                            <div className="border-t border-border/60 pt-4 mt-auto">
+                                <div className="mb-2 flex justify-between text-xs font-medium">
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="size-2 rounded-full bg-emerald-500 shrink-0" />
+                                        <span className="text-muted-foreground">Completion Rate</span>
+                                    </div>
+                                    <span className="text-foreground font-semibold tabular-nums">
+                                        {completionRate}%{' '}
+                                        <span className="text-muted-foreground font-normal">
+                                            · {completedVolume} completed
+                                        </span>
                                     </span>
                                 </div>
-                                <div className="flex h-2 w-full overflow-hidden rounded-full bg-muted">
-                                    <div
-                                        className="bg-success rounded-full transition-all duration-500"
-                                        style={{ width: `${exportsPercentage}%` }}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="border-t border-border/50 pt-3">
-                                <div className="mb-1.5 flex justify-between text-xs font-medium">
-                                    <span className="text-muted-foreground">Completion Rate</span>
-                                    <span className="text-foreground font-semibold">
-                                        {completionRate}% · {completedVolume} completed
-                                    </span>
-                                </div>
-                                <div className="flex h-2 w-full overflow-hidden rounded-full bg-muted">
+                                <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-muted">
                                     <div
                                         className="bg-emerald-500 rounded-full transition-all duration-500"
                                         style={{ width: `${completionRate}%` }}
