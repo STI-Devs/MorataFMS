@@ -71,14 +71,14 @@ describe('ArchivesDocumentView', () => {
                 meta={{
                     current_page: 1,
                     last_page: 2,
-                    per_page: 25,
+                    per_page: 50,
                     total: 30,
                     from: 1,
                     to: 25,
                 }}
                 isFetching={false}
                 page={1}
-                perPage={25}
+                perPage={50}
                 onPageChange={onPageChange}
                 onPerPageChange={vi.fn()}
                 getYearData={() => yearData}
@@ -102,14 +102,14 @@ describe('ArchivesDocumentView', () => {
                 meta={{
                     current_page: 2,
                     last_page: 2,
-                    per_page: 25,
+                    per_page: 50,
                     total: 30,
                     from: 26,
                     to: 30,
                 }}
                 isFetching={false}
                 page={2}
-                perPage={25}
+                perPage={50}
                 onPageChange={onPageChange}
                 onPerPageChange={vi.fn()}
                 getYearData={() => yearData}
@@ -180,7 +180,7 @@ describe('ArchivesDocumentView', () => {
             month: 1,
             type: 'export',
             page: 1,
-            perPage: 25,
+            perPage: 50,
             sort: 'period',
             direction: 'desc',
         }));

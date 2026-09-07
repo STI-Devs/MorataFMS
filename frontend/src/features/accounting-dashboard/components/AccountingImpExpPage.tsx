@@ -18,6 +18,7 @@ import { Button } from '../../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Input } from '../../../components/ui/input';
 import { Pagination } from '../../../components/Pagination';
+import { DEFAULT_PAGE_SIZE } from '../../../lib/pagination';
 import {
     Table,
     TableBody,
@@ -82,7 +83,7 @@ export const AccountingImpExpPage = () => {
 
     const [queueTab, setQueueTab] = useState<'ready' | 'waiting'>('ready');
     const [currentPage, setCurrentPage] = useState(1);
-    const [perPage, setPerPage] = useState(30);
+    const [perPage, setPerPage] = useState(DEFAULT_PAGE_SIZE);
 
     const handleFilterChange = (newFilter: QueueFilter) => {
         setFilter(newFilter);
@@ -573,7 +574,6 @@ const QueueSection = ({
                             currentPage={currentPage}
                             totalPages={totalPages}
                             perPage={perPage}
-                            perPageOptions={[15, 30, 50, 100]}
                             onPageChange={onPageChange}
                             onPerPageChange={onPerPageChange}
                             compact

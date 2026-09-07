@@ -5,7 +5,7 @@ import { Pagination } from './Pagination';
 const defaultProps = {
     currentPage: 3,
     totalPages: 20,
-    perPage: 10,
+    perPage: 50,
     onPageChange: vi.fn(),
     onPerPageChange: vi.fn(),
 };
@@ -58,7 +58,7 @@ describe('Pagination', () => {
         const onPerPageChange = vi.fn();
         render(<Pagination {...defaultProps} onPerPageChange={onPerPageChange} />);
 
-        fireEvent.change(screen.getByRole('combobox'), { target: { value: '25' } });
-        expect(onPerPageChange).toHaveBeenCalledWith(25);
+        fireEvent.change(screen.getByRole('combobox'), { target: { value: '75' } });
+        expect(onPerPageChange).toHaveBeenCalledWith(75);
     });
 });

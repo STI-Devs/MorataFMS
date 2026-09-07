@@ -365,7 +365,6 @@ export const AuditLogs = () => {
                                         perPage={perPage}
                                         onPageChange={setPage}
                                         onPerPageChange={handlePerPageChange}
-                                        perPageOptions={[15, 25, 50, 100]}
                                         compact
                                     />
                                 </div>

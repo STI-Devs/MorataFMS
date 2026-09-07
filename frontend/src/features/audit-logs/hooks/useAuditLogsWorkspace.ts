@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import { useDebounce } from '../../../hooks/useDebounce';
+import { DEFAULT_PAGE_SIZE } from '../../../lib/pagination';
 import type { AuditLogCategory, AuditLogFilters, AuditLogSummary } from '../types/auditLog.types';
 import { useAuditActions, useAuditLogs } from './useAuditLogs';
 
@@ -22,7 +23,7 @@ export function useAuditLogsWorkspace() {
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
     const [page, setPage] = useState(1);
-    const [perPage, setPerPage] = useState(25);
+    const [perPage, setPerPage] = useState(DEFAULT_PAGE_SIZE);
     const [expandedId, setExpandedId] = useState<number | null>(null);
 
     const filters: AuditLogFilters = {
@@ -47,7 +48,7 @@ export function useAuditLogsWorkspace() {
     const { data: availableActions = [] } = useAuditActions(actionFilters);
 
     const logs = data?.data ?? [];
-    const meta = data?.meta ?? { current_page: 1, last_page: 1, per_page: 25, total: 0 };
+    const meta = data?.meta ?? { current_page: 1, last_page: 1, per_page: DEFAULT_PAGE_SIZE, total: 0 };
     const summary = data?.summary ?? emptySummary;
 
     const resetForFilterChange = () => {

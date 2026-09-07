@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ConfirmationModal } from '../../../../components/ConfirmationModal';
+import { DEFAULT_PAGE_SIZE } from '../../../../lib/pagination';
 import { useAuth } from '../../../auth/hooks/useAuth';
 import type { ArchiveDocument, ArchiveYear } from '../../../documents/types/document.types';
 import { useArchiveDocuments } from '../../hooks/useArchiveDocuments';
@@ -65,7 +66,7 @@ export const ArchiveWorkspace = ({
     const zipRequests = useArchiveZipRequests({ mine: historyMine });
     const [zipRequestsOpen, setZipRequestsOpen] = useState(false);
     const [documentPage, setDocumentPage] = useState(1);
-    const [documentPerPage, setDocumentPerPage] = useState(25);
+    const [documentPerPage, setDocumentPerPage] = useState(DEFAULT_PAGE_SIZE);
     const documentCompletion = workspace.incompleteFilterActive ? 'incomplete' : workspace.filterStatus;
     const isDocumentRowsMode = (workspace.viewMode === 'document' || (workspace.viewMode === 'folder' && workspace.globalSearch.trim() !== ''))
         && !workspace.showLegacyUpload;

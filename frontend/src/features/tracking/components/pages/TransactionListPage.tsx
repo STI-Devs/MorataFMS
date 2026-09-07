@@ -17,6 +17,7 @@ import {
     SelectValue,
 } from '../../../../components/ui/select';
 import { appRoutes } from '../../../../lib/appRoutes';
+import { DEFAULT_PAGE_SIZE, normalizePageSize, PAGE_SIZE_OPTIONS } from '../../../../lib/pagination';
 import { trackingApi } from '../../api/trackingApi';
 import { useCancelTransaction } from '../../hooks/useCancelTransaction';
 import { useCreateTransaction } from '../../hooks/useCreateTransaction';
@@ -70,7 +71,7 @@ export function TransactionListPage<T>({
 
     const [searchParams, setSearchParams] = useSearchParams();
     const page = parseInt(searchParams.get('page') || '1');
-    const perPage = parseInt(searchParams.get('per_page') || '20');
+    const perPage = normalizePageSize(parseInt(searchParams.get('per_page') || String(DEFAULT_PAGE_SIZE)));
 
     const [isEncodeOpen, setIsEncodeOpen] = useState(false);
     const [cancelTarget, setCancelTarget] = useState<{ id: number; ref: string } | null>(null);
@@ -246,7 +247,7 @@ export function TransactionListPage<T>({
                                     <SelectValue placeholder={String(perPage)} />
                                 </SelectTrigger>
                                 <SelectContent side="top" className="min-w-[76px]">
-                                    {[15, 20, 50].map((option) => (
+                                    {PAGE_SIZE_OPTIONS.map((option) => (
                                         <SelectItem
                                             key={option}
                                             value={String(option)}

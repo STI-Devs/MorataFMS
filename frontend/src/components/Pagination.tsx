@@ -1,10 +1,12 @@
+import { PAGE_SIZE_OPTIONS } from '../lib/pagination';
+
 interface PaginationProps {
     currentPage: number;
     totalPages: number;
     perPage: number;
     onPageChange: (page: number) => void;
     onPerPageChange: (perPage: number) => void;
-    perPageOptions?: number[];
+    perPageOptions?: readonly number[];
     compact?: boolean;
 }
 
@@ -14,7 +16,7 @@ export const Pagination = ({
     perPage,
     onPageChange,
     onPerPageChange,
-    perPageOptions = [10, 25, 50],
+    perPageOptions = PAGE_SIZE_OPTIONS,
     compact = false,
 }: PaginationProps) => {
     const getPageNumbers = () => {

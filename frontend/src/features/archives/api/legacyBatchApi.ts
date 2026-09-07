@@ -1,5 +1,6 @@
 import api from '../../../lib/axios';
 import { startApiDownload } from '../../../lib/downloads';
+import { DEFAULT_PAGE_SIZE } from '../../../lib/pagination';
 import type {
     CreateLegacyBatchPayload,
     FileNode,
@@ -204,7 +205,7 @@ const downloadBlob = (blob: Blob, filename: string) => {
 export const legacyBatchApi = {
     getLegacyBatches: async ({
         page = 1,
-        perPage = 25,
+        perPage = DEFAULT_PAGE_SIZE,
         search = '',
         module,
     }: {

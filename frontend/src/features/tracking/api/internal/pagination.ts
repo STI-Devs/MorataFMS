@@ -1,6 +1,6 @@
 import type { PaginatedResponse } from '../../types';
 
-export const MAX_PAGE_SIZE = 500;
+export const MAX_PAGE_SIZE = 100;
 
 export async function fetchAllPages<T>(
     fetchPage: (page: number) => Promise<PaginatedResponse<T>>,
