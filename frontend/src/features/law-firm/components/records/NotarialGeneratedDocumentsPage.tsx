@@ -21,6 +21,7 @@ import { Input } from '../../../../components/ui/input';
 import { useAuth } from '../../../auth';
 import { isAdmin } from '../../../auth/utils/access';
 import { appRoutes } from '../../../../lib/appRoutes';
+import { DEFAULT_PAGE_SIZE } from '../../../../lib/pagination';
 import { lawFirmApi } from '../../api/lawFirmApi';
 import {
     useDeleteNotarialGeneratedDocument,
@@ -32,7 +33,6 @@ import type { DocumentTemplateCategoryCode, LawFirmDocumentModule, NotarialGener
 import { openEditorPage } from '../../utils/editorNavigation';
 
 const ALL_CATEGORIES = 'all';
-const PAGE_SIZE_OPTIONS = [25, 50, 100] as const;
 
 type Props = {
     module?: LawFirmDocumentModule;
@@ -67,7 +67,7 @@ export const NotarialGeneratedDocumentsPage = ({ module = 'notarial' }: Props) =
     const [searchTerm, setSearchTerm] = useState('');
     const [categoryFilter, setCategoryFilter] = useState<string>(ALL_CATEGORIES);
     const [page, setPage] = useState(1);
-    const [perPage, setPerPage] = useState<number>(25);
+    const [perPage, setPerPage] = useState<number>(DEFAULT_PAGE_SIZE);
     const [openActionsDocumentId, setOpenActionsDocumentId] = useState<number | null>(null);
     const [pendingDeleteDocument, setPendingDeleteDocument] = useState<NotarialGeneratedDocument | null>(null);
 
@@ -411,7 +411,6 @@ export const NotarialGeneratedDocumentsPage = ({ module = 'notarial' }: Props) =
                             currentPage={pagination.current_page}
                             totalPages={pagination.last_page}
                             perPage={perPage}
-                            perPageOptions={[...PAGE_SIZE_OPTIONS]}
                             compact
                             onPageChange={setPage}
                             onPerPageChange={(nextPerPage) => {

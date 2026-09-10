@@ -42,13 +42,12 @@ import {
 import { EmptyState } from '../../../../components/EmptyState';
 import { StatusBadge } from '../../../../components/StatusBadge';
 import { appRoutes } from '../../../../lib/appRoutes';
+import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS } from '../../../../lib/pagination';
 import { useAllExportsData, useAllImportsData } from '../../hooks/useAllTransactionRecords';
 import { useExportVesselGroups, useImportVesselGroups } from '../../hooks/useVesselGrouping';
 import type { ApiExportTransaction, ApiImportTransaction, VesselGroup } from '../../types';
 
 const LIVE_PARAMS = { exclude_statuses: 'completed,cancelled' };
-const PER_PAGE_OPTIONS = [15, 20, 50];
-const DEFAULT_PER_PAGE = 20;
 
 function formatDateLabel(dateString: string | null | undefined): string {
     if (!dateString) return '—';
@@ -103,7 +102,7 @@ function VesselListView({
 }: VesselListViewProps) {
     const navigate = useNavigate();
     const [page, setPage] = useState(1);
-    const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE);
+    const [perPage, setPerPage] = useState(DEFAULT_PAGE_SIZE);
     // Track only what the user explicitly collapsed; the expanded set is derived
     // so newly arrived groups are expanded by default (avoids setState-in-render).
     const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(
@@ -530,7 +529,7 @@ function VesselListView({
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent side="top" className="min-w-[76px]">
-                                    {PER_PAGE_OPTIONS.map((option) => (
+                                    {PAGE_SIZE_OPTIONS.map((option) => (
                                         <SelectItem key={option} value={String(option)} className="text-xs">
                                             {option}
                                         </SelectItem>

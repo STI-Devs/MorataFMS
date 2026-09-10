@@ -148,7 +148,7 @@ describe('NotarialGeneratedDocumentsPage', () => {
                 meta: {
                     current_page: 1,
                     last_page: 1,
-                    per_page: 25,
+                    per_page: 50,
                     total: 1,
                 },
             },
@@ -163,7 +163,7 @@ describe('NotarialGeneratedDocumentsPage', () => {
 
         const searchInput = screen.getByPlaceholderText('Search master, party, or file...');
         const categoryFilter = document.getElementById('generated-documents-category-filter') as HTMLSelectElement;
-        const perPageFilter = screen.getByDisplayValue('25') as HTMLSelectElement;
+        const perPageFilter = screen.getByDisplayValue('50') as HTMLSelectElement;
 
         fireEvent.change(searchInput, {
             target: { value: 'Maria' },
@@ -172,12 +172,12 @@ describe('NotarialGeneratedDocumentsPage', () => {
             target: { value: 'affidavit_oath' },
         });
         fireEvent.change(perPageFilter, {
-            target: { value: '50' },
+            target: { value: '75' },
         });
 
         expect(searchInput).toHaveValue('Maria');
         expect(categoryFilter).toHaveValue('affidavit_oath');
-        expect(perPageFilter).toHaveValue('50');
+        expect(perPageFilter).toHaveValue('75');
         expect(screen.getByRole('heading', { name: 'Generated Documents' })).toBeInTheDocument();
         expect(screen.getAllByText('Document').length).toBeGreaterThan(0);
         expect(screen.getAllByText('Client / Party').length).toBeGreaterThan(0);
@@ -222,7 +222,7 @@ describe('NotarialGeneratedDocumentsPage', () => {
             expect(mockUseNotarialGeneratedDocuments).toHaveBeenCalledWith(expect.objectContaining({
                 search: 'Maria',
                 document_category: 'affidavit_oath',
-                per_page: 50,
+                per_page: 75,
             }));
         });
     });

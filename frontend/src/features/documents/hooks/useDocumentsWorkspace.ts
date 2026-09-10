@@ -1,6 +1,7 @@
 import { startTransition, useDeferredValue, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useDebounce } from '../../../hooks/useDebounce';
+import { DEFAULT_PAGE_SIZE, normalizePageSize } from '../../../lib/pagination';
 import { buildDocumentStats, mapDocumentRows, type TypeFilter } from '../components/document-list/documentsList.utils';
 import { useDocumentTransactions } from './useDocumentTransactions';
 
@@ -12,7 +13,7 @@ import { useDocumentTransactions } from './useDocumentTransactions';
 export function useDocumentsWorkspace() {
     const [searchParams, setSearchParams] = useSearchParams();
     const page = Number.parseInt(searchParams.get('page') || '1', 10);
-    const perPage = Number.parseInt(searchParams.get('per_page') || '30', 10);
+    const perPage = normalizePageSize(Number.parseInt(searchParams.get('per_page') || String(DEFAULT_PAGE_SIZE), 10));
     const selectedRef = searchParams.get('ref');
 
     const [searchQuery, setSearchQuery] = useState('');

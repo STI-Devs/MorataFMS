@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { Button } from '../../../../components/ui/button';
+import { PAGE_SIZE_OPTIONS } from '../../../../lib/pagination';
 import {
     Select,
     SelectContent,
@@ -16,8 +17,6 @@ interface OversightPaginationProps {
     onPageChange: (page: number) => void;
     onPerPageChange: (perPage: number) => void;
 }
-
-const PER_PAGE_OPTIONS = [50, 75, 100];
 
 export const OversightPagination = ({
     currentPage,
@@ -47,7 +46,7 @@ export const OversightPagination = ({
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent side="top" className="min-w-[76px]">
-                            {PER_PAGE_OPTIONS.map((option) => (
+                            {PAGE_SIZE_OPTIONS.map((option) => (
                                 <SelectItem key={option} value={String(option)} className="text-xs">
                                     {option}
                                 </SelectItem>

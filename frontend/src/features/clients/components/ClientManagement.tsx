@@ -29,6 +29,7 @@ import {
     TableRow,
 } from '../../../components/ui/table';
 import { useConfirmationModal } from '../../../hooks/useConfirmationModal';
+import { DEFAULT_PAGE_SIZE } from '../../../lib/pagination';
 import { TransactionHistoryModal } from '../../oversight/components/modals/TransactionHistoryModal';
 import {
     useClients,
@@ -94,7 +95,7 @@ export const ClientManagement = () => {
     const [typeFilter, setTypeFilter] = useState<string>('all');
     const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
     const [currentPage, setCurrentPage] = useState(1);
-    const [perPage, setPerPage] = useState(30);
+    const [perPage, setPerPage] = useState(DEFAULT_PAGE_SIZE);
 
     const { data: clients = [], isLoading, isError } = useClients();
     const createClient = useCreateClient();
@@ -570,7 +571,6 @@ export const ClientManagement = () => {
                                             setPerPage(newPerPage);
                                             setCurrentPage(1);
                                         }}
-                                        perPageOptions={[15, 30, 50, 100]}
                                         compact
                                     />
                                 </div>

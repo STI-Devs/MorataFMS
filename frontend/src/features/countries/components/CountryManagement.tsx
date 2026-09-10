@@ -26,6 +26,7 @@ import {
     TableRow,
 } from '../../../components/ui/table';
 import { useConfirmationModal } from '../../../hooks/useConfirmationModal';
+import { DEFAULT_PAGE_SIZE } from '../../../lib/pagination';
 import {
     useCountriesAdmin,
     useCreateCountry,
@@ -86,7 +87,7 @@ export const CountryManagement = () => {
     const [flowFilter, setFlowFilter] = useState<string>('all');
     const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
     const [currentPage, setCurrentPage] = useState(1);
-    const [perPage, setPerPage] = useState(30);
+    const [perPage, setPerPage] = useState(DEFAULT_PAGE_SIZE);
 
     const { data: countries = [], isLoading, isError } = useCountriesAdmin();
     const createCountry = useCreateCountry();
@@ -528,7 +529,6 @@ export const CountryManagement = () => {
                                             setPerPage(newPerPage);
                                             setCurrentPage(1);
                                         }}
-                                        perPageOptions={[15, 30, 50, 100]}
                                         compact
                                     />
                                 </div>

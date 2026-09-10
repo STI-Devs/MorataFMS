@@ -1,11 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
+import { DEFAULT_PAGE_SIZE } from '../../../lib/pagination';
 import { legacyBatchApi } from '../api/legacyBatchApi';
 import type { LegacyBatchModule } from '../types/legacyBatch.types';
 import { legacyBatchQueryKeys } from '../utils/legacyBatchQueryKeys';
 
 export const useLegacyBatches = ({
     page = 1,
-    perPage = 25,
+    perPage = DEFAULT_PAGE_SIZE,
     search = '',
     module,
 }: {
