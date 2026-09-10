@@ -44,7 +44,7 @@ describe('Documents', () => {
                 meta: {
                     current_page: 2,
                     last_page: 3,
-                    per_page: 25,
+                    per_page: 75,
                     total: 60,
                 },
             }),
@@ -53,7 +53,7 @@ describe('Documents', () => {
         });
 
         renderWithProviders(<Documents />, {
-            route: `${appRoutes.documents}?page=2&per_page=25`,
+            route: `${appRoutes.documents}?page=2&per_page=75`,
             path: appRoutes.documents,
         });
 
@@ -61,7 +61,7 @@ describe('Documents', () => {
             search: undefined,
             type: undefined,
             page: 2,
-            per_page: 25,
+            per_page: 75,
         });
         expect(screen.getByText('Documents')).toBeInTheDocument();
         expect(screen.getByText('of 3 pages')).toBeInTheDocument();
@@ -124,7 +124,7 @@ describe('Documents', () => {
                 meta: {
                     current_page: 3,
                     last_page: 4,
-                    per_page: 10,
+                    per_page: 50,
                     total: 40,
                 },
             }),
@@ -146,7 +146,7 @@ describe('Documents', () => {
                 search: 'Acme',
                 type: undefined,
                 page: 1,
-                per_page: 10,
+                per_page: 50,
             });
         });
 
@@ -162,7 +162,7 @@ describe('Documents', () => {
                 search: 'Acme',
                 type: 'export',
                 page: 1,
-                per_page: 10,
+                per_page: 50,
             });
         });
     });

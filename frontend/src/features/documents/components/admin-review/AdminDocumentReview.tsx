@@ -2,6 +2,7 @@ import { startTransition, useDeferredValue, useState } from 'react';
 
 import { useTransactionSyncSubscription } from '../../../../hooks/useTransactionSyncSubscription';
 import { useDebounce } from '../../../../hooks/useDebounce';
+import { DEFAULT_PAGE_SIZE } from '../../../../lib/pagination';
 import { trackingApi } from '../../../tracking/api/trackingApi';
 import { useDocumentPreview } from '../../../tracking/hooks/useDocumentPreview';
 
@@ -40,7 +41,7 @@ export const AdminDocumentReview = () => {
     const [readinessFilter, setReadinessFilter] = useState<AdminReviewReadinessFilter>('all');
     const [assignedUserIdFilter, setAssignedUserIdFilter] = useState<number | 'all'>('all');
     const [page, setPage] = useState(1);
-    const [perPage, setPerPage] = useState(10);
+    const [perPage, setPerPage] = useState(DEFAULT_PAGE_SIZE);
 
     const deferredSearchQuery = useDeferredValue(searchQuery);
     const debouncedSearch = useDebounce(deferredSearchQuery, 300);

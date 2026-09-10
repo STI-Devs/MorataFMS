@@ -23,6 +23,7 @@ import {
     TableRow,
 } from '../../../components/ui/table';
 import { useConfirmationModal } from '../../../hooks/useConfirmationModal';
+import { DEFAULT_PAGE_SIZE } from '../../../lib/pagination';
 import {
     useCreateLocationOfGoods,
     useLocationsOfGoodsAdmin,
@@ -49,7 +50,7 @@ export const LocationOfGoodsManagement = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
     const [currentPage, setCurrentPage] = useState(1);
-    const [perPage, setPerPage] = useState(30);
+    const [perPage, setPerPage] = useState(DEFAULT_PAGE_SIZE);
 
     const { data: locationsOfGoods = [], isLoading, isError } = useLocationsOfGoodsAdmin();
     const createLocationOfGoods = useCreateLocationOfGoods();
@@ -431,7 +432,6 @@ export const LocationOfGoodsManagement = () => {
                                             setPerPage(newPerPage);
                                             setCurrentPage(1);
                                         }}
-                                        perPageOptions={[15, 30, 50, 100]}
                                         compact
                                     />
                                 </div>

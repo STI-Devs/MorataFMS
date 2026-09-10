@@ -11,6 +11,7 @@ import {
 import { EmptyState } from '../../../../components/EmptyState';
 import { Button } from '../../../../components/ui/button';
 import { Card } from '../../../../components/ui/card';
+import { DEFAULT_PAGE_SIZE, normalizePageSize, PAGE_SIZE_OPTIONS } from '../../../../lib/pagination';
 import {
     Select,
     SelectContent,
@@ -122,7 +123,7 @@ export function VesselGroupedImportList({ filters, onCancel }: Props) {
     
     const [searchParams, setSearchParams] = useSearchParams();
     const page = parseInt(searchParams.get('page') || '1');
-    const perPage = parseInt(searchParams.get('per_page') || '20');
+    const perPage = normalizePageSize(parseInt(searchParams.get('per_page') || String(DEFAULT_PAGE_SIZE)));
 
     const setPage = (nextPage: number) => {
         setSearchParams((prev) => { const next = new URLSearchParams(prev); next.set('page', String(nextPage)); return next; });
@@ -325,7 +326,7 @@ export function VesselGroupedImportList({ filters, onCancel }: Props) {
                                     <SelectValue placeholder={String(perPage)} />
                                 </SelectTrigger>
                                 <SelectContent side="top" className="min-w-[76px]">
-                                    {[15, 20, 50].map((option) => (
+                                    {PAGE_SIZE_OPTIONS.map((option) => (
                                         <SelectItem key={option} value={String(option)} className="text-xs">
                                             {option}
                                         </SelectItem>

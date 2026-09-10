@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ChevronRight, Folder } from 'lucide-react';
+import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS } from '../../../../lib/pagination';
 import type { ArchiveDocument, ArchiveYear } from '../../../documents/types/document.types';
 import type { ArchiveDocumentIndexResponse, ArchiveDocumentIndexRow } from '../../types/archiveHistory.types';
 import { useArchiveFolderHistory } from '../../hooks/useArchiveFolderHistory';
@@ -152,7 +153,7 @@ export const ArchivesDocumentView = ({
                             }}
                             className="rounded-lg border border-border/80 bg-background px-2 py-1 text-xs font-medium text-foreground outline-none transition-colors focus:border-primary cursor-pointer"
                         >
-                            {[25, 50, 100].map((option) => (
+                            {PAGE_SIZE_OPTIONS.map((option) => (
                                 <option key={option} value={option}>
                                     {option}
                                 </option>
@@ -312,7 +313,7 @@ export const ArchivesBLView = ({
     nav,
 }: ArchivesBLViewProps) => {
     const [page, setPage] = useState(1);
-    const [perPage, setPerPage] = useState(25);
+    const [perPage, setPerPage] = useState(DEFAULT_PAGE_SIZE);
     const queryIdentity = `${drill.year.year}|${drill.month}|${drill.type}|${search}|${filterStatus}|${sortKey}|${sortDir}`;
     const [lastQueryIdentity, setLastQueryIdentity] = useState(queryIdentity);
     const effectivePage = lastQueryIdentity === queryIdentity ? page : 1;
@@ -416,7 +417,7 @@ export const ArchivesBLView = ({
                             }}
                             className="rounded-lg border border-border/80 bg-background px-2 py-1 text-xs font-medium text-foreground outline-none transition-colors focus:border-primary cursor-pointer"
                         >
-                            {[25, 50, 100].map((option) => (
+                            {PAGE_SIZE_OPTIONS.map((option) => (
                                 <option key={option} value={option}>
                                     {option}
                                 </option>

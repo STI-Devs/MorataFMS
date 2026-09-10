@@ -205,7 +205,6 @@ export const DocumentsTable = ({
                         currentPage={meta.current_page}
                         totalPages={meta.last_page}
                         perPage={meta.per_page}
-                        perPageOptions={[15, 30, 50, 100]}
                         compact
                         onPageChange={onPageChange}
                         onPerPageChange={onPerPageChange}

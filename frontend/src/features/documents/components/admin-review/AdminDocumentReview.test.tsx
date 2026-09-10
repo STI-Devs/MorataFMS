@@ -83,7 +83,7 @@ const queueResponse = {
     meta: {
         current_page: 1,
         last_page: 1,
-        per_page: 10,
+        per_page: 50,
         total: 1,
     },
 };
@@ -318,7 +318,7 @@ describe('AdminDocumentReview', () => {
         await waitFor(() => {
             expect(mockUseReviewQueue).toHaveBeenLastCalledWith({
                 page: 1,
-                per_page: 10,
+                per_page: 50,
                 search: 'Acme',
                 type: 'all',
                 status: 'all',
@@ -337,7 +337,7 @@ describe('AdminDocumentReview', () => {
         await waitFor(() => {
             expect(mockUseReviewQueue).toHaveBeenLastCalledWith({
                 page: 1,
-                per_page: 10,
+                per_page: 50,
                 search: 'Acme',
                 type: 'export',
                 status: 'cancelled',
@@ -354,7 +354,7 @@ describe('AdminDocumentReview', () => {
                 meta: {
                     current_page: 1,
                     last_page: 1,
-                    per_page: 10,
+                    per_page: 50,
                     total: 0,
                 },
             },
@@ -447,7 +447,7 @@ describe('AdminDocumentReview', () => {
                 meta: {
                     current_page: 1,
                     last_page: 1,
-                    per_page: 10,
+                    per_page: 50,
                     total: 2,
                 },
             },

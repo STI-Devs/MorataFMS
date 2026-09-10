@@ -1,6 +1,7 @@
 import { useDeferredValue, useState } from 'react';
 import { ConfirmationModal } from '../../../../components/ConfirmationModal';
 import { Pagination } from '../../../../components/Pagination';
+import { DEFAULT_PAGE_SIZE } from '../../../../lib/pagination';
 import { useLegacyBatch } from '../../hooks/useLegacyBatch';
 import { useLegacyBatches } from '../../hooks/useLegacyBatches';
 import { useLegacyBatchMutations } from '../../hooks/useLegacyBatchMutations';
@@ -44,7 +45,7 @@ export const LegacyBatchesPage = ({
     onResumeBatch?: (batchId: string) => void;
 }) => {
     const [page, setPage] = useState(1);
-    const [perPage, setPerPage] = useState(25);
+    const [perPage, setPerPage] = useState(DEFAULT_PAGE_SIZE);
     const [search, setSearch] = useState('');
     const deferredSearch = useDeferredValue(search);
     const trimmedSearch = deferredSearch.trim();
@@ -273,7 +274,6 @@ export const LegacyBatchesPage = ({
                                     currentPage={pagination.currentPage}
                                     totalPages={pagination.lastPage}
                                     perPage={perPage}
-                                    perPageOptions={[25, 50, 100]}
                                     compact
                                     onPageChange={setPage}
                                     onPerPageChange={(nextPerPage) => {

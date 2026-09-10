@@ -142,7 +142,7 @@ describe('LegacyBatchesPage', () => {
                     : [batchSummary, secondBatchSummary],
                 pagination: {
                     currentPage: 1,
-                    perPage: 25,
+                    perPage: 50,
                     total: params?.search?.toLowerCase() === 'claire' ? 1 : 2,
                     lastPage: 1,
                     from: params?.search?.toLowerCase() === 'claire' ? 1 : 1,
@@ -188,7 +188,7 @@ describe('LegacyBatchesPage', () => {
 
         expect(useLegacyBatchesMock).toHaveBeenLastCalledWith({
             page: 1,
-            perPage: 25,
+            perPage: 50,
             search: 'claire',
             module: undefined,
         });
@@ -202,7 +202,7 @@ describe('LegacyBatchesPage', () => {
 
         expect(useLegacyBatchesMock).toHaveBeenLastCalledWith({
             page: 1,
-            perPage: 25,
+            perPage: 50,
             search: '',
             module: 'legal',
         });
